@@ -1,0 +1,87 @@
+&BasicParam
+
+! flow type
+icase= 1
+ithermo= 0
+icht= 0
+
+! domain decomposition
+p_row= 2
+p_col= 2
+
+! domain geometry
+lxx= 6.0
+lyt= 1.0
+lyb= -1.0
+lzz= 3.0
+
+! domain mesh
+nx= 32
+ny= 32
+nz= 32
+istret= 1
+rstret= 0.5
+
+! flow parameter
+ren= 2800.0
+
+! time stepping
+dt= 0.001
+iterFlowFirst= 1
+iterFlowLast= 1000
+
+! boundary condition
+ifbcx1= 0
+ifbcxn= 0
+ifbcy1= 0
+ifbcyn= 0
+ifbcz1= 0
+ifbczn= 0
+
+/End
+
+&InOutParam
+
+irestart= 0
+ncheckpoint= 200
+nvisu= 100
+iterStats= 500
+nstats= 100
+
+/End
+
+&NumOptions
+
+iviscous= 0
+ipressure= 0
+
+&InitlFields
+! only for starting from a random field. (irestart = 0)
+renIni= 28000.0
+nrenIni= 1000
+init_noise_all= 0.3
+init_noise_bll= 0.6
+
+/End
+
+&PeriodicDrv
+! only for periodic streamwise flow (ibcx1 = ibcxn = )
+idriven= 1
+
+/End
+
+&ThermoParam
+! only for (ithermo = 1)
+ifluid= 1
+igravity= 0
+len_ref= 0.01
+t_ref= 300.0
+t_ini= 350.0
+itbcx1= 1
+itbcxn= 1
+tbcx1= 10000.0
+tbcx2= 10000.0
+ithermoFirst= 1
+ithermoLast= 20000
+
+/End
