@@ -3,6 +3,7 @@ module geometry_variables_mod
   use parameters_input_mod
   use parameters_constant_mod
   use math_mod
+  use VTK_mod, only : Generate_vtk_mesh_slice
 
   real(wp) :: dx, dz
   real(wp) :: dx2, dz2
@@ -12,12 +13,13 @@ module geometry_variables_mod
   real(WP), allocatable, dimension(:) :: yc, yp
   real(WP), allocatable, dimension(:) :: zc, zp
 
+  public :: Initialize_geometry_variables
 
 contains
   subroutine Initialize_geometry_variables ()
     implicit none
     integer :: i, j, k
-    real(WP) :: s, yy
+    real(WP) :: s, yy, c1, c2, c3, c4
 
     dx = lxx / real(ncx, WP)
     dz = lzz / real(ncz, WP)
@@ -42,56 +44,57 @@ contains
     yp(:) = ZERO
     zp(:) = ZERO
 
-
-    block_xcoordinate: do i = 1, npx - 1
+    block_xcoordinate: do i = 1, npx
       xp(i) = real( (i - 1), WP ) * dx
-      xc(i) = (real( i, WP ) - HALF) * dx
+      if (i < npx) xc(i) = (real( i, WP ) - HALF) * dx
     end do block_xcoordinate
-    if(is_x_periodic) then
-      xp(npx) = xp(1)
-      xc(ncx) = xp(npx) + HALF * dx
-    else 
-      xp(npx) = lxx
-    end if 
 
-    block_zcoordinate: do k = 1, npz - 1
+    block_zcoordinate: do k = 1, npz
       zp(k) = real( (k - 1), WP ) * dz
-      zc(k) = zp(i) + HALF * dz
+      if (k < npz) zc(k) = (real( k, WP ) - HALF) * dz
     end do block_zcoordinate
-    if(is_z_periodic) then
-      zp(npz) = zp(1)
-    else 
-      zp(npz) = lzz
-    end if 
 
-    block_ycoordinate: if( istret == ISTRET_NO ) then
+    block_ycnst: if (istret == ISTRET_SIDES) then
+      c1 = rstret * HALF
+      c2 = tanh_wp (c1)
+      c3 = ONE
+      c4 = HALF
+    else if (istret == ISTRET_BOTTOM) then
+      c1 = rstret * ONE
+      c2 = tanh_wp (c1)
+      c3 = ONE
+      c4 = ONE
+    else if (istret == ISTRET_TOP) then
+      c1 = rstret * ZERO
+      c2 = tanh_wp (rstret)
+      c3 = ZERO
+      c4 = ONE
+    else
+      c1 = rstret * HALF
+      c2 = tanh_wp (c1)
+      c3 = ONE
+      c4 = HALF
+    end if block_ycnst
 
-      block_uniform_y: do j = 1, npy
-        s = real ((j - 1), WP) / real ( (npy - 1), WP)
-        yp(j) = s * (lyt - lyb)  + lyb
-      end do block_uniform_y
+    block_ynd: do j = 1, npy
+      yy = real ((j - 1), WP) / real ( (npy - 1), WP)
+      if(istret == ISTRET_NO) then
+        s = yy
+      else 
+        s = (tanh_wp( (rstret * yy) - c1 ) / c2 + c3) * c4
+      end if
+      yp(j) = s * (lyt - lyb) + lyb
+    end do block_ynd 
 
-    else if (istret == ISTRET_CENTRE) then
+    block_ycl: do j = 1, ncy
+      yc(j) = ( yp(j) + yp(j + 1) ) * HALF
+    end do block_ycl
 
-      yp(1) = lyb
-      yp(npy) = lyt
-
-    else if (istret == ISTRET_SIDES ) then
-      
-      yp(1) = lyb
-      yp(npy) = lyt
-
-      do j = 2, npy - 1
-        yy = real ((j - 1), WP) / real ( (npy - 1), WP)
-        s = ONE + (tanh_wp (rstret * (yy - ONE ) ) ) / (tanh_wp ( rstret ) )
-        yp(j) = s * (yp(npy) - yp(1)) + yp(1)
-      end do
-
-    else if (istret == ISTRET_BOTTOM ) then 
-    else if (istret == ISTRET_TOP ) then 
-    else 
-    end if block_ycoordinate
-
+    if(nrank == 0) then
+      call Generate_vtk_mesh_slice ( npx, npy, xp(:), yp(:), 'xy' )
+      call Generate_vtk_mesh_slice ( npx, npz, xp(:), zp(:), 'xz' )
+      call Generate_vtk_mesh_slice ( npy, npz, yp(:), zp(:), 'yz' )
+    end if
 
   end subroutine  Initialize_geometry_variables
   

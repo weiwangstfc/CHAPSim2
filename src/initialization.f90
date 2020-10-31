@@ -157,23 +157,9 @@ subroutine Set_derived_variables ( )
   use parameters_input_mod
   implicit none
 
-  block_xnode: if (is_x_periodic) then
-    npx = ncx
-  else 
-    npx = ncx + 1
-  end if block_xnode
-
-  block_ynode: if (is_y_periodic) then
-    npy = ncy
-  else 
-    npy = ncy + 1
-  end if block_ynode
-
-  block_znode: if (is_z_periodic) then
-    npz = ncz
-  else 
-    npz = ncz + 1
-  end if block_znode
+  npx = ncx + 1
+  npy = ncy + 1
+  npz = ncz + 1
   
 end subroutine Set_derived_variables
 

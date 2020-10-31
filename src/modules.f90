@@ -121,10 +121,9 @@ module parameters_constant_mod
                         ICASE_TGV     = 4
                         
   integer, parameter :: ISTRET_NO     = 0, &
-                        ISTRET_CENTRE = 1, &
-                        ISTRET_SIDES  = 2, &
-                        ISTRET_BOTTOM = 3, &
-                        ISTRET_TOP    = 4
+                        ISTRET_SIDES  = 1, &
+                        ISTRET_BOTTOM = 2, &
+                        ISTRET_TOP    = 3
 
   integer, parameter :: ISCP_WATER      = 1, &
                         ISCP_CO2        = 2, &

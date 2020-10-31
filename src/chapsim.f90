@@ -8,7 +8,7 @@ program chapsim
 end program
 !##############################################################################
 subroutine Initialize_chapsim()
-use  geometry_variables_mod
+use  geometry_variables_mod, only: Initialize_geometry_variables
 
   call Initialize_mpi
   call Initialize_input
