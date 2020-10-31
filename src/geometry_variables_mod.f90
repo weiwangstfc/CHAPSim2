@@ -1,9 +1,9 @@
-module geometry_variables_mod
-  use precision_mod
-  use parameters_input_mod
+module geometry_mod
+  use input_mod
   use parameters_constant_mod
   use math_mod
   use VTK_mod, only : Generate_vtk_mesh_slice
+  implicit none
 
   real(wp) :: dx, dz
   real(wp) :: dx2, dz2
@@ -17,7 +17,8 @@ module geometry_variables_mod
 
 contains
   subroutine Initialize_geometry_variables ()
-    implicit none
+    use mpi_mod
+
     integer :: i, j, k
     real(WP) :: s, yy, c1, c2, c3, c4
 
@@ -98,6 +99,6 @@ contains
 
   end subroutine  Initialize_geometry_variables
   
-end module geometry_variables_mod
+end module geometry_mod
 
 

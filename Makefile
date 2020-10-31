@@ -13,10 +13,13 @@ DIR_OBJ= ./obj
 DIR_MOD= ./mod
 
 OBJS= modules.o\
-	initialization.o\
-	mathtools.o\
+	mpi_mod.o\
 	tools.o\
-	variables.o\
+	input_mod.o\
+	domain_decomposition.o\
+	flow_variables_mod.o\
+	geometry_variables_mod.o\
+	time_stepping_mod.o\
 	chapsim.o
 
 OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall
@@ -43,6 +46,7 @@ all:
 	@mv $(PROGRAM) $(DIR_BIN)
 
 clean:
-	rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)
+	@rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)
+	@rm -f *.mod *.o $(DIR_SRC)/*.mod $(DIR_SRC)/*.o
 
 

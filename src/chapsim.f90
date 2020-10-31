@@ -1,26 +1,29 @@
 program chapsim
+  use mpi_mod
   implicit none
+
+  call Initialize_mpi()
 
   call Initialize_chapsim()
 
 
-  call Finalise_chapsim
+  call Finalise_mpi()
 end program
 !##############################################################################
 subroutine Initialize_chapsim()
-use  geometry_variables_mod, only: Initialize_geometry_variables
+  use input_mod, only : Initialize_input
+  use geometry_mod, only : Initialize_geometry_variables
+  use time_stepping_mod, only : Set_timestepping_coefficients
+  implicit none
 
-  call Initialize_mpi
-  call Initialize_input
-  call Initialize_domain_decompsition
-  call Initialize_geometry_variables
+  
+  call Initialize_input ()
+  call Initialize_domain_decompsition ()
+  call Initialize_geometry_variables ()
+  call Set_timestepping_coefficients ()
+  !call Initialize_flow_variables ()
 
 end subroutine Initialize_chapsim
 
 !##############################################################################
-subroutine Finalise_chapsim()
-  use mpi_info_mod
-  implicit none
 
-  CALL MPI_FINALIZE(IERROR)
-end subroutine Finalise_chapsim

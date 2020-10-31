@@ -1,14 +1,6 @@
 !##############################################################################
-module mpi_info_mod
-  include "mpif.h"
-  integer :: ierror
-  integer :: nrank
-  integer :: nproc
-end module mpi_info_mod
-
-!##############################################################################
 module precision_mod
-  use mpi_info_mod
+  
   integer, parameter :: I4 = selected_int_kind( 4 )
   integer, parameter :: I8 = selected_int_kind( 8 )
   integer, parameter :: I15 = selected_int_kind( 15 )
@@ -19,101 +11,45 @@ module precision_mod
   integer, parameter :: WP = DP
 
 end module precision_mod
-!##############################################################################
-module parameters_input_mod
-  use precision_mod
-
-  character(len = 9), parameter :: INPUT_FILE = 'input.ini'
-
-  ! flow type
-  integer :: icase
-  integer :: ithermo
-  integer :: icht
-  ! domain decomposition
-  integer :: p_row
-  integer :: p_col
-  ! domain geometry
-  real(WP) :: lxx, lzz, lyt, lyb
-  ! domain mesh
-  integer :: ncx, ncy, ncz
-  integer :: npx, npy, npz
-  integer :: istret
-  real(WP) :: rstret
-  ! flow parameter
-  real(WP) :: ren
-  ! time stepping
-  real(WP) :: dt
-  integer :: iterFlowFirst
-  integer :: iterFlowLast
-  ! boundary condition
-  
-  integer :: ifbcx(1:2)
-  integer :: ifbcy(1:2)
-  integer :: ifbcz(1:2)
-  ! InOutParam
-  integer :: irestart
-  integer :: ncheckpoint
-  integer :: nvisu
-  integer :: iterStatsFirst
-  integer :: nstats
-  ! NumOption
-  integer :: iviscous
-  integer :: ipressure
-  ! initial fields
-  real(WP) :: renIni
-  integer :: iterRenIniEnd
-  real(WP) :: initNoise
-  ! PeriodicDrv
-  integer :: idriven
-  ! ThermoParam
-  integer :: ifluid
-  
-  integer :: igravity
-  real(WP) :: lenRef
-  real(WP) :: t0Ref
-  real(WP) :: tiRef
-  integer :: itbcy(1:2)
-  real(WP) :: tbcy(1:2)
-  integer :: iterThermoFirst
-  integer :: iterThermoLast
-
-  ! derive parameters
-  logical :: is_x_periodic
-  logical :: is_y_periodic
-  logical :: is_z_periodic
-
-end module parameters_input_mod
 
 !##############################################################################
 module parameters_constant_mod
   use precision_mod
 
-  real(WP), parameter :: ZPONE    = 0.1_WP
-  real(WP), parameter :: ZPTWO    = 0.2_WP
-  real(WP), parameter :: ZPTHREE  = 0.3_WP
-  real(WP), parameter :: ZPFOUR   = 0.4_WP
-  real(WP), parameter :: ZPFIVE   = 0.5_WP
-  real(WP), parameter :: ZPSIX    = 0.6_WP
-  real(WP), parameter :: ZPSEVEN  = 0.7_WP
-  real(WP), parameter :: ZPEIGHT  = 0.8_WP
-  real(WP), parameter :: ZPNINE   = 0.9_WP
+  real(WP), parameter :: ZPONE     = 0.1_WP
+  real(WP), parameter :: ZPTWO     = 0.2_WP
+  real(WP), parameter :: ZPTHREE   = 0.3_WP
+  real(WP), parameter :: ZPFOUR    = 0.4_WP
+  real(WP), parameter :: ZPFIVE    = 0.5_WP
+  real(WP), parameter :: ZPSIX     = 0.6_WP
+  real(WP), parameter :: ZPSEVEN   = 0.7_WP
+  real(WP), parameter :: ZPEIGHT   = 0.8_WP
+  real(WP), parameter :: ZPNINE    = 0.9_WP
 
-  real(WP), parameter :: HALF     = 0.5_WP
-  real(WP), parameter :: ZERO     = 0.0_WP
-  real(WP), parameter :: ONE      = 1.0_WP
-  real(WP), parameter :: ONEPFIVE = 1.5_WP
-  real(WP), parameter :: TWO      = 2.0_WP
-  real(WP), parameter :: THREE    = 3.0_WP
-  real(WP), parameter :: FOUR     = 4.0_WP
-  real(WP), parameter :: FIVE     = 5.0_WP
-  real(WP), parameter :: SIX      = 6.0_WP
-  real(WP), parameter :: SEVEN    = 7.0_WP
-  real(WP), parameter :: EIGHT    = 8.0_WP
-  real(WP), parameter :: NINE     = 9.0_WP
+  real(WP), parameter :: HALF      = 0.5_WP
+  real(WP), parameter :: ZERO      = 0.0_WP
+  real(WP), parameter :: ONE       = 1.0_WP
+  real(WP), parameter :: ONEPFIVE  = 1.5_WP
+  real(WP), parameter :: TWO       = 2.0_WP
+  real(WP), parameter :: THREE     = 3.0_WP
+  real(WP), parameter :: FOUR      = 4.0_WP
+  real(WP), parameter :: FIVE      = 5.0_WP
+  real(WP), parameter :: SIX       = 6.0_WP
+  real(WP), parameter :: SEVEN     = 7.0_WP
+  real(WP), parameter :: EIGHT     = 8.0_WP
+  real(WP), parameter :: NINE      = 9.0_WP
+
+  real(WP), parameter :: TWELVE    = 12.0_WP 
+  real(WP), parameter :: FIFTEEN   = 15.0_WP
+  real(WP), parameter :: SEVENTEEN = 17.0_WP
+  real(WP), parameter :: SIXTY     = 60.0_WP
+
 
   real(WP),parameter :: PI = dacos( -ONE )
   real(WP),parameter :: TWOPI = TWO * dacos( -ONE )
 
+  integer, parameter :: ITIME_RK3 = 3, &
+                        ITIME_AB1 = 1
 
   integer, parameter :: ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
@@ -134,10 +70,48 @@ module parameters_constant_mod
 
 end module parameters_constant_mod
 
+
 !##############################################################################
-module parameters_properties_mod
+module math_mod
   use precision_mod
 
-end module parameters_properties_mod
+  interface sqrt_wp
+    module procedure sqrt_sp
+    module procedure sqrt_dp
+  end interface sqrt_wp
+
+  interface tanh_wp
+    module procedure tanh_sp
+    module procedure tanh_dp
+  end interface tanh_wp
+
+contains
+
+  pure function sqrt_sp ( r ) result(d)
+    real(kind = SP), intent(in) :: r
+    real(kind = SP) :: d
+    d = sqrt ( r )
+  end function
+
+  pure function sqrt_dp ( r ) result (d)
+    real(kind = DP), intent(in) :: r
+    real(kind = DP) :: d
+    d = dsqrt ( r ) 
+  end function
+
+
+  pure function tanh_sp ( r ) result(d)
+    real(kind = SP), intent(in) :: r
+    real(kind = SP) :: d
+    d = tanh ( r )
+  end function
+
+  pure function tanh_dp ( r ) result (d)
+    real(kind = DP), intent(in) :: r
+    real(kind = DP) :: d
+    d = dtanh ( r ) 
+  end function
+
+end module math_mod
 
 

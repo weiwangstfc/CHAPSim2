@@ -1,9 +1,12 @@
 module VTK_mod
   use parameters_constant_mod
   implicit none
+  
   private 
   public :: Generate_vtk_mesh_slice
+
 contains
+
   subroutine Generate_vtk_mesh_slice(n1, n2, x1, x2, str)
     integer, intent( in ) :: n1, n2
     real(WP), intent( in ) :: x1(:), x2(:)
@@ -12,7 +15,7 @@ contains
     integer :: output_unit
     integer :: i, j
 
-    open(newunit = output_unit, file = 'mesh_'//str//'.vtk', action = "write")
+    open(newunit = output_unit, file = 'mesh_'//str//'.vtk', action = "write", status = "replace")
     write(output_unit, '(A)') '# vtk DataFile Version 2.0'
     write(output_unit, '(A)') str//'_mesh'
     write(output_unit, '(A)') 'ASCII'
