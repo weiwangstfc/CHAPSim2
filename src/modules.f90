@@ -1,6 +1,14 @@
 !##############################################################################
-module precision_mod
+module mpi_info_mod
+  include "mpif.h"
+  integer :: ierror
+  integer :: nrank
+  integer :: nproc
+end module mpi_info_mod
 
+!##############################################################################
+module precision_mod
+  use mpi_info_mod
   integer, parameter :: I4 = selected_int_kind( 4 )
   integer, parameter :: I8 = selected_int_kind( 8 )
   integer, parameter :: I15 = selected_int_kind( 15 )
@@ -12,14 +20,6 @@ module precision_mod
 
 end module precision_mod
 !##############################################################################
-module mpi_info_mod
-  include "mpif.h"
-  integer :: ierror
-  integer :: nrank
-  integer :: nproc
-end module mpi_info_mod
-
-!##############################################################################
 module parameters_input_mod
   use precision_mod
 
@@ -27,12 +27,7 @@ module parameters_input_mod
 
   ! flow type
   integer :: icase
-  integer, parameter :: ICASE_CHANNEL = 1, &
-                        ICASE_PIPE    = 2, &
-                        ICASE_ANNUAL  = 3, &
-                        ICASE_TGV     = 4
   integer :: ithermo
-                        
   integer :: icht
   ! domain decomposition
   integer :: p_row
@@ -40,8 +35,8 @@ module parameters_input_mod
   ! domain geometry
   real(WP) :: lxx, lzz, lyt, lyb
   ! domain mesh
-  integer :: nclx, ncly, nclz
-  integer :: nndx, nndy, nndz
+  integer :: ncx, ncy, ncz
+  integer :: npx, npy, npz
   integer :: istret
   real(WP) :: rstret
   ! flow parameter
@@ -72,12 +67,7 @@ module parameters_input_mod
   integer :: idriven
   ! ThermoParam
   integer :: ifluid
-  integer, parameter :: ISCP_WATER      = 1, &
-                        ISCP_CO2        = 2, &
-                        ILIQUID_SODIUM  = 3, &
-                        ILIQUID_LEAD    = 4, &
-                        ILIQUID_BISMUTH = 5, &
-                        ILIQUID_LBE     = 6
+  
   integer :: igravity
   real(WP) :: lenRef
   real(WP) :: t0Ref
@@ -123,6 +113,25 @@ module parameters_constant_mod
 
   real(WP),parameter :: PI = dacos( -ONE )
   real(WP),parameter :: TWOPI = TWO * dacos( -ONE )
+
+
+  integer, parameter :: ICASE_CHANNEL = 1, &
+                        ICASE_PIPE    = 2, &
+                        ICASE_ANNUAL  = 3, &
+                        ICASE_TGV     = 4
+                        
+  integer, parameter :: ISTRET_NO     = 0, &
+                        ISTRET_CENTRE = 1, &
+                        ISTRET_SIDES  = 2, &
+                        ISTRET_BOTTOM = 3, &
+                        ISTRET_TOP    = 4
+
+  integer, parameter :: ISCP_WATER      = 1, &
+                        ISCP_CO2        = 2, &
+                        ILIQUID_SODIUM  = 3, &
+                        ILIQUID_LEAD    = 4, &
+                        ILIQUID_BISMUTH = 5, &
+                        ILIQUID_LBE     = 6
 
 end module parameters_constant_mod
 

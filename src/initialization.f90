@@ -1,14 +1,4 @@
 !##############################################################################
-subroutine Initialize_chapsim
-
-  call Initialize_mpi
-  call Initialize_input
-  call Initialize_domain_decompsition
-
-
-end subroutine Initialize_chapsim
-
-!##############################################################################
 subroutine Initialize_mpi
   use mpi_info_mod
   implicit none
@@ -72,9 +62,9 @@ subroutine Initialize_input
 
     else if ( section_name(1:slen) == '[mesh]' ) then
 
-      read(input_unit, *, iostat = ioerr) variable_name, nclx
-      read(input_unit, *, iostat = ioerr) variable_name, ncly
-      read(input_unit, *, iostat = ioerr) variable_name, nclz
+      read(input_unit, *, iostat = ioerr) variable_name, ncx
+      read(input_unit, *, iostat = ioerr) variable_name, ncy
+      read(input_unit, *, iostat = ioerr) variable_name, ncz
       read(input_unit, *, iostat = ioerr) variable_name, istret
       read(input_unit, *, iostat = ioerr) variable_name, rstret
 
@@ -147,36 +137,42 @@ subroutine Initialize_input
   call Set_periodic_bc ( ifbcy, is_y_periodic )
   call Set_periodic_bc ( ifbcz, is_z_periodic )
 
+  ! to set up other variables derived from input variables
+  call Set_derived_variables ( )
+
 end subroutine Initialize_input
 
 !##############################################################################
 subroutine Initialize_domain_decompsition
+  use parameters_input_mod
   implicit none
+
+  !call decomp_2d_init( npx, npy, npz, p_row, p_row )
 
 
 end subroutine Initialize_domain_decompsition
 
 !##############################################################################
-subroutine Set_derived_variables()
+subroutine Set_derived_variables ( )
   use parameters_input_mod
   implicit none
 
   block_xnode: if (is_x_periodic) then
-    nndx = nclx
+    npx = ncx
   else 
-    nndx = nclx + 1
+    npx = ncx + 1
   end if block_xnode
 
   block_ynode: if (is_y_periodic) then
-    nndy = ncly
+    npy = ncy
   else 
-    nndy = ncly + 1
+    npy = ncy + 1
   end if block_ynode
 
   block_znode: if (is_z_periodic) then
-    nndz = nclz
+    npz = ncz
   else 
-    nndz = nclz + 1
+    npz = ncz + 1
   end if block_znode
   
 end subroutine Set_derived_variables

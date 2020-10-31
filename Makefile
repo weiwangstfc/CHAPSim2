@@ -14,7 +14,12 @@ DIR_MOD= ./mod
 
 OBJS= modules.o\
 	initialization.o\
+	mathtools.o\
+	tools.o\
+	variables.o\
 	chapsim.o
+
+OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall
 
 default :
 	@cd $(DIR_BIN)
@@ -29,6 +34,13 @@ $(PROGRAM): $(OBJS)
 %.o : $(DIR_SRC)/%.f90
 	$(F90) $(INCLUDE) $(OPTIONS) $(F90FLAGS) -c $<
 
+all:
+	@make clean
+	@cd $(DIR_BIN)
+	make $(PROGRAM) -f Makefile
+	@mv *.mod $(DIR_MOD)
+	@mv *.o $(DIR_OBJ)
+	@mv $(PROGRAM) $(DIR_BIN)
 
 clean:
 	rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)
