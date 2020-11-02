@@ -35,6 +35,51 @@ end module VTK_mod
 
 
 
+module table_index_locating_mod
+  implicit none
+  private 
+  public :: Map_variables_from_list
+
+contains 
+
+  pure function Map_variables_from_list(a, alist, blist) result(b)
+    use precision_mod
+    use parameters_constant_mod, only : MINP, ONE
+    implicit none
+    real(WP), intent(in) :: a
+    real(WP), intent(in) :: alist(:)
+    real(WP), intent(in) :: blist(:)
+    real(WP) :: b
+
+    integer :: i1, i2
+    real(WP) :: d1, dm
+    real(WP) :: w1, w2
+
+    i1 = 1
+    i2 = size(alist)
+
+    do while ( (i2 - i1) > 1)
+      im = i1 + (i2 - i1) / 2
+      d1 = alist(i1) - a0
+      dm = alist(im) - a0
+      if ( (d1 * dm) > MINP ) then
+        i1 = im
+      else
+        i2 = im
+      end if
+    end do
+
+    w1 = (alist(i2) - a0) / (alist(i2) - alist(i1)) 
+    w2 = ONE - w1
+
+    b = w1 * blist(i1) + w2 * blist(i2)
+
+  end function Map_variables_from_list
+end module table_index_locating_mod
+
+
+
+
 
 
 

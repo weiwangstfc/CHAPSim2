@@ -13,6 +13,7 @@ module flow_variables_mod
     real(WP), save, allocatable, dimension(:, :, :) :: density
     real(WP), save, allocatable, dimension(:, :, :) :: temperature
     real(WP), save, allocatable, dimension(:, :, :) :: thermalConductivity
+    real(WP), save, allocatable, dimension(:, :, :) :: dynamicViscosity
   end if
 
   public : Allocate_flow_variables
@@ -38,7 +39,7 @@ contains
       call alloc_x (density,             opt_global=.true.)
       call alloc_x (temperature,         opt_global=.true.)
       call alloc_x (thermalConductivity, opt_global=.true.)
-
+      call alloc_x (dynamicViscosity,    opt_global=.true.)
     end if
 
   end subroutine Allocate_flow_variables

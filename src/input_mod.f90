@@ -47,7 +47,6 @@ module input_mod
   integer :: idriven
   ! ThermoParam
   integer :: ifluid
-  
   integer :: igravity
   real(WP) :: lenRef
   real(WP) :: t0Ref
@@ -89,13 +88,13 @@ contains
 
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
-    integer :: ioerr, input_unit
+    integer :: ioerr, inputUnit
 
     character(len = 80) :: section_name
-    character(len = 80) :: variable_name
+    character(len = 80) :: variableName
     integer :: slen
 
-    open ( newunit = input_unit, file = INPUT_FILE, status = 'old', action  = 'read', &
+    open ( newunit = inputUnit, file = INPUT_FILE, status = 'old', action  = 'read', &
           iostat = ioerr, iomsg = iotxt)
     if(ioerr /= 0) then
       write (ERROR_UNIT, *) 'Problem openning : ', INPUT_FILE, ' for reading.'
@@ -104,7 +103,7 @@ contains
     end if
     
     do 
-      read(input_unit, '(a)', iostat = ioerr) section_name
+      read(inputUnit, '(a)', iostat = ioerr) section_name
       slen = len_trim(section_name)
       if (ioerr /=0 ) exit
       if ( (section_name(1:1) == ';') .or. &
@@ -116,81 +115,81 @@ contains
 
       block_section: if ( section_name(1:slen) == '[flowtype]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, icase
-        read(input_unit, *, iostat = ioerr) variable_name, ithermo
-        read(input_unit, *, iostat = ioerr) variable_name, icht
+        read(inputUnit, *, iostat = ioerr) variableName, icase
+        read(inputUnit, *, iostat = ioerr) variableName, ithermo
+        read(inputUnit, *, iostat = ioerr) variableName, icht
 
       else if ( section_name(1:slen) == '[decomposition]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, p_row
-        read(input_unit, *, iostat = ioerr) variable_name, p_col
+        read(inputUnit, *, iostat = ioerr) variableName, p_row
+        read(inputUnit, *, iostat = ioerr) variableName, p_col
 
       else if ( section_name(1:slen) == '[geometry]' )  then 
 
-        read(input_unit, *, iostat = ioerr) variable_name, lxx
-        read(input_unit, *, iostat = ioerr) variable_name, lyt
-        read(input_unit, *, iostat = ioerr) variable_name, lyb
-        read(input_unit, *, iostat = ioerr) variable_name, lzz
+        read(inputUnit, *, iostat = ioerr) variableName, lxx
+        read(inputUnit, *, iostat = ioerr) variableName, lyt
+        read(inputUnit, *, iostat = ioerr) variableName, lyb
+        read(inputUnit, *, iostat = ioerr) variableName, lzz
 
       else if ( section_name(1:slen) == '[mesh]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, ncx
-        read(input_unit, *, iostat = ioerr) variable_name, ncy
-        read(input_unit, *, iostat = ioerr) variable_name, ncz
-        read(input_unit, *, iostat = ioerr) variable_name, istret
-        read(input_unit, *, iostat = ioerr) variable_name, rstret
+        read(inputUnit, *, iostat = ioerr) variableName, ncx
+        read(inputUnit, *, iostat = ioerr) variableName, ncy
+        read(inputUnit, *, iostat = ioerr) variableName, ncz
+        read(inputUnit, *, iostat = ioerr) variableName, istret
+        read(inputUnit, *, iostat = ioerr) variableName, rstret
 
       else if ( section_name(1:slen) == '[flowparams]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, ren
+        read(inputUnit, *, iostat = ioerr) variableName, ren
 
       else if ( section_name(1:slen) == '[timestepping]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, dt
-        read(input_unit, *, iostat = ioerr) variable_name, iterFlowFirst
-        read(input_unit, *, iostat = ioerr) variable_name, iterFlowLast
+        read(inputUnit, *, iostat = ioerr) variableName, dt
+        read(inputUnit, *, iostat = ioerr) variableName, iterFlowFirst
+        read(inputUnit, *, iostat = ioerr) variableName, iterFlowLast
 
       else if ( section_name(1:slen) == '[boundary]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, ifbcx(1), ifbcx(2)
-        read(input_unit, *, iostat = ioerr) variable_name, ifbcy(1), ifbcy(2)
-        read(input_unit, *, iostat = ioerr) variable_name, ifbcz(1), ifbcz(2)
+        read(inputUnit, *, iostat = ioerr) variableName, ifbcx(1), ifbcx(2)
+        read(inputUnit, *, iostat = ioerr) variableName, ifbcy(1), ifbcy(2)
+        read(inputUnit, *, iostat = ioerr) variableName, ifbcz(1), ifbcz(2)
 
       else if ( section_name(1:slen) == '[ioparams]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, irestart
-        read(input_unit, *, iostat = ioerr) variable_name, ncheckpoint
-        read(input_unit, *, iostat = ioerr) variable_name, nvisu
-        read(input_unit, *, iostat = ioerr) variable_name, iterStatsFirst
-        read(input_unit, *, iostat = ioerr) variable_name, nstats
+        read(inputUnit, *, iostat = ioerr) variableName, irestart
+        read(inputUnit, *, iostat = ioerr) variableName, ncheckpoint
+        read(inputUnit, *, iostat = ioerr) variableName, nvisu
+        read(inputUnit, *, iostat = ioerr) variableName, iterStatsFirst
+        read(inputUnit, *, iostat = ioerr) variableName, nstats
 
       else if ( section_name(1:slen) == '[schemes]' ) then
         
-        read(input_unit, *, iostat = ioerr) variable_name, itimesteping
-        read(input_unit, *, iostat = ioerr) variable_name, iviscous
-        read(input_unit, *, iostat = ioerr) variable_name, ipressure
+        read(inputUnit, *, iostat = ioerr) variableName, itimesteping
+        read(inputUnit, *, iostat = ioerr) variableName, iviscous
+        read(inputUnit, *, iostat = ioerr) variableName, ipressure
 
       else if ( section_name(1:slen) == '[initialization]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, renIni
-        read(input_unit, *, iostat = ioerr) variable_name, iterRenIniEnd
-        read(input_unit, *, iostat = ioerr) variable_name, initNoise
+        read(inputUnit, *, iostat = ioerr) variableName, renIni
+        read(inputUnit, *, iostat = ioerr) variableName, iterRenIniEnd
+        read(inputUnit, *, iostat = ioerr) variableName, initNoise
 
       else if ( section_name(1:slen) == '[periodicdriven]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, idriven
+        read(inputUnit, *, iostat = ioerr) variableName, idriven
 
       else if ( section_name(1:slen) == '[thermohydraulics]' ) then
 
-        read(input_unit, *, iostat = ioerr) variable_name, ifluid
-        read(input_unit, *, iostat = ioerr) variable_name, igravity
-        read(input_unit, *, iostat = ioerr) variable_name, lenRef
-        read(input_unit, *, iostat = ioerr) variable_name, t0Ref
-        read(input_unit, *, iostat = ioerr) variable_name, tiRef
-        read(input_unit, *, iostat = ioerr) variable_name, itbcy(1), itbcy(2)
-        read(input_unit, *, iostat = ioerr) variable_name, tbcy(1), tbcy(2)
-        read(input_unit, *, iostat = ioerr) variable_name, iterThermoFirst
-        read(input_unit, *, iostat = ioerr) variable_name, iterThermoLast
+        read(inputUnit, *, iostat = ioerr) variableName, ifluid
+        read(inputUnit, *, iostat = ioerr) variableName, igravity
+        read(inputUnit, *, iostat = ioerr) variableName, lenRef
+        read(inputUnit, *, iostat = ioerr) variableName, t0Ref
+        read(inputUnit, *, iostat = ioerr) variableName, tiRef
+        read(inputUnit, *, iostat = ioerr) variableName, itbcy(1), itbcy(2)
+        read(inputUnit, *, iostat = ioerr) variableName, tbcy(1), tbcy(2)
+        read(inputUnit, *, iostat = ioerr) variableName, iterThermoFirst
+        read(inputUnit, *, iostat = ioerr) variableName, iterThermoLast
 
       else
         exit
@@ -203,7 +202,7 @@ contains
       stop 3
     end if
 
-    close(input_unit)
+    close(inputUnit)
 
     ! to set up periodic boundary conditions
     call Set_periodic_bc ( ifbcx, is_x_periodic )

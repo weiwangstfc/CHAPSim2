@@ -44,6 +44,15 @@ module parameters_constant_mod
   real(WP), parameter :: SEVENTEEN = 17.0_WP
   real(WP), parameter :: SIXTY     = 60.0_WP
 
+  real(WP), parameter :: MINP      = 1.0E-20_WP
+  real(WP), parameter :: MAXP      = 1.0E20_WP
+
+  real(WP), parameter :: MINN      = -1.0E20_WP
+  real(WP), parameter :: MAXN      = -1.0E-20_WP
+
+
+
+
 
   real(WP),parameter :: PI = dacos( -ONE )
   real(WP),parameter :: TWOPI = TWO * dacos( -ONE )
@@ -61,13 +70,6 @@ module parameters_constant_mod
                         ISTRET_BOTTOM = 2, &
                         ISTRET_TOP    = 3
 
-  integer, parameter :: ISCP_WATER      = 1, &
-                        ISCP_CO2        = 2, &
-                        ILIQUID_SODIUM  = 3, &
-                        ILIQUID_LEAD    = 4, &
-                        ILIQUID_BISMUTH = 5, &
-                        ILIQUID_LBE     = 6
-
 end module parameters_constant_mod
 
 
@@ -82,9 +84,7 @@ module math_mod
 
   interface tanh_wp
     module procedure tanh_sp
-    module procedure tanh_dp
-  end interface tanh_wp
-
+    module procedurLocate_table_index
 contains
 
   pure function sqrt_sp ( r ) result(d)
