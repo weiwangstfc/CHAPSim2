@@ -84,7 +84,9 @@ module math_mod
 
   interface tanh_wp
     module procedure tanh_sp
-    module procedurLocate_table_index
+    module procedure tanh_dp
+  end interface tanh_wp
+  
 contains
 
   pure function sqrt_sp ( r ) result(d)

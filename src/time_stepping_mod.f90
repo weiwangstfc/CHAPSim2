@@ -13,7 +13,7 @@ contains
 
   subroutine Set_timestepping_coefficients()
     use parameters_constant_mod
-    use input_mod, only : itimesteping
+    use input_general_mod, only : itimesteping
 
     if(itimesteping == ITIME_RK3) then
       

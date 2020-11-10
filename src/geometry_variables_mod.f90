@@ -1,5 +1,5 @@
 module geometry_mod
-  use input_mod
+  use input_general_mod
   use parameters_constant_mod
   use math_mod
   use VTK_mod, only : Generate_vtk_mesh_slice

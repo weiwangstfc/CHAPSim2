@@ -1,22 +1,20 @@
 module flow_variables_mod
   use precision_mod
-  use input_mod, only: ithermo
+  use input_general_mod, only: ithermo
   implicit none
 
   real(WP), save, allocatable, dimension(:, :, :) :: ux, uy, uz
   real(WP), save, allocatable, dimension(:, :, :) :: gx, gy, gz
   real(WP), save, allocatable, dimension(:, :, :) :: pre, phi
 
-  if(ithermo == 1) then
-    real(WP), save, allocatable, dimension(:, :, :) :: massEnthalpy
-    real(WP), save, allocatable, dimension(:, :, :) :: enthalpy
-    real(WP), save, allocatable, dimension(:, :, :) :: density
-    real(WP), save, allocatable, dimension(:, :, :) :: temperature
-    real(WP), save, allocatable, dimension(:, :, :) :: thermalConductivity
-    real(WP), save, allocatable, dimension(:, :, :) :: dynamicViscosity
-  end if
+  real(WP), save, allocatable, dimension(:, :, :) :: massEnthalpy
+  real(WP), save, allocatable, dimension(:, :, :) :: enthalpy
+  real(WP), save, allocatable, dimension(:, :, :) :: density
+  real(WP), save, allocatable, dimension(:, :, :) :: temperature
+  real(WP), save, allocatable, dimension(:, :, :) :: thermalConductivity
+  real(WP), save, allocatable, dimension(:, :, :) :: dynamicViscosity
 
-  public : Allocate_flow_variables
+  public :: Allocate_flow_variables
 
 contains
   subroutine Allocate_flow_variables ()
@@ -41,6 +39,7 @@ contains
       call alloc_x (thermalConductivity, opt_global=.true.)
       call alloc_x (dynamicViscosity,    opt_global=.true.)
     end if
+    !if(nrank == 0) print *, shape(ux) !test
 
   end subroutine Allocate_flow_variables
 

@@ -16,6 +16,7 @@ OBJS= modules.o\
 	mpi_mod.o\
 	tools.o\
 	input_mod.o\
+	input_thermo_mod.o\
 	domain_decomposition.o\
 	flow_variables_mod.o\
 	geometry_variables_mod.o\

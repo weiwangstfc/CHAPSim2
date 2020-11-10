@@ -1,5 +1,5 @@
 !##############################################################################
-module input_mod
+module input_general_mod
   use precision_mod
   implicit none
 
@@ -64,7 +64,7 @@ module input_mod
   integer :: npx, npy, npz
 
   private :: Set_periodic_bc
-  public :: Initialize_input
+  public :: Initialize_general_input
 
 contains
 
@@ -82,7 +82,7 @@ contains
 
   end subroutine Set_periodic_bc
 
-  subroutine Initialize_input ()
+  subroutine Initialize_general_input ()
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
     implicit none
 
@@ -214,7 +214,7 @@ contains
     npy = ncy + 1
     npz = ncz + 1
 
-  end subroutine Initialize_input
+  end subroutine Initialize_general_input
 end module 
 
 
