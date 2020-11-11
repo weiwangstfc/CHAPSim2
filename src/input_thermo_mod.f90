@@ -79,7 +79,7 @@ module input_thermo_mod
     real(WP) :: m !dynviscosity
     real(WP) :: k !thermconductivity
     real(WP) :: h !enthalpy
-    real(WP) :: dh ! mass enthophy
+    real(WP) :: dh ! mass enthalpy
     real(WP) :: cp ! specific heat capacity 
     real(WP) :: b ! thermal expansion
 
