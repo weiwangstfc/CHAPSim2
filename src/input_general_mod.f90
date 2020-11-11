@@ -5,6 +5,16 @@ module input_general_mod
 
   character(len = 9), parameter :: INPUT_FILE = 'input.ini'
 
+  integer, parameter :: ICASE_CHANNEL = 1, &
+                        ICASE_PIPE    = 2, &
+                        ICASE_ANNUAL  = 3, &
+                        ICASE_TGV     = 4
+                        
+  integer, parameter :: ISTRET_NO     = 0, &
+                        ISTRET_SIDES  = 1, &
+                        ISTRET_BOTTOM = 2, &
+                        ISTRET_TOP    = 3
+
   ! flow type
   integer :: icase
   integer :: ithermo

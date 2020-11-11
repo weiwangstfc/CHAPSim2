@@ -1,24 +1,77 @@
 module geometry_mod
-  use input_general_mod
-  use parameters_constant_mod
-  use math_mod
-  use VTK_mod, only : Generate_vtk_mesh_slice
+  use precision_mod
   implicit none
 
   real(wp) :: dx, dz
   real(wp) :: dx2, dz2
   real(wp) :: dxi, dzi
 
-  real(WP), save, allocatable, dimension(:) :: xc, xp
-  real(WP), save, allocatable, dimension(:) :: yc, yp
-  real(WP), save, allocatable, dimension(:) :: zc, zp
+  type node_t
+    real(WP) :: x
+    real(WP) :: y
+    real(WP) :: z
+  end type node_t
 
+  type cell_t
+    real(WP) :: x
+    real(WP) :: y
+    real(WP) :: z
+  end type cell_t
+
+  type(node_t), save, allocatable, dimension(:, :, :) :: node
+  type(cell_t), save, allocatable, dimension(:, :, :) :: cell
+  
+  private
   public :: Initialize_geometry_variables
+  public :: Display_vtk_mesh
 
 contains
+
+  subroutine Display_vtk_mesh(nd, str)
+    type(node_t), intent( in ) :: nd(:, :, :)
+    character( len = *), intent( in ) :: str
+
+    integer :: output_unit
+    integer :: i, j, k
+    integer :: n1, n2, n3
+
+    n1 = size( nd(:, 1, 1) )
+    n2 = size( nd(1, :, 1) )
+    n3 = size( nd(1, 1, :) )
+
+    if ( trim( str ) == 'xy' ) then
+      n3 = 1
+    end if
+    if ( trim( str ) == 'yz' ) then
+      n1 = 1
+    end if
+    if ( trim( str ) == 'zx' ) then
+      n2 = 1
+    end if
+
+    open(newunit = output_unit, file = 'mesh_'//str//'.vtk', action = "write", status = "replace")
+    write(output_unit, '(A)') '# vtk DataFile Version 2.0'
+    write(output_unit, '(A)') str//'_mesh'
+    write(output_unit, '(A)') 'ASCII'
+    write(output_unit, '(A)') 'DATASET STRUCTURED_GRID'
+    write(output_unit, '(A, 3I10.1)') 'DIMENSIONS', n1, n2, n3
+    write(output_unit, '(A, I10.1, X, A)') 'POINTS', n1 * n2 * n3, 'float'
+    do k = 1, n3
+      do j = 1, n2
+        do i = 1, n1
+          write(output_unit, *) nd(i, j, k)%x, nd(i, j, k)%y, nd(i, j, k)%z 
+        end do
+      end do
+    end do
+    close(output_unit)
+
+  end subroutine Display_vtk_mesh
+
   subroutine Initialize_geometry_variables ()
     use mpi_mod
-
+    use input_general_mod
+    use math_mod
+    use parameters_constant_mod, only : ONE, HALF, ZERO
     integer :: i, j, k
     real(WP) :: s, yy, c1, c2, c3, c4
 
@@ -31,28 +84,37 @@ contains
     dxi = ONE / dx
     dzi = ONE / dz
 
-    allocate ( xc(ncx) )
-    allocate ( yc(ncy) )
-    allocate ( zc(ncz) )
-    xc(:) = ZERO
-    yc(:) = ZERO
-    zc(:) = ZERO
-
-    allocate ( xp(npx) )
-    allocate ( yp(npy) )
-    allocate ( zp(npz) )
-    xp(:) = ZERO
-    yp(:) = ZERO
-    zp(:) = ZERO
+    allocate ( node (npx, npy, npz) )
+    allocate ( cell (ncx, ncy, ncz) )
+    
+    do k = 1, npz
+      do j = 1, npy
+        do i = 1, npx
+          node(i, j, k)%x = ZERO
+          node(i, j, k)%y = ZERO
+          node(i, j, k)%z = ZERO
+        end do
+      end do
+    end do
+    
+    do k = 1, ncz
+      do j = 1, ncy
+        do i = 1, ncx
+          cell(i, j, k)%x = ZERO
+          cell(i, j, k)%y = ZERO
+          cell(i, j, k)%z = ZERO
+        end do
+      end do
+    end do
 
     block_xcoordinate: do i = 1, npx
-      xp(i) = real( (i - 1), WP ) * dx
-      if (i < npx) xc(i) = (real( i, WP ) - HALF) * dx
+      node(i, :, :)%x = real( (i - 1), WP ) * dx
+      if (i < npx) cell(i, :, :)%x = (real( i, WP ) - HALF) * dx
     end do block_xcoordinate
 
     block_zcoordinate: do k = 1, npz
-      zp(k) = real( (k - 1), WP ) * dz
-      if (k < npz) zc(k) = (real( k, WP ) - HALF) * dz
+      node(:, :, k)%z = real( (k - 1), WP ) * dz
+      if (k < npz) cell(:, :, k)%z = (real( k, WP ) - HALF) * dz
     end do block_zcoordinate
 
     block_ycnst: if (istret == ISTRET_SIDES) then
@@ -84,21 +146,22 @@ contains
       else 
         s = (tanh_wp( (rstret * yy) - c1 ) / c2 + c3) * c4
       end if
-      yp(j) = s * (lyt - lyb) + lyb
+      node(:, j, :)%y = s * (lyt - lyb) + lyb
     end do block_ynd 
 
     block_ycl: do j = 1, ncy
-      yc(j) = ( yp(j) + yp(j + 1) ) * HALF
+      cell(:, j, :)%y = ( node(1, j, 1)%y + node(1, j + 1, 1)%y ) * HALF
     end do block_ycl
 
-    if(nrank == 0) then
-      call Generate_vtk_mesh_slice ( npx, npy, xp(:), yp(:), 'xy' )
-      call Generate_vtk_mesh_slice ( npx, npz, xp(:), zp(:), 'xz' )
-      call Generate_vtk_mesh_slice ( npy, npz, yp(:), zp(:), 'yz' )
+    if(nrank == 0) then ! test
+      call Display_vtk_mesh ( node(:, :, :), 'xy' )
+      call Display_vtk_mesh ( node(:, :, :), 'yz' )
+      call Display_vtk_mesh ( node(:, :, :), 'zx' )
+      call Display_vtk_mesh ( node(:, :, :), '3D' )
     end if
 
   end subroutine  Initialize_geometry_variables
-  
+
 end module geometry_mod
 
 

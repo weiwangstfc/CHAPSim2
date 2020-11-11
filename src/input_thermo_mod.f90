@@ -88,7 +88,7 @@ module input_thermo_mod
     private
 
     procedure, public :: is_T_in_scope
-    procedure, public :: Get_initilized
+    procedure, public :: Get_initilized_tp
     procedure, public :: GetTP_from_T
     procedure, public :: GetTP_from_H
     procedure, public :: GetTP_from_DH
@@ -117,7 +117,7 @@ module input_thermo_mod
 
 contains
   !!--------------------------------
-  subroutine Get_initilized ( tp )
+  subroutine Get_initilized_tp ( tp )
     use parameters_constant_mod, only: ZERO, ONE
     class(thermoProperty_t) :: tp
 
@@ -130,7 +130,7 @@ contains
     tp%h = ZERO
     tp%dh = ZERO
 
-  end subroutine Get_initilized
+  end subroutine Get_initilized_tp
 
 
   subroutine is_T_in_scope ( tp )
@@ -479,8 +479,8 @@ contains
 
     end select
 
-    call tpRef0%Get_initilized()
-    call tpIni0%Get_initilized()
+    call tpRef0%Get_initilized_tp()
+    call tpIni0%Get_initilized_tp()
     tpRef0%t = t0Ref
     tpIni0%t = tiRef
 
@@ -520,7 +520,7 @@ contains
 
     read(inputUnit, *, iostat = ioerr) str
     block_tablereading: do i = 1, nlist
-     call listTP(i)%Get_initilized()
+     call listTP(i)%Get_initilized_tp()
       read(inputUnit, *, iostat = ioerr) rtmp, listTP(i)%h, listTP(i)%t, listTP(i)%d, &
       listTP(i)%m, listTP(i)%k, listTP(i)%cp, listTP(i)%b
       listTP(i)%dh = listTP(i)%d * listTP(i)%h
@@ -553,7 +553,7 @@ contains
     allocate ( listTP (nlist) )
     
     do i = 1, nlist
-      call listTP(i)%Get_initilized()
+      call listTP(i)%Get_initilized_tp()
       listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
       call GetTP_from_function_T( listTP(i) )
     end do
@@ -632,7 +632,7 @@ contains
     if (nrank /= 0) return
 
     n = 128
-    call tp%Get_initilized
+    call tp%Get_initilized_tp
 
     open (newunit = tp_unit, file = 'check_tp_from_dh.dat')
     

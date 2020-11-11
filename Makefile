@@ -14,7 +14,6 @@ DIR_MOD= ./mod
 
 OBJS= modules.o\
 	mpi_mod.o\
-	tools.o\
 	input_general_mod.o\
 	input_thermo_mod.o\
 	domain_decomposition.o\
