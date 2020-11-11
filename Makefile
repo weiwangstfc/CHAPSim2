@@ -15,7 +15,7 @@ DIR_MOD= ./mod
 OBJS= modules.o\
 	mpi_mod.o\
 	tools.o\
-	input_mod.o\
+	input_general_mod.o\
 	input_thermo_mod.o\
 	domain_decomposition.o\
 	flow_variables_mod.o\
@@ -23,7 +23,7 @@ OBJS= modules.o\
 	time_stepping_mod.o\
 	chapsim.o
 
-OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall
+OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall 
 
 default :
 	@cd $(DIR_BIN)

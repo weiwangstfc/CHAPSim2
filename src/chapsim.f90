@@ -1,16 +1,14 @@
 program chapsim
-  use mpi_mod
   implicit none
 
-  call Initialize_mpi()
+  call Initialize_chapsim ()
 
-  call Initialize_chapsim()
-
-
-  call Finalise_mpi()
+  call Finalise_chapsim ()
+  
 end program
 !##############################################################################
 subroutine Initialize_chapsim()
+  use mpi_mod
   use input_general_mod
   use input_thermo_mod
   use domain_decompistion_mod
@@ -19,6 +17,7 @@ subroutine Initialize_chapsim()
   use flow_variables_mod
   implicit none
 
+  call Initialize_mpi()
   call Initialize_general_input ()
   call Initialize_thermo_input ()
   call Initialize_domain_decompsition ()
@@ -28,5 +27,15 @@ subroutine Initialize_chapsim()
 
 end subroutine Initialize_chapsim
 
-!##############################################################################
+subroutine Finalise_chapsim()
+  use mpi_mod
+  implicit none
+
+
+  call Finalise_mpi()
+
+end subroutine Finalise_chapsim
+
+
+
 
