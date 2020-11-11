@@ -19,7 +19,6 @@ OBJS= modules.o\
 	domain_decomposition.o\
 	flow_variables_mod.o\
 	geometry_variables_mod.o\
-	time_stepping_mod.o\
 	chapsim.o
 
 OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall 

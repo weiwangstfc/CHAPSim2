@@ -53,22 +53,15 @@ module parameters_constant_mod
 
   real(WP), parameter :: TRUNCERR = 1.0E-15_WP
 
-  real(WP),parameter :: PI = dacos( -ONE )
-  real(WP),parameter :: TWOPI = TWO * dacos( -ONE )
+  real(WP), parameter :: PI = dacos( -ONE )
+  real(WP), parameter :: TWOPI = TWO * dacos( -ONE )
 
-  integer, parameter :: ITIME_RK3 = 3, &
-                        ITIME_AB1 = 1
-
-  integer, parameter :: ICASE_CHANNEL = 1, &
-                        ICASE_PIPE    = 2, &
-                        ICASE_ANNUAL  = 3, &
-                        ICASE_TGV     = 4
-                        
-  integer, parameter :: ISTRET_NO     = 0, &
-                        ISTRET_SIDES  = 1, &
-                        ISTRET_BOTTOM = 2, &
-                        ISTRET_TOP    = 3
-
+  real(WP), parameter, dimension(3, 3) :: KRONECKER_DELTA = &
+                                            reshape( (/ &
+                                            ONE, ZERO, ZERO, &
+                                            ZERO, ONE, ZERO, &
+                                            ZERO, ZERO, ONE  /), &
+                                            (/3, 3/) )
 end module parameters_constant_mod
 
 

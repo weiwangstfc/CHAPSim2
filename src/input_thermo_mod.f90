@@ -671,7 +671,7 @@ contains
   subroutine Initialize_thermo_input
     use input_general_mod, only : ithermo
     
-    if (ithermo /= 1) return 
+    if (ithermo /= 1) return
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function

@@ -15,6 +15,9 @@ module input_general_mod
                         ISTRET_BOTTOM = 2, &
                         ISTRET_TOP    = 3
 
+  integer, parameter :: ITIME_RK3 = 3, &
+                        ITIME_AB1 = 1
+
   ! flow type
   integer :: icase
   integer :: ithermo
@@ -66,17 +69,65 @@ module input_general_mod
   integer :: iterThermoFirst
   integer :: iterThermoLast
 
-  ! derive parameters
+  ! derived parameters
   logical :: is_x_periodic
   logical :: is_y_periodic
   logical :: is_z_periodic
 
   integer :: npx, npy, npz
 
+  integer :: ntInner
+  real(WP) :: tGamma(0 : 3)
+  real(WP) :: tZeta (0 : 3)
+  real(WP) :: tAlpha(0 : 3)
+
+  ! procedure
   private :: Set_periodic_bc
+  private :: Set_timestepping_coefficients
   public :: Initialize_general_input
 
 contains
+
+  subroutine Set_timestepping_coefficients()
+    use parameters_constant_mod
+
+    if(itimesteping == ITIME_RK3) then
+      
+      ntInner = 3
+      tGamma(0) = ONE
+      tGamma(1) = EIGHT / FIFTEEN
+      tGamma(2) = FIVE / TWELVE
+      tGamma(3) = THREE / FOUR
+
+      tZeta (0) = ZERO
+      tZeta (1) = ZERO
+      tZeta (2) = -SEVENTEEN / SIXTY
+      tZeta (3) = -FIVE / TWELVE
+
+    else if (itimesteping == ITIME_AB1) then
+
+      ntInner = 1
+      tGamma(0) = ONE
+      tGamma(1) = ONEPFIVE
+      tGamma(2) = ZERO
+      tGamma(3) = ZERO
+
+      tZeta (0) = ZERO
+      tZeta (1) = -ZPFIVE
+      tZeta (2) = ZERO
+      tZeta (3) = ZERO
+
+    else 
+
+      ntInner = 0
+      tGamma(:) = ZERO
+      tZeta (:) = ZERO
+
+    end if 
+    
+    tAlpha(:) = tGamma(:) + tZeta(:)
+
+  end subroutine Set_timestepping_coefficients
 
   subroutine Set_periodic_bc( bc, flg )
     integer, intent(inout) :: bc(1:2)
@@ -224,10 +275,10 @@ contains
     npy = ncy + 1
     npz = ncz + 1
 
+    call Set_timestepping_coefficients ( )
+
   end subroutine Initialize_general_input
 end module 
-
-
 
 
 

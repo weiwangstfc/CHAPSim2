@@ -13,7 +13,6 @@ subroutine Initialize_chapsim()
   use input_thermo_mod
   use domain_decompistion_mod
   use geometry_mod
-  use time_stepping_mod
   use flow_variables_mod
   implicit none
 
@@ -22,7 +21,7 @@ subroutine Initialize_chapsim()
   call Initialize_thermo_input ()
   call Initialize_domain_decompsition ()
   call Initialize_geometry_variables ()
-  call Set_timestepping_coefficients ()
+  
   call Allocate_flow_variables ()
 
 end subroutine Initialize_chapsim
@@ -30,7 +29,6 @@ end subroutine Initialize_chapsim
 subroutine Finalise_chapsim()
   use mpi_mod
   implicit none
-
 
   call Finalise_mpi()
 
