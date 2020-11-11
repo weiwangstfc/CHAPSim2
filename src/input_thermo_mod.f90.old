@@ -83,7 +83,7 @@ module input_thermo_mod
   real(WP), save, allocatable, dimension(:) :: listCp
   real(WP), save, allocatable, dimension(:) :: listDH
 
-  type thermoProperty
+  type thermoProperty_t
     real(WP) :: t !temperature
     real(WP) :: d !density
     real(WP) :: m !dynviscosity
@@ -97,7 +97,7 @@ module input_thermo_mod
     procedure, public :: Get_T_from_H
     procedure, public :: Get_tp_from_T
     procedure, public :: Get_tp_from_H
-  end type thermoProperty
+  end type thermoProperty_t
 
   procedure :: Initialize_thermo_parameters
   procedure :: Buildup_property_relations_from_table

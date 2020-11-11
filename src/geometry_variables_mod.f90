@@ -9,9 +9,9 @@ module geometry_mod
   real(wp) :: dx2, dz2
   real(wp) :: dxi, dzi
 
-  real(WP), allocatable, dimension(:) :: xc, xp
-  real(WP), allocatable, dimension(:) :: yc, yp
-  real(WP), allocatable, dimension(:) :: zc, zp
+  real(WP), save, allocatable, dimension(:) :: xc, xp
+  real(WP), save, allocatable, dimension(:) :: yc, yp
+  real(WP), save, allocatable, dimension(:) :: zc, zp
 
   public :: Initialize_geometry_variables
 

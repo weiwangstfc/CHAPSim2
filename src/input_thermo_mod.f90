@@ -73,7 +73,7 @@ module input_thermo_mod
   real(WP), parameter :: CoM_LBE(-1:1) = (/754.1, 4.94E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
   real(WP) :: CoM(-1:1)
 
-  type thermoProperty
+  type thermoProperty_t
     real(WP) :: t !temperature
     real(WP) :: d !density
     real(WP) :: m !dynviscosity
@@ -96,13 +96,13 @@ module input_thermo_mod
     procedure :: Print_debug
     generic :: Print => Print_debug
     generic :: write(formatted) => Print_debug
-  end type thermoProperty
+  end type thermoProperty_t
 
   integer :: nlist
 
-  type(thermoProperty), save, allocatable, dimension(:) :: listTP
-  type(thermoProperty) :: tpRef0 ! dim
-  type(thermoProperty) :: tpIni0 ! dim
+  type(thermoProperty_t), save, allocatable, dimension(:) :: listTP
+  type(thermoProperty_t) :: tpRef0 ! dim
+  type(thermoProperty_t) :: tpIni0 ! dim
 
 
   private :: Sort_listTP_Tsmall2big
@@ -119,7 +119,7 @@ contains
   !!--------------------------------
   subroutine Get_initilized ( tp )
     use parameters_constant_mod, only: ZERO, ONE
-    class(thermoProperty) :: tp
+    class(thermoProperty_t) :: tp
 
     tp%t = ONE
     tp%d = ONE
@@ -134,7 +134,7 @@ contains
 
 
   subroutine is_T_in_scope ( tp )
-    class(thermoProperty) :: tp
+    class(thermoProperty_t) :: tp
 
     if(ipropertyState == IPROPERTY_TABLE) then
       if ( ( tp%t < listTP(1)%t     )  .OR. &
@@ -156,7 +156,7 @@ contains
 
   !!--------------------------------
   subroutine Sort_listTP_Tsmall2big(list)
-    type(thermoProperty),intent(inout) :: list(:)
+    type(thermoProperty_t),intent(inout) :: list(:)
     integer :: i, n, k
     real(WP) :: buf
 
@@ -202,7 +202,7 @@ contains
   !!--------------------------------
   subroutine GetTP_from_H(a)
     use parameters_constant_mod, only : MINP, ONE
-    class(thermoProperty), intent(inout) :: a
+    class(thermoProperty_t), intent(inout) :: a
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -238,7 +238,7 @@ contains
   !!--------------------------------
   subroutine GetTP_from_DH(a)
     use parameters_constant_mod, only : MINP, ONE
-    class(thermoProperty), intent(inout) :: a
+    class(thermoProperty_t), intent(inout) :: a
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -274,7 +274,7 @@ contains
   !!--------------------------------
   subroutine GetTP_from_list_T(a)
     use parameters_constant_mod, only : MINP, ONE
-    type(thermoProperty), intent(inout) :: a
+    type(thermoProperty_t), intent(inout) :: a
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -310,7 +310,7 @@ contains
   !!--------------------------------
   subroutine GetTP_from_function_T(a, dim)
     use parameters_constant_mod, only: ONE
-    type(thermoProperty) :: a
+    type(thermoProperty_t) :: a
     integer, intent(in), optional :: dim ! without = undim, with = dim.
     
 
@@ -395,7 +395,7 @@ contains
 
   !!--------------------------------
   subroutine GetTP_from_T ( tp )
-    class(thermoProperty) :: tp
+    class(thermoProperty_t) :: tp
 
     if(ipropertyState == IPROPERTY_TABLE) then 
       call GetTP_from_list_T(tp)
@@ -563,7 +563,7 @@ contains
   !!--------------------------------
   subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
     use iso_fortran_env, only : error_unit
-    class(thermoProperty), intent(in) :: this
+    class(thermoProperty_t), intent(in) :: this
     integer, intent(in) :: unit
     character(len = *), intent(in) :: iotype
     integer, intent(in) :: v_list(:)
@@ -623,7 +623,7 @@ contains
   subroutine Write_thermo_property
     use mpi_mod ! for test
     use parameters_constant_mod, only : ZERO, TRUNCERR
-    type(thermoProperty) :: tp
+    type(thermoProperty_t) :: tp
     integer :: n, i
     real(WP) :: dhmax1, dhmin1
     real(WP) :: dhmax, dhmin
