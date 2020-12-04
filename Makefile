@@ -16,9 +16,9 @@ OBJS= modules.o\
 	mpi_mod.o\
 	input_general_mod.o\
 	input_thermo_mod.o\
-	domain_decomposition.o\
-	flow_variables_mod.o\
 	geometry_variables_mod.o\
+        domain_decomposition.o\
+	flow_variables_mod.o\
 	chapsim.o
 
 OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall 

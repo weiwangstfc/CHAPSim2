@@ -1,26 +1,6 @@
-module geometry_mod
-  use precision_mod
+module geometry_initialisation_mod
   implicit none
 
-  real(wp) :: dx, dz
-  real(wp) :: dx2, dz2
-  real(wp) :: dxi, dzi
-
-  type node_t
-    real(WP) :: x
-    real(WP) :: y
-    real(WP) :: z
-  end type node_t
-
-  type cell_t
-    real(WP) :: x
-    real(WP) :: y
-    real(WP) :: z
-  end type cell_t
-
-  type(node_t), save, allocatable, dimension(:, :, :) :: node
-  type(cell_t), save, allocatable, dimension(:, :, :) :: cell
-  
   private
   public :: Initialize_geometry_variables
   public :: Display_vtk_mesh
@@ -28,6 +8,7 @@ module geometry_mod
 contains
 
   subroutine Display_vtk_mesh(nd, str)
+    use geometry_mod
     type(node_t), intent( in ) :: nd(:, :, :)
     character( len = *), intent( in ) :: str
 
@@ -70,20 +51,37 @@ contains
   subroutine Initialize_geometry_variables ()
     use mpi_mod
     use input_general_mod
+    use geometry_mod
     use math_mod
     use parameters_constant_mod, only : ONE, HALF, ZERO
     integer :: i, j, k
     real(WP) :: s, yy, c1, c2, c3, c4
 
-    dx = lxx / real(ncx, WP)
-    dz = lzz / real(ncz, WP)
+    ! Build up domain info
+    domain%bcx(:) = ifbcx(:)
+    domain%bcy(:) = ifbcy(:)
+    domain%bcz(:) = ifbcz(:)
 
-    dx2 = dx * dx
-    dz2 = dz * dz
+    domain%is_periodic(:) = is_periodic(:)
+    
+    domain%nc(1) = ncx
+    domain%nc(2) = ncy
+    domain%nc(3) = ncz
 
-    dxi = ONE / dx
-    dzi = ONE / dz
+    domain%np(1) = npx
+    domain%np(2) = npy
+    domain%np(3) = npz
 
+    domain%dx = lxx / real(ncx, WP)
+    domain%dz = lzz / real(ncz, WP)
+
+    domain%dx2 = domain%dx * domain%dx
+    domain%dz2 = domain%dz * domain%dz
+
+    domain%dxi = ONE / domain%dx
+    domain%dzi = ONE / domain%dz
+
+    ! Build up node and cell info
     allocate ( node (npx, npy, npz) )
     allocate ( cell (ncx, ncy, ncz) )
     
@@ -108,13 +106,13 @@ contains
     end do
 
     block_xcoordinate: do i = 1, npx
-      node(i, :, :)%x = real( (i - 1), WP ) * dx
-      if (i < npx) cell(i, :, :)%x = (real( i, WP ) - HALF) * dx
+      node(i, :, :)%x = real( (i - 1), WP ) * domain%dx
+      if (i < npx) cell(i, :, :)%x = (real( i, WP ) - HALF) * domain%dx
     end do block_xcoordinate
 
     block_zcoordinate: do k = 1, npz
-      node(:, :, k)%z = real( (k - 1), WP ) * dz
-      if (k < npz) cell(:, :, k)%z = (real( k, WP ) - HALF) * dz
+      node(:, :, k)%z = real( (k - 1), WP ) * domain%dz
+      if (k < npz) cell(:, :, k)%z = (real( k, WP ) - HALF) * domain%dz
     end do block_zcoordinate
 
     block_ycnst: if (istret == ISTRET_SIDES) then
@@ -153,7 +151,7 @@ contains
       cell(:, j, :)%y = ( node(1, j, 1)%y + node(1, j + 1, 1)%y ) * HALF
     end do block_ycl
 
-    if(nrank == 0) then ! test
+    if(myid == 0) then ! test
       call Display_vtk_mesh ( node(:, :, :), 'xy' )
       call Display_vtk_mesh ( node(:, :, :), 'yz' )
       call Display_vtk_mesh ( node(:, :, :), 'zx' )
@@ -162,6 +160,6 @@ contains
 
   end subroutine  Initialize_geometry_variables
 
-end module geometry_mod
+end module geometry_initialisation_mod
 
 

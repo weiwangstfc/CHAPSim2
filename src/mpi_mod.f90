@@ -3,18 +3,18 @@ module mpi_mod
   include "mpif.h"
 
   integer :: ierror
-  integer :: nrank
-  integer :: nproc
+  integer :: myid
+  integer :: npar
 
   public :: Initialize_mpi, Finalise_mpi
 
 contains 
 
   subroutine Initialize_mpi()
-
+    ! MPI_CART_CREAT is included in the module of decomp_2d_init
     call MPI_INIT(ierror)
-    call MPI_COMM_RANK(MPI_COMM_WORLD, nrank, ierror)
-    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierror)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierror)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, npar, ierror)
 
   end subroutine Initialize_mpi
 

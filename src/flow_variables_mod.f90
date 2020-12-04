@@ -1,45 +1,36 @@
 module flow_variables_mod
   use precision_mod
-  use input_general_mod, only: ithermo
+  use input_thermo_mod, only : thermoProperty_t
   implicit none
 
-  real(WP), save, allocatable, dimension(:, :, :) :: ux, uy, uz
-  real(WP), save, allocatable, dimension(:, :, :) :: gx, gy, gz
-  real(WP), save, allocatable, dimension(:, :, :) :: pre, phi
+  type flow_t
+    real(WP) :: ux
+    real(WP) :: uy
+    real(WP) :: uz
 
-  real(WP), save, allocatable, dimension(:, :, :) :: massEnthalpy
-  real(WP), save, allocatable, dimension(:, :, :) :: enthalpy
-  real(WP), save, allocatable, dimension(:, :, :) :: density
-  real(WP), save, allocatable, dimension(:, :, :) :: temperature
-  real(WP), save, allocatable, dimension(:, :, :) :: thermalConductivity
-  real(WP), save, allocatable, dimension(:, :, :) :: dynamicViscosity
+    real(WP) :: gx
+    real(WP) :: gy
+    real(WP) :: gz
+
+    real(WP) :: pre
+    real(WP) :: phi
+  end type flow_t
+
+  type(flow_t), save, allocatable, dimension(:, :, :) :: flow
+  type(thermoProperty_t), save, allocatable, dimension(:, :, :) :: thermo
+
 
   public :: Allocate_flow_variables
 
 contains
   subroutine Allocate_flow_variables ()
-    use decomp_2d
+    use input_general_mod, only : ithermo
+    use domain_decomposition_mod
 
-    call alloc_x (ux,  opt_global=.true.)
-    call alloc_x (uy,  opt_global=.true.)
-    call alloc_x (uz,  opt_global=.true.)
-
-    call alloc_x (pre, opt_global=.true.)
-    call alloc_x (phi, opt_global=.true.)
-
-    call alloc_x (gx,  opt_global=.true.)
-    call alloc_x (gy,  opt_global=.true.)
-    call alloc_x (gz,  opt_global=.true.)
-
-    if(ithermo == 1) then
-      call alloc_x (massEnthalpy,        opt_global=.true.)
-      call alloc_x (enthalpy,            opt_global=.true.)
-      call alloc_x (density,             opt_global=.true.)
-      call alloc_x (temperature,         opt_global=.true.)
-      call alloc_x (thermalConductivity, opt_global=.true.)
-      call alloc_x (dynamicViscosity,    opt_global=.true.)
-    end if
-    !if(nrank == 0) print *, shape(ux) !test
+    !allocate (flow (iStart_xpencil : iEnd_xpencil, &
+    !                jStart_xpencil : jEnd_xpencil, &
+    !                kStart_xpencil : kEnd_xpencil) )
+    
 
   end subroutine Allocate_flow_variables
 

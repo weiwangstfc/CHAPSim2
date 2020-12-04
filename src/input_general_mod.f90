@@ -18,6 +18,18 @@ module input_general_mod
   integer, parameter :: ITIME_RK3 = 3, &
                         ITIME_AB1 = 1
 
+  integer, parameter :: IBC_PERIODC     = 0, &
+                        IBC_WALL_NOSLIP = 1, &
+                        IBC_WALL_SLIP   = 2, &
+                        IBC_INLET_MEAN  = 3, &
+                        IBC_INLET_TG    = 4, &
+                        IBC_INLET_MAP   = 5, &
+                        IBC_INLET_DB    = 6, &
+                        IBC_OUTLET_EXPO = 7, &
+                        IBC_OUTLET_CONV = 8
+
+
+
   ! flow type
   integer :: icase
   integer :: ithermo
@@ -70,9 +82,7 @@ module input_general_mod
   integer :: iterThermoLast
 
   ! derived parameters
-  logical :: is_x_periodic
-  logical :: is_y_periodic
-  logical :: is_z_periodic
+  logical :: is_periodic(3)
 
   integer :: npx, npy, npz
 
@@ -133,9 +143,9 @@ contains
     integer, intent(inout) :: bc(1:2)
     logical, intent(out) :: flg
 
-    if ( (bc(1) == 0) .or. (bc(2) == 0) ) then
-      bc(1) = 0
-      bc(2) = 0
+    if ( (bc(1) == IBC_PERIODC) .or. (bc(2) == IBC_PERIODC) ) then
+      bc(1) = IBC_PERIODC
+      bc(2) = IBC_PERIODC
       flg = .true.
     else 
       flg = .false.
@@ -266,14 +276,18 @@ contains
     close(inputUnit)
 
     ! to set up periodic boundary conditions
-    call Set_periodic_bc ( ifbcx, is_x_periodic )
-    call Set_periodic_bc ( ifbcy, is_y_periodic )
-    call Set_periodic_bc ( ifbcz, is_z_periodic )
+    is_periodic(:) = .false.
+    call Set_periodic_bc ( ifbcx, is_periodic(1) )
+    call Set_periodic_bc ( ifbcy, is_periodic(2) )
+    call Set_periodic_bc ( ifbcz, is_periodic(3) )
 
     ! to set up other variables derived from input variables
     npx = ncx + 1
     npy = ncy + 1
     npz = ncz + 1
+    if ( is_periodic(1) ) npx = ncx
+    if ( is_periodic(2) ) npy = ncy
+    if ( is_periodic(3) ) npz = ncz
 
     call Set_timestepping_coefficients ( )
 

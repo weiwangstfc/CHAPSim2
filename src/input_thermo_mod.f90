@@ -73,32 +73,32 @@ module input_thermo_mod
   real(WP), parameter :: CoM_LBE(-1:1) = (/754.1, 4.94E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
   real(WP) :: CoM(-1:1)
 
+  integer :: nlist
+
   type thermoProperty_t
-    real(WP) :: t !temperature
-    real(WP) :: d !density
-    real(WP) :: m !dynviscosity
-    real(WP) :: k !thermconductivity
-    real(WP) :: h !enthalpy
+    real(WP) :: t  !temperature
+    real(WP) :: d  !density
+    real(WP) :: m  !dynviscosity
+    real(WP) :: k  !thermconductivity
+    real(WP) :: h  !enthalpy
     real(WP) :: dh ! mass enthalpy
     real(WP) :: cp ! specific heat capacity 
-    real(WP) :: b ! thermal expansion
+    real(WP) :: b  ! thermal expansion
 
-    contains
+  contains
 
     private
 
+    procedure, public :: Get_initialized_thermal_properties
     procedure, public :: is_T_in_scope
-    procedure, public :: Get_initilized_tp
-    procedure, public :: GetTP_from_T
-    procedure, public :: GetTP_from_H
-    procedure, public :: GetTP_from_DH
+    procedure, public :: Refresh_thermal_properties_from_T
+    procedure, public :: Refresh_thermal_properties_from_H
+    procedure, public :: Refresh_thermal_properties_from_DH
 
     procedure :: Print_debug
     generic :: Print => Print_debug
     generic :: write(formatted) => Print_debug
   end type thermoProperty_t
-
-  integer :: nlist
 
   type(thermoProperty_t), save, allocatable, dimension(:) :: listTP
   type(thermoProperty_t) :: tpRef0 ! dim
@@ -106,54 +106,271 @@ module input_thermo_mod
 
 
   private :: Sort_listTP_Tsmall2big
-  private :: GetTP_from_list_T
-  private :: GetTP_from_function_T
   private :: Check_monotonicity_DH_of_HT_list
-  private :: Initialize_thermo_parameters
   private :: Buildup_property_relations_from_table
   private :: Buildup_property_relations_from_function
-
+  private :: Initialize_thermo_parameters
   public  :: Initialize_thermo_input
 
 contains
-  !!--------------------------------
-  subroutine Get_initilized_tp ( tp )
+  !!--procedures for type thermoProperty_t ---------------------------
+  subroutine Get_initialized_thermal_properties ( this )
     use parameters_constant_mod, only: ZERO, ONE
-    class(thermoProperty_t) :: tp
+    class(thermoProperty_t), intent(inout) :: this
 
-    tp%t = ONE
-    tp%d = ONE
-    tp%m = ONE
-    tp%k = ONE
-    tp%cp = ONE
-    tp%b = ONE
-    tp%h = ZERO
-    tp%dh = ZERO
+    this%t  = ONE
+    this%d  = ONE
+    this%m  = ONE
+    this%k  = ONE
+    this%cp = ONE
+    this%b  = ONE
+    this%h  = ZERO
+    this%dh = ZERO
 
-  end subroutine Get_initilized_tp
+  end subroutine Get_initialized_thermal_properties
 
 
-  subroutine is_T_in_scope ( tp )
-    class(thermoProperty_t) :: tp
+  subroutine is_T_in_scope ( this )
+    class(thermoProperty_t), intent(inout) :: this
 
     if(ipropertyState == IPROPERTY_TABLE) then
-      if ( ( tp%t < listTP(1)%t     )  .OR. &
-           ( tp%t > listTP(nlist)%t ) ) then
-        print*, tp%t, listTP(1)%t, listTP(nlist)%t
+      if ( ( this%t < listTP(1)%t     )  .OR. &
+           ( this%t > listTP(nlist)%t ) ) then
+        print*, this%t, listTP(1)%t, listTP(nlist)%t
         stop 'temperature exceeds specified range.'
       end if
     end if
 
     if(ipropertyState == IPROPERTY_FUNCS) then
-      if ( ( tp%t < ( TM0 / tpRef0%t ) ) .OR. &
-           ( tp%t > ( TB0 / tpRef0%t ) ) ) then 
-        print*, tp%t, TM0 / tpRef0%t, TB0 / tpRef0%t
+      if ( ( this%t < ( TM0 / tpRef0%t ) ) .OR. &
+           ( this%t > ( TB0 / tpRef0%t ) ) ) then 
+        print*, this%t, TM0 / tpRef0%t, TB0 / tpRef0%t
         stop 'temperature exceeds specified range.'
       end if
     end if
 
   end subroutine is_T_in_scope
 
+  subroutine Refresh_thermal_properties_from_T ( this, dim )
+    use parameters_constant_mod, only : MINP, ONE
+
+    class(thermoProperty_t), intent(inout) :: this
+    integer, intent(in), optional :: dim ! without = undim, with = dim.
+    
+    integer :: i1, i2, im
+    real(WP) :: d1, dm
+    real(WP) :: w1, w2
+    real(WP) :: t1, dummy
+
+    if(ipropertyState == IPROPERTY_TABLE) then 
+      i1 = 1
+      i2 = nlist
+      do while ( (i2 - i1) > 1)
+        im = i1 + (i2 - i1) / 2
+        d1 = listTP(i1)%t - this%t
+        dm = listTP(im)%t - this%t
+        if ( (d1 * dm) > MINP ) then
+          i1 = im
+        else
+          i2 = im
+        end if
+      end do
+
+      w1 = (listTP(i2)%t - this%t) / (listTP(i2)%t - listTP(i1)%t) 
+      w2 = ONE - w1
+
+      this%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
+      this%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
+      this%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
+      this%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
+      this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
+      this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
+      this%dh = this%d * this%h
+    end if 
+
+    if(ipropertyState == IPROPERTY_FUNCS) then 
+      
+      if (present(dim)) then 
+        t1 = this%t
+      else 
+        ! convert undim to dim 
+        t1 = this%t * tpRef0%t
+      end if
+  
+      ! D = density = f(T)
+      dummy = CoD(0) + CoD(1) * t1
+      if (present(dim)) then 
+        this%d = dummy
+      else 
+        this%d = dummy / tpRef0%d
+      end if
+  
+      ! K = thermal conductivity = f(T)
+      dummy = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
+      if (present(dim)) then 
+        this%k = dummy
+      else 
+        this%k = dummy / tpRef0%k
+      end if
+  
+      ! Cp = f(T)
+      dummy = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
+      if (present(dim)) then 
+        this%cp = dummy
+      else 
+        this%cp = dummy / tpRef0%cp
+      end if
+  
+      ! H = entropy = f(T)
+      dummy = Hm0 + &
+        CoH(-1) * (ONE / t1 - ONE / Tm0) + &
+        CoH(0) + &
+        CoH(1) * (t1 - Tm0) + &
+        CoH(2) * (t1**2 - Tm0**2) + &
+        CoH(3) * (t1**3 - Tm0**3)
+      if (present(dim)) then 
+        this%h = dummy
+      else 
+        this%h = (dummy - tpRef0%h) / (tpRef0%cp * tpRef0%t)
+      end if
+  
+      ! B = f(T)
+      dummy = ONE / (CoB - t1)
+      if (present(dim)) then 
+        this%b = dummy
+      else 
+        this%b = dummy / tpRef0%b
+      end if
+  
+      ! dynamic viscosity = f(T)
+      select case (ifluid)
+        ! unit: T(Kelvin), M(Pa S)
+        case (ILIQUID_SODIUM)
+          dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
+        case (ILIQUID_LEAD)
+          dummy = CoM_Pb(0) * EXP (CoM_Pb(-1) / t1)
+        case (ILIQUID_BISMUTH)
+          dummy = CoM_Bi(0) * EXP (CoM_Bi(-1) / t1)
+        case (ILIQUID_LBE)
+          dummy = CoM_LBE(0) * EXP (CoM_LBE(-1) / t1)
+        case default
+          dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
+      end select
+      if (present(dim)) then 
+        this%m = dummy
+      else 
+        this%m = dummy / tpRef0%m
+      end if
+  
+  
+      this%dh = this%d * this%h
+    end if
+  end subroutine Refresh_thermal_properties_from_T
+
+  subroutine Refresh_thermal_properties_from_H(this)
+    use parameters_constant_mod, only : MINP, ONE
+    class(thermoProperty_t), intent(inout) :: this
+
+    integer :: i1, i2, im
+    real(WP) :: d1, dm
+    real(WP) :: w1, w2
+
+    i1 = 1
+    i2 = nlist
+
+    do while ( (i2 - i1) > 1)
+      im = i1 + (i2 - i1) / 2
+      d1 = listTP(i1)%h - this%h
+      dm = listTP(im)%h - this%h
+      if ( (d1 * dm) > MINP ) then
+        i1 = im
+      else
+        i2 = im
+      end if
+    end do
+
+    w1 = (listTP(i2)%h - this%h) / (listTP(i2)%h - listTP(i1)%h) 
+    w2 = ONE - w1
+
+    this%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
+    this%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
+    this%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
+    this%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
+    this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
+    this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
+    this%dh = this%d * this%h
+
+  end subroutine Refresh_thermal_properties_from_H
+
+  !!--------------------------------
+  subroutine Refresh_thermal_properties_from_DH(this)
+    use parameters_constant_mod, only : MINP, ONE
+    class(thermoProperty_t), intent(inout) :: this
+
+    integer :: i1, i2, im
+    real(WP) :: d1, dm
+    real(WP) :: w1, w2
+
+    i1 = 1
+    i2 = nlist
+
+    do while ( (i2 - i1) > 1)
+      im = i1 + (i2 - i1) / 2
+      d1 = listTP(i1)%dh - this%dh
+      dm = listTP(im)%dh - this%dh
+      if ( (d1 * dm) > MINP ) then
+        i1 = im
+      else
+        i2 = im
+      end if
+    end do
+
+    w1 = (listTP(i2)%dh - this%dh) / (listTP(i2)%dh - listTP(i1)%dh) 
+    w2 = ONE - w1
+    
+    if(ipropertyState == IPROPERTY_TABLE) then 
+      this%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
+      call this%Refresh_thermal_properties_from_H
+    else if (ipropertyState == IPROPERTY_FUNCS) then 
+      this%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
+      call this%Refresh_thermal_properties_from_T
+    else  
+      STOP 'Error. No such option of ipropertyState.'
+    end if
+  end subroutine Refresh_thermal_properties_from_DH
+  !!--------------------------------
+  subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
+    use iso_fortran_env, only : error_unit
+    class(thermoProperty_t), intent(in) :: this
+    integer, intent(in) :: unit
+    character(len = *), intent(in) :: iotype
+    integer, intent(in) :: v_list(:)
+    integer, intent(out) :: iostat
+    character(len = *), intent(inout) :: iomsg
+    integer :: i_pass
+
+    iostat = 0
+    iomsg = ""
+    
+    this_block: do i_pass = 1, 1
+      !write(unit, *, iostat = iostat, iomsg = iomsg) 'thermalProperty'
+      !if(iostat /= 0) exit this_block
+      if(iotype(1:2) == 'DT' .and. len(iotype) > 2) &
+        write(unit, *, iostat = iostat, iomsg = iomsg) iotype(3:)
+      if(iostat /= 0) exit this_block
+
+      write(unit, *, iostat = iostat, iomsg = iomsg) &
+      this%h, this%t, this%d, this%m, this%k, this%cp, this%b, this%dh
+      
+      if(iostat /= 0) exit this_block
+    end do this_block
+
+    if(iostat /= 0) then
+      write (error_unit, "(A)") "print error : " // trim(iomsg)
+      write (error_unit, "(A, I0)") "  iostat : ", iostat
+    end if
+  end subroutine Print_debug
+  
   !!--------------------------------
   subroutine Sort_listTP_Tsmall2big(list)
     type(thermoProperty_t),intent(inout) :: list(:)
@@ -199,216 +416,158 @@ contains
 
     end do
   end subroutine Sort_listTP_Tsmall2big
-  !!--------------------------------
-  subroutine GetTP_from_H(a)
-    use parameters_constant_mod, only : MINP, ONE
-    class(thermoProperty_t), intent(inout) :: a
 
-    integer :: i1, i2, im
-    real(WP) :: d1, dm
-    real(WP) :: w1, w2
+  subroutine Check_monotonicity_DH_of_HT_list
+    use parameters_constant_mod, only : MINP
+    integer :: i
+    real(WP) :: ddh1, dt1, dh1
+    real(WP) :: ddh2, dt2, dh2
+    real(WP) :: ddt, ddh
 
-    i1 = 1
-    i2 = nlist
+    do i = 2, nlist - 1
+        ddh1 = listTP(i)%dh - listTP(i - 1)%dh
+        dt1 = listTP(i)%t - listTP(i - 1)%t
+        dh1 = listTP(i)%h - listTP(i - 1)%h
 
-    do while ( (i2 - i1) > 1)
-      im = i1 + (i2 - i1) / 2
-      d1 = listTP(i1)%h - a%h
-      dm = listTP(im)%h - a%h
-      if ( (d1 * dm) > MINP ) then
-        i1 = im
-      else
-        i2 = im
-      end if
+        ddh2 = listTP(i + 1)%dh - listTP(i)%dh
+        dt2 = listTP(i + 1)%t - listTP(i)%t
+        dh2 = listTP(i + 1)%h - listTP(i)%h
+
+        ddt = ddh1 / dt1 * ddh2 / dt2 
+        ddh = ddh1 / dh1 * ddh2 / dh2
+
+        if (ddt < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (T) is not monotonicity.'
+        if (ddh < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (H) is not monotonicity.'
+
     end do
 
-    w1 = (listTP(i2)%h - a%h) / (listTP(i2)%h - listTP(i1)%h) 
-    w2 = ONE - w1
-
-    a%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
-    a%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
-    a%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
-    a%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
-    a%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
-    a%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
-    a%dh = a%d * a%h
-
-  end subroutine GetTP_from_H
+  end subroutine Check_monotonicity_DH_of_HT_list
+  
 
   !!--------------------------------
-  subroutine GetTP_from_DH(a)
-    use parameters_constant_mod, only : MINP, ONE
-    class(thermoProperty_t), intent(inout) :: a
+  subroutine Buildup_property_relations_from_table ( )
+    use mpi_mod
+    use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
+    use parameters_constant_mod, only : ZERO
 
-    integer :: i1, i2, im
-    real(WP) :: d1, dm
-    real(WP) :: w1, w2
+    integer, parameter :: IOMSG_LEN = 200
+    character(len = IOMSG_LEN) :: iotxt
+    integer :: ioerr, inputUnit
+    character(len = 80) :: str
+    real(WP) :: rtmp
+    integer :: i
 
-    i1 = 1
-    i2 = nlist
+    ! to read given table of thermal properties
+    open ( newunit = inputUnit, file = inputProperty, status = 'old', action  = 'read', &
+          iostat = ioerr, iomsg = iotxt)
+    if(ioerr /= 0) then
+      write (ERROR_UNIT, *) 'Problem openning : ', inputProperty, ' for reading.'
+      write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
+      stop 4
+    end if
 
-    do while ( (i2 - i1) > 1)
-      im = i1 + (i2 - i1) / 2
-      d1 = listTP(i1)%dh - a%dh
-      dm = listTP(im)%dh - a%dh
-      if ( (d1 * dm) > MINP ) then
-        i1 = im
-      else
-        i2 = im
-      end if
+    nlist = 0
+    read(inputUnit, *, iostat = ioerr) str
+    do
+      read(inputUnit, *, iostat = ioerr) rtmp, rtmp, rtmp, rtmp, rtmp, rtmp, rtmp, rtmp
+      if(ioerr /= 0) exit
+      nlist = nlist + 1
     end do
+    rewind(inputUnit)
 
-    w1 = (listTP(i2)%dh - a%dh) / (listTP(i2)%dh - listTP(i1)%dh) 
-    w2 = ONE - w1
+    allocate ( listTP (nlist) )
+
+    read(inputUnit, *, iostat = ioerr) str
+    block_tablereading: do i = 1, nlist
+     call listTP(i)%Get_initialized_thermal_properties()
+      read(inputUnit, *, iostat = ioerr) rtmp, listTP(i)%h, listTP(i)%t, listTP(i)%d, &
+      listTP(i)%m, listTP(i)%k, listTP(i)%cp, listTP(i)%b
+      listTP(i)%dh = listTP(i)%d * listTP(i)%h
+    end do block_tablereading
+
+    call Sort_listTP_Tsmall2big ( listTP(:) )
+
+    ! to update reference of thermal properties
+    call tpRef0%Refresh_thermal_properties_from_T(1)
+    call tpIni0%Refresh_thermal_properties_from_T(1)
+
+    ! to unify/undimensionalize the table of thermal property
+    listTP(:)%t = listTP(:)%t / tpRef0%t
+    listTP(:)%d = listTP(:)%d / tpRef0%d
+    listTP(:)%m = listTP(:)%m / tpRef0%m
+    listTP(:)%k = listTP(:)%k / tpRef0%k
+    listTP(:)%b = listTP(:)%b / tpRef0%b
+    listTP(:)%cp = listTP(:)%cp / tpRef0%cp
+    listTP(:)%h = (listTP(:)%h - tpRef0%h) / tpRef0%t / tpRef0%cp
+    listTP(:)%dh = listTP(:)%d * listTP(:)%h
+
+  end subroutine Buildup_property_relations_from_table
+
+  !!--------------------------------
+  subroutine Buildup_property_relations_from_function ( )
+    integer :: i
+
+    ! to update reference of thermal properties
+    call tpRef0%Refresh_thermal_properties_from_T(1)
+    call tpIni0%Refresh_thermal_properties_from_T(1)
     
-    if(ipropertyState == IPROPERTY_TABLE) then 
-      a%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
-      call a%GetTP_from_H
-    else if (ipropertyState == IPROPERTY_FUNCS) then 
-      a%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
-      call a%GetTP_from_T
-    else  
-      STOP 'Error. No such option of ipropertyState.'
-    end if
-  end subroutine GetTP_from_DH
-  !!--------------------------------
-  subroutine GetTP_from_list_T(a)
-    use parameters_constant_mod, only : MINP, ONE
-    type(thermoProperty_t), intent(inout) :: a
-
-    integer :: i1, i2, im
-    real(WP) :: d1, dm
-    real(WP) :: w1, w2
-
-    i1 = 1
-    i2 = nlist
-
-    do while ( (i2 - i1) > 1)
-      im = i1 + (i2 - i1) / 2
-      d1 = listTP(i1)%t - a%t
-      dm = listTP(im)%t - a%t
-      if ( (d1 * dm) > MINP ) then
-        i1 = im
-      else
-        i2 = im
-      end if
+    nlist = 1024
+    allocate ( listTP (nlist) )
+    
+    do i = 1, nlist
+      call listTP(i)%Get_initialized_thermal_properties()
+      listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
+      call listTP(i)%Refresh_thermal_properties_from_T()
     end do
 
-    w1 = (listTP(i2)%t - a%t) / (listTP(i2)%t - listTP(i1)%t) 
-    w2 = ONE - w1
+  end subroutine Buildup_property_relations_from_function
 
-    a%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
-    a%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
-    a%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
-    a%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
-    a%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
-    a%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
-    a%dh = a%d * a%h
+  subroutine Write_thermo_property
+    use mpi_mod ! for test
+    use parameters_constant_mod, only : ZERO, TRUNCERR
+    type(thermoProperty_t) :: tp
+    integer :: n, i
+    real(WP) :: dhmax1, dhmin1
+    real(WP) :: dhmax, dhmin
+    integer :: tp_unit
 
-  end subroutine GetTP_from_list_T
+    if (myid /= 0) return
 
-  !!--------------------------------
-  subroutine GetTP_from_function_T(a, dim)
-    use parameters_constant_mod, only: ONE
-    type(thermoProperty_t) :: a
-    integer, intent(in), optional :: dim ! without = undim, with = dim.
-    
+    n = 128
+    call tp%Get_initialized_thermal_properties
 
-    real(WP) :: t1, dummy
-
-    if (present(dim)) then 
-      t1 = a%t
-    else 
-      ! convert undim to dim 
-      t1 = a%t * tpRef0%t
-    end if
-
-    ! D = density = f(T)
-    dummy = CoD(0) + CoD(1) * t1
-    if (present(dim)) then 
-      a%d = dummy
-    else 
-      a%d = dummy / tpRef0%d
-    end if
-
-    ! K = thermal conductivity = f(T)
-    dummy = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
-    if (present(dim)) then 
-      a%k = dummy
-    else 
-      a%k = dummy / tpRef0%k
-    end if
-
-    ! Cp = f(T)
-    dummy = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
-    if (present(dim)) then 
-      a%cp = dummy
-    else 
-      a%cp = dummy / tpRef0%cp
-    end if
-
-    ! H = entropy = f(T)
-    dummy = Hm0 + &
-      CoH(-1) * (ONE / t1 - ONE / Tm0) + &
-      CoH(0) + &
-      CoH(1) * (t1 - Tm0) + &
-      CoH(2) * (t1**2 - Tm0**2) + &
-      CoH(3) * (t1**3 - Tm0**3)
-    if (present(dim)) then 
-      a%h = dummy
-    else 
-      a%h = (dummy - tpRef0%h) / (tpRef0%cp * tpRef0%t)
-    end if
-
-    ! B = f(T)
-    dummy = ONE / (CoB - t1)
-    if (present(dim)) then 
-      a%b = dummy
-    else 
-      a%b = dummy / tpRef0%b
-    end if
-
-    ! dynamic viscosity = f(T)
-    select case (ifluid)
-      ! unit: T(Kelvin), M(Pa S)
-      case (ILIQUID_SODIUM)
-        dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
-      case (ILIQUID_LEAD)
-        dummy = CoM_Pb(0) * EXP (CoM_Pb(-1) / t1)
-      case (ILIQUID_BISMUTH)
-        dummy = CoM_Bi(0) * EXP (CoM_Bi(-1) / t1)
-      case (ILIQUID_LBE)
-        dummy = CoM_LBE(0) * EXP (CoM_LBE(-1) / t1)
-      case default
-        dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
-    end select
-    if (present(dim)) then 
-      a%m = dummy
-    else 
-      a%m = dummy / tpRef0%m
-    end if
-
-
-    a%dh = a%d * a%h
-
-  end subroutine GetTP_from_function_T
-
-  !!--------------------------------
-  subroutine GetTP_from_T ( tp )
-    class(thermoProperty_t) :: tp
-
+    dhmin = ZERO
+    dhmax = ZERO
     if(ipropertyState == IPROPERTY_TABLE) then 
-      call GetTP_from_list_T(tp)
-    end if 
+      dhmin = listTP(1)%dh + TRUNCERR
+      dhmax = listTP(nlist)%dh - TRUNCERR
+    end if
 
     if(ipropertyState == IPROPERTY_FUNCS) then 
-      call GetTP_from_function_T(tp)
+      tp%t  = TB0 / tpRef0%t
+      call tp%Refresh_thermal_properties_from_T()
+      dhmin1 = tp%dh
+
+      tp%t  = TM0 / tpRef0%t
+      call tp%Refresh_thermal_properties_from_T()
+      dhmax1 = tp%dh
+      
+      dhmin = dmin1( dhmin1, dhmax1) + TRUNCERR
+      dhmax = dmax1( dhmin1, dhmax1) - TRUNCERR
     end if
-  end subroutine GetTP_from_T
-  
+
+    open (newunit = tp_unit, file = 'check_tp_from_dh.dat')
+    do i = 1, n
+      tp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
+      call tp%Refresh_thermal_properties_from_DH()
+      call tp%is_T_in_scope()
+      write(tp_unit, '(dt)') tp
+    end do
+    close (tp_unit)
+
+  end subroutine Write_thermo_property
   !!--------------------------------
   subroutine Initialize_thermo_parameters
-
     select case (ifluid)
     case (ISCP_WATER)
       ipropertyState = IPROPERTY_TABLE
@@ -479,195 +638,14 @@ contains
 
     end select
 
-    call tpRef0%Get_initilized_tp()
-    call tpIni0%Get_initilized_tp()
+    call tpRef0%Get_initialized_thermal_properties()
     tpRef0%t = t0Ref
+
+    call tpIni0%Get_initialized_thermal_properties()
     tpIni0%t = tiRef
 
   end subroutine Initialize_thermo_parameters
 
-  !!--------------------------------
-  subroutine Buildup_property_relations_from_table ( )
-    use mpi_mod
-    use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
-    use parameters_constant_mod, only : ZERO
-
-    integer, parameter :: IOMSG_LEN = 200
-    character(len = IOMSG_LEN) :: iotxt
-    integer :: ioerr, inputUnit
-    character(len = 80) :: str
-    real(WP) :: rtmp
-    integer :: i
- 
-    open ( newunit = inputUnit, file = inputProperty, status = 'old', action  = 'read', &
-          iostat = ioerr, iomsg = iotxt)
-    if(ioerr /= 0) then
-      write (ERROR_UNIT, *) 'Problem openning : ', inputProperty, ' for reading.'
-      write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
-      stop 4
-    end if
-
-    nlist = 0
-    read(inputUnit, *, iostat = ioerr) str
-    do
-      read(inputUnit, *, iostat = ioerr) rtmp, rtmp, rtmp, rtmp, rtmp, rtmp, rtmp, rtmp
-      if(ioerr /= 0) exit
-      nlist = nlist + 1
-    end do
-    rewind(inputUnit)
-
-    allocate ( listTP (nlist) )
-
-    read(inputUnit, *, iostat = ioerr) str
-    block_tablereading: do i = 1, nlist
-     call listTP(i)%Get_initilized_tp()
-      read(inputUnit, *, iostat = ioerr) rtmp, listTP(i)%h, listTP(i)%t, listTP(i)%d, &
-      listTP(i)%m, listTP(i)%k, listTP(i)%cp, listTP(i)%b
-      listTP(i)%dh = listTP(i)%d * listTP(i)%h
-    end do block_tablereading
-
-    call Sort_listTP_Tsmall2big (listTP(:))
-
-    call GetTP_from_list_T(tpRef0)
-    call GetTP_from_list_T(tpIni0)
-
-    listTP(:)%t = listTP(:)%t / tpRef0%t
-    listTP(:)%d = listTP(:)%d / tpRef0%d
-    listTP(:)%m = listTP(:)%m / tpRef0%m
-    listTP(:)%k = listTP(:)%k / tpRef0%k
-    listTP(:)%b = listTP(:)%b / tpRef0%b
-    listTP(:)%cp = listTP(:)%cp / tpRef0%cp
-    listTP(:)%h = (listTP(:)%h - tpRef0%h) / tpRef0%t / tpRef0%cp
-    listTP(:)%dh = listTP(:)%d * listTP(:)%h
-
-  end subroutine Buildup_property_relations_from_table
-
-  !!--------------------------------
-  subroutine Buildup_property_relations_from_function ( )
-    integer :: i
-
-    call GetTP_from_function_T(tpRef0, 1)
-    call GetTP_from_function_T(tpIni0, 1)
-    
-    nlist = 1024
-    allocate ( listTP (nlist) )
-    
-    do i = 1, nlist
-      call listTP(i)%Get_initilized_tp()
-      listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
-      call GetTP_from_function_T( listTP(i) )
-    end do
-
-  end subroutine Buildup_property_relations_from_function
-
-  !!--------------------------------
-  subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
-    use iso_fortran_env, only : error_unit
-    class(thermoProperty_t), intent(in) :: this
-    integer, intent(in) :: unit
-    character(len = *), intent(in) :: iotype
-    integer, intent(in) :: v_list(:)
-    integer, intent(out) :: iostat
-    character(len = *), intent(inout) :: iomsg
-    integer :: i_pass
-
-    iostat = 0
-    iomsg = ""
-    
-    this_block: do i_pass = 1, 1
-      !write(unit, *, iostat = iostat, iomsg = iomsg) 'thermalProperty'
-      !if(iostat /= 0) exit this_block
-      if(iotype(1:2) == 'DT' .and. len(iotype) > 2) &
-        write(unit, *, iostat = iostat, iomsg = iomsg) iotype(3:)
-      if(iostat /= 0) exit this_block
-
-      write(unit, *, iostat = iostat, iomsg = iomsg) &
-      this%h, this%t, this%d, this%m, this%k, this%cp, this%b, this%dh
-      
-      if(iostat /= 0) exit this_block
-    end do this_block
-
-    if(iostat /= 0) then
-      write (error_unit, "(A)") "print error : " // trim(iomsg)
-      write (error_unit, "(A, I0)") "  iostat : ", iostat
-    end if
-  end subroutine Print_debug
-
-  subroutine Check_monotonicity_DH_of_HT_list
-    use parameters_constant_mod, only : MINP
-    integer :: i
-    real(WP) :: ddh1, dt1, dh1
-    real(WP) :: ddh2, dt2, dh2
-    real(WP) :: ddt, ddh
-
-    do i = 2, nlist - 1
-        ddh1 = listTP(i)%dh - listTP(i - 1)%dh
-        dt1 = listTP(i)%t - listTP(i - 1)%t
-        dh1 = listTP(i)%h - listTP(i - 1)%h
-
-        ddh2 = listTP(i + 1)%dh - listTP(i)%dh
-        dt2 = listTP(i + 1)%t - listTP(i)%t
-        dh2 = listTP(i + 1)%h - listTP(i)%h
-
-        ddt = ddh1 / dt1 * ddh2 / dt2 
-        ddh = ddh1 / dh1 * ddh2 / dh2
-
-        if (ddt < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (T) is not monotonicity.'
-        if (ddh < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (H) is not monotonicity.'
-
-    end do
-
-  end subroutine
-
-
-  subroutine Write_thermo_property
-    use mpi_mod ! for test
-    use parameters_constant_mod, only : ZERO, TRUNCERR
-    type(thermoProperty_t) :: tp
-    integer :: n, i
-    real(WP) :: dhmax1, dhmin1
-    real(WP) :: dhmax, dhmin
-    integer :: tp_unit
-
-    if (nrank /= 0) return
-
-    n = 128
-    call tp%Get_initilized_tp
-
-    open (newunit = tp_unit, file = 'check_tp_from_dh.dat')
-    
-
-    dhmin = ZERO
-    dhmax = ZERO
-    if(ipropertyState == IPROPERTY_TABLE) then 
-      dhmin = listTP(1)%dh + TRUNCERR
-      dhmax = listTP(nlist)%dh - TRUNCERR
-    end if
-
-    if(ipropertyState == IPROPERTY_FUNCS) then 
-      tp%t  = TB0 / tpRef0%t
-      call tp%GetTP_from_T
-      dhmin1 = tp%dh
-
-      tp%t  = TM0 / tpRef0%t
-      call tp%GetTP_from_T
-      dhmax1 = tp%dh
-      
-      dhmin = dmin1( dhmin1, dhmax1) + TRUNCERR
-      dhmax = dmax1( dhmin1, dhmax1) - TRUNCERR
-    end if
-
-    do i = 1, n
-      tp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
-      call tp%GetTP_from_DH
-      call tp%is_T_in_scope
-      write(tp_unit, '(dt)') tp
-    end do
-    close (tp_unit)
-
-  end subroutine 
-
-  !!--------------------------------
   subroutine Initialize_thermo_input
     use input_general_mod, only : ithermo
     
@@ -679,9 +657,7 @@ contains
     call Write_thermo_property ! for test
 
   end subroutine Initialize_thermo_input
-
-
-
+  
 end module input_thermo_mod
 
 
