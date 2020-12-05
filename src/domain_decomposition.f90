@@ -14,14 +14,11 @@ module domain_decomposition_mod
     generic :: Print => Print_debug
     generic :: write(formatted) => Print_debug
   end type pencil_t
-
-  type(pencil_t) :: xpencil
-
-  private
+  
+  type(pencil_t), save :: domain_xpencil
   public :: Initialize_domain_decompsition
 
 contains
-
   !--------------------------------
   subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
     use iso_fortran_env, only : error_unit
@@ -67,19 +64,19 @@ contains
 
     call decomp_2d_init( npx, npy, npz, p_row, p_col, is_periodic(:) )
     
-    xpencil%irange(1) = xstart(1)
-    xpencil%jrange(1) = xstart(2)
-    xpencil%krange(1) = xstart(3)
+    domain_xpencil%irange(1) = xstart(1)
+    domain_xpencil%jrange(1) = xstart(2)
+    domain_xpencil%krange(1) = xstart(3)
 
-    xpencil%irange(2) = xend(1)
-    xpencil%jrange(2) = xend(2)
-    xpencil%krange(2) = xend(3)
+    domain_xpencil%irange(2) = xend(1)
+    domain_xpencil%jrange(2) = xend(2)
+    domain_xpencil%krange(2) = xend(3)
 
-    xpencil%isz = xsize(1)
-    xpencil%jsz = xsize(2)
-    xpencil%ksz = xsize(3)
+    domain_xpencil%isz = xsize(1)
+    domain_xpencil%jsz = xsize(2)
+    domain_xpencil%ksz = xsize(3)
 
-    write(*, '(dt)') xpencil
+    write(*, '(dt)') domain_xpencil
 
   end subroutine Initialize_domain_decompsition
 

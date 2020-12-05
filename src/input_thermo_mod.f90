@@ -103,6 +103,7 @@ module input_thermo_mod
   type(thermoProperty_t), save, allocatable, dimension(:) :: listTP
   type(thermoProperty_t) :: tpRef0 ! dim
   type(thermoProperty_t) :: tpIni0 ! dim
+  type(thermoProperty_t) :: tpIni ! undim
 
 
   private :: Sort_listTP_Tsmall2big

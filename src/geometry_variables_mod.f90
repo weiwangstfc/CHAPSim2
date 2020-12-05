@@ -53,6 +53,7 @@ contains
     use input_general_mod
     use geometry_mod
     use math_mod
+    use chapsim_abort_mod
     use parameters_constant_mod, only : ONE, HALF, ZERO
     integer :: i, j, k
     real(WP) :: s, yy, c1, c2, c3, c4
@@ -68,12 +69,14 @@ contains
     domain%nc(2) = ncy
     domain%nc(3) = ncz
 
-    domain%np(1) = npx
-    domain%np(2) = npy
-    domain%np(3) = npz
+    ! to note: geometric node number is always cell numbe + 1,
+    ! different from the flow node number
+    domain%np(1) = ncx + 1
+    domain%np(2) = ncy + 1
+    domain%np(3) = ncz + 1
 
-    domain%dx = lxx / real(ncx, WP)
-    domain%dz = lzz / real(ncz, WP)
+    domain%dx = lxx / real(domain%nc(1), WP)
+    domain%dz = lzz / real(domain%nc(3), WP)
 
     domain%dx2 = domain%dx * domain%dx
     domain%dz2 = domain%dz * domain%dz
@@ -81,13 +84,13 @@ contains
     domain%dxi = ONE / domain%dx
     domain%dzi = ONE / domain%dz
 
-    ! Build up node and cell info
-    allocate ( node (npx, npy, npz) )
-    allocate ( cell (ncx, ncy, ncz) )
-    
-    do k = 1, npz
-      do j = 1, npy
-        do i = 1, npx
+    ! to build up node and cell info
+    allocate ( node (domain%np(1), domain%np(2), domain%np(3)) )
+    allocate ( cell (domain%nc(1), domain%nc(2), domain%nc(3)) )
+    ! to initialize 
+    do k = 1, domain%np(3)
+      do j = 1, domain%np(2)
+        do i = 1, domain%np(1)
           node(i, j, k)%x = ZERO
           node(i, j, k)%y = ZERO
           node(i, j, k)%z = ZERO
@@ -95,26 +98,35 @@ contains
       end do
     end do
     
-    do k = 1, ncz
-      do j = 1, ncy
-        do i = 1, ncx
+    do k = 1, domain%nc(3)
+      do j = 1, domain%nc(2)
+        do i = 1, domain%nc(1)
           cell(i, j, k)%x = ZERO
           cell(i, j, k)%y = ZERO
           cell(i, j, k)%z = ZERO
         end do
       end do
     end do
-
-    block_xcoordinate: do i = 1, npx
+    
+    ! x 
+    block_xcoordinate: do i = 1, domain%np(1)
       node(i, :, :)%x = real( (i - 1), WP ) * domain%dx
-      if (i < npx) cell(i, :, :)%x = (real( i, WP ) - HALF) * domain%dx
     end do block_xcoordinate
 
-    block_zcoordinate: do k = 1, npz
+    block_xcoordinate: do i = 1, domain%nc(1)
+      cell(i, :, :)%x = node(i, :, :)%x + domain%dx * HALF
+    end do block_xcoordinate
+
+    ! z
+    block_zcoordinate: do k = 1, domain%np(3)
       node(:, :, k)%z = real( (k - 1), WP ) * domain%dz
-      if (k < npz) cell(:, :, k)%z = (real( k, WP ) - HALF) * domain%dz
     end do block_zcoordinate
 
+    block_zcoordinate: do k = 1, domain%nc(3)
+      cell(:, :, k)%z = node(:, :, k)%z + domain%dz * HALF
+    end do block_zcoordinate
+
+    ! y
     block_ycnst: if (istret == ISTRET_SIDES) then
       c1 = rstret * HALF
       c2 = tanh_wp (c1)
@@ -137,7 +149,7 @@ contains
       c4 = HALF
     end if block_ycnst
 
-    block_ynd: do j = 1, npy
+    block_ynd: do j = 1, domain%np(2)
       yy = real ((j - 1), WP) / real ( (npy - 1), WP)
       if(istret == ISTRET_NO) then
         s = yy
@@ -147,10 +159,42 @@ contains
       node(:, j, :)%y = s * (lyt - lyb) + lyb
     end do block_ynd 
 
-    block_ycl: do j = 1, ncy
+    block_ycl: do j = 1, domain%nc(2)
       cell(:, j, :)%y = ( node(1, j, 1)%y + node(1, j + 1, 1)%y ) * HALF
     end do block_ycl
 
+    block_dy: do j = 1, domain%nc(2)
+      cell(:, j, :)%dy = node(1, j + 1, 1)%y - node(1, j, 1)%y 
+    end do block_dy
+
+    ! to validate the y distance
+    yy = 0
+    do j = 1, domain%nc(2)
+      yy = yy + cell(:, j, :)%dy
+    end do
+    if ( abs_wp(yy - (lyt - lyb)) > TRUNCERR ) &
+    call Print_error_msg(1, "Error in meshing.")
+
+    ! ri
+    cell(:, :, :)%ri = ONE
+    node(:, :, :)%ri = ONE
+    if(icoordinate == ICYLINDRICAL) then
+
+      do j = 1, domain%np(2)
+        if ( abs_wp( node(:, j, :)%y ) < MINP ) then
+          node(:, j, :)%ri = MAXP
+        else
+          node(:, j, :)%ri = ONE / node(:, j, :)%y
+        end if
+      end do 
+
+      do j = 1, domain%nc(2)
+        cell(:, j, :)%ri = ONE / cell(:, j, :)%y
+      end do
+
+    end if
+
+    ! to print geometry/mesh domain
     if(myid == 0) then ! test
       call Display_vtk_mesh ( node(:, :, :), 'xy' )
       call Display_vtk_mesh ( node(:, :, :), 'yz' )

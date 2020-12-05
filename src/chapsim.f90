@@ -14,14 +14,17 @@ subroutine Initialize_chapsim()
   use domain_decomposition_mod
   use geometry_initialisation_mod
   use flow_variables_mod
+  use 
   implicit none
 
   call Initialize_mpi()
   call Initialize_general_input ()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
+
   call Initialize_domain_decompsition ()
-  call Allocate_flow_variables ()
+  call Allocate_variables ()
+  call Initialize_variables ()
 
 end subroutine Initialize_chapsim
 

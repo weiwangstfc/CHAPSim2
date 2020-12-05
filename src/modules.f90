@@ -40,6 +40,7 @@ module parameters_constant_mod
   real(WP), parameter :: NINE      = 9.0_WP
 
   real(WP), parameter :: TWELVE    = 12.0_WP 
+  real(WP), parameter :: SIXTEEN   = 16.0_WP
   real(WP), parameter :: FIFTEEN   = 15.0_WP
   real(WP), parameter :: SEVENTEEN = 17.0_WP
   real(WP), parameter :: SIXTY     = 60.0_WP
@@ -77,9 +78,38 @@ module math_mod
     module procedure tanh_sp
     module procedure tanh_dp
   end interface tanh_wp
+
+  interface abs_wp
+    module procedure abs_sp
+    module procedure abs_dp
+  end interface abs_wp
+
+  interface sin_wp
+    module procedure sin_sp
+    module procedure sin_dp
+  end interface sin_wp
+
+  interface cos_wp
+    module procedure cos_sp
+    module procedure cos_dp
+  end interface cos_wp
   
 contains
 
+  ! abs
+  pure function abs_sp ( r ) result(d)
+  real(kind = SP), intent(in) :: r
+  real(kind = SP) :: d
+  d = abs ( r )
+  end function
+
+  pure function abs_dp ( r ) result (d)
+  real(kind = DP), intent(in) :: r
+  real(kind = DP) :: d
+  d = abs_wp ( r ) 
+  end function
+
+  ! sqrt
   pure function sqrt_sp ( r ) result(d)
     real(kind = SP), intent(in) :: r
     real(kind = SP) :: d
@@ -92,7 +122,33 @@ contains
     d = dsqrt ( r ) 
   end function
 
+  ! sin
+  pure function sin_sp ( r ) result(d)
+    real(kind = SP), intent(in) :: r
+    real(kind = SP) :: d
+    d = sin ( r )
+  end function
 
+  pure function sin_dp ( r ) result (d)
+    real(kind = DP), intent(in) :: r
+    real(kind = DP) :: d
+    d = dsin ( r ) 
+  end function
+
+  ! cos
+  pure function cos_sp ( r ) result(d)
+    real(kind = SP), intent(in) :: r
+    real(kind = SP) :: d
+    d = cos ( r )
+  end function
+
+  pure function cos_dp ( r ) result (d)
+    real(kind = DP), intent(in) :: r
+    real(kind = DP) :: d
+    d = dcos ( r ) 
+  end function
+
+  ! tanh
   pure function tanh_sp ( r ) result(d)
     real(kind = SP), intent(in) :: r
     real(kind = SP) :: d
@@ -130,12 +186,15 @@ module geometry_mod
     real(WP) :: x
     real(WP) :: y
     real(WP) :: z
+    real(WP) :: dy
+    real(WP) :: ri !multiplicative inverse of r, for cylindrical coordinates
   end type cell_t
 
   type node_t
   real(WP) :: x
   real(WP) :: y
   real(WP) :: z
+  real(wp) :: ri !multiplicative inverse of r, for cylindrical coordinates
 end type node_t
 
   type(domain_t), save :: domain

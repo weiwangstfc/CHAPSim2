@@ -9,6 +9,9 @@ module input_general_mod
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV     = 4
+
+  integer, parameter :: ICARTESIAN   = 1, &
+                        ICYLINDRICAL = 2
                         
   integer, parameter :: ISTRET_NO     = 0, &
                         ISTRET_SIDES  = 1, &
@@ -83,8 +86,8 @@ module input_general_mod
 
   ! derived parameters
   logical :: is_periodic(3)
-
   integer :: npx, npy, npz
+  integer :: icoordinate
 
   integer :: ntInner
   real(WP) :: tGamma(0 : 3)
@@ -288,6 +291,19 @@ contains
     if ( is_periodic(1) ) npx = ncx
     if ( is_periodic(2) ) npy = ncy
     if ( is_periodic(3) ) npz = ncz
+
+    ! to set up cooridnates
+    if (icase == ICASE_CHANNEL) then
+      icoordinate = ICARTESIAN
+    else if (icase == ICASE_PIPE) then
+      icoordinate = ICYLINDRICAL
+    else if (icase == ICASE_ANNUAL) then
+      icoordinate = ICYLINDRICAL
+    else if (icase == ICASE_TGV) then
+      icoordinate = ICARTESIAN
+    else 
+      icoordinate = ICARTESIAN
+    end if
 
     call Set_timestepping_coefficients ( )
 
