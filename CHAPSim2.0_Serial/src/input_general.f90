@@ -14,9 +14,10 @@ module input_general_mod
                         ICYLINDRICAL = 2
                         
   integer, parameter :: ISTRET_NO     = 0, &
-                        ISTRET_SIDES  = 1, &
+                        ISTRET_2SIDES = 1, &
                         ISTRET_BOTTOM = 2, &
-                        ISTRET_TOP    = 3
+                        ISTRET_TOP    = 3, &
+                        ISTRET_CENTRE = 4
 
   integer, parameter :: ITIME_RK3 = 3, &
                         ITIME_AB1 = 1
@@ -29,50 +30,61 @@ module input_general_mod
                         IBC_INLET_MAP   = 5, &
                         IBC_INLET_DB    = 6, &
                         IBC_OUTLET_EXPO = 7, &
-                        IBC_OUTLET_CONV = 8
+                        IBC_OUTLET_CONV = 8, &
+                        IBC_INTERIOR    = 9
 
-
+  integer, parameter :: NDIM = 3
 
   ! flow type
   integer :: icase
   integer :: ithermo
   integer :: icht
+
   ! domain decomposition
   integer :: p_row
   integer :: p_col
+
   ! domain geometry
   real(WP) :: lxx, lzz, lyt, lyb
+
   ! domain mesh
   integer :: ncx, ncy, ncz
   integer :: istret
   real(WP) :: rstret
+
   ! flow parameter
   real(WP) :: ren
+
   ! time stepping
   real(WP) :: dt
   integer :: iterFlowFirst
   integer :: iterFlowLast
+
   ! boundary condition
-  
   integer :: ifbcx(1:2)
   integer :: ifbcy(1:2)
   integer :: ifbcz(1:2)
+
   ! InOutParam
   integer :: irestart
   integer :: ncheckpoint
   integer :: nvisu
   integer :: iterStatsFirst
   integer :: nstats
+
   ! NumOption
   integer :: itimesteping
   integer :: iviscous
   integer :: ipressure
+
   ! initial fields
   real(WP) :: renIni
   integer :: iterRenIniEnd
   real(WP) :: initNoise
+
   ! PeriodicDrv
   integer :: idriven
+  
   ! ThermoParam
   integer :: ifluid
   integer :: igravity
@@ -95,66 +107,12 @@ module input_general_mod
   real(WP) :: tAlpha(0 : 3)
 
   ! procedure
+  public  :: Initialize_general_input
   private :: Set_periodic_bc
   private :: Set_timestepping_coefficients
-  public :: Initialize_general_input
+  
 
 contains
-
-  subroutine Set_timestepping_coefficients()
-    use parameters_constant_mod
-
-    if(itimesteping == ITIME_RK3) then
-      
-      ntInner = 3
-      tGamma(0) = ONE
-      tGamma(1) = EIGHT / FIFTEEN
-      tGamma(2) = FIVE / TWELVE
-      tGamma(3) = THREE / FOUR
-
-      tZeta (0) = ZERO
-      tZeta (1) = ZERO
-      tZeta (2) = -SEVENTEEN / SIXTY
-      tZeta (3) = -FIVE / TWELVE
-
-    else if (itimesteping == ITIME_AB1) then
-
-      ntInner = 1
-      tGamma(0) = ONE
-      tGamma(1) = ONEPFIVE
-      tGamma(2) = ZERO
-      tGamma(3) = ZERO
-
-      tZeta (0) = ZERO
-      tZeta (1) = -ZPFIVE
-      tZeta (2) = ZERO
-      tZeta (3) = ZERO
-
-    else 
-
-      ntInner = 0
-      tGamma(:) = ZERO
-      tZeta (:) = ZERO
-
-    end if 
-    
-    tAlpha(:) = tGamma(:) + tZeta(:)
-
-  end subroutine Set_timestepping_coefficients
-
-  subroutine Set_periodic_bc( bc, flg )
-    integer, intent(inout) :: bc(1:2)
-    logical, intent(out) :: flg
-
-    if ( (bc(1) == IBC_PERIODC) .or. (bc(2) == IBC_PERIODC) ) then
-      bc(1) = IBC_PERIODC
-      bc(2) = IBC_PERIODC
-      flg = .true.
-    else 
-      flg = .false.
-    end if
-
-  end subroutine Set_periodic_bc
 
   subroutine Initialize_general_input ()
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
@@ -270,13 +228,36 @@ contains
       end if block_section
     end do
 
-    if(ioerr /= IOSTAT_END) then
-      write (ERROR_UNIT, *) 'Problem reading ', INPUT_FILE
-      write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
-      stop 3
-    end if
+    if(ioerr /= IOSTAT_END) call Print_error_msg( 'Problem reading '//INPUT_FILE)
 
     close(inputUnit)
+
+    ! foolproof 
+    if (icase == ICASE_CHANNEL) then
+      if(istret /= ISTRET_2SIDES) call Print_warning_msg ("Grids are not two-side clustered.")
+    else if (icase == ICASE_PIPE) then
+      if(istret /= ISTRET_TOP)    call Print_warning_msg ("Grids are not near-wall clustered.")
+    else if (icase == ICASE_ANNUAL) then
+      if(istret /= ISTRET_2SIDES) call Print_warning_msg ("Grids are not two-side clustered.")
+    else if (icase == ICASE_TGV) then
+      if(istret /= ISTRET_NO)     call Print_warning_msg ("Grids are clustered.")
+    else 
+    end if
+
+    
+    ! to set up cooridnates
+    if (icase == ICASE_CHANNEL) then
+      icoordinate = ICARTESIAN
+    else if (icase == ICASE_PIPE) then
+      icoordinate = ICYLINDRICAL
+      ifbcy(1) = IBC_INTERIOR
+    else if (icase == ICASE_ANNUAL) then
+      icoordinate = ICYLINDRICAL
+    else if (icase == ICASE_TGV) then
+      icoordinate = ICARTESIAN
+    else 
+      icoordinate = ICARTESIAN
+    end if
 
     ! to set up periodic boundary conditions
     is_periodic(:) = .false.
@@ -292,22 +273,65 @@ contains
     if ( is_periodic(2) ) npy = ncy
     if ( is_periodic(3) ) npz = ncz
 
-    ! to set up cooridnates
-    if (icase == ICASE_CHANNEL) then
-      icoordinate = ICARTESIAN
-    else if (icase == ICASE_PIPE) then
-      icoordinate = ICYLINDRICAL
-    else if (icase == ICASE_ANNUAL) then
-      icoordinate = ICYLINDRICAL
-    else if (icase == ICASE_TGV) then
-      icoordinate = ICARTESIAN
-    else 
-      icoordinate = ICARTESIAN
-    end if
-
     call Set_timestepping_coefficients ( )
 
   end subroutine Initialize_general_input
+
+  subroutine Set_periodic_bc( bc, flg )
+    integer, intent(inout) :: bc(1:2)
+    logical, intent(out) :: flg
+
+    if ( (bc(1) == IBC_PERIODC) .or. (bc(2) == IBC_PERIODC) ) then
+      bc(1) = IBC_PERIODC
+      bc(2) = IBC_PERIODC
+      flg = .true.
+    else 
+      flg = .false.
+    end if
+
+  end subroutine Set_periodic_bc
+
+  subroutine Set_timestepping_coefficients()
+    use parameters_constant_mod
+
+    if(itimesteping == ITIME_RK3) then
+      
+      ntInner = 3
+      tGamma(0) = ONE
+      tGamma(1) = EIGHT / FIFTEEN
+      tGamma(2) = FIVE / TWELVE
+      tGamma(3) = THREE / FOUR
+
+      tZeta (0) = ZERO
+      tZeta (1) = ZERO
+      tZeta (2) = -SEVENTEEN / SIXTY
+      tZeta (3) = -FIVE / TWELVE
+
+    else if (itimesteping == ITIME_AB1) then
+
+      ntInner = 1
+      tGamma(0) = ONE
+      tGamma(1) = ONEPFIVE
+      tGamma(2) = ZERO
+      tGamma(3) = ZERO
+
+      tZeta (0) = ZERO
+      tZeta (1) = -ZPFIVE
+      tZeta (2) = ZERO
+      tZeta (3) = ZERO
+
+    else 
+
+      ntInner = 0
+      tGamma(:) = ZERO
+      tZeta (:) = ZERO
+
+    end if 
+    
+    tAlpha(:) = tGamma(:) + tZeta(:)
+
+  end subroutine Set_timestepping_coefficients
+
 end module 
 
 

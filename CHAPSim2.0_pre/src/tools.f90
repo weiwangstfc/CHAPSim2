@@ -28,12 +28,12 @@ module random_number_generation_mod
   use precision_mod
   implicit none
   private
-  public :: Initialize_random_number => random_initialize
-  public :: Generate_rvec_random => rvec_random
-  public :: Generate_r_random => r_random
+  public :: Initialize_random_number
+  public :: Generate_rvec_random
+  public :: Generate_r_random
 
 contains
-  subroutine random_initialize ( seed )
+  subroutine Initialize_random_number ( seed )
     !*******************************************************************************
     !
     !! random_initialize initializes the FORTRAN 90 random number seed.
@@ -134,10 +134,10 @@ contains
     end do
 
     return
-  end subroutine random_initialize
+  end subroutine Initialize_random_number
 
   !**********************************************************************************************************************************
-  subroutine rvec_random ( alo, ahi, n, a )
+  subroutine Generate_rvec_random ( alo, ahi, n, a )
     !
     !*******************************************************************************
     !
@@ -170,14 +170,14 @@ contains
     integer(4) i
     !
     do i = 1, n
-        call r_random ( alo, ahi, a(i) )
+        call Generate_r_random ( alo, ahi, a(i) )
     end do
 
     return
-  end subroutine rvec_random
+  end subroutine Generate_rvec_random
 
 !**********************************************************************************************************************************
-  subroutine r_random ( rlo, rhi, r )
+  subroutine Generate_r_random ( rlo, rhi, r )
     !
     !*******************************************************************************
     !
@@ -214,7 +214,7 @@ contains
     r = ( 1.0e+00 - t ) * rlo + t * rhi
 
     return
-  end subroutine r_random
+  end subroutine Generate_r_random
 
 
 

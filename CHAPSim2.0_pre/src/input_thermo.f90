@@ -105,13 +105,12 @@ module input_thermo_mod
   type(thermoProperty_t) :: tpIni0 ! dim
   type(thermoProperty_t) :: tpIni ! undim
 
-
-  private :: Sort_listTP_Tsmall2big
-  private :: Check_monotonicity_DH_of_HT_list
   private :: Buildup_property_relations_from_table
   private :: Buildup_property_relations_from_function
-  private :: Initialize_thermo_parameters
+  private :: Check_monotonicity_DH_of_HT_list
   public  :: Initialize_thermo_input
+  private :: Initialize_thermo_parameters
+  private :: Sort_listTP_Tsmall2big
 
 contains
   !!--procedures for type thermoProperty_t ---------------------------
@@ -187,9 +186,8 @@ contains
       this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
       this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
       this%dh = this%d * this%h
-    end if 
 
-    if(ipropertyState == IPROPERTY_FUNCS) then 
+    else if(ipropertyState == IPROPERTY_FUNCS) then 
       
       if (present(dim)) then 
         t1 = this%t
@@ -265,6 +263,15 @@ contains
   
   
       this%dh = this%d * this%h
+    else
+      this%t  = ONE
+      this%d  = ONE
+      this%m  = ONE
+      this%k  = ONE
+      this%cp = ONE
+      this%b  = ONE
+      this%h  = ZERO
+      this%dh = ZERO
     end if
   end subroutine Refresh_thermal_properties_from_T
 

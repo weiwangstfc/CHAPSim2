@@ -13,14 +13,14 @@ DIR_OBJ= ./obj
 DIR_MOD= ./mod
 
 OBJS= modules.o\
-	mpi_mod.o\
-	input_general_mod.o\
-	input_thermo_mod.o\
-	geometry_variables_mod.o\
-  domain_decomposition.o\
-	flow_variables_mod.o\
-	tools.o\
-	chapsim.o
+      mpi_mod.o\
+      tools.o\
+      input_general.o\
+      input_thermo.o\
+      geometry.o\
+      domain_decomposition.o\
+      flow_variables_mod.o\
+      chapsim.o
 
 OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall 
 

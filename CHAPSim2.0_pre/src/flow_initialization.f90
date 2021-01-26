@@ -63,8 +63,7 @@ contains
     integer :: seed
     real(WP) :: rd(3)
 
-    allocate (u_laminar (domain_dummy%nc) )
-    u_laminar(:) = ZERO
+    allocate (u_laminar (domain_dummy%nc) ); u_laminar(:) = ZERO
     call Generate_poiseuille_flow_profile ( u_laminar, domain_dummy, cell_dummy(1, :, 1) )
 
     flow_dummy(:, :, :)%pre = ZERO

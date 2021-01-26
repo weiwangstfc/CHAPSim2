@@ -100,13 +100,13 @@ contains
   pure function abs_sp ( r ) result(d)
   real(kind = SP), intent(in) :: r
   real(kind = SP) :: d
-  d = abs ( r )
+    d = abs ( r )
   end function
 
   pure function abs_dp ( r ) result (d)
   real(kind = DP), intent(in) :: r
   real(kind = DP) :: d
-  d = abs_wp ( r ) 
+    d = dabs ( r ) 
   end function
 
   ! sqrt
@@ -162,45 +162,5 @@ contains
   end function
 
 end module math_mod
-
-
-module geometry_mod
-  use precision_mod  
-
-  type domain_t
-    integer :: bcx(2)
-    integer :: bcy(2)
-    integer :: bcz(2)
-    logical :: is_periodic(3)
-    integer :: np(3)
-    integer :: nc(3)
-    real(wp) :: dx
-    real(wp) :: dz
-    real(wp) :: dx2
-    real(wp) :: dz2
-    real(wp) :: dxi
-    real(wp) :: dzi
-  end type domain_t
-
-  type cell_t
-    real(WP) :: x
-    real(WP) :: y
-    real(WP) :: z
-    real(WP) :: dy
-    real(WP) :: ri !multiplicative inverse of r, for cylindrical coordinates
-  end type cell_t
-
-  type node_t
-  real(WP) :: x
-  real(WP) :: y
-  real(WP) :: z
-  real(wp) :: ri !multiplicative inverse of r, for cylindrical coordinates
-end type node_t
-
-  type(domain_t), save :: domain
-  type(node_t), save, allocatable, dimension(:, :, :) :: node
-  type(cell_t), save, allocatable, dimension(:, :, :) :: cell
-
-end module geometry_mod
 
 

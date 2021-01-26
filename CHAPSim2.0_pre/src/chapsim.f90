@@ -12,9 +12,9 @@ subroutine Initialize_chapsim()
   use input_general_mod
   use input_thermo_mod
   use domain_decomposition_mod
-  use geometry_initialisation_mod
+  use geometry_mod
   use flow_variables_mod
-  use 
+  !use variable_initialization_mod
   implicit none
 
   call Initialize_mpi()
@@ -23,7 +23,7 @@ subroutine Initialize_chapsim()
   call Initialize_geometry_variables ()
 
   call Initialize_domain_decompsition ()
-  call Allocate_variables ()
+  call Allocate_variables_xpencil ()
   call Initialize_variables ()
 
 end subroutine Initialize_chapsim
