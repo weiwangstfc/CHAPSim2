@@ -81,7 +81,3 @@ contains
   end subroutine Initialize_domain_decompsition
 
 end module domain_decomposition_mod
-
-
-
-!

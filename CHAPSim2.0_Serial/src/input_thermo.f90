@@ -539,7 +539,7 @@ contains
     real(WP) :: dhmax, dhmin
     integer :: tp_unit
 
-    if (myid /= 0) return
+    !if (myid /= 0) return
 
     n = 128
     call tp%Get_initialized_thermal_properties

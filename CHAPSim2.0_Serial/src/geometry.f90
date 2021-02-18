@@ -1,23 +1,7 @@
 module geometry_mod
   use precision_mod
+  use udf_type_mod
   implicit none
-
-  type domain_t
-    integer :: bcx(2)
-    integer :: bcy(2)
-    integer :: bcz(2)
-    logical :: is_periodic(3)
-    integer :: np(3)
-    integer :: nc(3)
-    real(wp) :: dx
-    real(wp) :: dz
-    real(wp) :: dx2
-    real(wp) :: dz2
-    real(wp) :: dxi
-    real(wp) :: dzi
-    real(wp), allocatable :: yp(:)
-    real(wp), allocatable :: yc(:)
-  end type domain_t
 
   type(domain_t), save :: domain
 
@@ -32,54 +16,9 @@ module geometry_mod
 
   !private
   private :: Buildup_grid_mapping_1D
-  public :: Display_vtk_mesh
   public :: Initialize_geometry_variables
   
 contains
-
-  subroutine Display_vtk_mesh(d, str)
-    type(domain_t), intent( in ) :: d
-    character( len = *), intent( in ) :: str
-
-    integer :: output_unit
-    integer :: i, j, k
-    integer :: n1, n2, n3
-    real(WP) :: x, y, z
-
-    n1 = d%np(1)
-    n2 = d%np(2)
-    n3 = d%np(3)
-
-    if ( trim( str ) == 'xy' ) then
-      n3 = 1
-    end if
-    if ( trim( str ) == 'yz' ) then
-      n1 = 1
-    end if
-    if ( trim( str ) == 'zx' ) then
-      n2 = 1
-    end if
-
-    open(newunit = output_unit, file = 'mesh_'//str//'.vtk', action = "write", status = "replace")
-    write(output_unit, '(A)') '# vtk DataFile Version 2.0'
-    write(output_unit, '(A)') str//'_mesh'
-    write(output_unit, '(A)') 'ASCII'
-    write(output_unit, '(A)') 'DATASET STRUCTURED_GRID'
-    write(output_unit, '(A, 3I10.1)') 'DIMENSIONS', n1, n2, n3
-    write(output_unit, '(A, I10.1, X, A)') 'POINTS', n1 * n2 * n3, 'float'
-    do k = 1, n3
-      z = d%dz * real(k - 1, WP)
-      do j = 1, n2
-        y = d%yp(j)
-        do i = 1, n1
-          x = d%dx * real(i - 1, WP)
-          write(output_unit, *) x, y, z
-        end do
-      end do
-    end do
-    close(output_unit)
-
-  end subroutine Display_vtk_mesh
 
   subroutine Initialize_geometry_variables ()
     use mpi_mod
@@ -88,6 +27,7 @@ contains
     use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR
 
     ! Build up domain info
+    domain%case   = icase
     domain%bcx(:) = ifbcx(:)
     domain%bcy(:) = ifbcy(:)
     domain%bcz(:) = ifbcz(:)
@@ -100,7 +40,7 @@ contains
 
     ! to note: geometric node number is always cell numbe + 1,
     ! different from the flow node number
-    domain%np(1) = ncx + 1
+    domain%np(1) = ncx + 1 
     domain%np(2) = ncy + 1
     domain%np(3) = ncz + 1
 
@@ -127,14 +67,6 @@ contains
     
     call Buildup_grid_mapping_1D ('nd', domain%np(2), domain%yp(:), mpd1c1(:), mpd2c1(:), mpd2c1(:))
     call Buildup_grid_mapping_1D ('cl', domain%nc(2), domain%yc(:), mcd1c1(:), mcd2c1(:), mcd2c1(:))
-
-    ! to print geometry/mesh domain
-    if(myid == 0) then ! test
-      call Display_vtk_mesh ( domain, 'xy' )
-      call Display_vtk_mesh ( domain, 'yz' )
-      call Display_vtk_mesh ( domain, 'zx' )
-      call Display_vtk_mesh ( domain, '3D' )
-    end if
 
   end subroutine  Initialize_geometry_variables
 

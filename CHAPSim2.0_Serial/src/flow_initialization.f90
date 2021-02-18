@@ -1,69 +1,58 @@
 module flow_variables_mod
   use precision_mod
-  use geometry_mod
-  use input_general_mod
   implicit none
 
-  real(WP), save, allocatable, dimension(:, :, :, :) :: u_xpencil
-  real(WP), save, allocatable, dimension(:, :, :, :) :: g_xpencil
-  real(WP), save, allocatable, dimension(:, :, :) :: pre_xpencil
-  real(WP), save, allocatable, dimension(:, :, :) :: phi_xpencil
+  real(WP), save, allocatable, dimension(:, :, :) :: ux, uy, uz
+  real(WP), save, allocatable, dimension(:, :, :) :: gx, gy, gz
+  real(WP), save, allocatable, dimension(:, :, :) :: pres
+  real(WP), save, allocatable, dimension(:, :, :) :: pcor
 
-  real(WP), save, allocatable, dimension(:, :, :) :: d_xpencil
-  real(WP), save, allocatable, dimension(:, :, :) :: m_xpencil
+  real(WP), save, allocatable, dimension(:, :, :) :: dDens
+  real(WP), save, allocatable, dimension(:, :, :) :: mVisc
 
-  real(WP), save, allocatable, dimension(:, :, :) :: dh_xpencil
-  real(WP), save, allocatable, dimension(:, :, :) :: h_xpencil
-  real(WP), save, allocatable, dimension(:, :, :) :: k_xpencil
-  real(WP), save, allocatable, dimension(:, :, :) :: t_xpencil
+  real(WP), save, allocatable, dimension(:, :, :) :: dh
+  real(WP), save, allocatable, dimension(:, :, :) :: hEnth
+  real(WP), save, allocatable, dimension(:, :, :) :: kCond
+  real(WP), save, allocatable, dimension(:, :, :) :: tTemp
   
   private
-  private :: Allocate_variables_xpencil
+  private :: Allocate_variables
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
+  private :: Initialize_vortexgreen_flow
   private :: Initialize_thermal_variables
-  private :: Initialize_thermo_variables
 
   public  :: Initialize_flow_variables
   
 contains
 
   subroutine Allocate_variables
-    use input_general_mod, only : ithermo, NDIM
-    use domain_decomposition_mod
-    use parameters_constant_mod
+    use input_general_mod, only : ithermo
+    use geometry_mod
+    use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
-    integer(4) :: i0, i1
-    integer(4) :: j0, j1
-    integer(4) :: k0, k1
-
+    ! allocate variables
+    allocate ( ux ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; ux = ZERO
+    allocate ( uy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; uy = ZERO
+    allocate ( uz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; uz = ZERO
     
-    i0 = local_xpencil%irange(1)
-    i1 = local_xpencil%irange(2)
+    allocate ( gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; gx = ZERO
+    allocate ( gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; gy = ZERO
+    allocate ( gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; gz = ZERO
 
-    j0 = local_xpencil%jrange(1)
-    j1 = local_xpencil%jrange(2)
+    allocate ( pres ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; pres = ZERO
+    allocate ( pcor ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; pcor = ZERO
 
-    k0 = local_xpencil%krange(1)
-    k1 = local_xpencil%krange(2)
-
-    ! allocate xpencil based data
-    allocate ( u_xpencil ( i0 : i1, j0 : j1, k0 : k1, NDIM )  ) ; u_xpencil = ZERO
-    allocate ( g_xpencil ( i0 : i1, j0 : j1, k0 : k1, NDIM )  ) ; g_xpencil = ZERO
-
-    allocate ( pre_xpencil ( i0 : i1, j0 : j1, k0 : k1 )  ) ; pre_xpencil = ZERO
-    allocate ( phi_xpencil ( i0 : i1, j0 : j1, k0 : k1 )  ) ; phi_xpencil = ZERO
-    
-    allocate ( d_xpencil  ( i0 : i1, j0 : j1, k0 : k1 )  ) ; d_xpencil = ONE
-    allocate ( m_xpencil  ( i0 : i1, j0 : j1, k0 : k1 )  ) ; m_xpencil = ONE
+    allocate ( dDens ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; dDens = ONE
+    allocate ( mVisc ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; mVisc = ONE
 
 
     if(ithermo == 1) then
-      allocate ( dh_xpencil ( i0 : i1, j0 : j1, k0 : k1 )  ) ; dh_xpencil = ZERO
-      allocate ( h_xpencil  ( i0 : i1, j0 : j1, k0 : k1 )  ) ; h_xpencil = ZERO
-      allocate ( k_xpencil  ( i0 : i1, j0 : j1, k0 : k1 )  ) ; k_xpencil = ONE
-      allocate ( t_xpencil  ( i0 : i1, j0 : j1, k0 : k1 )  ) ; t_xpencil = ONE
+      allocate ( dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; dh = ZERO
+      allocate ( hEnth ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; hEnth = ZERO
+      allocate ( kCond ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; kCond = ONE
+      allocate ( tTemp ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; tTemp = ONE
     end if
 
   end subroutine Allocate_variables
@@ -92,28 +81,34 @@ contains
       return
   end subroutine Initialize_thermal_variables
 
-  subroutine Generate_poiseuille_flow_profile(u_laminar)
-    use input_general_mod, only: lyt, lyb, icase
-    use geometry_mod, only: domain
+  subroutine Generate_poiseuille_flow_profile(u_laminar, domain_dummy)
+    use parameters_constant_mod, only : ZERO, ONE, ONEPFIVE, TWO, MAXP, TRUNCERR
+    use input_general_mod, only : ICASE_CHANNEL, ICASE_PIPE, ICASE_ANNUAL
+    use udf_type_mod
+    use math_mod
     implicit none
+    type(domain_t), intent(in) :: domain_dummy
     real(WP), intent(out) :: u_laminar(:)
-    real(WP), intent(in) :: u_dummy(:)
     
-    real(WP) :: a, b, c, yy
+    real(WP) :: a, b, c, yy, ymax, ymin, umean
+    integer(4) :: j
+
 
     u_laminar (:) = ZERO
 
-    if (icase == ICASE_CHANNEL) then
-      a = (lyt - lyb) / TWO
+    ymax = domain_dummy%yp( domain_dummy%np(2) )
+    ymin = domain_dummy%yp( 1 )
+    if (domain_dummy%case == ICASE_CHANNEL) then
+      a = (ymax - ymin) / TWO
       b = ZERO
       c = ONEPFIVE
-    else if (icase == ICASE_PIPE) then
-      a = lyt - lyb
+    else if (domain_dummy%case == ICASE_PIPE) then
+      a = (ymax - ymin)
       b = ZERO
       c = TWO
-    else if (icase == ICASE_ANNUAL) then
-      a = (lyt - lyb) / TWO
-      b = (lyt + lyb) / TWO
+    else if (domain_dummy%case == ICASE_ANNUAL) then
+      a = (ymax - ymin) / TWO
+      b = (ymax + ymin) / TWO
       c = TWO
     else 
       a = MAXP
@@ -121,134 +116,177 @@ contains
       c = ONE
     end if
 
-    do j = 1, domain%nc(2)
-      yy = domain%yc(j)
+    do j = 1, domain_dummy%nc(2)
+      yy = domain_dummy%yc(j)
       u_laminar(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
-    ! check the mean velocity
+    ! scale the bulk velocity to be one
     umean = ZERO
-    do j = 1, domain%nc(2)
-      umean = umean + u_laminar(j) * (domain%yp(j + 1) - domain%yp(j) )
+    do j = 1, domain_dummy%nc(2)
+      umean = umean + u_laminar(j) * (domain_dummy%yp(j + 1) - domain_dummy%yp(j) )
     end do
-    umean = umean / (lyt - lyb)
-    if ( abs_wp(umean - ONE) > TRUNCERR) &
-    call Print_error_msg("Error in poiseuille_flow_profile.")
+    umean = umean / (ymax - ymin)
+
+    u_laminar(:) = u_laminar(:) / umean
+
+    ! check the bulk velocity is one
+    umean = ZERO
+    do j = 1, domain_dummy%nc(2)
+      umean = umean + u_laminar(j) * (domain_dummy%yp(j + 1) - domain_dummy%yp(j) )
+    end do
+    umean = umean / (ymax - ymin)
+    if ( abs_wp(umean - ONE) > TRUNCERR) then
+      write(*, *) umean
+      call Print_error_msg("Error in poiseuille_flow_profile.")
+    end if
 
     return
   end subroutine Generate_poiseuille_flow_profile
 
-  subroutine Initialize_poiseuille_flow(pencil_dummy, u_dummy, pre_dummy)
+  subroutine Initialize_poiseuille_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, domain_dummy)
     use random_number_generation_mod
-    use geometry_mod, only: domain
-    use domain_decomposition_mod
+    use parameters_constant_mod, only : ZERO, ONE
+    use input_general_mod, only : initNoise
+    use udf_type_mod
     implicit none
-    type(pencil_t), intent(in) :: pencil_dummy
-    real(WP), intent(out) :: u_dummy(:, :, :, :)
-    real(WP), intent(out) :: pre_dummy(:, :, :)
+    type(domain_t), intent(in) :: domain_dummy
+    real(WP), intent(out) :: ux_dummy(:, :, :)
+    real(WP), intent(out) :: uy_dummy(:, :, :)
+    real(WP), intent(out) :: uz_dummy(:, :, :)
+    real(WP), intent(out) :: pres_dummy(:, :, :)
     
     real(WP), allocatable, dimension(:) :: u_laminar
     integer :: i, j, k
     integer :: seed
     real(WP) :: rd(3)
 
-    allocate ( u_laminar (domain%nc(2) ) ); u_laminar(:) = ZERO
-    call Generate_poiseuille_flow_profile ( u_laminar)
+    ! to get the profile
+    allocate ( u_laminar ( domain_dummy%nc(2) ) ); u_laminar(:) = ZERO
+    call Generate_poiseuille_flow_profile ( u_laminar, domain_dummy )
 
-    pre_dummy(:, :, :) =  ZERO
+    pres_dummy(:, :, :) =  ZERO
     seed = 0 ! real random
-    do k = pencil_dummy%krange(1), pencil_dummy%krange(2)
-      do j = pencil_dummy%jrange(1), pencil_dummy%jrange(2)
-        do i = pencil_dummy%irange(1), pencil_dummy%irange(2)
+    do k = 1, domain_dummy%nc(3)
+      do j = 1, domain_dummy%nc(2)
+        do i = 1, domain_dummy%nc(1)
           seed = seed + k + j + i ! repeatable random
           call Initialize_random_number ( seed )
-          call Generate_rvec_random ( -ONE, ONE, 3, rd)
-          u_dummy(:, :, :, 1) = initNoise * rd(1) + u_laminar (j)
-          u_dummy(:, :, :, 2) = initNoise * rd(2)
-          u_dummy(:, :, :, 3) = initNoise * rd(3)
+          call Generate_rvec_random( -ONE, ONE, 3, rd)
+          ux_dummy(i, j, k) = initNoise * rd(1) + u_laminar (j)
+          uy_dummy(i, j, k) = initNoise * rd(2)
+          uz_dummy(i, j, k) = initNoise * rd(3)
         end do
       end do
     end do
 
+    ux_dummy(domain_dummy%np(1), :, :) = ux_dummy(1, :, :)
+    uz_dummy(:, :, domain_dummy%np(3)) = uz_dummy(:, :, 1)
+
+    uy_dummy(:, 1, :) = ZERO
+    uy_dummy(:, domain_dummy%np(2), :) = ZERO
+    
     deallocate (u_laminar)
     return
   end subroutine  Initialize_poiseuille_flow
 
-  subroutine  Initialize_vortexgreen_flow(pencil_dummy, u_dummy, pre_dummy)
-    use domain_decomposition_mod
-    use geometry_mod
+  subroutine  Initialize_vortexgreen_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, domain_dummy)
+    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    use udf_type_mod
+    use math_mod
     implicit none
-    type(pencil_t), intent(in) :: pencil_dummy
-    real(WP), intent(out) :: u_dummy(:, :, :, :)
-    real(WP), intent(out) :: pre_dummy(:, :, :)
+    type(domain_t), intent(in) :: domain_dummy
+    real(WP), intent(out) :: ux_dummy(:, :, :)
+    real(WP), intent(out) :: uy_dummy(:, :, :)
+    real(WP), intent(out) :: uz_dummy(:, :, :)
+    real(WP), intent(out) :: pres_dummy(:, :, :)
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    integer(4) :: i, j, k
 
+    do k = 1, domain_dummy%nc(3)
+      zp = domain_dummy%dz * real(k - 1, WP)
+      zc = domain_dummy%dz * (real(k - 1, WP) + HALF)
 
-    do k = pencil_dummy%krange(1), pencil_dummy%krange(2)
-      do j = pencil_dummy%jrange(1), pencil_dummy%jrange(2)
-        do i = pencil_dummy%irange(1), pencil_dummy%irange(2)
-          u_dummy(i, j, k, 1) = sin_wp ( node_dummy(i, j, k)%x ) * &
-                                cos_wp ( cell_dummy(i, j, k)%y ) * &
-                                cos_wp ( cell_dummy(i, j, k)%z )
-          u_dummy(i, j, k, 2) = -cos_wp ( cell_dummy(i, j, k)%x ) * &
-                                sin_wp ( node_dummy(i, j, k)%y ) * &
-                                cos_wp ( cell_dummy(i, j, k)%z )
-          u_dummy(i, j, k, 3) = ZERO
-          pre_dummy(i, j, k)  = ( cos_wp( TWO * cell_dummy(i, j, k)%x       ) + &
-                                  cos_wp( TWO * cell_dummy(i, j, k)%y       ) ) * &
-                                ( cos_wp( TWO * cell_dummy(i, j, k)%z + TWO ) ) / SIXTEEN
+      do j = 1, domain_dummy%nc(2)
+        yp = domain_dummy%yp(j)
+        yc = domain_dummy%yc(j)
+
+        do i = 1, domain_dummy%nc(1)
+          xp = domain_dummy%dx * real(i - 1, WP)
+          xc = domain_dummy%dx * (real(i - 1, WP) + HALF)
+
+          ux_dummy(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+          uy_dummy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          uz_dummy(i, j, k) =  ZERO
+          pres_dummy(i, j, k)= ( cos_wp( TWO * xc       ) + cos_wp( TWO * yc       ) ) * &
+                               ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
         end do
       end do
     end do
+
+    ux_dummy(domain_dummy%np(1), :, :) = ux_dummy(1, :, :)
+    uy_dummy(:, domain_dummy%np(2), :) = uy_dummy(:, 1, :)
+    uz_dummy(:, :, domain_dummy%np(3)) = uz_dummy(:, :, 1)
+    
     return
   end subroutine Initialize_vortexgreen_flow
 
   subroutine Initialize_flow_variables( )
     use geometry_mod
     use input_general_mod
+    use parameters_constant_mod
     implicit none
+
+    interface 
+       subroutine Display_vtk_slice(d, str, varnm, var1, var2, var3, var4)
+        use udf_type_mod
+        type(domain_t), intent( in ) :: d
+        character( len = *), intent( in ) :: str
+        character( len = *), intent( in ) :: varnm
+        real(WP), dimension(:, :, :), intent(in):: var1, var2, var3, var4
+       end subroutine Display_vtk_slice
+    end interface
+
     ! allocate variables
     call Allocate_variables
 
     ! to initialize thermal variables 
     if (ithermo == 1) then
-      call Initialize_thermal_variables (d_xpencil, m_xpencil, dh_xpencil, &
-            h_xpencil, k_xpencil, t_xpencil)
+      call Initialize_thermal_variables (dDens, mVisc, dh, hEnth, kCond, tTemp)
     else
-      d_xpencil(:) = ONE
-      m_xpencil(:) = ONE
+      dDens(:, :, :) = ONE
+      mVisc(:, :, :) = ONE
     end if
 
-    ! to initialize flow variables
+    ! to initialize flow velocity and 
     if ( (icase == ICASE_CHANNEL) .or. &
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
 
-      call Initialize_poiseuille_flow (local_xpencil, u_xpencil, pre_xpencil)
+      call Initialize_poiseuille_flow (ux, uy, uz, pres, domain)
 
     else if (icase == ICASE_TGV) then
       
-      call vortexgreen_flow_initialization (local_xpencil, u_xpencil, pre_xpencil)
+      call Initialize_vortexgreen_flow (ux, uy, uz, pres, domain)
     
     else 
       call Print_error_msg("No such case defined.")
     end if
+    ! to initialize pressure correction term
+    pcor(:, :, :) = ZERO
 
-    ! to initialize 
+
+    
+
+    call Display_vtk_slice(domain, 'xy', 'uvwp', ux, uy, uz, pres)
+    call Display_vtk_slice(domain, 'yz', 'uvwp', ux, uy, uz, pres)
+    call Display_vtk_slice(domain, 'zx', 'uvwp', ux, uy, uz, pres)
 
     ! to update mass flux terms 
     !call Refresh_massflux (flow_dummy, thermo_dummy, domain_dummy)
 
     return
   end subroutine
-
-
-  
-
-
-  
-
-  
-
-  
 
 end module flow_variables_mod

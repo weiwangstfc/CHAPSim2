@@ -18,7 +18,8 @@ OBJS= modules.o\
       input_general.o\
       input_thermo.o\
       geometry.o\
-      domain_decomposition.o\
+			flow_initialization.o\
+			algorithms.o\
       chapsim.o
 
 OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall 

@@ -39,11 +39,21 @@ module parameters_constant_mod
   real(WP), parameter :: EIGHT     = 8.0_WP
   real(WP), parameter :: NINE      = 9.0_WP
 
+  real(WP), parameter :: TEN       = 10.0_WP
+  real(WP), parameter :: ELEVEN    = 11.0_WP
   real(WP), parameter :: TWELVE    = 12.0_WP 
   real(WP), parameter :: SIXTEEN   = 16.0_WP
   real(WP), parameter :: FIFTEEN   = 15.0_WP
   real(WP), parameter :: SEVENTEEN = 17.0_WP
+
+  real(WP), parameter :: TWENTYTWO = 22.0_WP
+  real(WP), parameter :: TWENTYFOUR= 24.0_WP
+
+  real(WP), parameter :: THIRTYSIX = 36.0_WP
+
   real(WP), parameter :: SIXTY     = 60.0_WP
+  real(WP), parameter :: SIXTYTWO  = 62.0_WP
+  real(WP), parameter :: SIXTYTHREE= 63.0_WP
 
   real(WP), parameter :: MINP      = 1.0E-20_WP
   real(WP), parameter :: MAXP      = 1.0E20_WP
@@ -64,6 +74,29 @@ module parameters_constant_mod
                                             ZERO, ZERO, ONE  /), &
                                             (/3, 3/) )
 end module parameters_constant_mod
+
+
+module udf_type_mod
+  use precision_mod
+  type domain_t
+    integer :: case
+    integer :: bcx(2)
+    integer :: bcy(2)
+    integer :: bcz(2)
+    logical :: is_periodic(3)
+    integer :: np(3) ! geometric points
+    integer :: nc(3)
+    real(wp) :: dx
+    real(wp) :: dz
+    real(wp) :: dx2
+    real(wp) :: dz2
+    real(wp) :: dxi
+    real(wp) :: dzi
+    real(wp), allocatable :: yp(:)
+    real(wp), allocatable :: yc(:)
+  end type domain_t
+
+end module
 
 !##############################################################################
 module math_mod

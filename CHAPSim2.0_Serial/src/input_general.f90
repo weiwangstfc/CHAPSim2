@@ -73,6 +73,8 @@ module input_general_mod
   integer :: nstats
 
   ! NumOption
+  integer :: i1derivative
+  integer :: i2derivative
   integer :: itimesteping
   integer :: iviscous
   integer :: ipressure
@@ -196,7 +198,8 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, nstats
 
       else if ( section_name(1:slen) == '[schemes]' ) then
-        
+        read(inputUnit, *, iostat = ioerr) variableName, i1derivative
+        read(inputUnit, *, iostat = ioerr) variableName, i2derivative
         read(inputUnit, *, iostat = ioerr) variableName, itimesteping
         read(inputUnit, *, iostat = ioerr) variableName, iviscous
         read(inputUnit, *, iostat = ioerr) variableName, ipressure
