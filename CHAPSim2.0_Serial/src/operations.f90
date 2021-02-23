@@ -1,5 +1,6 @@
 module operations
   use geometry_mod
+  use precision_mod
   implicit none
 
   integer(4), parameter :: I1Deri2CD = 1 ! 2nd order central difference
@@ -12,9 +13,20 @@ module operations
   integer(4), parameter :: I2Deri4CP = 3
   integer(4), parameter :: I2Deri6CP = 4
 
-  integer(4) :: compact1FD(3, 4) ! collocated, 1st derivative
-  integer(4) :: alpha1FDs, a1FDs, b1FDs ! staggered, 1st derivative
-  integer(4) :: alphaIP,   aIP,   bIP   ! mid-point interpolation
+  real(WP), allocatable :: adx(:)
+  real(WP), allocatable :: bdx(:)
+  real(WP), allocatable :: cdx(:)
+  real(WP), allocatable :: ddx(:)
+
+  real(WP), allocatable :: ady(:)
+  real(WP), allocatable :: bdy(:)
+  real(WP), allocatable :: cdy(:)
+  real(WP), allocatable :: ddy(:)
+
+  real(WP), allocatable :: adz(:)
+  real(WP), allocatable :: bdz(:)
+  real(WP), allocatable :: cdz(:)
+  real(WP), allocatable :: ddz(:)
 
 
   private
@@ -123,7 +135,7 @@ contains
 
   end subroutine set_compact_coefficients
 
-  subroutine derx_00
+  subroutine derx_N2N
 
 
 

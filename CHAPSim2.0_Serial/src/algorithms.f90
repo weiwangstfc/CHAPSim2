@@ -25,8 +25,6 @@ contains
     return
   end subroutine Prepare_TDMA_coeffs
 
-
-
   subroutine Solve_TDMA_basic(x, a, b, c, d, n)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! solution of a tridiagnal system of n equations of the form
