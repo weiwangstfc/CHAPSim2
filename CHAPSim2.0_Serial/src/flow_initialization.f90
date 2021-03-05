@@ -15,7 +15,6 @@ module flow_variables_mod
   real(WP), save, allocatable, dimension(:, :, :) :: kCond
   real(WP), save, allocatable, dimension(:, :, :) :: tTemp
   
-  private
   private :: Allocate_variables
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
@@ -32,11 +31,10 @@ contains
     use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
-    ! allocate variables
     allocate ( ux ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; ux = ZERO
     allocate ( uy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; uy = ZERO
     allocate ( uz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; uz = ZERO
-    
+
     allocate ( gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; gx = ZERO
     allocate ( gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; gy = ZERO
     allocate ( gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; gz = ZERO
@@ -81,13 +79,13 @@ contains
       return
   end subroutine Initialize_thermal_variables
 
-  subroutine Generate_poiseuille_flow_profile(u_laminar, domain_dummy)
+  subroutine Generate_poiseuille_flow_profile(u_laminar, d)
     use parameters_constant_mod, only : ZERO, ONE, ONEPFIVE, TWO, MAXP, TRUNCERR
-    use input_general_mod, only : ICASE_CHANNEL, ICASE_PIPE, ICASE_ANNUAL
+    use input_general_mod
     use udf_type_mod
     use math_mod
     implicit none
-    type(domain_t), intent(in) :: domain_dummy
+    type(t_domain), intent(in) :: d
     real(WP), intent(out) :: u_laminar(:)
     
     real(WP) :: a, b, c, yy, ymax, ymin, umean
@@ -96,17 +94,17 @@ contains
 
     u_laminar (:) = ZERO
 
-    ymax = domain_dummy%yp( domain_dummy%np(2) )
-    ymin = domain_dummy%yp( 1 )
-    if (domain_dummy%case == ICASE_CHANNEL) then
+    ymax = d%yp( d%np_geo(2) )
+    ymin = d%yp( 1 )
+    if (d%case == ICASE_CHANNEL) then
       a = (ymax - ymin) / TWO
       b = ZERO
       c = ONEPFIVE
-    else if (domain_dummy%case == ICASE_PIPE) then
+    else if (d%case == ICASE_PIPE) then
       a = (ymax - ymin)
       b = ZERO
       c = TWO
-    else if (domain_dummy%case == ICASE_ANNUAL) then
+    else if (d%case == ICASE_ANNUAL) then
       a = (ymax - ymin) / TWO
       b = (ymax + ymin) / TWO
       c = TWO
@@ -116,15 +114,15 @@ contains
       c = ONE
     end if
 
-    do j = 1, domain_dummy%nc(2)
-      yy = domain_dummy%yc(j)
+    do j = 1, d%nc(2)
+      yy = d%yc(j)
       u_laminar(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
     ! scale the bulk velocity to be one
     umean = ZERO
-    do j = 1, domain_dummy%nc(2)
-      umean = umean + u_laminar(j) * (domain_dummy%yp(j + 1) - domain_dummy%yp(j) )
+    do j = 1, d%nc(2)
+      umean = umean + u_laminar(j) * (d%yp(j + 1) - d%yp(j) )
     end do
     umean = umean / (ymax - ymin)
 
@@ -132,25 +130,26 @@ contains
 
     ! check the bulk velocity is one
     umean = ZERO
-    do j = 1, domain_dummy%nc(2)
-      umean = umean + u_laminar(j) * (domain_dummy%yp(j + 1) - domain_dummy%yp(j) )
+    do j = 1, d%nc(2)
+      umean = umean + u_laminar(j) * (d%yp(j + 1) - d%yp(j) )
     end do
     umean = umean / (ymax - ymin)
     if ( abs_wp(umean - ONE) > TRUNCERR) then
       write(*, *) umean
-      call Print_error_msg("Error in poiseuille_flow_profile.")
+      call Print_error_msg("Error in poiseuille_flow_profile in Subroutine" &
+            // "Generate_poiseuille_flow_profile")
     end if
 
     return
   end subroutine Generate_poiseuille_flow_profile
 
-  subroutine Initialize_poiseuille_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, domain_dummy)
+  subroutine Initialize_poiseuille_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
     use random_number_generation_mod
     use parameters_constant_mod, only : ZERO, ONE
-    use input_general_mod, only : initNoise
+    use input_general_mod
     use udf_type_mod
     implicit none
-    type(domain_t), intent(in) :: domain_dummy
+    type(t_domain), intent(in) :: d
     real(WP), intent(out) :: ux_dummy(:, :, :)
     real(WP), intent(out) :: uy_dummy(:, :, :)
     real(WP), intent(out) :: uz_dummy(:, :, :)
@@ -162,14 +161,14 @@ contains
     real(WP) :: rd(3)
 
     ! to get the profile
-    allocate ( u_laminar ( domain_dummy%nc(2) ) ); u_laminar(:) = ZERO
-    call Generate_poiseuille_flow_profile ( u_laminar, domain_dummy )
+    allocate ( u_laminar ( d%nc(2) ) ); u_laminar(:) = ZERO
+    call Generate_poiseuille_flow_profile ( u_laminar, d )
 
     pres_dummy(:, :, :) =  ZERO
     seed = 0 ! real random
-    do k = 1, domain_dummy%nc(3)
-      do j = 1, domain_dummy%nc(2)
-        do i = 1, domain_dummy%nc(1)
+    do k = 1, d%nc(3)
+      do j = 1, d%nc(2)
+        do i = 1, d%nc(1)
           seed = seed + k + j + i ! repeatable random
           call Initialize_random_number ( seed )
           call Generate_rvec_random( -ONE, ONE, 3, rd)
@@ -180,22 +179,19 @@ contains
       end do
     end do
 
-    ux_dummy(domain_dummy%np(1), :, :) = ux_dummy(1, :, :)
-    uz_dummy(:, :, domain_dummy%np(3)) = uz_dummy(:, :, 1)
-
-    uy_dummy(:, 1, :) = ZERO
-    uy_dummy(:, domain_dummy%np(2), :) = ZERO
+    uy_dummy(:, 1,       :) = d%ubc(1, 2)
+    uy_dummy(:, d%np(2), :) = d%ubc(2, 2)
     
     deallocate (u_laminar)
     return
   end subroutine  Initialize_poiseuille_flow
 
-  subroutine  Initialize_vortexgreen_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, domain_dummy)
+  subroutine  Initialize_vortexgreen_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
-    type(domain_t), intent(in) :: domain_dummy
+    type(t_domain), intent(in) :: d
     real(WP), intent(out) :: ux_dummy(:, :, :)
     real(WP), intent(out) :: uy_dummy(:, :, :)
     real(WP), intent(out) :: uz_dummy(:, :, :)
@@ -204,33 +200,127 @@ contains
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
 
-    do k = 1, domain_dummy%nc(3)
-      zp = domain_dummy%dz * real(k - 1, WP)
-      zc = domain_dummy%dz * (real(k - 1, WP) + HALF)
-
-      do j = 1, domain_dummy%nc(2)
-        yp = domain_dummy%yp(j)
-        yc = domain_dummy%yc(j)
-
-        do i = 1, domain_dummy%nc(1)
-          xp = domain_dummy%dx * real(i - 1, WP)
-          xc = domain_dummy%dx * (real(i - 1, WP) + HALF)
-
+    do k = 1, d%nc(3)
+      zp = d%h(3) * real(k - 1, WP)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%nc(2)
+        yp = d%yp(j)
+        yc = d%yc(j)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
           ux_dummy(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+        end do
+      end do
+    end do
+
+    do k = 1, d%nc(3)
+      zp = d%h(3) * real(k - 1, WP)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%np(2)
+        yp = d%yp(j)
+        yc = d%yc(j)
+        do i = 1, d%nc(1)
+          xp = d%h(1) * real(i - 1, WP)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
           uy_dummy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+        end do
+      end do
+    end do
+
+    do k = 1, d%np(3)
+      zp = d%h(3) * real(k - 1, WP)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%nc(2)
+        yp = d%yp(j)
+        yc = d%yc(j)
+        do i = 1, d%nc(1)
+          xp = d%h(1) * real(i - 1, WP)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
           uz_dummy(i, j, k) =  ZERO
+        end do
+      end do
+    end do
+
+    do k = 1, d%nc(3)
+      zp = d%h(3) * real(k - 1, WP)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%nc(2)
+        yp = d%yp(j)
+        yc = d%yc(j)
+        do i = 1, d%nc(1)
+          xp = d%h(1) * real(i - 1, WP)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
           pres_dummy(i, j, k)= ( cos_wp( TWO * xc       ) + cos_wp( TWO * yc       ) ) * &
                                ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
         end do
       end do
     end do
-
-    ux_dummy(domain_dummy%np(1), :, :) = ux_dummy(1, :, :)
-    uy_dummy(:, domain_dummy%np(2), :) = uy_dummy(:, 1, :)
-    uz_dummy(:, :, domain_dummy%np(3)) = uz_dummy(:, :, 1)
     
     return
   end subroutine Initialize_vortexgreen_flow
+
+  subroutine  Initialize_sinetest_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
+    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(in) :: d
+    real(WP), intent(out) :: ux_dummy(:, :, :)
+    real(WP), intent(out) :: uy_dummy(:, :, :)
+    real(WP), intent(out) :: uz_dummy(:, :, :)
+    real(WP), intent(out) :: pres_dummy(:, :, :)
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    integer(4) :: i, j, k
+
+    do k = 1, d%nc(3)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%nc(2)
+        yc = d%yc(j)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          ux_dummy(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
+        end do 
+      end do
+    end do
+
+    do k = 1, d%nc(3)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do i = 1, d%nc(1)
+        xc = d%h(1) * (real(i - 1, WP) + HALF)
+        do j = 1, d%np(2)
+          yp = d%yp(j)
+          uy_dummy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
+        end do
+      end do
+    end do
+
+    
+    do j = 1, d%nc(2)
+      yc = d%yc(j)
+      do i = 1, d%nc(1)
+        xc = d%h(1) * (real(i - 1, WP) + HALF)
+        do k = 1, d%np(3)
+          zp = d%h(3) * real(k - 1, WP)
+          uz_dummy(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
+        end do
+      end do
+    end do
+
+    do j = 1, d%nc(2)
+      yc = d%yc(j)
+      do i = 1, d%nc(1)
+        xc = d%h(1) * (real(i - 1, WP) + HALF)
+        do k = 1, d%nc(3)
+          zc = d%h(3) * (real(k - 1, WP) + HALF)
+          pres_dummy(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+        end do
+      end do
+    end do
+    
+    return
+  end subroutine Initialize_sinetest_flow
 
   subroutine Initialize_flow_variables( )
     use geometry_mod
@@ -239,12 +329,13 @@ contains
     implicit none
 
     interface 
-       subroutine Display_vtk_slice(d, str, varnm, var1, var2, var3, var4)
+       subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
         use udf_type_mod
-        type(domain_t), intent( in ) :: d
+        type(t_domain), intent( in ) :: d
+        integer(4) :: vartp
         character( len = *), intent( in ) :: str
         character( len = *), intent( in ) :: varnm
-        real(WP), dimension(:, :, :), intent(in):: var1, var2, var3, var4
+        real(WP), intent( in ) :: var0(:, :, :)
        end subroutine Display_vtk_slice
     end interface
 
@@ -269,22 +360,28 @@ contains
     else if (icase == ICASE_TGV) then
       
       call Initialize_vortexgreen_flow (ux, uy, uz, pres, domain)
-    
+    else if (icase == ICASE_SINETEST) then
+      call Initialize_sinetest_flow (ux, uy, uz, pres, domain)
     else 
-      call Print_error_msg("No such case defined.")
+      call Print_error_msg("No such case defined in Subroutine: "//"Initialize_flow_variables" )
     end if
     ! to initialize pressure correction term
     pcor(:, :, :) = ZERO
 
+    !call Display_vtk_slice(domain, 'xy', 'u', 1, ux)
+    !call Display_vtk_slice(domain, 'xy', 'v', 2, uy)
+    call Display_vtk_slice(domain, 'xy', 'p', 0, pres)
 
-    
+    !call Display_vtk_slice(domain, 'yz', 'v', 2, uy)
+    !call Display_vtk_slice(domain, 'yz', 'w', 3, uz)
+    call Display_vtk_slice(domain, 'yz', 'p', 0, pres)
 
-    call Display_vtk_slice(domain, 'xy', 'uvwp', ux, uy, uz, pres)
-    call Display_vtk_slice(domain, 'yz', 'uvwp', ux, uy, uz, pres)
-    call Display_vtk_slice(domain, 'zx', 'uvwp', ux, uy, uz, pres)
+    !call Display_vtk_slice(domain, 'zx', 'u', 1, ux)
+    !call Display_vtk_slice(domain, 'zx', 'w', 3, uz)
+    call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
 
     ! to update mass flux terms 
-    !call Refresh_massflux (flow_dummy, thermo_dummy, domain_dummy)
+    !call Refresh_massflux (flow_dummy, thermo_dummy, d)
 
     return
   end subroutine

@@ -8,7 +8,8 @@ module input_general_mod
   integer, parameter :: ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
-                        ICASE_TGV     = 4
+                        ICASE_TGV     = 4, &
+                        ICASE_SINETEST= 5
 
   integer, parameter :: ICARTESIAN   = 1, &
                         ICYLINDRICAL = 2
@@ -22,16 +23,24 @@ module input_general_mod
   integer, parameter :: ITIME_RK3 = 3, &
                         ITIME_AB1 = 1
 
-  integer, parameter :: IBC_PERIODC     = 0, &
-                        IBC_WALL_NOSLIP = 1, &
-                        IBC_WALL_SLIP   = 2, &
-                        IBC_INLET_MEAN  = 3, &
-                        IBC_INLET_TG    = 4, &
-                        IBC_INLET_MAP   = 5, &
-                        IBC_INLET_DB    = 6, &
-                        IBC_OUTLET_EXPO = 7, &
-                        IBC_OUTLET_CONV = 8, &
-                        IBC_INTERIOR    = 9
+  integer, parameter :: IBC_INTERIOR    = 0, &
+                        IBC_PERIODIC    = 1, &
+                        IBC_UDIRICHLET  = 2, &
+                        IBC_SYMMETRIC   = 3, &
+                        IBC_ASYMMETRIC  = 4
+
+!                        IBC_INLET_MEAN  = 4, &
+!                        IBC_INLET_TG    = 5, &
+!                        IBC_INLET_MAP   = 6, &
+!                        IBC_INLET_DB    = 7, &
+!                        IBC_OUTLET_EXPO = 8, &
+!                        IBC_OUTLET_CONV = 9, &
+!                        IBC_INTERIOR    = 0, &
+                        
+  integer, parameter :: IACCU_CD2 = 1, &
+                        IACCU_CD4 = 2, &
+                        IACCU_CP4 = 3, &
+                        IACCU_CP6 = 4
 
   integer, parameter :: NDIM = 3
 
@@ -64,6 +73,10 @@ module input_general_mod
   integer :: ifbcx(1:2)
   integer :: ifbcy(1:2)
   integer :: ifbcz(1:2)
+  real(WP) :: uxinf(2)
+  real(WP) :: uyinf(2)
+  real(WP) :: uzinf(2)
+
 
   ! InOutParam
   integer :: irestart
@@ -73,8 +86,8 @@ module input_general_mod
   integer :: nstats
 
   ! NumOption
-  integer :: i1derivative
-  integer :: i2derivative
+  integer :: i1deriAccu
+  integer :: i2deriAccu
   integer :: itimesteping
   integer :: iviscous
   integer :: ipressure
@@ -100,7 +113,6 @@ module input_general_mod
 
   ! derived parameters
   logical :: is_periodic(3)
-  integer :: npx, npy, npz
   integer :: icoordinate
 
   integer :: ntInner
@@ -108,16 +120,19 @@ module input_general_mod
   real(WP) :: tZeta (0 : 3)
   real(WP) :: tAlpha(0 : 3)
 
+  
+
   ! procedure
   public  :: Initialize_general_input
   private :: Set_periodic_bc
   private :: Set_timestepping_coefficients
   
-
+  
 contains
 
   subroutine Initialize_general_input ()
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
+    use parameters_constant_mod, only: ZERO, ONE, TWO, PI
     implicit none
 
     integer, parameter :: IOMSG_LEN = 200
@@ -185,9 +200,9 @@ contains
 
       else if ( section_name(1:slen) == '[boundary]' ) then
 
-        read(inputUnit, *, iostat = ioerr) variableName, ifbcx(1), ifbcx(2)
-        read(inputUnit, *, iostat = ioerr) variableName, ifbcy(1), ifbcy(2)
-        read(inputUnit, *, iostat = ioerr) variableName, ifbcz(1), ifbcz(2)
+        read(inputUnit, *, iostat = ioerr) variableName, ifbcx(1), ifbcx(2), uxinf(1), uxinf(2)
+        read(inputUnit, *, iostat = ioerr) variableName, ifbcy(1), ifbcy(2), uyinf(1), uyinf(2)
+        read(inputUnit, *, iostat = ioerr) variableName, ifbcz(1), ifbcz(2), uzinf(1), uzinf(2)
 
       else if ( section_name(1:slen) == '[ioparams]' ) then
 
@@ -198,8 +213,8 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, nstats
 
       else if ( section_name(1:slen) == '[schemes]' ) then
-        read(inputUnit, *, iostat = ioerr) variableName, i1derivative
-        read(inputUnit, *, iostat = ioerr) variableName, i2derivative
+        read(inputUnit, *, iostat = ioerr) variableName, i1deriAccu
+        read(inputUnit, *, iostat = ioerr) variableName, i2deriAccu
         read(inputUnit, *, iostat = ioerr) variableName, itimesteping
         read(inputUnit, *, iostat = ioerr) variableName, iviscous
         read(inputUnit, *, iostat = ioerr) variableName, ipressure
@@ -231,20 +246,37 @@ contains
       end if block_section
     end do
 
-    if(ioerr /= IOSTAT_END) call Print_error_msg( 'Problem reading '//INPUT_FILE)
+    if(ioerr /= IOSTAT_END) call Print_error_msg( 'Problem reading '//INPUT_FILE // &
+    'in Subroutine: '// "Initialize_general_input")
 
     close(inputUnit)
 
-    ! foolproof 
+    ! set up some default values to overcome wrong input
     if (icase == ICASE_CHANNEL) then
       if(istret /= ISTRET_2SIDES) call Print_warning_msg ("Grids are not two-side clustered.")
+      lyb = - ONE
+      lyt = ONE
     else if (icase == ICASE_PIPE) then
       if(istret /= ISTRET_TOP)    call Print_warning_msg ("Grids are not near-wall clustered.")
+      lyb = ZERO
+      lyt = ONE
     else if (icase == ICASE_ANNUAL) then
       if(istret /= ISTRET_2SIDES) call Print_warning_msg ("Grids are not two-side clustered.")
+      lyt = ONE
     else if (icase == ICASE_TGV) then
       if(istret /= ISTRET_NO)     call Print_warning_msg ("Grids are clustered.")
+      lxx = TWO * PI
+      lzz = TWO * PI
+      lyt = PI
+      lyb = -PI
+    else if (icase == ICASE_SINETEST) then
+      if(istret /= ISTRET_NO)     call Print_warning_msg ("Grids are clustered.")
+      lxx = TWO * PI
+      lzz = TWO * PI
+      lyt = PI
+      lyb = -PI
     else 
+      ! do nothing...
     end if
 
     
@@ -268,14 +300,6 @@ contains
     call Set_periodic_bc ( ifbcy, is_periodic(2) )
     call Set_periodic_bc ( ifbcz, is_periodic(3) )
 
-    ! to set up other variables derived from input variables
-    npx = ncx + 1
-    npy = ncy + 1
-    npz = ncz + 1
-    if ( is_periodic(1) ) npx = ncx
-    if ( is_periodic(2) ) npy = ncy
-    if ( is_periodic(3) ) npz = ncz
-
     call Set_timestepping_coefficients ( )
 
   end subroutine Initialize_general_input
@@ -284,9 +308,9 @@ contains
     integer, intent(inout) :: bc(1:2)
     logical, intent(out) :: flg
 
-    if ( (bc(1) == IBC_PERIODC) .or. (bc(2) == IBC_PERIODC) ) then
-      bc(1) = IBC_PERIODC
-      bc(2) = IBC_PERIODC
+    if ( (bc(1) == IBC_PERIODIC) .or. (bc(2) == IBC_PERIODIC) ) then
+      bc(1) = IBC_PERIODIC
+      bc(2) = IBC_PERIODIC
       flg = .true.
     else 
       flg = .false.

@@ -20,9 +20,11 @@ OBJS= modules.o\
       geometry.o\
 			flow_initialization.o\
 			algorithms.o\
+			operations.o\
+			display.o\
       chapsim.o
 
-OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall 
+OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall -ffpe-trap=invalid,zero,overflow 
 
 default :
 	@cd $(DIR_BIN)

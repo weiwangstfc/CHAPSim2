@@ -41,13 +41,17 @@ module parameters_constant_mod
 
   real(WP), parameter :: TEN       = 10.0_WP
   real(WP), parameter :: ELEVEN    = 11.0_WP
-  real(WP), parameter :: TWELVE    = 12.0_WP 
-  real(WP), parameter :: SIXTEEN   = 16.0_WP
+  real(WP), parameter :: TWELVE    = 12.0_WP
+  real(WP), parameter :: FOURTEEN  = 14.0_WP
   real(WP), parameter :: FIFTEEN   = 15.0_WP
+  real(WP), parameter :: SIXTEEN   = 16.0_WP
   real(WP), parameter :: SEVENTEEN = 17.0_WP
 
   real(WP), parameter :: TWENTYTWO = 22.0_WP
+  real(WP), parameter :: TWENTYTHREE=23.0_WP
   real(WP), parameter :: TWENTYFOUR= 24.0_WP
+  real(WP), parameter :: TWENTYFIVE= 25.0_WP
+  real(WP), parameter :: TWENTYSIX = 26.0_WP
 
   real(WP), parameter :: THIRTYSIX = 36.0_WP
 
@@ -74,27 +78,34 @@ module parameters_constant_mod
                                             ZERO, ZERO, ONE  /), &
                                             (/3, 3/) )
 end module parameters_constant_mod
-
-
 module udf_type_mod
   use precision_mod
-  type domain_t
-    integer :: case
-    integer :: bcx(2)
-    integer :: bcy(2)
-    integer :: bcz(2)
+  type t_domain
     logical :: is_periodic(3)
-    integer :: np(3) ! geometric points
-    integer :: nc(3)
-    real(wp) :: dx
-    real(wp) :: dz
-    real(wp) :: dx2
-    real(wp) :: dz2
-    real(wp) :: dxi
-    real(wp) :: dzi
+    logical :: is_stretching(3)
+    integer :: case
+    integer :: np_geo(3) ! geometric points
+    integer :: np(3) ! calculated points
+    integer :: nc(3) ! geometric cell number
+    integer :: bc(2, 3) ! (two sides, three directions)
+    real(WP) :: ubc(2, 3)
+    real(wp) :: h(3) ! uniform dx
+    real(wp) :: hi(3) ! uniform 1/dx
+    real(wp) :: h2(3) ! uniform dx^2
+    integer(4), allocatable :: iNeighb(:, :)
+    integer(4), allocatable :: jNeighb(:, :)
+    integer(4), allocatable :: kNeighb(:, :)
+    ! node location, mapping 
+    real(wp), allocatable :: yMappingpt(:, :) ! j = 1, first coefficient in first deriviation. 1/h'
+                                              ! j = 2, first coefficient in second deriviation 1/h'^2
+                                              ! j = 3, second coefficient in second deriviation -h"/h'^3
+    ! cell center location, mapping
+    real(wp), allocatable :: yMappingcc(:, :) ! first coefficient in first deriviation. 1/h'
+                                              ! first coefficient in second deriviation 1/h'^2
+                                              ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
-  end type domain_t
+  end type t_domain
 
 end module
 

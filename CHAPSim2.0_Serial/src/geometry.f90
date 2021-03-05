@@ -3,83 +3,25 @@ module geometry_mod
   use udf_type_mod
   implicit none
 
-  type(domain_t), save :: domain
-
-  ! node location, mapping 
-  real(wp), allocatable :: mpd1c1(:) ! first coefficient in first deriviation. 1/h'
-  real(wp), allocatable :: mpd2c1(:) ! first coefficient in second deriviation 1/h'^2
-  real(wp), allocatable :: mpd2c2(:) ! second coefficient in second deriviation -h"/h'^3
-  ! cell center location, mapping
-  real(wp), allocatable :: mcd1c1(:) ! first coefficient in first deriviation. 1/h'
-  real(wp), allocatable :: mcd2c1(:) ! first coefficient in second deriviation 1/h'^2
-  real(wp), allocatable :: mcd2c2(:) ! second coefficient in second deriviation -h"/h'^3
+  type(t_domain), save :: domain
 
   !private
   private :: Buildup_grid_mapping_1D
-  public :: Initialize_geometry_variables
+  private :: Buildup_neibour_index
+  public  :: Initialize_geometry_variables
   
 contains
 
-  subroutine Initialize_geometry_variables ()
-    use mpi_mod
-    use input_general_mod
-    use math_mod
-    use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR
-
-    ! Build up domain info
-    domain%case   = icase
-    domain%bcx(:) = ifbcx(:)
-    domain%bcy(:) = ifbcy(:)
-    domain%bcz(:) = ifbcz(:)
-
-    domain%is_periodic(:) = is_periodic(:)
-    
-    domain%nc(1) = ncx
-    domain%nc(2) = ncy
-    domain%nc(3) = ncz
-
-    ! to note: geometric node number is always cell numbe + 1,
-    ! different from the flow node number
-    domain%np(1) = ncx + 1 
-    domain%np(2) = ncy + 1
-    domain%np(3) = ncz + 1
-
-    domain%dx = lxx / real(domain%nc(1), WP)
-    domain%dz = lzz / real(domain%nc(3), WP)
-
-    domain%dx2 = domain%dx * domain%dx
-    domain%dz2 = domain%dz * domain%dz
-
-    domain%dxi = ONE / domain%dx
-    domain%dzi = ONE / domain%dz
-
-    ! allocate  variables for mapping physical domain to computational domain
-    allocate ( domain%yp( domain%np(2) ) ); domain%yp(:) = ZERO
-    allocate ( domain%yc( domain%nc(2) ) ); domain%yc(:) = ZERO
-
-    allocate ( mpd1c1( domain%np(2) ) ); mpd1c1(:) =  ONE
-    allocate ( mpd2c1( domain%np(2) ) ); mpd2c1(:) =  ONE
-    allocate ( mpd2c2( domain%np(2) ) ); mpd2c1(:) =  ONE
-    
-    allocate ( mcd1c1( domain%nc(2) ) ); mcd1c1(:) =  ONE
-    allocate ( mcd2c1( domain%nc(2) ) ); mcd2c1(:) =  ONE
-    allocate ( mcd2c2( domain%nc(2) ) ); mcd2c1(:) =  ONE
-    
-    call Buildup_grid_mapping_1D ('nd', domain%np(2), domain%yp(:), mpd1c1(:), mpd2c1(:), mpd2c1(:))
-    call Buildup_grid_mapping_1D ('cl', domain%nc(2), domain%yc(:), mcd1c1(:), mcd2c1(:), mcd2c1(:))
-
-  end subroutine  Initialize_geometry_variables
-
-
-  subroutine Buildup_grid_mapping_1D (str, n, y, mp1, mp2, mp3)
+  subroutine Buildup_grid_mapping_1D (str, n, y, mp)
     use math_mod
     use input_general_mod
     use parameters_constant_mod
 
     character(len = *), intent(in) :: str
     integer(4), intent(in) :: n
-    real(WP), intent( out ) :: y(n), mp1(n), mp2(n), mp3(n)
-
+    real(WP), intent( out ) :: y(n)
+    real(WP), intent( out ) :: mp(n, 0:3)
+    
     integer(4) :: j
     real(WP) :: eta_shift
     real(WP) :: eta_delta
@@ -95,7 +37,8 @@ contains
       eta_shift = ONE / ( real(n, WP) ) * HALF
       eta_delta = ONE / real( n, WP )
     else 
-      call Print_error_msg(101, 'Grid stretching location not defined.')
+      call Print_error_msg('Grid stretching location not defined in Subroutine: '// &
+      "Buildup_grid_mapping_1D")
     end if
 
     ! to build up the computational domain \eta \in [0, 1] uniform mesh
@@ -112,9 +55,10 @@ contains
     if (istret == ISTRET_NO) then
       y(:) = eta(:)
       y(:) = y(:) * (lyt - lyb) + lyb
-      mp1(:) = ONE
-      mp2(:) = ONE
-      mp3(:) = ONE
+      mp(:, 0) = ONE
+      mp(:, 1) = ONE
+      mp(:, 2) = ONE
+      mp(:, 3) = ONE
       return
     else if (istret == ISTRET_CENTRE) then
       gamma = ONE
@@ -129,7 +73,8 @@ contains
       gamma = HALF
       delta = ZERO
     else
-      call Print_error_msg('Grid stretching flag is not valid.')
+      call Print_error_msg('Grid stretching flag is not valid in Subroutine: '// &
+      "Buildup_grid_mapping_1D")
     end if
 
     beta = rstret
@@ -147,25 +92,140 @@ contains
 
       ! y \in [0, 1]
       y(j) = atan_wp ( dd * tan_wp( mm ) ) - &
-             atan_wp ( dd * tan_wp( PI * delta) ) + &
-             PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
+            atan_wp ( dd * tan_wp( PI * delta) ) + &
+            PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
       y(j) = ONE / (gamma * ee) * y(j)
       ! y \in [lyb, lyt]
       y(j) = y(j) * (lyt - lyb) + lyb
 
+      ! h
+      mp(j, 0) = eta(j)
+
       ! 1/h'
-      mp1(j) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (lyt - lyb)
+      mp(j, 1) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (lyt - lyb)
 
       ! (1/h')^2
-      mp2(j) = mp1(j) * mp1(j)
+      mp(j, 2) = mp(j, 1) * mp(j, 1)
 
       ! -h"/(h'^3) = 1/h' * [ d(1/h') / d\eta]
-      mp3(j) = gamma / (lyt - lyb) / beta * sin_wp(TWO * mm) * mp1(j)
+      mp(j, 3) = gamma / (lyt - lyb) / beta * sin_wp(TWO * mm) * mp(j, 1)
 
     end do
 
     return
   end subroutine Buildup_grid_mapping_1D
+
+  subroutine Buildup_neibour_index(n, is_peri, nbr)
+    !aim: to build up the BULK index neibours
+    implicit none
+    integer(4), intent(in) :: n
+    logical, intent(in) :: is_peri
+    integer(4), intent(out) :: nbr(4, n)
+    integer(4) :: i
+
+    nbr(:, :) = huge(i)
+
+    do i = 3, n
+      nbr(1, i) = i - 2
+    end do
+
+    do i = 2, n
+      nbr(2, i) = i - 1
+    end do
+
+    do i = 1, n-1
+      nbr(3, i) = i + 1
+    end do
+
+    do i = 1, n-2
+      nbr(4, i) = i + 2
+    end do
+
+    if(is_peri) then
+      nbr(1, 1) = n-1  ! -1
+      nbr(1, 2) = n    ! 0
+      nbr(2, 1) = n    ! 0
+      
+      nbr(3, n) = 1 ! n + 1
+      nbr(4, n) = 2 ! n + 2
+      nbr(4, n-1) = 1  ! n + 1
+    end if
+
+    return
+  end subroutine
+
+  subroutine Initialize_geometry_variables ()
+    use mpi_mod
+    use input_general_mod
+    use math_mod
+    use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR
+    implicit none
+
+    integer(4) :: i
+
+    ! Build up domain info
+    domain%case   = icase
+
+    domain%bc(:, 1) = ifbcx(:)
+    domain%bc(:, 2) = ifbcy(:)
+    domain%bc(:, 3) = ifbcz(:)
+
+    domain%ubc(:, 1) = uxinf(:)
+    domain%ubc(:, 2) = uyinf(:)
+    domain%ubc(:, 3) = uzinf(:)
+
+    domain%is_periodic(:) = is_periodic(:)
+
+    domain%nc(1) = ncx
+    domain%nc(2) = ncy
+    domain%nc(3) = ncz
+
+    domain%np_geo(1) = ncx + 1 
+    domain%np_geo(2) = ncy + 1
+    domain%np_geo(3) = ncz + 1
+
+    do i = 1, 3
+      if ( domain%is_periodic(i) ) then
+        domain%np(i) = domain%nc(i)
+      else 
+        domain%np(i) = domain%np_geo(i)
+      end if
+    end do
+
+    domain%is_stretching(:) = .false.
+    if (istret /= ISTRET_NO) domain%is_stretching(2) = .true.
+    
+    if(domain%is_stretching(2)) then
+      domain%h(2) = ONE / real(domain%nc(2), WP)
+    else 
+      domain%h(2) = (lyt - lyb) / real(domain%nc(2), WP)
+    end if
+    domain%h(1) = lxx / real(domain%nc(1), WP)
+    domain%h(3) = lzz / real(domain%nc(3), WP)
+    domain%h2(:) = domain%h(:) * domain%h(:)
+    domain%hi(:) = ONE / domain%h(:)
+
+    !build up index sequence for bulk part (no b.c. except periodic)
+    allocate ( domain%iNeighb( 4, domain%np(1) ) ); domain%iNeighb =  0
+    allocate ( domain%jNeighb( 4, domain%np(2) ) ); domain%jNeighb =  0
+    allocate ( domain%kNeighb( 4, domain%np(3) ) ); domain%kNeighb =  0
+
+    call Buildup_neibour_index (domain%np(1), domain%is_periodic(1), domain%iNeighb(:, :) )
+    call Buildup_neibour_index (domain%np(2), domain%is_periodic(2), domain%jNeighb(:, :) )
+    call Buildup_neibour_index (domain%np(3), domain%is_periodic(3), domain%kNeighb(:, :) )
+
+    ! allocate  variables for mapping physical domain to computational domain
+    allocate ( domain%yp( domain%np_geo(2) ) ); domain%yp(:) = ZERO
+    allocate ( domain%yc( domain%nc(2) ) ); domain%yc(:) = ZERO
+
+    allocate ( domain%yMappingpt( domain%np_geo(2), 0:3 ) ); domain%yMappingpt(:, :) = ONE
+    allocate ( domain%yMappingcc( domain%nc(2), 0:3 ) ); domain%yMappingcc(:, :) = ONE
+
+    call Buildup_grid_mapping_1D ('nd', domain%np_geo(2), domain%yp(:), domain%yMappingPt(:, :))
+    call Buildup_grid_mapping_1D ('cl', domain%nc(2), domain%yc(:), domain%yMappingcc(:, :))
+
+    
+  end subroutine  Initialize_geometry_variables
 
 
 end module geometry_mod
