@@ -1,3 +1,29 @@
+!-------------------------------------------------------------------------------
+!                      CHAPSim version 2.0.0
+!                      --------------------------
+! This file is part of CHAPSim, a general-purpose CFD tool.
+!
+! This program is free software; you can redistribute it and/or modify it under
+! the terms of the GNU General Public License as published by the Free Software
+! Foundation; either version 3 of the License, or (at your option) any later
+! version.
+!
+! This program is distributed in the hope that it will be useful, but WITHOUT
+! ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+! FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+! details.
+!
+! You should have received a copy of the GNU General Public License along with
+! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+! Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+!-------------------------------------------------------------------------------
+!===============================================================================
+!> \file flow_initialisation.f90
+!>
+!> \brief Define and initialise flow and thermal variables.
+!>
+!===============================================================================
 module flow_variables_mod
   use precision_mod
   implicit none
@@ -24,41 +50,87 @@ module flow_variables_mod
   public  :: Initialize_flow_variables
   
 contains
-
+!===============================================================================
+!===============================================================================
+!> \brief Allocate flow and thermal variables.     
+!>
+!> This subroutine is called once at beginning of solver.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
   subroutine Allocate_variables
     use input_general_mod, only : ithermo
     use geometry_mod
     use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
-    allocate ( qx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; qx = ZERO
-    allocate ( qy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; qy = ZERO
-    allocate ( qz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; qz = ZERO
+    allocate ( qx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( qy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
+    allocate ( qz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  )
+    qx = ZERO
+    qy = ZERO
+    qz = ZERO
 
-    allocate ( gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; gx = ZERO
-    allocate ( gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; gy = ZERO
-    allocate ( gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; gz = ZERO
+    allocate ( gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
+    allocate ( gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  )
+    gx = ZERO
+    gy = ZERO
+    gz = ZERO
 
-    allocate ( pres ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; pres = ZERO
-    allocate ( pcor ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; pcor = ZERO
+    allocate ( pres ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( pcor ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    pres = ZERO
+    pcor = ZERO
 
-    allocate ( dDens ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; dDens = ONE
-    allocate ( mVisc ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; mVisc = ONE
+    allocate ( dDens ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( mVisc ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    dDens = ONE
+    mVisc = ONE
 
 
     if(ithermo == 1) then
-      allocate ( dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; dh = ZERO
-      allocate ( hEnth ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; hEnth = ZERO
-      allocate ( kCond ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; kCond = ONE
-      allocate ( tTemp ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; tTemp = ONE
+      allocate ( dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( hEnth ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( kCond ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( tTemp ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      dh    = ZERO
+      hEnth = ZERO
+      kCond = ONE
+      tTemp = ONE
     end if
 
+    return
   end subroutine Allocate_variables
-
+!===============================================================================
+!===============================================================================
+!> \brief Initialise thermal variables if ithermo = 1.     
+!>
+!> This subroutine is called once.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  d_dummy       density
+!> \param[inout]  m_dummy       dynamic viscousity
+!> \param[inout]  dh_dummy      density * enthalpy
+!> \param[inout]  h_dummy       enthalpy
+!> \param[inout]  k_dummy       thermal conductivity
+!> \param[inout]  t_dummy       temperature
+!_______________________________________________________________________________
   subroutine Initialize_thermal_variables (d_dummy, m_dummy, dh_dummy, h_dummy, k_dummy, t_dummy)
     use input_general_mod, only : tiRef, t0Ref
     use input_thermo_mod, only : tpIni
     implicit none
+
     real(WP), intent(inout) :: d_dummy(:, :, :)
     real(WP), intent(inout) :: m_dummy(:, :, :)
     real(WP), intent(inout) :: dh_dummy(:, :, :)
@@ -66,31 +138,44 @@ contains
     real(WP), intent(inout) :: k_dummy(:, :, :)
     real(WP), intent(inout) :: t_dummy(:, :, :)
   
-      tpIni%t = tiRef / t0Ref
-      call tpIni%Refresh_thermal_properties_from_T()
+    tpIni%t = tiRef / t0Ref
+    call tpIni%Refresh_thermal_properties_from_T()
 
-      d_dummy(:, :, :)  = tpIni%d
-      m_dummy(:, :, :)  = tpIni%m
+    d_dummy(:, :, :)  = tpIni%d
+    m_dummy(:, :, :)  = tpIni%m
 
-      dh_dummy(:, :, :) = tpIni%dh
-      h_dummy(:, :, :)  = tpIni%h
-      k_dummy(:, :, :)  = tpIni%k
-      t_dummy(:, :, :)  = tpIni%t
-      return
+    dh_dummy(:, :, :) = tpIni%dh
+    h_dummy(:, :, :)  = tpIni%h
+    k_dummy(:, :, :)  = tpIni%k
+    t_dummy(:, :, :)  = tpIni%t
+    return
   end subroutine Initialize_thermal_variables
-
+!===============================================================================
+!===============================================================================
+!> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
+!>
+!> This subroutine is called locally once.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    u_laminar     velocity profile along wall-normal direction
+!_______________________________________________________________________________
   subroutine Generate_poiseuille_flow_profile(u_laminar, d)
     use parameters_constant_mod, only : ZERO, ONE, ONEPFIVE, TWO, MAXP, TRUNCERR
     use input_general_mod
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in) :: d
-    real(WP), intent(out) :: u_laminar(:)
+
+    type(t_domain), intent(in)  :: d
+    real(WP),       intent(out) :: u_laminar(:)
     
     real(WP) :: a, b, c, yy, ymax, ymin, umean
     integer(4) :: j
-
 
     u_laminar (:) = ZERO
 
@@ -142,7 +227,23 @@ contains
 
     return
   end subroutine Generate_poiseuille_flow_profile
-
+!===============================================================================
+!===============================================================================
+!> \brief Initialize Poiseuille flow in channel or pipe.     
+!>
+!> This subroutine is called locally once.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    ux_dummy      velocity in the streamwise direction
+!> \param[out]    uy_dummy      velocity in the wall-normal direction
+!> \param[out]    uz_dummy      velocity in the spanwise direction
+!> \param[out]    pres_dummy    pressure
+!_______________________________________________________________________________
   subroutine Initialize_poiseuille_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
     use random_number_generation_mod
     use parameters_constant_mod, only : ZERO, ONE
@@ -185,17 +286,35 @@ contains
     deallocate (u_laminar)
     return
   end subroutine  Initialize_poiseuille_flow
-
+!===============================================================================
+!===============================================================================
+!> \brief Initialize Vortex Green flow
+!>
+!> This subroutine is called locally once.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    ux_dummy      velocity in the streamwise direction
+!> \param[out]    uy_dummy      velocity in the wall-normal direction
+!> \param[out]    uz_dummy      velocity in the spanwise direction
+!> \param[out]    pres_dummy    pressure
+!_______________________________________________________________________________
   subroutine  Initialize_vortexgreen_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
+
     type(t_domain), intent(in) :: d
     real(WP), intent(out) :: ux_dummy(:, :, :)
     real(WP), intent(out) :: uy_dummy(:, :, :)
     real(WP), intent(out) :: uz_dummy(:, :, :)
     real(WP), intent(out) :: pres_dummy(:, :, :)
+
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
@@ -259,8 +378,28 @@ contains
     
     return
   end subroutine Initialize_vortexgreen_flow
-
-  subroutine  Initialize_sinetest_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
+!===============================================================================
+!===============================================================================
+!> \brief Initialize Sine signal for test only
+!>
+!> This subroutine is called locally once.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    ux_dummy      velocity in the streamwise direction
+!> \param[out]    uy_dummy      velocity in the wall-normal direction
+!> \param[out]    uz_dummy      velocity in the spanwise direction
+!> \param[out]    pres_dummy    pressure
+!_______________________________________________________________________________
+  subroutine  Initialize_sinetest_flow(ux_dummy,   &
+                                       uy_dummy,   &
+                                       uz_dummy,   &
+                                       pres_dummy, &
+                                       d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
@@ -321,7 +460,19 @@ contains
     
     return
   end subroutine Initialize_sinetest_flow
-
+!===============================================================================
+!===============================================================================
+!> \brief The main code for initializing flow variables
+!>
+!> This subroutine is called once in \ref Initialize_chapsim.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Initialize_flow_variables( )
     use geometry_mod
     use input_general_mod
@@ -339,18 +490,23 @@ contains
        end subroutine Display_vtk_slice
     end interface
 
-    ! allocate variables
+!-------------------------------------------------------------------------------
+! allocate variables
+!-------------------------------------------------------------------------------
     call Allocate_variables
 
-    ! to initialize thermal variables 
+!-------------------------------------------------------------------------------
+! to initialize thermal variables 
+!-------------------------------------------------------------------------------
     if (ithermo == 1) then
       call Initialize_thermal_variables (dDens, mVisc, dh, hEnth, kCond, tTemp)
     else
       dDens(:, :, :) = ONE
       mVisc(:, :, :) = ONE
     end if
-
-    ! to initialize flow velocity and 
+!-------------------------------------------------------------------------------
+! to initialize flow velocity and pressure
+!-------------------------------------------------------------------------------
     if ( (icase == ICASE_CHANNEL) .or. &
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
@@ -363,11 +519,19 @@ contains
     else if (icase == ICASE_SINETEST) then
       call Initialize_sinetest_flow (qx, qy, qz, pres, domain)
     else 
-      call Print_error_msg("No such case defined in Subroutine: "//"Initialize_flow_variables" )
+      call Print_error_msg("No such case defined" )
     end if
-    ! to initialize pressure correction term
+!-------------------------------------------------------------------------------
+! to initialize pressure correction term
+!-------------------------------------------------------------------------------
     pcor(:, :, :) = ZERO
-
+!-------------------------------------------------------------------------------
+! to update mass flux terms 
+!-------------------------------------------------------------------------------
+    call Refresh_massflux (flow_dummy, thermo_dummy, d)
+!-------------------------------------------------------------------------------
+! to write and display the initial fields
+!-------------------------------------------------------------------------------
     !call Display_vtk_slice(domain, 'xy', 'u', 1, qx)
     !call Display_vtk_slice(domain, 'xy', 'v', 2, qy)
     call Display_vtk_slice(domain, 'xy', 'p', 0, pres)
@@ -380,8 +544,7 @@ contains
     !call Display_vtk_slice(domain, 'zx', 'w', 3, qz)
     call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
 
-    ! to update mass flux terms 
-    !call Refresh_massflux (flow_dummy, thermo_dummy, d)
+
 
     return
   end subroutine

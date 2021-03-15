@@ -1,3 +1,29 @@
+!-------------------------------------------------------------------------------
+!                      CHAPSim version 2.0.0
+!                      --------------------------
+! This file is part of CHAPSim, a general-purpose CFD tool.
+!
+! This program is free software; you can redistribute it and/or modify it under
+! the terms of the GNU General Public License as published by the Free Software
+! Foundation; either version 3 of the License, or (at your option) any later
+! version.
+!
+! This program is distributed in the hope that it will be useful, but WITHOUT
+! ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+! FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+! details.
+!
+! You should have received a copy of the GNU General Public License along with
+! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+! Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+!-------------------------------------------------------------------------------
+!===============================================================================
+!> \file geometry.f90
+!>
+!> \brief Building up the geometry and mesh information.
+!>
+!===============================================================================
 module geometry_mod
   use precision_mod
   use udf_type_mod
@@ -11,17 +37,41 @@ module geometry_mod
   public  :: Initialize_geometry_variables
   
 contains
-
+!===============================================================================
+!===============================================================================
+!> \brief Building up the mesh mapping relation between physical domain and mesh
+!>  to a computational domain and mesh.   
+!>
+!> This subroutine is used locally for 1D only.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     str          string to indicate mapping of cell centre or nodes
+!> \param[in]     n            number of mapping points
+!> \param[out]    y            the physical coordinate array
+!> \param[out]    mp           the mapping relations for 1st and 2nd deriviatives
+!_______________________________________________________________________________
   subroutine Buildup_grid_mapping_1D (str, n, y, mp)
+!===============================================================================
+! Module files
+!===============================================================================
     use math_mod
     use input_general_mod
     use parameters_constant_mod
-
+    implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
     character(len = *), intent(in) :: str
     integer(4), intent( in )       :: n
     real(WP), intent( out )        :: y(n)
     real(WP), intent( out )        :: mp(n, 3)
-    
+!===============================================================================
+! Local Arguments
+!===============================================================================    
     integer(4) :: j
     real(WP) :: eta_shift
     real(WP) :: eta_delta
@@ -110,15 +160,39 @@ contains
 
     return
   end subroutine Buildup_grid_mapping_1D
-
+!===============================================================================
+!===============================================================================
+!> \brief Building up the neibouring index of a given index array.   
+!>
+!> This subroutine is used locally for the bulk part of the grids. The two points
+!> near the boundary are not considered except periodic b.c.
+!> The neibouring index reduces the repeated calculation of index increase
+!> /decrease for a 5-point stencil. 
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n            number of the given index range
+!> \param[in]     is_peri      whether the given index array is of periodic b.c.
+!> \param[out]    nbr          the neibouring index in order of -2, -1, +1, +2
+!_______________________________________________________________________________
   subroutine Buildup_neibour_index(n, is_peri, nbr)
-    !aim: to build up the BULK index neibours
     implicit none
-    integer(4), intent(in) :: n
-    logical, intent(in) :: is_peri
+!===============================================================================
+! Arguments
+!===============================================================================
+    integer(4), intent(in)  :: n
+    logical,    intent(in)  :: is_peri
     integer(4), intent(out) :: nbr(4, n)
+!===============================================================================
+! Local arguments
+!===============================================================================
     integer(4) :: i
-
+!===============================================================================
+! Code
+!===============================================================================
     nbr(:, :) = huge(i)
 
     do i = 3, n
@@ -149,17 +223,38 @@ contains
 
     return
   end subroutine
-
+!===============================================================================
+!===============================================================================
+!> \brief The main code for initializing the geometry, mesh and index.
+!>
+!> This subroutine is used once in \ref Initialize_chapsim. It builds up the udf
+!> domain. Currently only one domain is defined, and it could extend to multiple
+!> domain simulations.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Initialize_geometry_variables ()
+!===============================================================================
+! Module files
+!===============================================================================
     use mpi_mod
     use input_general_mod
     use math_mod
     use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR
     implicit none
-
+!===============================================================================
+! Local arguments
+!===============================================================================
     integer(4) :: i
     logical    :: dbg = .false.
-
+!===============================================================================
+! Code
+!===============================================================================
     ! Build up domain info
     domain%case   = icase
 
@@ -226,9 +321,7 @@ contains
         write(*, '(I5, 1F8.4)') i, domain%yp(i)
       end do
     end if
-    
+    return
   end subroutine  Initialize_geometry_variables
-
-
 end module geometry_mod
 

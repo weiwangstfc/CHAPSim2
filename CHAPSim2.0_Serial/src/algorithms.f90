@@ -117,7 +117,7 @@ contains
     real(WP) :: a(n), b(n), c(n), d(n), r(n)
     real(WP) :: ref(n)
     integer(4) :: i
-    real(WP) :: PI = 3.1416926
+    !real(WP) :: PI = 3.1416926
 
     ! example 1, n = 10
     a(1: n) = [3.0_WP, 1.0_WP, 1.0_WP, 7.0_WP, 6.0_WP, 3.0_WP, 8.0_WP, 6.0_WP, 5.0_WP, 4.0_WP]

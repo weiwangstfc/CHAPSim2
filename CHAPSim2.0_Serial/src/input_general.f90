@@ -1,4 +1,29 @@
-!##############################################################################
+!-------------------------------------------------------------------------------
+!                      CHAPSim version 2.0.0
+!                      --------------------------
+! This file is part of CHAPSim, a general-purpose CFD tool.
+!
+! This program is free software; you can redistribute it and/or modify it under
+! the terms of the GNU General Public License as published by the Free Software
+! Foundation; either version 3 of the License, or (at your option) any later
+! version.
+!
+! This program is distributed in the hope that it will be useful, but WITHOUT
+! ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+! FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+! details.
+!
+! You should have received a copy of the GNU General Public License along with
+! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+! Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+!-------------------------------------------------------------------------------
+!===============================================================================
+!> \file input_general.f90
+!>
+!> \brief Reading the input parameters from the given file.
+!>
+!===============================================================================
 module input_general_mod
   use precision_mod
   implicit none
@@ -120,8 +145,6 @@ module input_general_mod
   real(WP) :: tZeta (0 : 3)
   real(WP) :: tAlpha(0 : 3)
 
-  
-
   ! procedure
   public  :: Initialize_general_input
   private :: Set_periodic_bc
@@ -129,12 +152,31 @@ module input_general_mod
   
   
 contains
-
+!===============================================================================
+!===============================================================================
+!> \brief Reading the input parameters from the given file. The file name could
+!> be changed in the above module.     
+!>
+!> This subroutine is called at beginning of solver.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
   subroutine Initialize_general_input ()
+!===============================================================================
+! Module files
+!===============================================================================
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
     use parameters_constant_mod, only: ZERO, ONE, TWO, PI
     implicit none
-
+!===============================================================================
+! Local arguments
+!===============================================================================
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
     integer :: ioerr, inputUnit
@@ -142,9 +184,13 @@ contains
     character(len = 80) :: section_name
     character(len = 80) :: variableName
     integer :: slen
-
-    open ( newunit = inputUnit, file = INPUT_FILE, status = 'old', action  = 'read', &
-          iostat = ioerr, iomsg = iotxt)
+!===============================================================================
+    open ( newunit = inputUnit, &
+           file    = INPUT_FILE, &
+           status  = 'old', &
+           action  = 'read', &
+           iostat  = ioerr, &
+           iomsg   = iotxt )
     if(ioerr /= 0) then
       write (ERROR_UNIT, *) 'Problem openning : ', INPUT_FILE, ' for reading.'
       write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
@@ -200,9 +246,12 @@ contains
 
       else if ( section_name(1:slen) == '[boundary]' ) then
 
-        read(inputUnit, *, iostat = ioerr) variableName, ifbcx(1), ifbcx(2), uxinf(1), uxinf(2)
-        read(inputUnit, *, iostat = ioerr) variableName, ifbcy(1), ifbcy(2), uyinf(1), uyinf(2)
-        read(inputUnit, *, iostat = ioerr) variableName, ifbcz(1), ifbcz(2), uzinf(1), uzinf(2)
+        read(inputUnit, *, iostat = ioerr) variableName, &
+            ifbcx(1), ifbcx(2), uxinf(1), uxinf(2)
+        read(inputUnit, *, iostat = ioerr) variableName, &
+            ifbcy(1), ifbcy(2), uyinf(1), uyinf(2)
+        read(inputUnit, *, iostat = ioerr) variableName, &
+            ifbcz(1), ifbcz(2), uzinf(1), uzinf(2)
 
       else if ( section_name(1:slen) == '[ioparams]' ) then
 
@@ -246,31 +295,37 @@ contains
       end if block_section
     end do
 
-    if(ioerr /= IOSTAT_END) call Print_error_msg( 'Problem reading '//INPUT_FILE // &
+    if(ioerr /= IOSTAT_END) &
+    call Print_error_msg( 'Problem reading '//INPUT_FILE // &
     'in Subroutine: '// "Initialize_general_input")
 
     close(inputUnit)
 
     ! set up some default values to overcome wrong input
     if (icase == ICASE_CHANNEL) then
-      if(istret /= ISTRET_2SIDES) call Print_warning_msg ("Grids are not two-side clustered.")
+      if(istret /= ISTRET_2SIDES) &
+      call Print_warning_msg ("Grids are not two-side clustered.")
       lyb = - ONE
       lyt = ONE
     else if (icase == ICASE_PIPE) then
-      if(istret /= ISTRET_TOP)    call Print_warning_msg ("Grids are not near-wall clustered.")
+      if(istret /= ISTRET_TOP)    &
+      call Print_warning_msg ("Grids are not near-wall clustered.")
       lyb = ZERO
       lyt = ONE
     else if (icase == ICASE_ANNUAL) then
-      if(istret /= ISTRET_2SIDES) call Print_warning_msg ("Grids are not two-side clustered.")
+      if(istret /= ISTRET_2SIDES) &
+      call Print_warning_msg ("Grids are not two-side clustered.")
       lyt = ONE
     else if (icase == ICASE_TGV) then
-      if(istret /= ISTRET_NO)     call Print_warning_msg ("Grids are clustered.")
+      if(istret /= ISTRET_NO) &
+      call Print_warning_msg ("Grids are clustered.")
       lxx = TWO * PI
       lzz = TWO * PI
       lyt = PI
       lyb = -PI
     else if (icase == ICASE_SINETEST) then
-      if(istret /= ISTRET_NO)     call Print_warning_msg ("Grids are clustered.")
+      if(istret /= ISTRET_NO) &
+      call Print_warning_msg ("Grids are clustered.")
       lxx = TWO * PI
       lzz = TWO * PI
       lyt = PI
@@ -279,7 +334,6 @@ contains
       ! do nothing...
     end if
 
-    
     ! to set up cooridnates
     if (icase == ICASE_CHANNEL) then
       icoordinate = ICARTESIAN
@@ -300,10 +354,25 @@ contains
     call Set_periodic_bc ( ifbcy, is_periodic(2) )
     call Set_periodic_bc ( ifbcz, is_periodic(3) )
 
+    ! to set up parameters for time stepping
     call Set_timestepping_coefficients ( )
 
+    return
   end subroutine Initialize_general_input
-
+!===============================================================================
+!===============================================================================
+!> \brief Periodic B.C. configuration if one side of periodic bc is detected.     
+!>
+!> This subroutine is locally called once by \ref Initialize_general_input.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  bc            boundary condition index
+!> \param[out]    flg           logical flag for periodic b.c.
+!_______________________________________________________________________________
   subroutine Set_periodic_bc( bc, flg )
     integer, intent(inout) :: bc(1:2)
     logical, intent(out) :: flg
@@ -317,7 +386,20 @@ contains
     end if
 
   end subroutine Set_periodic_bc
-
+!===============================================================================
+!===============================================================================
+!> \brief Define parameters for time stepping.     
+!>
+!> This subroutine is locally called once by \ref Initialize_general_input.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
   subroutine Set_timestepping_coefficients()
     use parameters_constant_mod
 

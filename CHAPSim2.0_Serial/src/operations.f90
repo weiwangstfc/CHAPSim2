@@ -1,7 +1,33 @@
+!-------------------------------------------------------------------------------
+!                      CHAPSim version 2.0.0
+!                      --------------------------
+! This file is part of CHAPSim, a general-purpose CFD tool.
+!
+! This program is free software; you can redistribute it and/or modify it under
+! the terms of the GNU General Public License as published by the Free Software
+! Foundation; either version 3 of the License, or (at your option) any later
+! version.
+!
+! This program is distributed in the hope that it will be useful, but WITHOUT
+! ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+! FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+! details.
+!
+! You should have received a copy of the GNU General Public License along with
+! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+! Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+!-------------------------------------------------------------------------------
+!===============================================================================
+!> \file operations.f90
+!>
+!> \brief A general operation of derivative and interpolation in 1D.
+!>
+!===============================================================================
 module operations
   use precision_mod
   implicit none
-
+  !----------------------------------------------------------------
   ! coefficients for TDMA of 1st deriviative  
   ! to store coefficients for TDMA
   ! eg, cfpC2C(5, 3, 4)
@@ -14,6 +40,7 @@ module operations
   !     Third column:  for b.c. flags
   !     Fourth Column (interpolation only): 1 for orthognal like u in y
   !                                         2 for parallel like v in y
+  !----------------------------------------------------------------
   ! collocated C2C
   real(WP) :: cfpC2C(5, 3, 4)
   real(WP) :: cfrC2C(5, 3, 4)
@@ -136,26 +163,42 @@ module operations
 
   private :: Assign_TDMA_coeffs
   private :: Buildup_TDMA_LHS_array
-  public  :: Prepare_coeffs_for_operations
-
   private :: Prepare_TDMA_interp_RHS_array
   private :: Prepare_TDMA_deri_RHS_array
+
+  public  :: Prepare_coeffs_for_operations
   public  :: Get_midp_interpolation
   public  :: Get_1st_derivative
-
+  
   public  :: Test_interpolation
 
 contains
+!===============================================================================
+!===============================================================================
+!> \brief Assigned the cooefficients for the compact schemes     
+!>
+!> This subroutine is called once locally.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     iaccu         the accuracy given by user
+!_______________________________________________________________________________
   subroutine Assign_TDMA_coeffs(iaccu)
     use parameters_constant_mod
     use input_general_mod
     implicit none
+
     integer(4), intent(in) :: iaccu
+
     real(WP) :: alpha, a, b, c
     real(WP) :: alpha1, a1, b1, c1
     real(WP) :: alpha2, a2, b2, c2
-
-    ! =============collocated grids=======================
+!______________________________________________________________________________!
+!1st derivative on collocated grids
+!_______________________________________________________________________________!
     ! C2C/P2P coefficients
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
@@ -332,8 +375,9 @@ contains
 
     cfpP2P(:, :, IBC_UDIRICHLET) = cfpC2C(:, :, IBC_UDIRICHLET)
     cfrP2P(:, :, IBC_UDIRICHLET) = cfrC2C(:, :, IBC_UDIRICHLET)
-
-    ! =============staggered P2C and C2P=======================
+!______________________________________________________________________________!
+!1st derivative on staggered grids P2C and C2P
+!______________________________________________________________________________!
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
       a = ONE
@@ -582,7 +626,9 @@ contains
     cfrC2P(5, 2, IBC_UDIRICHLET) = -b1
     cfrC2P(5, 3, IBC_UDIRICHLET) = -c1
 
-    ! =============interpolation P2C and C2P=======================
+!______________________________________________________________________________!
+!interpolation. P2C and C2P
+!______________________________________________________________________________!
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
       a = ONE
@@ -891,16 +937,43 @@ contains
     
     return
   end subroutine Assign_TDMA_coeffs
-
+!===============================================================================
+!===============================================================================
+!> \brief Assigning the sparse matrix in the LHS of the compact scheme, and
+!> calculating the geometry-only dependent variables for the TDMA scheme.
+!>
+!> This subroutine is called once locally.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n             the number of unknown array
+!> \param[in]     bc            the boundary condition at two ends of the unknown
+!> \param[in]     coeff         the basic TDMA coefficients defined above.
+!> \param[out]    a             the coefficients for TDMA
+!> \param[out]    b             a_i * x_(i-1) + b_i * x_(i) + c_i * x_(i+1)
+!> \param[out]    c             = RHS
+!> \param[out]    d             An assisting coeffients for the TDMA scheme.
+!_______________________________________________________________________________
   subroutine Buildup_TDMA_LHS_array(n, bc, coeff, a, b, c, d)
+!===============================================================================
+! Module files
+!===============================================================================
     use input_general_mod, only: IBC_PERIODIC
     use tridiagonal_matrix_algorithm
     implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
     integer(4), intent(in) :: n
     integer(4), intent(in) :: bc(2)
     real(WP), intent(in)   :: coeff(5, 3, 4)
     real(WP), intent(out)  :: a(n), b(n), c(n), d(n)
-
+!===============================================================================
+! Code
+!===============================================================================
     a(1)         = coeff( 1, 1, bc(1) )
     a(2)         = coeff( 2, 1, bc(1) )
     a(3 : n - 2) = coeff( 3, 1, bc(1) )
@@ -927,143 +1000,199 @@ contains
 
     return
   end subroutine Buildup_TDMA_LHS_array
-
+!===============================================================================
+!===============================================================================
+!> \brief Preparing the LHS matrix for the TDMA algorithm for compact scheme.
+!>
+!> This subroutine is called once locally.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
   subroutine Prepare_TDMA_LHS_matrix(d)
+!===============================================================================
+! Module files
+!===============================================================================
     use tridiagonal_matrix_algorithm
     use input_general_mod, only: IBC_PERIODIC
     use udf_type_mod
     use parameters_constant_mod, only: ZERO
     implicit none
+
     type(t_domain), intent(in) :: d
+
     integer(4) :: i
-    
-    ! derivative in x direction with nc unknows
+
+!-------------------------------------------------------------------------------
+! derivative in x direction with nc unknows
+!-------------------------------------------------------------------------------
     i = 1
     ! c2c with nc unknows
     allocate (adx_C2C (d%nc(i) ) ); adx_C2C(:) = ZERO
     allocate (bdx_C2C (d%nc(i) ) ); bdx_C2C(:) = ZERO
     allocate (cdx_C2C (d%nc(i) ) ); cdx_C2C(:) = ZERO
     allocate (ddx_C2C (d%nc(i) ) ); ddx_C2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpC2C, adx_C2C, bdx_C2C, cdx_C2C, ddx_C2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpC2C, &
+        adx_C2C, bdx_C2C, cdx_C2C, ddx_C2C)
     ! P2C with nc unknows
     allocate (adx_P2C (d%nc(i) ) ); adx_P2C(:) = ZERO
     allocate (bdx_P2C (d%nc(i) ) ); bdx_P2C(:) = ZERO
     allocate (cdx_P2C (d%nc(i) ) ); cdx_P2C(:) = ZERO
     allocate (ddx_P2C (d%nc(i) ) ); ddx_P2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpP2C, adx_P2C, bdx_P2C, cdx_P2C, ddx_P2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpP2C, &
+        adx_P2C, bdx_P2C, cdx_P2C, ddx_P2C)
     
     ! derivative in x direction with np unknows
     allocate (adx_P2P (d%np(i) ) ); adx_P2P(:) = ZERO
     allocate (bdx_P2P (d%np(i) ) ); bdx_P2P(:) = ZERO
     allocate (cdx_P2P (d%np(i) ) ); cdx_P2P(:) = ZERO
     allocate (ddx_P2P (d%np(i) ) ); ddx_P2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpP2P, adx_P2P, bdx_P2P, cdx_P2P, ddx_P2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpP2P, &
+        adx_P2P, bdx_P2P, cdx_P2P, ddx_P2P)
 
     allocate (adx_C2P (d%np(i) ) ); adx_C2P(:) = ZERO
     allocate (bdx_C2P (d%np(i) ) ); bdx_C2P(:) = ZERO
     allocate (cdx_C2P (d%np(i) ) ); cdx_C2P(:) = ZERO
     allocate (ddx_C2P (d%np(i) ) ); ddx_C2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpC2P, adx_C2P, bdx_C2P, cdx_C2P, ddx_C2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpC2P, &
+        adx_C2P, bdx_C2P, cdx_C2P, ddx_C2P)
 
-    ! derivative in y direction with nc unknows
+!-------------------------------------------------------------------------------
+! derivative in y direction with nc unknows
+!-------------------------------------------------------------------------------
     i = 2
     allocate (ady_C2C (d%nc(i) ) ); ady_C2C(:) = ZERO
     allocate (bdy_C2C (d%nc(i) ) ); bdy_C2C(:) = ZERO
     allocate (cdy_C2C (d%nc(i) ) ); cdy_C2C(:) = ZERO
     allocate (ddy_C2C (d%nc(i) ) ); ddy_C2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpC2C, ady_C2C, bdy_C2C, cdy_C2C, ddy_C2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpC2C, &
+        ady_C2C, bdy_C2C, cdy_C2C, ddy_C2C)
 
     allocate (ady_P2C (d%nc(i) ) ); ady_P2C(:) = ZERO
     allocate (bdy_P2C (d%nc(i) ) ); bdy_P2C(:) = ZERO
     allocate (cdy_P2C (d%nc(i) ) ); cdy_P2C(:) = ZERO
     allocate (ddy_P2C (d%nc(i) ) ); ddy_P2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpP2C, ady_P2C, bdy_P2C, cdy_P2C, ddy_P2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpP2C, &
+        ady_P2C, bdy_P2C, cdy_P2C, ddy_P2C)
 
-    ! derivative in y direction with np unknows
+!-------------------------------------------------------------------------------
+! derivative in y direction with np unknows
+!-------------------------------------------------------------------------------
     allocate (ady_P2P (d%np(i) ) ); ady_P2P(:) = ZERO
     allocate (bdy_P2P (d%np(i) ) ); bdy_P2P(:) = ZERO
     allocate (cdy_P2P (d%np(i) ) ); cdy_P2P(:) = ZERO
     allocate (ddy_P2P (d%np(i) ) ); ddy_P2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpP2P, ady_P2P, bdy_P2P, cdy_P2P, ddy_P2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpP2P, &
+        ady_P2P, bdy_P2P, cdy_P2P, ddy_P2P)
 
     allocate (ady_C2P (d%np(i) ) ); ady_C2P(:) = ZERO
     allocate (bdy_C2P (d%np(i) ) ); bdy_C2P(:) = ZERO
     allocate (cdy_C2P (d%np(i) ) ); cdy_C2P(:) = ZERO
     allocate (ddy_C2P (d%np(i) ) ); ddy_C2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpC2P, ady_C2P, bdy_C2P, cdy_C2P, ddy_C2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpC2P, &
+        ady_C2P, bdy_C2P, cdy_C2P, ddy_C2P)
     
-    ! derivative in z direction with nc unknows
+!-------------------------------------------------------------------------------
+! derivative in z direction with nc unknows
+!-------------------------------------------------------------------------------
     i = 3
     allocate (adz_C2C (d%nc(i) ) ); adz_C2C(:) = ZERO
     allocate (bdz_C2C (d%nc(i) ) ); bdz_C2C(:) = ZERO
     allocate (cdz_C2C (d%nc(i) ) ); cdz_C2C(:) = ZERO
     allocate (ddz_C2C (d%nc(i) ) ); ddz_C2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpC2C, adz_C2C, bdz_C2C, cdz_C2C, ddz_C2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpC2C, &
+        adz_C2C, bdz_C2C, cdz_C2C, ddz_C2C)
 
     allocate (adz_P2C (d%nc(i) ) ); adz_P2C(:) = ZERO
     allocate (bdz_P2C (d%nc(i) ) ); bdz_P2C(:) = ZERO
     allocate (cdz_P2C (d%nc(i) ) ); cdz_P2C(:) = ZERO
     allocate (ddz_P2C (d%nc(i) ) ); ddz_P2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpP2C, adz_P2C, bdz_P2C, cdz_P2C, ddz_P2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), cfpP2C, &
+        adz_P2C, bdz_P2C, cdz_P2C, ddz_P2C)
 
-    ! derivative in y direction with np unknows
+!-------------------------------------------------------------------------------
+! derivative in z direction with np unknows
+!-------------------------------------------------------------------------------
     allocate (adz_P2P (d%np(i) ) ); adz_P2P(:) = ZERO
     allocate (bdz_P2P (d%np(i) ) ); bdz_P2P(:) = ZERO
     allocate (cdz_P2P (d%np(i) ) ); cdz_P2P(:) = ZERO
     allocate (ddz_P2P (d%np(i) ) ); ddz_P2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpP2P, adz_P2P, bdz_P2P, cdz_P2P, ddz_P2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpP2P, &
+        adz_P2P, bdz_P2P, cdz_P2P, ddz_P2P)
 
     allocate (adz_C2P (d%np(i) ) ); adz_C2P(:) = ZERO
     allocate (bdz_C2P (d%np(i) ) ); bdz_C2P(:) = ZERO
     allocate (cdz_C2P (d%np(i) ) ); cdz_C2P(:) = ZERO
     allocate (ddz_C2P (d%np(i) ) ); ddz_C2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpC2P, adz_C2P, bdz_C2P, cdz_C2P, ddz_C2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), cfpC2P, &
+        adz_C2P, bdz_C2P, cdz_C2P, ddz_C2P)
 
-
-    ! mid-point interpolation in x direction with nc unknows
+!-------------------------------------------------------------------------------
+! mid-point interpolation in x direction with nc unknows
+!-------------------------------------------------------------------------------
     i = 1
     allocate (amx_P2C (d%nc(i) ) ); amx_P2C(:) = ZERO
     allocate (bmx_P2C (d%nc(i) ) ); bmx_P2C(:) = ZERO
     allocate (cmx_P2C (d%nc(i) ) ); cmx_P2C(:) = ZERO
     allocate (dmx_P2C (d%nc(i) ) ); dmx_P2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), mfpP2C, amx_P2C, bmx_P2C, cmx_P2C, dmx_P2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), mfpP2C, &
+        amx_P2C, bmx_P2C, cmx_P2C, dmx_P2C)
 
-    ! mid-point interpolation in y direction with np unknows
+!-------------------------------------------------------------------------------
+! mid-point interpolation in x direction with np unknows
+!-------------------------------------------------------------------------------
     allocate (amx_C2P (d%np(i) ) ); amx_C2P(:) = ZERO
     allocate (bmx_C2P (d%np(i) ) ); bmx_C2P(:) = ZERO
     allocate (cmx_C2P (d%np(i) ) ); cmx_C2P(:) = ZERO
     allocate (dmx_C2P (d%np(i) ) ); dmx_C2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), mfpC2P, amx_C2P, bmx_C2P, cmx_C2P, dmx_C2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), mfpC2P, &
+        amx_C2P, bmx_C2P, cmx_C2P, dmx_C2P)
 
-    ! mid-point interpolation in y direction with nc unknows
+!-------------------------------------------------------------------------------
+! mid-point interpolation in y direction with nc unknows
+!-------------------------------------------------------------------------------
     i = 2
     allocate (amy_P2C (d%nc(i) ) ); amy_P2C(:) = ZERO
     allocate (bmy_P2C (d%nc(i) ) ); bmy_P2C(:) = ZERO
     allocate (cmy_P2C (d%nc(i) ) ); cmy_P2C(:) = ZERO
     allocate (dmy_P2C (d%nc(i) ) ); dmy_P2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), mfpP2C, amy_P2C, bmy_P2C, cmy_P2C, dmy_P2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), mfpP2C, &
+        amy_P2C, bmy_P2C, cmy_P2C, dmy_P2C)
 
-    ! mid-point interpolation in y direction with np unknows
+!-------------------------------------------------------------------------------
+! mid-point interpolation in y direction with np unknows
+!-------------------------------------------------------------------------------
     allocate (amy_C2P (d%np(i) ) ); amy_C2P(:) = ZERO
     allocate (bmy_C2P (d%np(i) ) ); bmy_C2P(:) = ZERO
     allocate (cmy_C2P (d%np(i) ) ); cmy_C2P(:) = ZERO
     allocate (dmy_C2P (d%np(i) ) ); dmy_C2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), mfpC2P, amy_C2P, bmy_C2P, cmy_C2P, dmy_C2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), mfpC2P, &
+        amy_C2P, bmy_C2P, cmy_C2P, dmy_C2P)
 
-    ! mid-point interpolation in z direction with nc unknows
+!-------------------------------------------------------------------------------
+! mid-point interpolation in z direction with nc unknows
+!-------------------------------------------------------------------------------
     i = 3
     allocate (amz_P2C (d%nc(i) ) ); amz_P2C(:) = ZERO
     allocate (bmz_P2C (d%nc(i) ) ); bmz_P2C(:) = ZERO
     allocate (cmz_P2C (d%nc(i) ) ); cmz_P2C(:) = ZERO
     allocate (dmz_P2C (d%nc(i) ) ); dmz_P2C(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), mfpP2C, amz_P2C, bmz_P2C, cmz_P2C, dmz_P2C)
+    call Buildup_TDMA_LHS_array(d%nc(i), d%bc(:, i), mfpP2C, &
+        amz_P2C, bmz_P2C, cmz_P2C, dmz_P2C)
 
-    ! mid-point interpolation in y direction with np unknows
+!-------------------------------------------------------------------------------
+! mid-point interpolation in z direction with np unknows
+!-------------------------------------------------------------------------------
     allocate (amz_C2P (d%np(i) ) ); amz_C2P(:) = ZERO
     allocate (bmz_C2P (d%np(i) ) ); bmz_C2P(:) = ZERO
     allocate (cmz_C2P (d%np(i) ) ); cmz_C2P(:) = ZERO
     allocate (dmz_C2P (d%np(i) ) ); dmz_C2P(:) = ZERO
-    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), mfpC2P, amz_C2P, bmz_C2P, cmz_C2P, dmz_C2P)
+    call Buildup_TDMA_LHS_array(d%np(i), d%bc(:, i), mfpC2P, &
+        amz_C2P, bmz_C2P, cmz_C2P, dmz_C2P)
 
     return
   end subroutine Prepare_TDMA_LHS_matrix
@@ -1076,29 +1205,59 @@ contains
     call Prepare_TDMA_LHS_matrix(domain)
     return
   end subroutine
-
+!===============================================================================
+!===============================================================================
+!> \brief Preparing the RHS array for the TDMA algorithm for interpolation.
+!>
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the interpolation.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     str           string to flag interpolation type, C2P or P2C
+!> \param[in]     n             the number of unknowns
+!> \param[in]     bc            the b.c. at two ends of the unknown array
+!> \param[in]     inbr          the neibouring index of unknown index
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!_______________________________________________________________________________
   subroutine Prepare_TDMA_interp_RHS_array(str, n, bc, inbr, coeff, fi, fo)
+!===============================================================================
+! Module files
+!===============================================================================
     use parameters_constant_mod
     use input_general_mod
     implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
     character(3), intent(in) :: str
-    integer(4), intent(in) :: n ! unknow numbers
-    integer(4), intent(in) :: bc(2)
-    integer(4), intent(in) :: inbr(:, :)
-    real(WP), intent(in)   :: coeff(5, 3, 4)
-    real(WP), intent(in)   :: fi(:)
-    real(WP), intent(out)  :: fo(n)
-    
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: bc(2)
+    integer(4),   intent(in) :: inbr(:, :)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+!===============================================================================
+! Local arguments
+!===============================================================================
     integer(4) :: i
     integer(4) :: im2, im1, ip1, ip2
     logical :: fbc = .false.
     real(WP) :: fsign
-
+!===============================================================================
+! Code
+!===============================================================================
     ! initilisation
     fo(:) = ZERO
-
-    ! bulk body for i from 2 to n-1
-    ! bulk body and b.c. for periodic b.c.
+!-------------------------------------------------------------------------------
+! bulk body for i from 2 to n-1
+! bulk body and b.c. for periodic b.c.
+!-------------------------------------------------------------------------------
     do i = 1, n
 
       ! exclude non-periodic b.c. at both sides
@@ -1122,8 +1281,9 @@ contains
       end if
 
     end do
-
-    ! boundary at the side of i = 1
+!-------------------------------------------------------------------------------
+! boundary at the side of i = 1
+!-------------------------------------------------------------------------------
     if (bc(1) == IBC_PERIODIC) then
       ! do nothing
     else if (bc(1) == IBC_ASYMMETRIC .or. bc(1) == IBC_SYMMETRIC) then
@@ -1198,8 +1358,9 @@ contains
       call Print_error_msg("No Such Boundary Defined in Subroutine: " // &
       "Prepare_TDMA_interp_RHS_array")
     end if
-
-  ! boundary at the side of i = n
+!-------------------------------------------------------------------------------
+! boundary at the side of i = n
+!-------------------------------------------------------------------------------
     if (bc(2) == IBC_PERIODIC) then
       ! do nothing
     else if (bc(2) == IBC_ASYMMETRIC .or. bc(2) == IBC_SYMMETRIC) then
@@ -1277,30 +1438,61 @@ contains
 
     return
   end subroutine Prepare_TDMA_interp_RHS_array
-
+!===============================================================================
+!===============================================================================
+!> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
+!>
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the 1st derivative.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     str           string to flag interpolation type
+!>                              C2C, P2P, C2P, P2C
+!> \param[in]     n             the number of unknowns
+!> \param[in]     bc            the b.c. at two ends of the unknown array
+!> \param[in]     inbr          the neibouring index of unknown index
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!_______________________________________________________________________________
   subroutine Prepare_TDMA_deri_RHS_array(str, n, bc, inbr, dd, coeff, fi, fo)
+!===============================================================================
+! Module files
+!===============================================================================
     use parameters_constant_mod
     use input_general_mod
     implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
     character(3), intent(in) :: str
-    integer(4), intent(in) :: n ! unknow numbers
-    integer(4), intent(in) :: bc(2)
-    integer(4), intent(in) :: inbr(:, :)
-    real(WP), intent(in)   :: dd
-    real(WP), intent(in)   :: coeff(5, 3, 4)
-    real(WP), intent(in)   :: fi(:)
-    real(WP), intent(out)  :: fo(n)
-    
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: bc(2)
+    integer(4),   intent(in) :: inbr(:, :)
+    real(WP),     intent(in) :: dd
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+!===============================================================================
+! Local arguments
+!===============================================================================    
     integer(4) :: i
     integer(4) :: im2, im1, ip1, ip2
     logical :: fbc = .false.
     real(WP) :: fsign
-
+!===============================================================================
+! Code
+!===============================================================================
     ! initilisation
     fo(:) = ZERO
-
-    ! bulk body for i from 2 to n-1
-    ! bulk body and b.c. for periodic b.c.
+!-------------------------------------------------------------------------------
+! bulk body for i from 2 to n-1
+! bulk body and b.c. for periodic b.c.
+!-------------------------------------------------------------------------------
     do i = 1, n
 
       ! exclude non-periodic b.c. at both sides
@@ -1326,8 +1518,9 @@ contains
       end if
 
     end do
-
-    ! boundary at the side of i = 1
+!-------------------------------------------------------------------------------
+! boundary at the side of i = 1
+!-------------------------------------------------------------------------------
     if (bc(1) == IBC_PERIODIC) then
       ! do nothing
     else if (bc(1) == IBC_ASYMMETRIC .or. bc(1) == IBC_SYMMETRIC) then
@@ -1442,8 +1635,9 @@ contains
     else 
       call Print_error_msg("104: No Such Boundary Defined.")
     end if
-
+!-------------------------------------------------------------------------------
 ! boundary at the side of i = n
+!-------------------------------------------------------------------------------
     if (bc(2) == IBC_PERIODIC) then
       ! do nothing
     else if (bc(2) == IBC_ASYMMETRIC .or. bc(2) == IBC_SYMMETRIC) then
@@ -1560,22 +1754,49 @@ contains
     end if
 
     fo(:) = fo(:) / dd
+
     return
   end subroutine Prepare_TDMA_deri_RHS_array
-
+!===============================================================================
+!===============================================================================
+!> \brief To caculate the mid-point interpolation in 1D.
+!>
+!> This subroutine is called as required to get the mid-point interpolation.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     str1          string to flag which direction to impletment
+!> \param[in]     str2          string to flag C2P or P2C
+!> \param[in]     d             domain
+!> \param[in]     fi            the input array of original variable
+!> \param[out]    fo            the output array of interpolated variable
+!_______________________________________________________________________________
   subroutine Get_midp_interpolation(str1, str2, d, fi, fo)
+!===============================================================================
+! Module files
+!===============================================================================
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
     type(t_domain), intent(in) :: d
-    character(1), intent(in) :: str1
-    character(3), intent(in) :: str2
-    real(WP), intent(in) :: fi(:)
-    real(WP), intent(out) :: fo(:)
-
+    character(1),   intent(in) :: str1
+    character(3),   intent(in) :: str2
+    real(WP),       intent(in) :: fi(:)
+    real(WP),       intent(out):: fo(:)
+!===============================================================================
+! Local arguments
+!===============================================================================
     integer(4) :: i, nsz
-
+!===============================================================================
+! Code
+!===============================================================================
     nsz = size(fo)
 
     if(str1=='x') then
@@ -1641,20 +1862,46 @@ contains
 
     return 
   end subroutine Get_midp_interpolation
-
+!===============================================================================
+!===============================================================================
+!> \brief To caculate the 1st derivative in 1D.
+!>
+!> This subroutine is called as required to get the 1st derivative
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     str1          string to flag which direction to impletment
+!> \param[in]     str2          string to flag C2P or P2C or C2C or P2P
+!> \param[in]     d             domain
+!> \param[in]     fi            the input array of original variable
+!> \param[out]    fo            the output array of interpolated variable
+!_______________________________________________________________________________
   subroutine Get_1st_derivative(str1, str2, d, fi, fo)
+!===============================================================================
+! Module files
+!===============================================================================
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
     type(t_domain), intent(in) :: d
     character(1), intent(in) :: str1
     character(3), intent(in) :: str2
     real(WP), intent(in) :: fi(:)
     real(WP), intent(out) :: fo(:)
-
+!===============================================================================
+! Local arguments
+!===============================================================================
     integer(4) :: i, nsz
-
+!===============================================================================
+! Code
+!===============================================================================
     nsz = size(fo)
 
     if(str1=='x') then
@@ -1763,8 +2010,20 @@ contains
 
     return 
   end subroutine Get_1st_derivative
-
-
+!===============================================================================
+!===============================================================================
+!> \brief To test this subroutine for mid-point interpolation.
+!>
+!> This subroutine is called in \ref Test_schemes. Define the logicals to choose
+!> which test section is required. 
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
   subroutine Test_interpolation(d)
     use flow_variables_mod
     use parameters_constant_mod
@@ -1781,21 +2040,8 @@ contains
     logical :: dbg = .false.
     logical :: uix_p2c = .false.
     logical :: vix_c2p = .false.
-
     logical :: uiy_c2p = .true.
     logical :: viy_p2c = .true.
-
-
-    interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
-        use udf_type_mod
-        type(t_domain), intent( in ) :: d
-        integer(4) :: vartp
-        character( len = *), intent( in ) :: str
-        character( len = *), intent( in ) :: varnm
-        real(WP), intent( in ) :: var0(:, :, :)
-       end subroutine Display_vtk_slice
-    end interface
 
     if(uix_p2c) then
       !test interpolation. u in x, P2C
@@ -1994,7 +2240,20 @@ contains
 
     return 
   end subroutine
-
+!===============================================================================
+!===============================================================================
+!> \brief To test this subroutine for 1st derivative.
+!>
+!> This subroutine is called in \ref Test_schemes. Define the logicals to choose
+!> which test section is required. 
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
   subroutine Test_1st_derivative(d)
     use flow_variables_mod
     use parameters_constant_mod
@@ -2019,19 +2278,6 @@ contains
     logical :: dudy_C2C = .true.
     logical :: dvdy_P2P = .true.
     logical :: dvdy_P2C = .true.
-
-
-
-    interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
-        use udf_type_mod
-        type(t_domain), intent( in ) :: d
-        integer(4) :: vartp
-        character( len = *), intent( in ) :: str
-        character( len = *), intent( in ) :: varnm
-        real(WP), intent( in ) :: var0(:, :, :)
-       end subroutine Display_vtk_slice
-    end interface
 
     if(dudx_P2C) then
       ! du / dx, P2C

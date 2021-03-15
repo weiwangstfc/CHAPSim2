@@ -1,6 +1,32 @@
+!-------------------------------------------------------------------------------
+!                      CHAPSim version 2.0.0
+!                      --------------------------
+! This file is part of CHAPSim, a general-purpose CFD tool.
+!
+! This program is free software; you can redistribute it and/or modify it under
+! the terms of the GNU General Public License as published by the Free Software
+! Foundation; either version 3 of the License, or (at your option) any later
+! version.
+!
+! This program is distributed in the hope that it will be useful, but WITHOUT
+! ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+! FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+! details.
+!
+! You should have received a copy of the GNU General Public License along with
+! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+! Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+!-------------------------------------------------------------------------------
+!===============================================================================
+!> \file input_thermo.f90
+!>
+!> \brief Reading the input parameters from the given file and building up the
+!> relationships between properties.
+!>
+!===============================================================================
 module input_thermo_mod
   use precision_mod
-  use input_general_mod, only: ifluid, t0ref, tiref
   implicit none
 
   integer, parameter :: ISCP_WATER      = 1, &
@@ -84,17 +110,13 @@ module input_thermo_mod
     real(WP) :: dh ! mass enthalpy
     real(WP) :: cp ! specific heat capacity 
     real(WP) :: b  ! thermal expansion
-
   contains
-
     private
-
     procedure, public :: Get_initialized_thermal_properties
     procedure, public :: is_T_in_scope
     procedure, public :: Refresh_thermal_properties_from_T
     procedure, public :: Refresh_thermal_properties_from_H
     procedure, public :: Refresh_thermal_properties_from_DH
-
     procedure :: Print_debug
     generic :: Print => Print_debug
     generic :: write(formatted) => Print_debug
@@ -111,13 +133,30 @@ module input_thermo_mod
   public  :: Initialize_thermo_input
   private :: Initialize_thermo_parameters
   private :: Sort_listTP_Tsmall2big
+  private :: Write_thermo_property
 
 contains
-  !!--procedures for type thermoProperty_t ---------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Defination of a procedure in the type thermoProperty_t.
+!>  to initialize the default thermal properties.     
+!>
+!> This subroutine is called as required to initialize the default
+!> thermal properties. It is used only when the \ref ithermo is 1.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  this          a cell element with udf property
+!_______________________________________________________________________________
   subroutine Get_initialized_thermal_properties ( this )
     use parameters_constant_mod, only: ZERO, ONE
-    class(thermoProperty_t), intent(inout) :: this
+    implicit none
 
+    class(thermoProperty_t), intent(inout) :: this
+    
     this%t  = ONE
     this%d  = ONE
     this%m  = ONE
@@ -127,12 +166,29 @@ contains
     this%h  = ZERO
     this%dh = ZERO
 
+    return
   end subroutine Get_initialized_thermal_properties
-
-
+!===============================================================================
+!===============================================================================
+!> \brief Defination of a procedure in the type thermoProperty_t.
+!>  to check the temperature limitations.     
+!>
+!> This subroutine is called as required to check the temperature
+!> of given element is within the given limits as a single phase
+!> flow.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  this          a cell element with udf property
+!_______________________________________________________________________________
   subroutine is_T_in_scope ( this )
-    class(thermoProperty_t), intent(inout) :: this
+    implicit none
 
+    class( thermoProperty_t ), intent( inout ) :: this
+    
     if(ipropertyState == IPROPERTY_TABLE) then
       if ( ( this%t < listTP(1)%t     )  .OR. &
            ( this%t > listTP(nlist)%t ) ) then
@@ -149,10 +205,29 @@ contains
       end if
     end if
 
+    return
   end subroutine is_T_in_scope
-
+!===============================================================================
+!===============================================================================
+!> \brief Defination of a procedure in the type thermoProperty_t.
+!>  to update the thermal properties based on the known temperature.     
+!>
+!> This subroutine is called as required to update all thermal properties from
+!> the known temperature (dimensional or dimensionless).
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  this          a cell element with udf property
+!> \param[in]     dim           an optional indicator of dimensional
+!>                              /dimensionless T. Exsiting of \ref dim indicates
+!>                              the known/given T is dimensional. Otherwise, not.
+!_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_T ( this, dim )
     use parameters_constant_mod, only : MINP, ONE, ZERO
+    use input_general_mod, only: ifluid
 
     class(thermoProperty_t), intent(inout) :: this
     integer, intent(in), optional :: dim ! without = undim, with = dim.
@@ -260,8 +335,6 @@ contains
       else 
         this%m = dummy / tpRef0%m
       end if
-  
-  
       this%dh = this%d * this%h
     else
       this%t  = ONE
@@ -273,8 +346,23 @@ contains
       this%h  = ZERO
       this%dh = ZERO
     end if
+    return
   end subroutine Refresh_thermal_properties_from_T
-
+!===============================================================================
+!===============================================================================
+!> \brief Defination of a procedure in the type thermoProperty_t.
+!>  to update the thermal properties based on the known enthalpy.     
+!>
+!> This subroutine is called as required to update all thermal properties from
+!> the known enthalpy (dimensionless only).
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  this          a cell element with udf property
+!_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_H(this)
     use parameters_constant_mod, only : MINP, ONE
     class(thermoProperty_t), intent(inout) :: this
@@ -307,10 +395,23 @@ contains
     this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
     this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
     this%dh = this%d * this%h
-
+    return
   end subroutine Refresh_thermal_properties_from_H
-
-  !!--------------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Defination of a procedure in the type thermoProperty_t.
+!>  to update the thermal properties based on the known enthalpy per unit mass.     
+!>
+!> This subroutine is called as required to update all thermal properties from
+!> the known enthalpy per unit mass (dimensionless only).
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  this          a cell element with udf property
+!_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_DH(this)
     use parameters_constant_mod, only : MINP, ONE
     class(thermoProperty_t), intent(inout) :: this
@@ -345,17 +446,38 @@ contains
     else  
       STOP 'Error. No such option of ipropertyState.'
     end if
+    return
   end subroutine Refresh_thermal_properties_from_DH
-  !!--------------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Defination of a procedure in the type thermoProperty_t.
+!>  to print out the thermal properties at the given element.     
+!>
+!> This subroutine is called as required to print out thermal properties 
+!> for degbugging.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     this          a cell element with udf property
+!> \param[in]     unit          
+!> \param[in]     iotype        
+!> \param[in]     v_list        
+!> \param[out]    iostat        
+!> \param[inout]  iomsg         
+!_______________________________________________________________________________
   subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
     use iso_fortran_env, only : error_unit
     class(thermoProperty_t), intent(in) :: this
-    integer, intent(in) :: unit
-    character(len = *), intent(in) :: iotype
-    integer, intent(in) :: v_list(:)
-    integer, intent(out) :: iostat
-    character(len = *), intent(inout) :: iomsg
-    integer :: i_pass
+    integer, intent(in)                 :: unit
+    character(len = *), intent(in)      :: iotype
+    integer, intent(in)                 :: v_list(:)
+    integer, intent(out)                :: iostat
+    character(len = *), intent(inout)   :: iomsg
+
+    integer                             :: i_pass
 
     iostat = 0
     iomsg = ""
@@ -377,9 +499,22 @@ contains
       write (error_unit, "(A)") "print error : " // trim(iomsg)
       write (error_unit, "(A, I0)") "  iostat : ", iostat
     end if
+    return
   end subroutine Print_debug
-  
-  !!--------------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Sort out the user given thermal property table based on the temperature
+!>  from small to big.
+!>
+!> This subroutine is called locally once reading in the given thermal table.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  list         the thermal table element array
+!_______________________________________________________________________________
   subroutine Sort_listTP_Tsmall2big(list)
     type(thermoProperty_t),intent(inout) :: list(:)
     integer :: i, n, k
@@ -423,8 +558,23 @@ contains
       list(k)%dh = buf
 
     end do
+    return
   end subroutine Sort_listTP_Tsmall2big
-
+!===============================================================================
+!===============================================================================
+!> \brief Check the monotonicity of the $\rho h$ along $h$ and $T$
+!>
+!> This subroutine is called locally once building up the thermal property
+!> relationships. Non-monotonicity could happen in fluids at supercritical
+!> pressure when inproper reference temperature is given.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Check_monotonicity_DH_of_HT_list
     use parameters_constant_mod, only : MINP
     integer :: i
@@ -448,11 +598,21 @@ contains
         if (ddh < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (H) is not monotonicity.'
 
     end do
-
+    return
   end subroutine Check_monotonicity_DH_of_HT_list
-  
-
-  !!--------------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Building up the thermal property relations from the given table.
+!>
+!> This subroutine is called once after reading the table.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Buildup_property_relations_from_table ( )
     use mpi_mod
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
@@ -466,8 +626,12 @@ contains
     integer :: i
 
     ! to read given table of thermal properties
-    open ( newunit = inputUnit, file = inputProperty, status = 'old', action  = 'read', &
-          iostat = ioerr, iomsg = iotxt)
+    open ( newunit = inputUnit,     &
+           file    = inputProperty, &
+           status  = 'old',         &
+           action  = 'read',        &
+           iostat  = ioerr,         &
+           iomsg   = iotxt)
     if(ioerr /= 0) then
       write (ERROR_UNIT, *) 'Problem openning : ', inputProperty, ' for reading.'
       write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
@@ -477,7 +641,8 @@ contains
     nlist = 0
     read(inputUnit, *, iostat = ioerr) str
     do
-      read(inputUnit, *, iostat = ioerr) rtmp, rtmp, rtmp, rtmp, rtmp, rtmp, rtmp, rtmp
+      read(inputUnit, *, iostat = ioerr) rtmp, rtmp, rtmp, rtmp, &
+      rtmp, rtmp, rtmp, rtmp
       if(ioerr /= 0) exit
       nlist = nlist + 1
     end do
@@ -508,10 +673,21 @@ contains
     listTP(:)%cp = listTP(:)%cp / tpRef0%cp
     listTP(:)%h = (listTP(:)%h - tpRef0%h) / tpRef0%t / tpRef0%cp
     listTP(:)%dh = listTP(:)%d * listTP(:)%h
-
+    return
   end subroutine Buildup_property_relations_from_table
-
-  !!--------------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Building up the thermal property relations from defined relations.
+!>
+!> This subroutine is called once after defining the relations.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Buildup_property_relations_from_function ( )
     integer :: i
 
@@ -527,12 +703,25 @@ contains
       listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
       call listTP(i)%Refresh_thermal_properties_from_T()
     end do
-
+    return
   end subroutine Buildup_property_relations_from_function
-
+!===============================================================================
+!===============================================================================
+!> \brief Write out the rebuilt thermal property relations.
+!>
+!> This subroutine is called for testing.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Write_thermo_property
-    use mpi_mod ! for test
+    !use mpi_mod ! for test
     use parameters_constant_mod, only : ZERO, TRUNCERR
+    implicit none
     type(thermoProperty_t) :: tp
     integer :: n, i
     real(WP) :: dhmax1, dhmin1
@@ -572,10 +761,26 @@ contains
       write(tp_unit, '(dt)') tp
     end do
     close (tp_unit)
-
+    return
   end subroutine Write_thermo_property
-  !!--------------------------------
+!===============================================================================
+!===============================================================================
+!> \brief Identify table or equations for thermal properties based on input
+!>  fluid material.
+!>
+!> This subroutine is called once in setting up thermal relations.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Initialize_thermo_parameters
+    use input_general_mod, only: ifluid, t0Ref, tiRef
+    implicit none
+
     select case (ifluid)
     case (ISCP_WATER)
       ipropertyState = IPROPERTY_TABLE
@@ -651,11 +856,24 @@ contains
 
     call tpIni0%Get_initialized_thermal_properties()
     tpIni0%t = tiRef
-
+    return
   end subroutine Initialize_thermo_parameters
-
+!===============================================================================
+!===============================================================================
+!> \brief The main code for thermal property initialisation.
+!>
+!> This subroutine is called once in \ref Initialize_chapsim.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
   subroutine Initialize_thermo_input
     use input_general_mod, only : ithermo
+    implicit none
     
     if (ithermo /= 1) return
     call Initialize_thermo_parameters
@@ -663,7 +881,7 @@ contains
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
-
+    return
   end subroutine Initialize_thermo_input
   
 end module input_thermo_mod
