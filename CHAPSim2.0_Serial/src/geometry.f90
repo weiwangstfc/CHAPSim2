@@ -18,9 +18,9 @@ contains
     use parameters_constant_mod
 
     character(len = *), intent(in) :: str
-    integer(4), intent(in) :: n
-    real(WP), intent( out ) :: y(n)
-    real(WP), intent( out ) :: mp(n, 0:3)
+    integer(4), intent( in )       :: n
+    real(WP), intent( out )        :: y(n)
+    real(WP), intent( out )        :: mp(n, 3)
     
     integer(4) :: j
     real(WP) :: eta_shift
@@ -55,7 +55,6 @@ contains
     if (istret == ISTRET_NO) then
       y(:) = eta(:)
       y(:) = y(:) * (lyt - lyb) + lyb
-      mp(:, 0) = ONE
       mp(:, 1) = ONE
       mp(:, 2) = ONE
       mp(:, 3) = ONE
@@ -97,9 +96,6 @@ contains
       y(j) = ONE / (gamma * ee) * y(j)
       ! y \in [lyb, lyt]
       y(j) = y(j) * (lyt - lyb) + lyb
-
-      ! h
-      mp(j, 0) = eta(j)
 
       ! 1/h'
       mp(j, 1) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (lyt - lyb)
@@ -162,6 +158,7 @@ contains
     implicit none
 
     integer(4) :: i
+    logical    :: dbg = .false.
 
     ! Build up domain info
     domain%case   = icase
@@ -218,12 +215,17 @@ contains
     allocate ( domain%yp( domain%np_geo(2) ) ); domain%yp(:) = ZERO
     allocate ( domain%yc( domain%nc(2) ) ); domain%yc(:) = ZERO
 
-    allocate ( domain%yMappingpt( domain%np_geo(2), 0:3 ) ); domain%yMappingpt(:, :) = ONE
-    allocate ( domain%yMappingcc( domain%nc(2), 0:3 ) ); domain%yMappingcc(:, :) = ONE
+    allocate ( domain%yMappingpt( domain%np_geo(2), 3 ) ); domain%yMappingpt(:, :) = ONE
+    allocate ( domain%yMappingcc( domain%nc(2),     3 ) ); domain%yMappingcc(:, :) = ONE
 
     call Buildup_grid_mapping_1D ('nd', domain%np_geo(2), domain%yp(:), domain%yMappingPt(:, :))
-    call Buildup_grid_mapping_1D ('cl', domain%nc(2), domain%yc(:), domain%yMappingcc(:, :))
+    call Buildup_grid_mapping_1D ('cl', domain%nc(2),     domain%yc(:), domain%yMappingcc(:, :))
 
+    if(dbg) then
+      do i = 1, domain%np_geo(2)
+        write(*, '(I5, 1F8.4)') i, domain%yp(i)
+      end do
+    end if
     
   end subroutine  Initialize_geometry_variables
 

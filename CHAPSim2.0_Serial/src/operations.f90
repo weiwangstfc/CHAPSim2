@@ -244,7 +244,7 @@ contains
       alpha2 = ZERO
       a2 = ONE
       b2 = ZERO ! not used
-      c1 = ZERO ! not used
+      c2 = ZERO ! not used
 
     else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
@@ -256,7 +256,7 @@ contains
       alpha2 = ZERO
       a2 = ONE
       b2 = ZERO ! not used
-      c1 = ZERO ! not used
+      c2 = ZERO ! not used
 
     else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
 
@@ -268,7 +268,7 @@ contains
       alpha2 = ONE / FOUR
       a2 = THREE / TWO
       b2 = ZERO ! not used
-      c1 = ZERO ! not used
+      c2 = ZERO ! not used
 
     else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
@@ -291,7 +291,7 @@ contains
       alpha2 = ZERO
       a2 = ONE
       b2 = ZERO ! not used
-      c1 = ZERO ! not used
+      c2 = ZERO ! not used
       
     end if
 
@@ -1605,14 +1605,12 @@ contains
         call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
             mfrP2C(:, :, :), fi(:), fo(:) )
         call Solve_TDMA(d%is_periodic(i), fo(:), amy_P2C(:), bmy_P2C(:), cmy_P2C(:), dmy_P2C(:), d%nc(i))
-        if(d%is_stretching(2)) fo(:) = fo(:) * d%yMappingcc(:, 0)
 
       else if (str2 == 'C2P') then
 
         call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
             mfrC2P(:, :, :), fi(:), fo(:) )
         call Solve_TDMA(d%is_periodic(i), fo(:), amy_C2P(:), bmy_C2P(:), cmy_C2P(:), dmy_C2P(:), d%np(i))
-        if(d%is_stretching(2)) fo(:) = fo(:) * d%yMappingpt(:, 0)
 
       else
         call Print_error_msg("109: Error input in prepare_FD_TDMA_RHS.")
@@ -1674,11 +1672,16 @@ contains
         call Solve_TDMA(d%is_periodic(i), fo(:), adx_P2C(:), bdx_P2C(:), cdx_P2C(:), ddx_P2C(:), d%nc(i))
 
       else if (str2 == 'P2P') then
-
+        
         call Prepare_TDMA_deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
             d%h(i), cfrP2P(:, :, :), fi(:), fo(:) )
+            !write(*,'(A,7F8.4)') 'a', adx_P2P(:)
+            !write(*,'(A,7F8.4)') 'b', bdx_P2P(:)
+            !write(*,'(A,7F8.4)') 'c', cdx_P2P(:)
+            !write(*,'(A,7F8.4)') 'd', ddx_P2P(:)
+            !write(*,'(A,7F8.4)') 'r', fo(:)
         call Solve_TDMA(d%is_periodic(i), fo(:), adx_P2P(:), bdx_P2P(:), cdx_P2P(:), ddx_P2P(:), d%np(i))
-
+        !write(*,'(A,7F8.4)') 'o', fo(:)
       else if (str2 == 'C2P') then
 
         call Prepare_TDMA_deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
@@ -1775,7 +1778,13 @@ contains
     real(WP) :: ref
     integer(4) :: i, j, k
     real(WP) :: err(3), errmax
-    logical :: dbg = .true.
+    logical :: dbg = .false.
+    logical :: uix_p2c = .false.
+    logical :: vix_c2p = .false.
+
+    logical :: uiy_c2p = .true.
+    logical :: viy_p2c = .true.
+
 
     interface 
        subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
@@ -1788,134 +1797,200 @@ contains
        end subroutine Display_vtk_slice
     end interface
 
-    ! test interpolation. u in x, P2C
-    ! (i', j, k) --> (i, j, k)
-    allocate ( fi( d%np(1) ) ); fi = ZERO
-    allocate ( fo( d%nc(1) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test interp u in x P2C: kji, err1, err2, err3'
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, d%nc(2)
-        yc = d%yc(j)
-        fi(:) = ux(:, j, k)
-        call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
-        do i = 3, d%nc(1)-2
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
+    if(uix_p2c) then
+      !test interpolation. u in x, P2C
+      !(i', j, k) --> (i, j, k)
+      allocate ( fi( d%np(1) ) ); fi = ZERO
+      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test interp u in x P2C: kji, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, d%nc(2)
+          yc = d%yc(j)
+          fi(:) = ux(:, j, k)
+          call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
 
-        do i = 1, 2
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
+          do i = 4, d%nc(1)-3
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
 
-        do i = d%nc(1)-1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
+          do i = 1, 3
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
 
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%nc(1), err(1:3)  
+          do i = d%nc(1)-2, d%nc(1)
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
 
-    ! test interpolation. u in y, C2P 
-    ! (i', j, k) --> (i', j', k)
-    allocate ( fi( d%nc(2) ) ); fi = ZERO
-    allocate ( fo( d%np(2) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test interp u in y C2P: kij, err1, err2, err3'
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        fi(:) = ux(i, :, k)
-        call Get_midp_interpolation('y', 'C2P', d, fi(:), fo(:))
-        do j = 3, d%np(2)-2
-          yp = d%yp(j)
-          ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-        end do
-        do j = 1, 2
-          yp = d%yp(j)
-          ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-        end do
-        do j = d%np(2)-1, d%np(2)
-          yp = d%yp(j)
-          ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
         end do
       end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%np(2), err(1:3)  
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
 
-    ! test interpolation. u in z, C2P 
-    ! (i', j, k) --> (i', j, k')
-    allocate ( fi( d%nc(3) ) ); fi = ZERO
-    allocate ( fo( d%np(3) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test interp u in z C2P: jik, err1, err2, err3'
-    do j = 1, d%nc(2)
-      yc = d%yc(j)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        fi(:) = ux(i, j, :)
-        call Get_midp_interpolation('z', 'C2P', d, fi(:), fo(:))
-        do k = 3, d%np(3)-2
-          zp = d%h(3) * real(k - 1, WP)
-          ref = sin_wp ( xp ) + sin_wp(yc) + sin_wp(zp)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-        do k = 1, 2
-          zp = d%h(3) * real(k - 1, WP)
-          ref = sin_wp ( xp ) + sin_wp(yc) + sin_wp(zp)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-        do k = d%np(3)-1, d%np(3)
-          zp = d%h(3) * real(k - 1, WP)
-          ref = sin_wp ( xp ) + sin_wp(yc) + sin_wp(zp)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg .and. errmax>ONE) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
+    if(uiy_c2p) then
+      ! test interpolation. u in y, C2P 
+      ! (i', j, k) --> (i', j', k)
+      allocate ( fi( d%nc(2) ) ); fi = ZERO
+      allocate ( fo( d%np(2) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test interp u in y C2P: kij, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          fi(:) = ux(i, :, k)
+          call Get_midp_interpolation('y', 'C2P', d, fi(:), fo(:))
+          do j = 4, d%np(2)-3
+            yp = d%yp(j)
+            ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = 1, 3
+            yp = d%yp(j)
+            ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = d%np(2)-2, d%np(2)
+            yp = d%yp(j)
+            ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
         end do
       end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%np(3), err(1:3)  
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
+
+    if(vix_c2p) then
+      !test interpolation. v in x, C2P
+      !(i', j, k) --> (i, j, k)
+      allocate ( fi( d%nc(1) ) ); fi = ZERO
+      allocate ( fo( d%np(1) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test interp v in x C2P: err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, d%nc(2)
+          yc = d%yc(j)
+          fi(:) = uy(:, j, k)
+          call Get_midp_interpolation('x', 'C2P', d, fi(:), fo(:))
+          do i = 4, d%np(1)-3
+            xp = d%h(1) * (real(i - 1, WP))
+            ref = sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+
+          do i = 1, 3
+            xp = d%h(1) * (real(i - 1, WP))
+            ref = sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+
+          do i = d%np(1)-2, d%np(1)
+            xp = d%h(1) * (real(i - 1, WP))
+            ref = sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+
+        end do
+      end do
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
+
+    if(viy_p2c) then
+      ! test interpolation. v in y, P2C 
+      ! (i', j, k) --> (i', j', k)
+      allocate ( fi( d%np(2) ) ); fi = ZERO
+      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test interp v in y P2C: kij, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          fi(:) = uy(i, :, k)
+          call Get_midp_interpolation('y', 'P2C', d, fi(:), fo(:))
+          do j = 4, d%nc(2)-3
+            yc = d%yc(j)
+            ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = 1, 3
+            yc = d%yc(j)
+            ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = d%nc(2)-2, d%nc(2)
+            yc = d%yc(j)
+            ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) &
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+        end do
+      end do
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
 
     return 
   end subroutine
@@ -1935,6 +2010,18 @@ contains
     real(WP) :: err(3), errmax
     logical :: dbg = .false.
 
+    logical :: dudx_P2C = .false.
+    logical :: dudx_P2P = .false.
+    logical :: dvdx_C2P = .false.
+    logical :: dvdx_C2C = .false.
+
+    logical :: dudy_C2P = .true.
+    logical :: dudy_C2C = .true.
+    logical :: dvdy_P2P = .true.
+    logical :: dvdy_P2C = .true.
+
+
+
     interface 
        subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
         use udf_type_mod
@@ -1946,259 +2033,383 @@ contains
        end subroutine Display_vtk_slice
     end interface
 
-    
-    ! du / dx, P2C
-    ! (i', j, k) --> (i, j, k)
-    allocate ( fi( d%np(1) ) ); fi = ZERO
-    allocate ( fo( d%nc(1) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test 1stDeri u in x P2C: I, err1, err2, err3'
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, d%nc(2)
-        yc = d%yc(j)
-        fi(:) = ux(:, j, k)
-        call Get_1st_derivative('x', 'P2C', d, fi(:), fo(:))
-        do i = 3, d%nc(1)-2
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ref = cos_wp ( xc )
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
-        do i = 1, 2
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ref = cos_wp ( xc )
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
-        do i = d%nc(1)-1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ref = cos_wp ( xc )
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+    if(dudx_P2C) then
+      ! du / dx, P2C
+      ! (i', j, k) --> (i, j, k)
+      allocate ( fi( d%np(1) ) ); fi = ZERO
+      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri u in x P2C: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, d%nc(2)
+          yc = d%yc(j)
+          fi(:) = ux(:, j, k)
+          call Get_1st_derivative('x', 'P2C', d, fi(:), fo(:))
+          do i = 4, d%nc(1)-3
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = cos_wp ( xc )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = 1, 3
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = cos_wp ( xc )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = d%nc(1)-2, d%nc(1)
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = cos_wp ( xc )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
         end do
       end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%nc(1), err(1:3)  
-    
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
+
+    if(dudx_P2P) then
     ! du / dx, P2P
     ! (i', j, k) --> (i', j, k)
-    allocate ( fi( d%np(1) ) ); fi = ZERO
-    allocate ( fo( d%np(1) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test 1stDeri u in x P2P: I, err1, err2, err3'
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, d%nc(2)
-        yc = d%yc(j)
-        fi(:) = ux(:, j, k)
-        call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
-        do i = 3, d%np(1)-2
-          xp = d%h(1) * real(i - 1, WP)
-          ref = cos_wp ( xp )
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
-        do i = 1, 2
-          xp = d%h(1) * real(i - 1, WP)
-          ref = cos_wp ( xp )
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-        end do
-        do i = d%np(1)-1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
-          ref = cos_wp ( xp )
-          errmax = dabs(fo(i)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+      allocate ( fi( d%np(1) ) ); fi = ZERO
+      allocate ( fo( d%np(1) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri u in x P2P: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, d%nc(2)
+          yc = d%yc(j)
+          fi(:) = ux(:, j, k)
+          call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
+          do i = 4, d%np(1)-3
+            xp = d%h(1) * real(i - 1, WP)
+            ref = cos_wp ( xp )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = 1, 3
+            xp = d%h(1) * real(i - 1, WP)
+            ref = cos_wp ( xp )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = d%np(1)-2, d%np(1)
+            xp = d%h(1) * real(i - 1, WP)
+            ref = cos_wp ( xp )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
         end do
       end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%np(1), err(1:3)  
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
 
-    ! du / dy, C2P
-    ! (i', j, k) --> (i', j', k)
-    allocate ( fi( d%nc(2) ) ); fi = ZERO
-    allocate ( fo( d%np(2) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test 1stDeri u in y C2P: I, err1, err2, err3'
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        fi(:) = ux(i, :, k)
-        call Get_1st_derivative('y', 'C2P', d, fi(:), fo(:))
-        do j = 3, d%np(2)-2
-          yp = d%yp(j)
-          ref = cos_wp(yp)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-        end do
-        do j = 1, 2
-          yp = d%yp(j)
-          ref = cos_wp(yp)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-        end do
-        do j = d%np(2)-1, d%np(2)
-          yp = d%yp(j)
-          ref = cos_wp(yp)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+    if(dudy_C2P) then
+      ! du / dy, C2P
+      ! (i', j, k) --> (i', j', k)
+      allocate ( fi( d%nc(2) ) ); fi = ZERO
+      allocate ( fo( d%np(2) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri u in y C2P: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          fi(:) = ux(i, :, k)
+          call Get_1st_derivative('y', 'C2P', d, fi(:), fo(:))
+          do j = 4, d%np(2)-3
+            yp = d%yp(j)
+            ref = cos_wp(yp)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = 1, 3
+            yp = d%yp(j)
+            ref = cos_wp(yp)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = d%np(2)-2, d%np(2)
+            yp = d%yp(j)
+            ref = cos_wp(yp)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
         end do
       end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%np(2), err(1:3)  
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)   
+    end if
+
+    if(dudy_C2C) then
+      ! du / dy, C2C
+      ! (i', j, k) --> (i, j, k)
+      allocate ( fi( d%nc(2) ) ); fi = ZERO
+      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri u in y C2C: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          fi(:) = ux(i, :, k)
+          call Get_1st_derivative('y', 'C2C', d, fi(:), fo(:))
+          do j = 4, d%nc(2)-3
+            yc = d%yc(j)
+            ref = cos_wp(yc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = 1, 3
+            yc = d%yc(j)
+            ref = cos_wp(yc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = d%nc(2)-2, d%nc(2)
+            yc = d%yc(j)
+            ref = cos_wp(yc)
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+          end do
+        end do
+      end do
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
+
+    if(dvdy_P2C) then
+      ! dv / dy, P2C
+      ! (i, j', k) --> (i, j, k)
+      allocate ( fi( d%np(2) ) ); fi = ZERO
+      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri v in y P2C: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          fi(:) = uy(i, :, k)
+          call Get_1st_derivative('y', 'P2C', d, fi(:), fo(:))
+          do j = 4, d%nc(2)-3
+            yc = d%yc(j)
+            ref = cos_wp ( yc )
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = 1, 3
+            yc = d%yc(j)
+            ref = cos_wp ( yc )
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = d%nc(2)-2, d%nc(2)
+            yc = d%yc(j)
+            ref = cos_wp ( yc )
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+          end do
+        end do
+      end do
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3) 
+    end if 
     
-    ! du / dy, C2C
-    ! (i', j, k) --> (i, j, k)
-    allocate ( fi( d%nc(2) ) ); fi = ZERO
-    allocate ( fo( d%nc(2) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test 1stDeri u in y C2C: I, err1, err2, err3'
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        fi(:) = ux(i, :, k)
-        call Get_1st_derivative('y', 'C2C', d, fi(:), fo(:))
-        do j = 3, d%nc(2)-2
-          yc = d%yc(j)
-          ref = cos_wp(yc)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-        end do
-        do j = 1, 2
-          yc = d%yc(j)
-          ref = cos_wp(yc)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-        end do
-        do j = d%nc(2)-1, d%nc(2)
-          yc = d%yc(j)
-          ref = cos_wp(yc)
-          errmax = dabs(fo(j)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+    if(dvdy_P2P) then
+      ! dv / dy, P2P
+      ! (i, j', k) --> (i, j', k)
+      allocate ( fi( d%np(2) ) ); fi = ZERO
+      allocate ( fo( d%np(2) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri v in y P2P: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          fi(:) = uy(i, :, k)
+          call Get_1st_derivative('y', 'P2P', d, fi(:), fo(:))
+          do j = 4, d%np(2)-3
+            yp = d%yp(j)
+            ref = cos_wp ( yp )
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = 1, 3
+            yp = d%yp(j)
+            ref = cos_wp ( yp )
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+          end do
+          do j = d%np(2)-2, d%np(2)
+            yp = d%yp(j)
+            ref = cos_wp ( yp )
+            errmax = dabs(fo(j)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+          end do
         end do
       end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%nc(2), err(1:3)  
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3) 
+    end if
+
+    if(dvdx_C2C) then
+      ! du / dx, P2C
+      ! (i', j, k) --> (i, j, k)
+      allocate ( fi( d%nc(1) ) ); fi = ZERO
+      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri u in x P2C: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, d%nc(2)
+          yc = d%yc(j)
+          fi(:) = uy(:, j, k)
+          call Get_1st_derivative('x', 'C2C', d, fi(:), fo(:))
+          do i = 4, d%nc(1)-3
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = cos_wp ( xc )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = 1, 3
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = cos_wp ( xc )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = d%nc(1)-2, d%nc(1)
+            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            ref = cos_wp ( xc )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+        end do
+      end do
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
+
+    if(dvdx_C2P) then
+    ! du / dx, P2P
+    ! (i', j, k) --> (i', j, k)
+      allocate ( fi( d%nc(1) ) ); fi = ZERO
+      allocate ( fo( d%np(1) ) ); fo = ZERO
+      xc = ZERO; yc = ZERO; zc = ZERO
+      xp = ZERO; yp = ZERO; zp = ZERO
+      err = ZERO
+      write(*,'(A)') '  '
+      write(*,'(A)') '# Test 1stDeri u in x P2P: I, err1, err2, err3'
+      do k = 1, d%nc(3)
+        zc = d%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, d%nc(2)
+          yc = d%yc(j)
+          fi(:) = ux(:, j, k)
+          call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
+          do i = 4, d%np(1)-3
+            xp = d%h(1) * real(i - 1, WP)
+            ref = cos_wp ( xp )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(2)) err(2) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = 1, 3
+            xp = d%h(1) * real(i - 1, WP)
+            ref = cos_wp ( xp )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(1)) err(1) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+          do i = d%np(1)-2, d%np(1)
+            xp = d%h(1) * real(i - 1, WP)
+            ref = cos_wp ( xp )
+            errmax = dabs(fo(i)-ref)
+            if (errmax > err(3)) err(3) = errmax
+            if(dbg .and. errmax>0.1_WP) & 
+            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+          end do
+        end do
+      end do
+      deallocate (fi)
+      deallocate (fo)
+      write(*, '(3(","ES15.7))') err(1:3)
+    end if
     
-    ! du / dz, C2P
-    ! (i', j, k) --> (i', j, k')
-    allocate ( fi( d%nc(3) ) ); fi = ZERO
-    allocate ( fo( d%np(3) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test 1stDeri u in z C2P: I, err1, err2, err3'
-    do j = 1, d%nc(2)
-      yc = d%yc(j)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        fi(:) = ux(i, j, :)
-        call Get_1st_derivative('z', 'C2P', d, fi(:), fo(:))
-        do k = 3, d%np(3)-2
-          zp = d%h(3) * real(k - 1, WP)
-          ref = cos_wp(zp)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-        do k = 1, 2
-          zp = d%h(3) * real(k - 1, WP)
-          ref = cos_wp(zp)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-        do k = d%np(3)-1, d%np(3)
-          zp = d%h(3) * real(k - 1, WP)
-          ref = cos_wp(zp)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%np(3), err(1:3)  
     
-    ! du / dz, C2C
-    ! (i', j, k) --> (i, j, k)
-    allocate ( fi( d%nc(3) ) ); fi = ZERO
-    allocate ( fo( d%nc(3) ) ); fo = ZERO
-    xc = ZERO; yc = ZERO; zc = ZERO
-    xp = ZERO; yp = ZERO; zp = ZERO
-    err = ZERO
-    write(*,'(A)') '  '
-    write(*,'(A)') '# Test 1stDeri u in z C2C: I, err1, err2, err3'
-    do j = 1, d%nc(2)
-      yc = d%yc(j)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        fi(:) = ux(i, j, :)
-        call Get_1st_derivative('z', 'C2C', d, fi(:), fo(:))
-        do k = 3, d%nc(3)-2
-          zc = d%h(3) * (real(k - 1, WP) + HALF)
-          ref = cos_wp(zc)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(2)) err(2) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-        do k = 1, 2
-          zc = d%h(3) * (real(k - 1, WP) + HALF)
-          ref = cos_wp(zc)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(1)) err(1) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-        do k = d%nc(3)-1, d%nc(3)
-          zc = d%h(3) * (real(k - 1, WP) + HALF)
-          ref = cos_wp(zc)
-          errmax = dabs(fo(k)-ref)
-          if (errmax > err(3)) err(3) = errmax
-          if(dbg) write(*,'(3I5, 2F8.4, 1ES15.7)') j, i, k, fo(k), ref, dabs(ref-fo(k))
-        end do
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    write(*, '(I5,3ES15.7)') d%nc(3), err(1:3)  
-  
     return 
   end subroutine
 
