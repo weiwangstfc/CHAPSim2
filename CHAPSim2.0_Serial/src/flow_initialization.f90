@@ -2,7 +2,7 @@ module flow_variables_mod
   use precision_mod
   implicit none
 
-  real(WP), save, allocatable, dimension(:, :, :) :: ux, uy, uz
+  real(WP), save, allocatable, dimension(:, :, :) :: qx, qy, qz
   real(WP), save, allocatable, dimension(:, :, :) :: gx, gy, gz
   real(WP), save, allocatable, dimension(:, :, :) :: pres
   real(WP), save, allocatable, dimension(:, :, :) :: pcor
@@ -31,9 +31,9 @@ contains
     use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
-    allocate ( ux ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; ux = ZERO
-    allocate ( uy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; uy = ZERO
-    allocate ( uz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; uz = ZERO
+    allocate ( qx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; qx = ZERO
+    allocate ( qy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; qy = ZERO
+    allocate ( qz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  ) ; qz = ZERO
 
     allocate ( gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  ) ; gx = ZERO
     allocate ( gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  ) ; gy = ZERO
@@ -355,29 +355,29 @@ contains
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
 
-      call Initialize_poiseuille_flow (ux, uy, uz, pres, domain)
+      call Initialize_poiseuille_flow (qx, qy, qz, pres, domain)
 
     else if (icase == ICASE_TGV) then
       
-      call Initialize_vortexgreen_flow (ux, uy, uz, pres, domain)
+      call Initialize_vortexgreen_flow (qx, qy, qz, pres, domain)
     else if (icase == ICASE_SINETEST) then
-      call Initialize_sinetest_flow (ux, uy, uz, pres, domain)
+      call Initialize_sinetest_flow (qx, qy, qz, pres, domain)
     else 
       call Print_error_msg("No such case defined in Subroutine: "//"Initialize_flow_variables" )
     end if
     ! to initialize pressure correction term
     pcor(:, :, :) = ZERO
 
-    !call Display_vtk_slice(domain, 'xy', 'u', 1, ux)
-    !call Display_vtk_slice(domain, 'xy', 'v', 2, uy)
+    !call Display_vtk_slice(domain, 'xy', 'u', 1, qx)
+    !call Display_vtk_slice(domain, 'xy', 'v', 2, qy)
     call Display_vtk_slice(domain, 'xy', 'p', 0, pres)
 
-    !call Display_vtk_slice(domain, 'yz', 'v', 2, uy)
-    !call Display_vtk_slice(domain, 'yz', 'w', 3, uz)
+    !call Display_vtk_slice(domain, 'yz', 'v', 2, qy)
+    !call Display_vtk_slice(domain, 'yz', 'w', 3, qz)
     call Display_vtk_slice(domain, 'yz', 'p', 0, pres)
 
-    !call Display_vtk_slice(domain, 'zx', 'u', 1, ux)
-    !call Display_vtk_slice(domain, 'zx', 'w', 3, uz)
+    !call Display_vtk_slice(domain, 'zx', 'u', 1, qx)
+    !call Display_vtk_slice(domain, 'zx', 'w', 3, qz)
     call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
 
     ! to update mass flux terms 

@@ -1811,7 +1811,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
           yc = d%yc(j)
-          fi(:) = ux(:, j, k)
+          fi(:) = qx(:, j, k)
           call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
 
           do i = 4, d%nc(1)-3
@@ -1862,7 +1862,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
-          fi(:) = ux(i, :, k)
+          fi(:) = qx(i, :, k)
           call Get_midp_interpolation('y', 'C2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
@@ -1909,7 +1909,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
           yc = d%yc(j)
-          fi(:) = uy(:, j, k)
+          fi(:) = qy(:, j, k)
           call Get_midp_interpolation('x', 'C2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * (real(i - 1, WP))
@@ -1959,7 +1959,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          fi(:) = uy(i, :, k)
+          fi(:) = qy(i, :, k)
           call Get_midp_interpolation('y', 'P2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
@@ -2047,7 +2047,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
           yc = d%yc(j)
-          fi(:) = ux(:, j, k)
+          fi(:) = qx(:, j, k)
           call Get_1st_derivative('x', 'P2C', d, fi(:), fo(:))
           do i = 4, d%nc(1)-3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -2094,7 +2094,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
           yc = d%yc(j)
-          fi(:) = ux(:, j, k)
+          fi(:) = qx(:, j, k)
           call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * real(i - 1, WP)
@@ -2141,7 +2141,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
-          fi(:) = ux(i, :, k)
+          fi(:) = qx(i, :, k)
           call Get_1st_derivative('y', 'C2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
@@ -2188,7 +2188,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
-          fi(:) = ux(i, :, k)
+          fi(:) = qx(i, :, k)
           call Get_1st_derivative('y', 'C2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
@@ -2235,7 +2235,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          fi(:) = uy(i, :, k)
+          fi(:) = qy(i, :, k)
           call Get_1st_derivative('y', 'P2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
@@ -2282,7 +2282,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          fi(:) = uy(i, :, k)
+          fi(:) = qy(i, :, k)
           call Get_1st_derivative('y', 'P2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
@@ -2329,7 +2329,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
           yc = d%yc(j)
-          fi(:) = uy(:, j, k)
+          fi(:) = qy(:, j, k)
           call Get_1st_derivative('x', 'C2C', d, fi(:), fo(:))
           do i = 4, d%nc(1)-3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -2376,7 +2376,7 @@ contains
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
           yc = d%yc(j)
-          fi(:) = ux(:, j, k)
+          fi(:) = qx(:, j, k)
           call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * real(i - 1, WP)
