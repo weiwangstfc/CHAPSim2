@@ -28,17 +28,16 @@ program chapsim
   implicit none
 
   call Initialize_chapsim ()
-  
+  call Initialize_flow ()
 
   call Test_schemes()
 
   call Finalise_chapsim ()
   
 end program
-
 !===============================================================================
 !===============================================================================
-!> \brief Initialisation and preprocessing of the flow solver
+!> \brief Initialisation and preprocessing of geometry, mesh and tools
 !>
 !> This subroutine is called at beginning of the main program
 !>
@@ -67,9 +66,42 @@ subroutine Initialize_chapsim()
   call Prepare_coeffs_for_operations()
 
   !call Initialize_domain_decompsition ()
-  call Initialize_flow_variables ()
   return
 end subroutine Initialize_chapsim
+!===============================================================================
+!===============================================================================
+!> \brief Initialisation and preprocessing of the flow field
+!>
+!> This subroutine is called at beginning of the main program
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
+subroutine Initialize_flow()
+  use flow_variables_mod
+  use input_general_mod, only : irestart, &
+      INITIAL_RANDOM, INITIAL_RESTART, INITIAL_INTERPL
+  implicit none
+
+  call Allocate_variables ()
+  if (irestart == INITIAL_RANDOM) then
+    call Initialize_flow_variables ()
+  else if (irestart == INITIAL_RESTART) then
+
+  else if (irestart == INITIAL_INTERPL) then
+
+  else
+    call Print_error_msg("Error in flow initialisation flag.")
+  end if
+  
+  return
+end subroutine Initialize_chapsim
+
 !===============================================================================
 !===============================================================================
 !> \brief Finalising the flow solver

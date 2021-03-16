@@ -69,6 +69,10 @@ module input_general_mod
 
   integer, parameter :: NDIM = 3
 
+  integer, parameter :: INITIAL_RANDOM  = 1, &
+                        INITIAL_RESTART = 2, &
+                        INITIAL_INTERPL = 3
+
   ! flow type
   integer :: icase
   integer :: ithermo

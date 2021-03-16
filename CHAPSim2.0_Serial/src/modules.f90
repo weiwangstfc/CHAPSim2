@@ -92,6 +92,7 @@ module udf_type_mod
     real(wp) :: h(3) ! uniform dx
     real(wp) :: hi(3) ! uniform 1/dx
     real(wp) :: h2(3) ! uniform dx^2
+    real(WP) :: rre   ! 1 / Re
     integer(4), allocatable :: iNeighb(:, :)
     integer(4), allocatable :: jNeighb(:, :)
     integer(4), allocatable :: kNeighb(:, :)

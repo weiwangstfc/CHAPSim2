@@ -41,14 +41,14 @@ module flow_variables_mod
   real(WP), save, allocatable, dimension(:, :, :) :: kCond
   real(WP), save, allocatable, dimension(:, :, :) :: tTemp
   
-  private :: Allocate_variables
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
   private :: Initialize_vortexgreen_flow
   private :: Initialize_thermal_variables
 
+  public  :: Allocate_variables
   public  :: Initialize_flow_variables
-  
+
 contains
 !===============================================================================
 !===============================================================================
@@ -477,6 +477,7 @@ contains
     use geometry_mod
     use input_general_mod
     use parameters_constant_mod
+    use solver_tools_mod
     implicit none
 
     interface 
@@ -489,11 +490,6 @@ contains
         real(WP), intent( in ) :: var0(:, :, :)
        end subroutine Display_vtk_slice
     end interface
-
-!-------------------------------------------------------------------------------
-! allocate variables
-!-------------------------------------------------------------------------------
-    call Allocate_variables
 
 !-------------------------------------------------------------------------------
 ! to initialize thermal variables 
@@ -528,7 +524,17 @@ contains
 !-------------------------------------------------------------------------------
 ! to update mass flux terms 
 !-------------------------------------------------------------------------------
-    call Refresh_massflux (flow_dummy, thermo_dummy, d)
+    if (ithermo == 1) then
+      call Calculate_massflux_from_velocity (qx, qy, qz, gx, gy, gz, dDens, d)
+    else
+      gx(:, :, :) = qx(:, :, :)
+      gy(:, :, :) = qy(:, :, :)
+      gz(:, :, :) = qz(:, :, :)
+    end if
+!-------------------------------------------------------------------------------
+! to set up old arrays 
+!-------------------------------------------------------------------------------
+
 !-------------------------------------------------------------------------------
 ! to write and display the initial fields
 !-------------------------------------------------------------------------------

@@ -316,6 +316,10 @@ contains
     call Buildup_grid_mapping_1D ('nd', domain%np_geo(2), domain%yp(:), domain%yMappingPt(:, :))
     call Buildup_grid_mapping_1D ('cl', domain%nc(2),     domain%yc(:), domain%yMappingcc(:, :))
 
+    ! global flow info
+    domain%rre = ONE / REN
+
+    ! print out for debugging
     if(dbg) then
       do i = 1, domain%np_geo(2)
         write(*, '(I5, 1F8.4)') i, domain%yp(i)
