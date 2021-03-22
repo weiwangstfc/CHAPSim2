@@ -290,12 +290,12 @@ contains
     if(domain%is_stretching(2)) then
       domain%h(2) = ONE / real(domain%nc(2), WP)
     else 
-      domain%h(2) = (lyt - lyb) / real(domain%nc(2), WP)
+      domain%h(2) = (lyt - lyb) / real(domain%nc(2), WP) ! mean dy
     end if
     domain%h(1) = lxx / real(domain%nc(1), WP)
     domain%h(3) = lzz / real(domain%nc(3), WP)
-    domain%h2(:) = domain%h(:) * domain%h(:)
-    domain%hi(:) = ONE / domain%h(:)
+    domain%h2r(:) = ONE / domain%h(:) / domain%h(:)
+    domain%h1r(:) = ONE / domain%h(:)
 
     !build up index sequence for bulk part (no b.c. except periodic)
     allocate ( domain%iNeighb( 4, domain%np(1) ) ); domain%iNeighb =  0
@@ -315,9 +315,6 @@ contains
 
     call Buildup_grid_mapping_1D ('nd', domain%np_geo(2), domain%yp(:), domain%yMappingPt(:, :))
     call Buildup_grid_mapping_1D ('cl', domain%nc(2),     domain%yc(:), domain%yMappingcc(:, :))
-
-    ! global flow info
-    domain%rre = ONE / REN
 
     ! print out for debugging
     if(dbg) then

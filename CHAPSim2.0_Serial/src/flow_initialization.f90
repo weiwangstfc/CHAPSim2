@@ -15,10 +15,7 @@
 !
 ! You should have received a copy of the GNU General Public License along with
 ! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
-! Street, Fifth Floor, Boston, MA 02110-1301, USA.
-
-!-------------------------------------------------------------------------------
-!===============================================================================
+! Street, Fifth Floor, Boston, MA 0type t_domain=============================================
 !> \file flow_initialisation.f90
 !>
 !> \brief Define and initialise flow and thermal variables.
@@ -28,23 +25,16 @@ module flow_variables_mod
   use precision_mod
   implicit none
 
-  real(WP), save, allocatable, dimension(:, :, :) :: qx, qy, qz
-  real(WP), save, allocatable, dimension(:, :, :) :: gx, gy, gz
-  real(WP), save, allocatable, dimension(:, :, :) :: pres
-  real(WP), save, allocatable, dimension(:, :, :) :: pcor
+  type(t_flow), save   :: flow
+  type(t_thermo), save :: thermo
 
-  real(WP), save, allocatable, dimension(:, :, :) :: dDens
-  real(WP), save, allocatable, dimension(:, :, :) :: mVisc
-
-  real(WP), save, allocatable, dimension(:, :, :) :: dh
-  real(WP), save, allocatable, dimension(:, :, :) :: hEnth
-  real(WP), save, allocatable, dimension(:, :, :) :: kCond
-  real(WP), save, allocatable, dimension(:, :, :) :: tTemp
-  
+  private :: Calculate_xbulk_velocity
+  private :: Check_maximum_velocity
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
   private :: Initialize_vortexgreen_flow
   private :: Initialize_thermal_variables
+  private :: Unify_initial_velocity
 
   public  :: Allocate_variables
   public  :: Initialize_flow_variables
@@ -70,40 +60,44 @@ contains
     use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
-    allocate ( qx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( qy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
-    allocate ( qz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  )
-    qx = ZERO
-    qy = ZERO
-    qz = ZERO
+    allocate ( flow%qx( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) ) )
+    allocate ( flow%qy( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) ) )
+    allocate ( flow%qz( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) ) )
+    flow%qx = ZERO
+    flow%qy = ZERO
+    flow%qz = ZERO
 
-    allocate ( gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
-    allocate ( gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  )
-    gx = ZERO
-    gy = ZERO
-    gz = ZERO
+    allocate ( flow%gx(  ) )
+    allocate ( flow%gy(  ) )
+    allocate ( flow%gz(  ) )
 
-    allocate ( pres ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( pcor ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    pres = ZERO
-    pcor = ZERO
+    allocate ( flow%gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
+    allocate ( flow%gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  )
+    flow%gx = ZERO
+    flow%gy = ZERO
+    flow%gz = ZERO
 
-    allocate ( dDens ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( mVisc ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    dDens = ONE
-    mVisc = ONE
+    allocate ( flow%pres ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%pcor ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    flow%pres = ZERO
+    flow%pcor = ZERO
+
+    allocate ( flow%dDens ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%mVisc ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    flow%dDens = ONE
+    flow%mVisc = ONE
 
 
     if(ithermo == 1) then
-      allocate ( dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      allocate ( hEnth ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      allocate ( kCond ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      allocate ( tTemp ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      dh    = ZERO
-      hEnth = ZERO
-      kCond = ONE
-      tTemp = ONE
+      allocate ( thermo%dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( thermo%hEnth ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( thermo%kCond ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( thermo%tTemp ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      thermo%dh    = ZERO
+      thermo%hEnth = ZERO
+      thermo%kCond = ONE
+      thermo%tTemp = ONE
     end if
 
     return
@@ -119,35 +113,27 @@ contains
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[inout]  d_dummy       density
-!> \param[inout]  m_dummy       dynamic viscousity
-!> \param[inout]  dh_dummy      density * enthalpy
-!> \param[inout]  h_dummy       enthalpy
-!> \param[inout]  k_dummy       thermal conductivity
-!> \param[inout]  t_dummy       temperature
+!> \param[inout]  f             flow type
+!> \param[inout]  t             thermo type
 !_______________________________________________________________________________
-  subroutine Initialize_thermal_variables (d_dummy, m_dummy, dh_dummy, h_dummy, k_dummy, t_dummy)
+  subroutine Initialize_thermal_variables (f, t)
     use input_general_mod, only : tiRef, t0Ref
     use input_thermo_mod, only : tpIni
     implicit none
-
-    real(WP), intent(inout) :: d_dummy(:, :, :)
-    real(WP), intent(inout) :: m_dummy(:, :, :)
-    real(WP), intent(inout) :: dh_dummy(:, :, :)
-    real(WP), intent(inout) :: h_dummy(:, :, :)
-    real(WP), intent(inout) :: k_dummy(:, :, :)
-    real(WP), intent(inout) :: t_dummy(:, :, :)
+    type(t_flow),   intent(inout) :: f
+    type(t_thermo), intent(inout) :: t
   
     tpIni%t = tiRef / t0Ref
     call tpIni%Refresh_thermal_properties_from_T()
 
-    d_dummy(:, :, :)  = tpIni%d
-    m_dummy(:, :, :)  = tpIni%m
+    f%dDens(:, :, :)  = tpIni%d
+    f%mVisc(:, :, :)  = tpIni%m
 
-    dh_dummy(:, :, :) = tpIni%dh
-    h_dummy(:, :, :)  = tpIni%h
-    k_dummy(:, :, :)  = tpIni%k
-    t_dummy(:, :, :)  = tpIni%t
+    t%dh    = tpIni%dh
+    t%hEnth = tpIni%h
+    t%kCond = tpIni%k
+    t%tTemp = tpIni%t
+
     return
   end subroutine Initialize_thermal_variables
 !===============================================================================
@@ -239,22 +225,16 @@ contains
 !  mode           name          role                                           !
 !______________________________________________________________________________!
 !> \param[in]     d             domain
-!> \param[out]    ux_dummy      velocity in the streamwise direction
-!> \param[out]    uy_dummy      velocity in the wall-normal direction
-!> \param[out]    uz_dummy      velocity in the spanwise direction
-!> \param[out]    pres_dummy    pressure
+!> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine Initialize_poiseuille_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
+  subroutine Initialize_poiseuille_flow(f, d)
     use random_number_generation_mod
     use parameters_constant_mod, only : ZERO, ONE
     use input_general_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent(in) :: d
-    real(WP), intent(out) :: ux_dummy(:, :, :)
-    real(WP), intent(out) :: uy_dummy(:, :, :)
-    real(WP), intent(out) :: uz_dummy(:, :, :)
-    real(WP), intent(out) :: pres_dummy(:, :, :)
+    type(t_domain), intent(in ) :: d
+    type(t_flow  ), intent(out) :: f
     
     real(WP), allocatable, dimension(:) :: u_laminar
     integer :: i, j, k
@@ -265,7 +245,7 @@ contains
     allocate ( u_laminar ( d%nc(2) ) ); u_laminar(:) = ZERO
     call Generate_poiseuille_flow_profile ( u_laminar, d )
 
-    pres_dummy(:, :, :) =  ZERO
+    f%pres(:, :, :) =  ZERO
     seed = 0 ! real random
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
@@ -273,15 +253,15 @@ contains
           seed = seed + k + j + i ! repeatable random
           call Initialize_random_number ( seed )
           call Generate_rvec_random( -ONE, ONE, 3, rd)
-          ux_dummy(i, j, k) = initNoise * rd(1) + u_laminar (j)
-          uy_dummy(i, j, k) = initNoise * rd(2)
-          uz_dummy(i, j, k) = initNoise * rd(3)
+          f%qx(i, j, k) = initNoise * rd(1) + u_laminar (j)
+          f%qy(i, j, k) = initNoise * rd(2)
+          f%qz(i, j, k) = initNoise * rd(3)
         end do
       end do
     end do
 
-    uy_dummy(:, 1,       :) = d%ubc(1, 2)
-    uy_dummy(:, d%np(2), :) = d%ubc(2, 2)
+    f%qy(:, 1,       :) = d%ubc(1, 2)
+    f%qy(:, d%np(2), :) = d%ubc(2, 2)
     
     deallocate (u_laminar)
     return
@@ -298,22 +278,16 @@ contains
 !  mode           name          role                                           !
 !______________________________________________________________________________!
 !> \param[in]     d             domain
-!> \param[out]    ux_dummy      velocity in the streamwise direction
-!> \param[out]    uy_dummy      velocity in the wall-normal direction
-!> \param[out]    uz_dummy      velocity in the spanwise direction
-!> \param[out]    pres_dummy    pressure
+!> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_flow(ux_dummy, uy_dummy, uz_dummy, pres_dummy, d)
+  subroutine  Initialize_vortexgreen_flow(f, d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
 
-    type(t_domain), intent(in) :: d
-    real(WP), intent(out) :: ux_dummy(:, :, :)
-    real(WP), intent(out) :: uy_dummy(:, :, :)
-    real(WP), intent(out) :: uz_dummy(:, :, :)
-    real(WP), intent(out) :: pres_dummy(:, :, :)
+    type(t_domain), intent(in ) :: d
+    type(t_flow  ), intent(out) :: f
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
@@ -328,7 +302,7 @@ contains
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          ux_dummy(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+          f%qx(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
         end do
       end do
     end do
@@ -342,7 +316,7 @@ contains
         do i = 1, d%nc(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          uy_dummy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          f%qy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
         end do
       end do
     end do
@@ -356,7 +330,7 @@ contains
         do i = 1, d%nc(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          uz_dummy(i, j, k) =  ZERO
+          f%qz(i, j, k) =  ZERO
         end do
       end do
     end do
@@ -370,8 +344,9 @@ contains
         do i = 1, d%nc(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          pres_dummy(i, j, k)= ( cos_wp( TWO * xc       ) + cos_wp( TWO * yc       ) ) * &
-                               ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
+          f%pres(i, j, k)= ( cos_wp( TWO * xc       ) + &
+                             cos_wp( TWO * yc       ) ) * &
+                           ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
         end do
       end do
     end do
@@ -390,25 +365,17 @@ contains
 !  mode           name          role                                           !
 !______________________________________________________________________________!
 !> \param[in]     d             domain
-!> \param[out]    ux_dummy      velocity in the streamwise direction
-!> \param[out]    uy_dummy      velocity in the wall-normal direction
-!> \param[out]    uz_dummy      velocity in the spanwise direction
-!> \param[out]    pres_dummy    pressure
+!> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_sinetest_flow(ux_dummy,   &
-                                       uy_dummy,   &
-                                       uz_dummy,   &
-                                       pres_dummy, &
-                                       d)
+  subroutine  Initialize_sinetest_flow(f, d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in) :: d
-    real(WP), intent(out) :: ux_dummy(:, :, :)
-    real(WP), intent(out) :: uy_dummy(:, :, :)
-    real(WP), intent(out) :: uz_dummy(:, :, :)
-    real(WP), intent(out) :: pres_dummy(:, :, :)
+
+    type(t_domain), intent(in ) :: d
+    type(t_flow  ), intent(out) :: f
+
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
@@ -419,7 +386,7 @@ contains
         yc = d%yc(j)
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
-          ux_dummy(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
+          f%qx(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
         end do 
       end do
     end do
@@ -430,7 +397,7 @@ contains
         xc = d%h(1) * (real(i - 1, WP) + HALF)
         do j = 1, d%np(2)
           yp = d%yp(j)
-          uy_dummy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
+          f%qy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
         end do
       end do
     end do
@@ -442,7 +409,7 @@ contains
         xc = d%h(1) * (real(i - 1, WP) + HALF)
         do k = 1, d%np(3)
           zp = d%h(3) * real(k - 1, WP)
-          uz_dummy(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
+          f%qz(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
         end do
       end do
     end do
@@ -453,13 +420,114 @@ contains
         xc = d%h(1) * (real(i - 1, WP) + HALF)
         do k = 1, d%nc(3)
           zc = d%h(3) * (real(k - 1, WP) + HALF)
-          pres_dummy(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+          f%pres(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
         end do
       end do
     end do
     
     return
   end subroutine Initialize_sinetest_flow
+
+  subroutine Unify_initial_velocity(f, d)
+    use precision_mod
+    implicit none
+
+    type(t_domain), intent(in )   :: d
+    type(t_flow  ), intent(inout) :: f
+
+    real(WP)   :: uxa, uya, uza
+    integer(4) :: i, j, k
+
+    do j = 1, d%nc(2)
+      uxa = sum( f%qx(:, j, :) )
+      uza = sum( f%qz(:, j, :) )
+      uxa = uxa / real(d%np(1) * d%nc(3), WP)
+      uza = uza / real(d%nc(1) * d%np(3), WP)
+      f%qx(:, j, :) = f%qx(:, j, :) - uxa
+      f%qz(:, j, :) = f%qz(:, j, :) - uza
+    end do
+
+    do j = 1, d%np(2)
+      uya = sum( f%qy(:, j, :) )
+      uya = uya / real(d%nc(1) * d%nc(3), WP)
+      f%qy(:, j, :) = f%qy(:, j, :) - uya
+    end do
+
+    return
+  end subroutine
+
+  subroutine Check_maximum_velocity(f, d, str)
+    use precision_mod
+    implicit none
+
+    type(t_domain), intent(in ) :: d
+    type(t_flow  ), intent(in ) :: f
+    character,      intent(in) :: str(:) 
+
+    real(WP)   :: u(3)
+    integer(4) :: i, j, k
+
+
+    u(1) = MAXVAL( abs_wp( f%qx(:, :, :) ) )
+    u(2) = MAXVAL( abs_wp( f%qy(:, :, :) ) )
+    u(3) = MAXVAL( abs_wp( f%qz(:, :, :) ) )
+
+    write(*, *) "The maximum velocity (u, v, w) "//str//" is"
+    write(*, '(3ES15.7)') u(:)
+
+    return
+  end subroutine
+!===============================================================================
+!===============================================================================
+!> \brief The main code for initializing flow variables
+!>
+!> This subroutine is only for pre-processing/post-processing 2nd order only.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
+  subroutine Calculate_xbulk_velocity(f, d, umean)
+    use parameters_constant_mod, only : ZERO
+    implicit none
+
+    type(t_domain), intent(in ) :: d
+    type(t_flow  ), intent(in ) :: f
+    real(WP),       intent(out) :: umean
+
+    real(WP), allocatable :: fi(:), fo(:)
+    real(WP) :: lmean
+    integer(4) :: i, j, k
+
+    umean = ZERO
+    lmean = ZERO
+    allocate ( fi( d%nc(2) ) ); fi = ZERO
+    allocate ( fo( d%np(2) ) ); fo = ZERO
+    do k = 1, d%nc(3)
+      do i = 1, d%nc(1)
+        fi(:) = f%qx(i, :, k)
+        call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
+        do j = 1, d%nc(2)
+          lmean = lmean + ( d%yp(j+1) - d%yc(j) ) + &
+                          ( d%yc(j  ) - d%yp(j) )
+          umean = umean + &
+                  (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
+                  (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
+        end do
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+    umean = umean / real(d%nc(1) * d%nc(3), WP) / lmean 
+
+    write(*, *) "The bulk velocity is ", umean
+
+    return
+  end subroutine
+
 !===============================================================================
 !===============================================================================
 !> \brief The main code for initializing flow variables
@@ -475,10 +543,12 @@ contains
 !_______________________________________________________________________________
   subroutine Initialize_flow_variables( )
     use geometry_mod
-    use input_general_mod
+    use input_general_mod, only: REN, dt
     use parameters_constant_mod
     use solver_tools_mod
     implicit none
+
+    real(WP) :: umean
 
     interface 
        subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
@@ -492,13 +562,17 @@ contains
     end interface
 
 !-------------------------------------------------------------------------------
+! global flow info 
+!-------------------------------------------------------------------------------    
+    flow%rre = ONE / REN
+!-------------------------------------------------------------------------------
 ! to initialize thermal variables 
 !-------------------------------------------------------------------------------
     if (ithermo == 1) then
-      call Initialize_thermal_variables (dDens, mVisc, dh, hEnth, kCond, tTemp)
+      call Initialize_thermal_variables (flow, domain)
     else
-      dDens(:, :, :) = ONE
-      mVisc(:, :, :) = ONE
+      flow%dDens(:, :, :) = ONE
+      flow%mVisc(:, :, :) = ONE
     end if
 !-------------------------------------------------------------------------------
 ! to initialize flow velocity and pressure
@@ -506,35 +580,57 @@ contains
     if ( (icase == ICASE_CHANNEL) .or. &
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
-
-      call Initialize_poiseuille_flow (qx, qy, qz, pres, domain)
-
+      call Initialize_poiseuille_flow  (flow, domain)
     else if (icase == ICASE_TGV) then
-      
-      call Initialize_vortexgreen_flow (qx, qy, qz, pres, domain)
+      call Initialize_vortexgreen_flow (flow, domain)
     else if (icase == ICASE_SINETEST) then
-      call Initialize_sinetest_flow (qx, qy, qz, pres, domain)
+      call Initialize_sinetest_flow    (flow, domain)
     else 
       call Print_error_msg("No such case defined" )
     end if
 !-------------------------------------------------------------------------------
 ! to initialize pressure correction term
 !-------------------------------------------------------------------------------
-    pcor(:, :, :) = ZERO
+    flow%pcor(:, :, :) = ZERO
+!-------------------------------------------------------------------------------
+! to adjust the initial velocity to match a zero mean of x, z direction 
+!-------------------------------------------------------------------------------
+    call Check_maximum_velocity(flow, domain, "after initialisation")
+    call Unify_initial_velocity(flow, domain)
+    call Check_maximum_velocity(flow, domain, "after unifying")
+!-------------------------------------------------------------------------------
+! to apply the b.c. 
+!-------------------------------------------------------------------------------
+    call Apply_BC_velocity (flow, domain)
+!-------------------------------------------------------------------------------
+! to unify the bulk velocity to be one for poiseuille flow. 
+!-------------------------------------------------------------------------------
+    if ( (icase == ICASE_CHANNEL) .or. &
+         (icase == ICASE_PIPE) .or. &
+         (icase == ICASE_ANNUAL) ) then
+      call Calculate_xbulk_velocity(flow, domain, umean)
+      flow%qx(:, :, :) = flow%qx(:, :, :) / umean
+      call Calculate_xbulk_velocity(flow, domain, umean)
+    end if
 !-------------------------------------------------------------------------------
 ! to update mass flux terms 
 !-------------------------------------------------------------------------------
     if (ithermo == 1) then
-      call Calculate_massflux_from_velocity (qx, qy, qz, gx, gy, gz, dDens, d)
+      call Calculate_massflux_from_velocity (f, d)
     else
-      gx(:, :, :) = qx(:, :, :)
-      gy(:, :, :) = qy(:, :, :)
-      gz(:, :, :) = qz(:, :, :)
+      flow%gx(:, :, :) = flow%qx(:, :, :)
+      flow%gy(:, :, :) = flow%qy(:, :, :)
+      flow%gz(:, :, :) = flow%qz(:, :, :)
     end if
 !-------------------------------------------------------------------------------
 ! to set up old arrays 
 !-------------------------------------------------------------------------------
-
+    flow%dDensm1(:, :, :) = flow%dDens(:, :, :)
+    flow%dDensm2(:, :, :) = flow%dDens(:, :, :)
+!-------------------------------------------------------------------------------
+! to check divergence
+!-------------------------------------------------------------------------------
+    call Check_divergence(flow, domain)
 !-------------------------------------------------------------------------------
 ! to write and display the initial fields
 !-------------------------------------------------------------------------------

@@ -29,6 +29,8 @@ program chapsim
 
   call Initialize_chapsim ()
   call Initialize_flow ()
+  call Solve_eqs_iteration()
+
 
   call Test_schemes()
 
@@ -100,7 +102,7 @@ subroutine Initialize_flow()
   end if
   
   return
-end subroutine Initialize_chapsim
+end subroutine Initialize_flow
 
 !===============================================================================
 !===============================================================================

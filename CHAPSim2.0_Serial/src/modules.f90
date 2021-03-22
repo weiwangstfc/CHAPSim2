@@ -20,13 +20,12 @@ module parameters_constant_mod
   real(WP), parameter :: ZPTWO     = 0.2_WP
   real(WP), parameter :: ZPTHREE   = 0.3_WP
   real(WP), parameter :: ZPFOUR    = 0.4_WP
-  real(WP), parameter :: ZPFIVE    = 0.5_WP
+  real(WP), parameter :: HALF      = 0.5_WP
   real(WP), parameter :: ZPSIX     = 0.6_WP
   real(WP), parameter :: ZPSEVEN   = 0.7_WP
   real(WP), parameter :: ZPEIGHT   = 0.8_WP
   real(WP), parameter :: ZPNINE    = 0.9_WP
 
-  real(WP), parameter :: HALF      = 0.5_WP
   real(WP), parameter :: ZERO      = 0.0_WP
   real(WP), parameter :: ONE       = 1.0_WP
   real(WP), parameter :: ONEPFIVE  = 1.5_WP
@@ -90,9 +89,8 @@ module udf_type_mod
     integer :: bc(2, 3) ! (two sides, three directions)
     real(WP) :: ubc(2, 3)
     real(wp) :: h(3) ! uniform dx
-    real(wp) :: hi(3) ! uniform 1/dx
-    real(wp) :: h2(3) ! uniform dx^2
-    real(WP) :: rre   ! 1 / Re
+    real(wp) :: h1r(3) ! uniform (dx)^(-1)
+    real(wp) :: h2r(3) ! uniform (dx)^(-2)
     integer(4), allocatable :: iNeighb(:, :)
     integer(4), allocatable :: jNeighb(:, :)
     integer(4), allocatable :: kNeighb(:, :)
@@ -107,6 +105,34 @@ module udf_type_mod
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
   end type t_domain
+
+  type t_flow
+    real(WP) :: time
+    real(WP) :: rre                       ! 1 / Re
+    real(WP), allocatable :: qx(:, :, :)  !
+    real(WP), allocatable :: qy(:, :, :)
+    real(WP), allocatable :: qz(:, :, :)
+    real(WP), allocatable :: gx(:, :, :)
+    real(WP), allocatable :: gy(:, :, :)
+    real(WP), allocatable :: gz(:, :, :)
+
+    real(WP), allocatable :: pres(:, :, :)
+    real(WP), allocatable :: pcor(:, :, :)
+
+    real(WP), allocatable :: dDens(:, :, :)
+    real(WP), allocatable :: mVisc(:, :, :)
+    real(WP), allocatable :: dDensm1(:, :, :)
+    real(WP), allocatable :: dDensm2(:, :, :)
+
+  end type t_flow
+  type t_thermo
+    real(WP) :: time
+    real(WP) :: rPrRen
+    real(WP), allocatable :: dh(:, :, :)
+    real(WP), allocatable :: hEnth(:, :, :)
+    real(WP), allocatable :: kCond(:, :, :)
+    real(WP), allocatable :: tTemp(:, :, :)
+  end type t_thermo
 
 end module
 

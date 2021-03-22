@@ -26,6 +26,7 @@
 !===============================================================================
 module input_general_mod
   use precision_mod
+  use parameters_constant_mod, only: ZERO
   implicit none
 
   character(len = 9), parameter :: INPUT_FILE = 'input.ini'
@@ -45,8 +46,9 @@ module input_general_mod
                         ISTRET_TOP    = 3, &
                         ISTRET_CENTRE = 4
 
-  integer, parameter :: ITIME_RK3 = 3, &
-                        ITIME_AB1 = 1
+  integer, parameter :: ITIME_RK3    = 3, &
+                        ITIME_RK3_CN = 2, &
+                        ITIME_AB2    = 1
 
   integer, parameter :: IBC_INTERIOR    = 0, &
                         IBC_PERIODIC    = 1, &
@@ -95,8 +97,8 @@ module input_general_mod
 
   ! time stepping
   real(WP) :: dt
-  integer :: iterFlowFirst
-  integer :: iterFlowLast
+  integer :: nIterFlow0
+  integer :: nIterFlow1
 
   ! boundary condition
   integer :: ifbcx(1:2)
@@ -117,13 +119,13 @@ module input_general_mod
   ! NumOption
   integer :: i1deriAccu
   integer :: i2deriAccu
-  integer :: itimesteping
+  integer :: iTimeScheme
   integer :: iviscous
   integer :: ipressure
 
   ! initial fields
   real(WP) :: renIni
-  integer :: iterRenIniEnd
+  integer :: nIterIniRen
   real(WP) :: initNoise
 
   ! PeriodicDrv
@@ -137,14 +139,19 @@ module input_general_mod
   real(WP) :: tiRef
   integer :: itbcy(1:2)
   real(WP) :: tbcy(1:2)
-  integer :: iterThermoFirst
-  integer :: iterThermoLast
+  integer :: nIterThermo0
+  integer :: nIterThermo1
+
+  ! parameters from restart
+  integer :: iterchkpt = 0       ! iteration number from restart/checkpoint
+  real(WP) :: tThermo  = ZERO
+  real(WP) :: tFlow    = ZERO
 
   ! derived parameters
   logical :: is_periodic(3)
   integer :: icoordinate
 
-  integer :: ntInner
+  integer :: nsubitr
   real(WP) :: tGamma(0 : 3)
   real(WP) :: tZeta (0 : 3)
   real(WP) :: tAlpha(0 : 3)
@@ -245,8 +252,8 @@ contains
       else if ( section_name(1:slen) == '[timestepping]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, dt
-        read(inputUnit, *, iostat = ioerr) variableName, iterFlowFirst
-        read(inputUnit, *, iostat = ioerr) variableName, iterFlowLast
+        read(inputUnit, *, iostat = ioerr) variableName, nIterFlow0
+        read(inputUnit, *, iostat = ioerr) variableName, nIterFlow1
 
       else if ( section_name(1:slen) == '[boundary]' ) then
 
@@ -268,14 +275,14 @@ contains
       else if ( section_name(1:slen) == '[schemes]' ) then
         read(inputUnit, *, iostat = ioerr) variableName, i1deriAccu
         read(inputUnit, *, iostat = ioerr) variableName, i2deriAccu
-        read(inputUnit, *, iostat = ioerr) variableName, itimesteping
+        read(inputUnit, *, iostat = ioerr) variableName, iTimeScheme
         read(inputUnit, *, iostat = ioerr) variableName, iviscous
         read(inputUnit, *, iostat = ioerr) variableName, ipressure
 
       else if ( section_name(1:slen) == '[initialization]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, renIni
-        read(inputUnit, *, iostat = ioerr) variableName, iterRenIniEnd
+        read(inputUnit, *, iostat = ioerr) variableName, nIterIniRen
         read(inputUnit, *, iostat = ioerr) variableName, initNoise
 
       else if ( section_name(1:slen) == '[periodicdriven]' ) then
@@ -291,8 +298,8 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, tiRef
         read(inputUnit, *, iostat = ioerr) variableName, itbcy(1), itbcy(2)
         read(inputUnit, *, iostat = ioerr) variableName, tbcy(1), tbcy(2)
-        read(inputUnit, *, iostat = ioerr) variableName, iterThermoFirst
-        read(inputUnit, *, iostat = ioerr) variableName, iterThermoLast
+        read(inputUnit, *, iostat = ioerr) variableName, nIterThermo0
+        read(inputUnit, *, iostat = ioerr) variableName, nIterThermo1
 
       else
         exit
@@ -407,9 +414,10 @@ contains
   subroutine Set_timestepping_coefficients()
     use parameters_constant_mod
 
-    if(itimesteping == ITIME_RK3) then
+    if(iTimeScheme == ITIME_RK3 .or. &
+       iTimeScheme == ITIME_RK3_CN) then
       
-      ntInner = 3
+      nsubitr = 3
       tGamma(0) = ONE
       tGamma(1) = EIGHT / FIFTEEN
       tGamma(2) = FIVE / TWELVE
@@ -420,22 +428,22 @@ contains
       tZeta (2) = -SEVENTEEN / SIXTY
       tZeta (3) = -FIVE / TWELVE
 
-    else if (itimesteping == ITIME_AB1) then
+    else if (iTimeScheme == ITIME_AB2) then
 
-      ntInner = 1
+      nsubitr = 1
       tGamma(0) = ONE
-      tGamma(1) = ONEPFIVE
+      tGamma(1) = THREE / TWO
       tGamma(2) = ZERO
       tGamma(3) = ZERO
 
       tZeta (0) = ZERO
-      tZeta (1) = -ZPFIVE
+      tZeta (1) = -HALF
       tZeta (2) = ZERO
       tZeta (3) = ZERO
 
     else 
 
-      ntInner = 0
+      nsubitr = 0
       tGamma(:) = ZERO
       tZeta (:) = ZERO
 

@@ -20,29 +20,17 @@ contains
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     u1            velocity q1
-!> \param[in]     u2            velocity q2
-!> \param[in]     u3            velocity q3
-!> \param[out]    g1            rho * u1
-!> \param[out]    g2            rho * u2
-!> \param[out]    g3            rho * u3
-!> \param[in]     deny          density
 !> \param[in]     d             domain
+!> \param[in]     f             flow
 !_______________________________________________________________________________
-  subroutine Calculate_massflux_from_velocity(u1, u2, u3, g1, g2, g3, den, d)
+  subroutine Calculate_massflux_from_velocity(f, d)
     use parameters_constant_mod, only: ZERO
     implicit none
 !===============================================================================
 ! Arguments
 !===============================================================================
-    real(WP), intent( in )  :: u1(:, :, :)
-    real(WP), intent( in )  :: u2(:, :, :)
-    real(WP), intent( in )  :: u3(:, :, :)
-    real(WP), intent( out ) :: g1(:, :, :)
-    real(WP), intent( out ) :: g2(:, :, :)
-    real(WP), intent( out ) :: g3(:, :, :)
-    real(WP), intent( in )  :: den(:, :, :)
-    type(t_domain), intent(in) :: d
+    type(t_domain), intent(in )   :: d
+    type(t_flow  ), intent(inout) :: f
 !===============================================================================
 ! Local arguments
 !===============================================================================
@@ -58,9 +46,9 @@ contains
     allocate ( fo( d%np(1) ) ); fo = ZERO
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
-        fi(:) = den(:, j, k)
+        fi(:) = f%dDens(:, j, k)
         call Get_midp_interpolation( 'x', 'C2P', d, fi(:), fo(:) )
-        g1(:, j, k) = fo(:) * u1(:, j, k)
+        f%gx(:, j, k) = fo(:) * f%qx(:, j, k)
       end do
     end do
     deallocate (fi)
@@ -72,9 +60,9 @@ contains
     allocate ( fo( d%np(2) ) ); fo = ZERO
     do k = 1, d%nc(3)
       do i = 1, d%nc(1)
-        fi(:) = den(i, :, k)
+        fi(:) = f%dDens(i, :, k)
         call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
-        g2(i, :, k) = fo(:) * u2(i, :, k)
+        f%gy(i, :, k) = fo(:) * f%qy(i, :, k)
       end do
     end do
     deallocate (fi)
@@ -86,9 +74,9 @@ contains
     allocate ( fo( d%np(3) ) ); fo = ZERO
     do j = 1, d%nc(2)
       do i = 1, d%nc(1)
-        fi(:) = den(i, j, :)
+        fi(:) = f%dDens(i, j, :)
         call Get_midp_interpolation( 'z', 'C2P', d, fi(:), fo(:) )
-        g1(i, j, :) = fo(:) * u3(i, j, :)
+        f%gz(i, j, :) = fo(:) * f%qz(i, j, :)
       end do
     end do
     deallocate (fi)
@@ -97,29 +85,91 @@ contains
     return
   end subroutine Calculate_massflux_from_velocity
 
-
-  subroutine Compute_CFL_diffusion(d, dtvis)
+  subroutine Check_cfl_diffusion(x2r, rre)
+    use input_general_mod, only: dt
     implicit none
-    type(t_domain), intent( in  ) :: d
-    real(WP),       intent( out ) :: dtvis
+    real(WP), intent(in) :: x2r(3)
+    real(WP), intent(in) :: rre
+    real(WP) :: cfl_diff
 
+    ! check, ours is two times of the one in xcompact3d.
+    cfl_diff = sum(x2r) * TWO * dt * rre
 
-    cfl
-
-
-
-    dtvis = ZERO
-    do j = 1, d%nc(2)
-      dtvis = dtvis 
-
-    end do
+    print *,'___________________________________________________________'
+    if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
+    print *,"Diffusion number :"
+    write(*,"(12X, F13.8)") cfl_diff
+    print *,'___________________________________________________________'
 
     return
   end subroutine
 
+  subroutine Check_cfl_convection(u, v, w, d)
+    use input_general_mod, only: ithermo, dt
+    use parameters_constant_mod, only: ZERO
+    implicit none
+    type(t_domain),               intent(in) :: d
+    real(WP), dimension(:, :, :), intent(in) :: u, v, w
 
-  subroutine Get_max_timestep
+    real(WP), allocatable :: fi(:), fo(:)
+    real(WP), allocatable :: udx(:, :, :)
+    real(WP)              :: cfl_convection
 
+    allocate ( udx( d%nc(1), d%nc(2), d%nc(3) ) ); udx = ZERO
 
+!-------------------------------------------------------------------------------
+! \overline{u}^x/dx at cell centre
+!_______________________________________________________________________________
+    allocate ( fi( d%np(1) ) ); fi = ZERO
+    allocate ( fo( d%nc(1) ) ); fo = ZERO
+    do k = 1, d%nc(3)
+      do j = 1, d%nc(2)
+        fi(:) = u(:, j, k)
+        call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
+        udx(:, j, k) = fo(:) * d%h1r(3)
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+!-------------------------------------------------------------------------------
+! \overline{v}^y/dy at cell centre
+!_______________________________________________________________________________
+    allocate ( fi( d%np(2) ) ); fi = ZERO
+    allocate ( fo( d%nc(2) ) ); fo = ZERO
+    do k = 1, d%nc(3)
+      do i = 1, d%nc(1)
+        fi(:) = v(i, :, k)
+        call Get_midp_interpolation('y', 'P2C', d, fi(:), fo(:))
+        udx(i, :, k) = udx(i, :, k) + fo(:) / d%yc(:)
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+!-------------------------------------------------------------------------------
+! \overline{w}^z/dz at cell centre
+!_______________________________________________________________________________
+    allocate ( fi( d%np(3) ) ); fi = ZERO
+    allocate ( fo( d%nc(3) ) ); fo = ZERO
+    do j = 1, d%nc(2)
+      do i = 1, d%nc(1)
+        fi(:) = w(i, j, :)
+        call Get_midp_interpolation('z', 'P2C', d, fi(:), fo(:))
+        udx(i, :, k) = udx(i, :, k) + fo(:) * d%h1r(3)
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
 
+    cfl_convection = MAXVAL(udx) * dt
+    print *,'___________________________________________________________'
+    if(cfl_convection > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
+    print *,"CFL (convection) :"
+    write(*,"(12X, F13.8)") cfl_convection
+    print *,'___________________________________________________________'
+
+    deallocate (udx)
+
+    return
+  end subroutine
+  
 end module
