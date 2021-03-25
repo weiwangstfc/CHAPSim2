@@ -31,7 +31,6 @@ module flow_variables_mod
   private :: Initialize_poiseuille_flow
   private :: Initialize_vortexgreen_flow
   private :: Initialize_thermal_variables
-  private :: Unify_initial_velocity
 
   public  :: Allocate_variables
   public  :: Initialize_flow_variables
@@ -135,6 +134,61 @@ contains
   end subroutine Initialize_thermal_variables
 !===============================================================================
 !===============================================================================
+!> \brief The main code for initializing flow variables
+!>
+!> This subroutine is only for pre-processing/post-processing 2nd order only.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  none          NA
+!_______________________________________________________________________________
+  subroutine Calculate_xbulk_velocity(ux, d, ubulk)
+    use parameters_constant_mod, only : ZERO, HALF
+    use operations, only: Get_midp_interpolation
+    implicit none
+
+    type(t_domain), intent(in ) :: d
+    real(WP),       intent(in ) :: ux(:, :, :)
+    real(WP),       intent(out) :: ubulk
+
+    real(WP), allocatable :: fi(:), fo(:)
+    real(WP) :: lmean
+    integer(4) :: i, j, k
+
+    lmean = ZERO
+    do j = 1, d%nc(2)
+      lmean = lmean + ( d%yp(j+1) - d%yc(j) ) + &
+                      ( d%yc(j  ) - d%yp(j) )
+    end do
+
+    ubulk = ZERO
+    allocate ( fi( d%nc(2) ) ); fi = ZERO
+    allocate ( fo( d%np(2) ) ); fo = ZERO
+    do k = 1, d%nc(3)
+      do i = 1, d%nc(1)
+        fi(:) = ux(i, :, k)
+        call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
+        do j = 1, d%nc(2)
+          ubulk = ubulk + &
+                  (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
+                  (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
+        end do
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+    ubulk = ubulk / real(d%nc(1) * d%nc(3), WP) / lmean 
+
+    write(*,*) "-------------------------------------------------------------------------------"
+    write(*, *) "The bulk velocity is ", ubulk
+
+    return
+  end subroutine
+!===============================================================================
+!===============================================================================
 !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
 !>
 !> This subroutine is called locally once.
@@ -157,8 +211,9 @@ contains
     type(t_domain), intent(in)  :: d
     real(WP),       intent(out) :: u_laminar(:)
     
-    real(WP) :: a, b, c, yy, ymax, ymin, umean
+    real(WP)   :: a, b, c, yy, ymax, ymin
     integer(4) :: j
+    
 
     u_laminar (:) = ZERO
 
@@ -187,27 +242,6 @@ contains
       u_laminar(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
-    ! scale the bulk velocity to be one
-    umean = ZERO
-    do j = 1, d%nc(2)
-      umean = umean + u_laminar(j) * (d%yp(j + 1) - d%yp(j) )
-    end do
-    umean = umean / (ymax - ymin)
-
-    u_laminar(:) = u_laminar(:) / umean
-
-    ! check the bulk velocity is one
-    umean = ZERO
-    do j = 1, d%nc(2)
-      umean = umean + u_laminar(j) * (d%yp(j + 1) - d%yp(j) )
-    end do
-    umean = umean / (ymax - ymin)
-    if ( abs_wp(umean - ONE) > TRUNCERR) then
-      write(*, *) umean
-      call Print_error_msg("Error in poiseuille_flow_profile in Subroutine" &
-            // "Generate_poiseuille_flow_profile")
-    end if
-
     return
   end subroutine Generate_poiseuille_flow_profile
 !===============================================================================
@@ -224,25 +258,35 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine Initialize_poiseuille_flow(f, d)
+  subroutine Initialize_poiseuille_flow(ux, uy, uz, p, d)
     use random_number_generation_mod
     use parameters_constant_mod, only : ZERO, ONE
     use input_general_mod
     use udf_type_mod
+    use boundary_conditions_mod
     implicit none
     type(t_domain), intent(in   ) :: d
-    type(t_flow  ), intent(inout) :: f
+    real(WP),       intent(inout) :: ux(:, :, :) , &
+                                     uy(:, :, :) , &
+                                     uz(:, :, :) , &
+                                     p (:, :, :)            
     
     real(WP), allocatable, dimension(:) :: u_laminar
     integer :: i, j, k
     integer :: seed
     real(WP) :: rd(3)
+    integer :: pf_unit
+    real(WP) :: uxa, uya, uza, ubulk
 
     ! to get the profile
     allocate ( u_laminar ( d%nc(2) ) ); u_laminar(:) = ZERO
     call Generate_poiseuille_flow_profile ( u_laminar, d )
 
-    f%pres(:, :, :) =  ZERO
+    p (:, :, :) = ZERO
+    ux(:, :, :) = ZERO
+    uy(:, :, :) = ZERO
+    uz(:, :, :) = ZERO
+
     seed = 0 ! real random
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
@@ -250,15 +294,43 @@ contains
           seed = seed + k + j + i ! repeatable random
           call Initialize_random_number ( seed )
           call Generate_rvec_random( -ONE, ONE, 3, rd)
-          f%qx(i, j, k) = initNoise * rd(1) + u_laminar (j)
-          f%qy(i, j, k) = initNoise * rd(2)
-          f%qz(i, j, k) = initNoise * rd(3)
+          ux(i, j, k) = initNoise * rd(1)
+          uy(i, j, k) = initNoise * rd(2)
+          uz(i, j, k) = initNoise * rd(3)
         end do
       end do
     end do
 
-    f%qy(:, 1,       :) = d%ubc(1, 2)
-    f%qy(:, d%np(2), :) = d%ubc(2, 2)
+    ! The x-z plane averaged should be zero.
+    do j = 1, d%nc(2)
+      uxa = sum( ux( 1:d%nc(1), j, 1:d%nc(3) ) )
+      uya = sum( uy( 1:d%nc(1), j, 1:d%nc(3) ) )
+      uza = sum( uz( 1:d%nc(1), j, 1:d%nc(3) ) )
+      uxa = uxa / real(d%nc(1) * d%nc(3), WP)
+      uza = uza / real(d%nc(1) * d%nc(3), WP)
+      uya = uya / real(d%nc(1) * d%nc(3), WP)
+      ux(:, j, :) = ux(:, j, :) - uxa + u_laminar(j)
+      uy(:, j, :) = uy(:, j, :) - uya
+      uz(:, j, :) = uz(:, j, :) - uza
+    end do
+
+    ! unified bulk
+    call Calculate_xbulk_velocity(ux, d, ubulk)
+    ux(:, :, :) = ux(:, :, :) / ubulk
+
+    call Apply_BC_velocity(ux, uy, uz, d)
+
+    ! to write out velocity profile
+    open ( newunit = pf_unit,     &
+           file    = 'output_check_poiseuille_profile.dat', &
+           status  = 'replace',         &
+           action  = 'write')
+    ! check the bulk velocity is one
+    do j = 1, d%nc(2)
+      write(pf_unit, '(5ES13.5)') d%yc(j), u_laminar(j), ux(d%nc(1)/2, j, d%nc(3)/2), &
+                                  uy(d%nc(1)/2, j, d%nc(3)/2), uz(d%nc(1)/2, j, d%nc(3)/2)
+    end do
+    close(pf_unit)
     
     deallocate (u_laminar)
     return
@@ -277,14 +349,17 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_flow(f, d)
+  subroutine  Initialize_vortexgreen_flow(ux, uy, uz, p, d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
 
     type(t_domain), intent(in   ) :: d
-    type(t_flow  ), intent(inout) :: f
+    real(WP),       intent(inout) :: ux(:, :, :), &
+                                     uy(:, :, :), &
+                                     uz(:, :, :), &
+                                     p (:, :, :)
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
@@ -299,7 +374,7 @@ contains
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          f%qx(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+          ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
         end do
       end do
     end do
@@ -313,7 +388,7 @@ contains
         do i = 1, d%nc(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          f%qy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
         end do
       end do
     end do
@@ -327,7 +402,7 @@ contains
         do i = 1, d%nc(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          f%qz(i, j, k) =  ZERO
+          uz(i, j, k) =  ZERO
         end do
       end do
     end do
@@ -341,9 +416,9 @@ contains
         do i = 1, d%nc(1)
           xp = d%h(1) * real(i - 1, WP)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
-          f%pres(i, j, k)= ( cos_wp( TWO * xc       ) + &
-                             cos_wp( TWO * yc       ) ) * &
-                           ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
+          p(i, j, k)= ( cos_wp( TWO * xc       ) + &
+                        cos_wp( TWO * yc       ) ) * &
+                      ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
         end do
       end do
     end do
@@ -364,7 +439,7 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_sinetest_flow(f, d)
+  subroutine  Initialize_sinetest_flow(ux, uy, uz, p, d)
     use udf_type_mod, only: t_domain, t_flow
     use math_mod, only: sin_wp
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
@@ -372,7 +447,10 @@ contains
     implicit none
 
     type(t_domain), intent(in )   :: d
-    type(t_flow  ), intent(inout) :: f
+    real(WP),       intent(inout) :: ux(:, :, :), &
+                                     uy(:, :, :), &
+                                     uz(:, :, :), &
+                                     p (:, :, :)
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
@@ -384,7 +462,7 @@ contains
         yc = d%yc(j)
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
-          f%qx(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
+          ux(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
         end do 
       end do
     end do
@@ -395,7 +473,7 @@ contains
         xc = d%h(1) * (real(i - 1, WP) + HALF)
         do j = 1, d%np(2)
           yp = d%yp(j)
-          f%qy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
+          uy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
         end do
       end do
     end do
@@ -407,7 +485,7 @@ contains
         xc = d%h(1) * (real(i - 1, WP) + HALF)
         do k = 1, d%np(3)
           zp = d%h(3) * real(k - 1, WP)
-          f%qz(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
+          uz(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
         end do
       end do
     end do
@@ -418,7 +496,7 @@ contains
         xc = d%h(1) * (real(i - 1, WP) + HALF)
         do k = 1, d%nc(3)
           zc = d%h(3) * (real(k - 1, WP) + HALF)
-          f%pres(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
+          p(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
         end do
       end do
     end do
@@ -426,104 +504,22 @@ contains
     return
   end subroutine Initialize_sinetest_flow
 
-  subroutine Unify_initial_velocity(f, d)
-    use precision_mod
-    implicit none
-
-    type(t_domain), intent(in )   :: d
-    type(t_flow  ), intent(inout) :: f
-
-    real(WP)   :: uxa, uya, uza
-    integer(4) :: i, j, k
-
-    do j = 1, d%nc(2)
-      uxa = sum( f%qx(:, j, :) )
-      uza = sum( f%qz(:, j, :) )
-      uxa = uxa / real(d%np(1) * d%nc(3), WP)
-      uza = uza / real(d%nc(1) * d%np(3), WP)
-      f%qx(:, j, :) = f%qx(:, j, :) - uxa
-      f%qz(:, j, :) = f%qz(:, j, :) - uza
-    end do
-
-    do j = 1, d%np(2)
-      uya = sum( f%qy(:, j, :) )
-      uya = uya / real(d%nc(1) * d%nc(3), WP)
-      f%qy(:, j, :) = f%qy(:, j, :) - uya
-    end do
-
-    return
-  end subroutine
-
-  subroutine Check_maximum_velocity(f, d, str)
+  subroutine Check_maximum_velocity(ux, uy, uz)
     use precision_mod
     use math_mod
     implicit none
 
-    type(t_domain), intent(in ) :: d
-    type(t_flow  ), intent(in ) :: f
-    character(*),   intent(in ) :: str 
+    real(WP),       intent( in ) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
 
     real(WP)   :: u(3)
-    integer(4) :: i, j, k
 
+    u(1) = MAXVAL( abs_wp( ux(:, :, :) ) )
+    u(2) = MAXVAL( abs_wp( uy(:, :, :) ) )
+    u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
 
-    u(1) = MAXVAL( abs_wp( f%qx(:, :, :) ) )
-    u(2) = MAXVAL( abs_wp( f%qy(:, :, :) ) )
-    u(3) = MAXVAL( abs_wp( f%qz(:, :, :) ) )
-
-    write(*, *) "The maximum velocity (u, v, w) "//str//" is"
+    write(*,*) "-------------------------------------------------------------------------------"
+    write(*, *) "The maximum velocity (u, v, w) is"
     write(*, '(3ES15.7)') u(:)
-
-    return
-  end subroutine
-!===============================================================================
-!===============================================================================
-!> \brief The main code for initializing flow variables
-!>
-!> This subroutine is only for pre-processing/post-processing 2nd order only.
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Calculate_xbulk_velocity(f, d, umean)
-    use parameters_constant_mod, only : ZERO, HALF
-    use operations, only: Get_midp_interpolation
-    implicit none
-
-    type(t_domain), intent(in ) :: d
-    type(t_flow  ), intent(in ) :: f
-    real(WP),       intent(out) :: umean
-
-    real(WP), allocatable :: fi(:), fo(:)
-    real(WP) :: lmean
-    integer(4) :: i, j, k
-
-    umean = ZERO
-    lmean = ZERO
-    allocate ( fi( d%nc(2) ) ); fi = ZERO
-    allocate ( fo( d%np(2) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do i = 1, d%nc(1)
-        fi(:) = f%qx(i, :, k)
-        call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
-        do j = 1, d%nc(2)
-          lmean = lmean + ( d%yp(j+1) - d%yc(j) ) + &
-                          ( d%yc(j  ) - d%yp(j) )
-          umean = umean + &
-                  (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
-                  (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
-        end do
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    umean = umean / real(d%nc(1) * d%nc(3), WP) / lmean 
-
-    write(*, *) "The bulk velocity is ", umean
 
     return
   end subroutine
@@ -551,7 +547,6 @@ contains
     use test_algrithms_mod
     implicit none
 
-    real(WP) :: umean
     logical :: itest = .false.
 
     interface 
@@ -584,11 +579,11 @@ contains
     if ( (icase == ICASE_CHANNEL) .or. &
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
-      call Initialize_poiseuille_flow  (flow, domain)
+      call Initialize_poiseuille_flow  (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_TGV) then
-      call Initialize_vortexgreen_flow (flow, domain)
+      call Initialize_vortexgreen_flow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_SINETEST) then
-      call Initialize_sinetest_flow    (flow, domain)
+      call Initialize_sinetest_flow    (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else 
       call Print_error_msg("No such case defined" )
     end if
@@ -601,25 +596,13 @@ contains
 !-------------------------------------------------------------------------------
     if(itest) call Test_schemes()
 !-------------------------------------------------------------------------------
-! to adjust the initial velocity to match a zero mean of x, z direction 
+! to check maximum velocity
 !-------------------------------------------------------------------------------
-    call Check_maximum_velocity(flow, domain, "after initialisation")
-    call Unify_initial_velocity(flow, domain)
-    call Check_maximum_velocity(flow, domain, "after unifying")
+    call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)
 !-------------------------------------------------------------------------------
 ! to apply the b.c. 
 !-------------------------------------------------------------------------------
-    call Apply_BC_velocity (flow, domain)
-!-------------------------------------------------------------------------------
-! to unify the bulk velocity to be one for poiseuille flow. 
-!-------------------------------------------------------------------------------
-    if ( (icase == ICASE_CHANNEL) .or. &
-         (icase == ICASE_PIPE) .or. &
-         (icase == ICASE_ANNUAL) ) then
-      call Calculate_xbulk_velocity(flow, domain, umean)
-      flow%qx(:, :, :) = flow%qx(:, :, :) / umean
-      call Calculate_xbulk_velocity(flow, domain, umean)
-    end if
+    call Apply_BC_velocity (flow%qx, flow%qy, flow%qz, domain)
 !-------------------------------------------------------------------------------
 ! to update mass flux terms 
 !-------------------------------------------------------------------------------

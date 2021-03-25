@@ -5,13 +5,16 @@ module boundary_conditions_mod
 
 contains
 
-  subroutine Apply_BC_velocity (f, d)
+  subroutine Apply_BC_velocity (ux, uy, uz, d)
+    use precision_mod
     use parameters_constant_mod, only: ZERO
     use udf_type_mod, only: t_domain, t_flow
     use input_general_mod, only: IBC_UDIRICHLET
     implicit none
     type(t_domain), intent(in )   :: d
-    type(t_flow  ), intent(inout) :: f
+    real(WP), intent(inout)       :: ux(:, :, :), &
+                                     uy(:, :, :), &
+                                     uz(:, :, :)
 
     integer :: m, n
 !-------------------------------------------------------------------------------
@@ -20,7 +23,7 @@ contains
     m = 1
     n = 1
     if(d%bc(m, n) == IBC_UDIRICHLET) then
-      f%qx(1, :, :) = d%ubc(m, n)
+      ux(1, :, :) = d%ubc(m, n)
     end if
 !-------------------------------------------------------------------------------
 ! ux at i = np 
@@ -28,7 +31,7 @@ contains
     m = 2
     n = 1
     if(d%bc(m, n) == IBC_UDIRICHLET) then
-      f%qx(d%np(1), :, :) = d%ubc(m, n)
+      ux(d%np(1), :, :) = d%ubc(m, n)
     end if    
 !-------------------------------------------------------------------------------
 ! uy at j = 1 
@@ -36,7 +39,7 @@ contains
     m = 1
     n = 2
     if(d%bc(m, n) == IBC_UDIRICHLET) then
-      f%qy(:, 1, :) = d%ubc(m, n)
+      uy(:, 1, :) = d%ubc(m, n)
     end if
 !-------------------------------------------------------------------------------
 ! uy at j = np 
@@ -44,7 +47,7 @@ contains
     m = 2
     n = 2
     if(d%bc(m, n) == IBC_UDIRICHLET) then
-      f%qy(:, d%np(2), :) = d%ubc(m, n)
+      uy(:, d%np(2), :) = d%ubc(m, n)
     end if
 !-------------------------------------------------------------------------------
 ! uz at k = 1 
@@ -52,7 +55,7 @@ contains
     m = 1
     n = 3
     if(d%bc(m, n) == IBC_UDIRICHLET) then
-      f%qz(:, :, 1) = d%ubc(m, n)
+      uz(:, :, 1) = d%ubc(m, n)
     end if
 !-------------------------------------------------------------------------------
 ! uz at k = np 
@@ -60,7 +63,7 @@ contains
     m = 2
     n = 3
     if(d%bc(m, n) == IBC_UDIRICHLET) then
-      f%qz(:, :, d%np(3)) = d%ubc(m, n)
+      uz(:, :, d%np(3)) = d%ubc(m, n)
     end if
 
     return

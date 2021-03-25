@@ -124,7 +124,7 @@ module input_general_mod
 
   ! initial fields
   real(WP) :: renIni
-  integer :: nIterIniRen
+  integer  :: nIterIniRen
   real(WP) :: initNoise
 
   ! PeriodicDrv

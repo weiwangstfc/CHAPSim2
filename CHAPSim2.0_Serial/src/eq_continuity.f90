@@ -4,43 +4,41 @@ module continuity_eq_mod
   public  :: Check_divergence
 contains
 
-  subroutine Calculate_drhodt(f, d, drhodt, itime)
+  subroutine Calculate_drhodt(dDens, dDensm1, dDensm2, drhodt, itime)
     use precision_mod
     use udf_type_mod, only : t_flow, t_domain
     use input_general_mod, only: dt, iTimeScheme, ITIME_RK3, ITIME_RK3_CN, ITIME_AB2, &
-         nsubitr, tGamma, tZeta, tAlpha
+         nsubitr, tAlpha
     use parameters_constant_mod, only: ONEPFIVE, TWO, HALF
     implicit none
 
-    type(t_domain), intent( in  ) :: d
-    type(t_flow),   intent( in  ) :: f
+    real(WP), dimension(:, :, :), intent ( in  ) :: dDens, dDensm1, dDensm2
+    real(WP), dimension(:, :, :), intent ( out ) :: drhodt
     integer(4),     intent( in  ) :: itime
-    real(WP), dimension(:, :, :), intent (out)  :: drhodt
-
+    
     integer(4) :: i
 
     if(itime == 0 .or. itime == 1 ) then
-      drhodt(:, :, :) = f%dDens(:, :, :) - f%dDensm1(:, :, :)
+      drhodt(:, :, :) = dDens(:, :, :) - dDensm1(:, :, :)
       drhodt(:, :, :) = drhodt(:, :, :) * dt
     else 
 
       if(iTimeScheme == ITIME_AB2) then
 
-        drhodt(:, :, :) = ONEPFIVE * f%dDens  (:, :, :) - &
-                          TWO      * f%dDensm1(:, :, :) + &
-                          HALF     * f%dDensm2(:, :, :)
+        drhodt(:, :, :) = ONEPFIVE * dDens  (:, :, :) - &
+                          TWO      * dDensm1(:, :, :) + &
+                          HALF     * dDensm2(:, :, :)
         drhodt(:, :, :) = drhodt(:, :, :) * dt
       else if (iTimeScheme == ITIME_RK3 .or. iTimeScheme == ITIME_RK3_CN) then
         ! to check this part!
-        drhodt(:, :, :) = f%dDens  (:, :, :)
+        drhodt(:, :, :) = dDens  (:, :, :)
         do i = 1, nsubitr
-
           drhodt(:, :, :) = drhodt(:, :, :) + tAlpha(i) * &
-                            (f%dDensm1(:, :, :) - f%dDensm2(:, :, :))
+                            (dDensm1(:, :, :) - dDensm2(:, :, :))
         end do
       else  
         ! default, Euler 1st order 
-        drhodt(:, :, :) = f%dDens(:, :, :) - f%dDensm1(:, :, :)
+        drhodt(:, :, :) = dDens(:, :, :) - dDensm1(:, :, :)
         drhodt(:, :, :) = drhodt(:, :, :) * dt
       end if
     end if
@@ -58,7 +56,7 @@ contains
     implicit none
 
     type(t_domain), intent( in ) :: d
-    type(t_flow),   intent( in ) :: f
+    type(t_flow),   intent( in ) :: f                    
     integer(4),     intent( in ) :: itime
 
     real(WP), allocatable :: fi(:), fo(:)
@@ -71,7 +69,7 @@ contains
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
     if (ithermo == 1) then
-      call Calculate_drhodt(f, d, div, itime)
+      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, div, itime)
     end if
 !-------------------------------------------------------------------------------
 ! du/dx at cell centre
@@ -116,7 +114,9 @@ contains
     deallocate (fi)
     deallocate (fo)
 
+    write(*,*) "-------------------------------------------------------------------------------"
     write(*,*) "The maximum divergence is", MAXVAL(div)
+   
 
     deallocate (div)
 

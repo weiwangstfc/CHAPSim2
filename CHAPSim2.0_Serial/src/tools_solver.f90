@@ -3,8 +3,6 @@ module solver_tools_mod
   ! procedure
   private
   public  :: Compute_CFL_diffusion
-  private :: Get_max_timestep
-
 
   public  :: Calculate_massflux_from_velocity
 
@@ -109,7 +107,7 @@ contains
   end subroutine
 
   subroutine Check_cfl_convection(u, v, w, d)
-    use input_general_mod, only: ithermo, dt
+    use input_general_mod, only: dt
     use parameters_constant_mod, only: ZERO, ONE
     use precision_mod
     use udf_type_mod, only: t_domain
