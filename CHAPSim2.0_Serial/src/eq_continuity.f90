@@ -115,7 +115,9 @@ contains
     deallocate (fo)
 
     write(*,*) "-------------------------------------------------------------------------------"
-    write(*,*) "The maximum divergence is", MAXVAL(div)
+    write(*,*) "The maximum divergence :"
+    write(*,'(12X, 1ES13.5)') MAXVAL(div)
+    write(*,*) "-------------------------------------------------------------------------------"
    
 
     deallocate (div)

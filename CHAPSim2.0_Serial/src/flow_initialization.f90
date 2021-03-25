@@ -183,7 +183,9 @@ contains
     ubulk = ubulk / real(d%nc(1) * d%nc(3), WP) / lmean 
 
     write(*,*) "-------------------------------------------------------------------------------"
-    write(*, *) "The bulk velocity is ", ubulk
+    write(*, *) "The bulk velocity :"
+    write(*, '(12X, 1ES15.7)') ubulk
+    write(*,*) "-------------------------------------------------------------------------------"
 
     return
   end subroutine
@@ -518,9 +520,10 @@ contains
     u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
 
     write(*,*) "-------------------------------------------------------------------------------"
-    write(*, *) "The maximum velocity (u, v, w) is"
-    write(*, '(3ES15.7)') u(:)
-
+    write(*, *) "The maximum velocity (u, v, w) :"
+    write(*, '(12X, 3ES15.7)') u(:)
+    write(*,*) "-------------------------------------------------------------------------------"
+    
     return
   end subroutine
 
