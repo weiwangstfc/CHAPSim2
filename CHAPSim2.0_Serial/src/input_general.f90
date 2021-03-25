@@ -117,8 +117,7 @@ module input_general_mod
   integer :: nstats
 
   ! NumOption
-  integer :: i1deriAccu
-  integer :: i2deriAccu
+  integer :: iAccuracy
   integer :: iTimeScheme
   integer :: iviscous
   integer :: ipressure
@@ -273,8 +272,7 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, nstats
 
       else if ( section_name(1:slen) == '[schemes]' ) then
-        read(inputUnit, *, iostat = ioerr) variableName, i1deriAccu
-        read(inputUnit, *, iostat = ioerr) variableName, i2deriAccu
+        read(inputUnit, *, iostat = ioerr) variableName, iAccuracy
         read(inputUnit, *, iostat = ioerr) variableName, iTimeScheme
         read(inputUnit, *, iostat = ioerr) variableName, iviscous
         read(inputUnit, *, iostat = ioerr) variableName, ipressure

@@ -22,11 +22,8 @@
 !>
 !===============================================================================
 module flow_variables_mod
-  use precision_mod
+  use save_vars_mod
   implicit none
-
-  type(t_flow), save   :: flow
-  type(t_thermo), save :: thermo
 
   private :: Calculate_xbulk_velocity
   private :: Check_maximum_velocity
@@ -56,8 +53,8 @@ contains
 !_______________________________________________________________________________
   subroutine Allocate_variables
     use input_general_mod, only : ithermo
-    use geometry_mod
     use parameters_constant_mod, only : ZERO, ONE
+    use save_vars_mod
     implicit none
 
     allocate ( flow%qx( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) ) )
@@ -66,10 +63,6 @@ contains
     flow%qx = ZERO
     flow%qy = ZERO
     flow%qz = ZERO
-
-    allocate ( flow%gx(  ) )
-    allocate ( flow%gy(  ) )
-    allocate ( flow%gz(  ) )
 
     allocate ( flow%gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
     allocate ( flow%gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
@@ -88,6 +81,10 @@ contains
     flow%dDens = ONE
     flow%mVisc = ONE
 
+    allocate ( flow%dDensm1 ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%dDensm2 ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    flow%dDensm1 = ONE
+    flow%dDensm2 = ONE
 
     if(ithermo == 1) then
       allocate ( thermo%dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
@@ -233,8 +230,8 @@ contains
     use input_general_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent(in ) :: d
-    type(t_flow  ), intent(out) :: f
+    type(t_domain), intent(in   ) :: d
+    type(t_flow  ), intent(inout) :: f
     
     real(WP), allocatable, dimension(:) :: u_laminar
     integer :: i, j, k
@@ -286,8 +283,8 @@ contains
     use math_mod
     implicit none
 
-    type(t_domain), intent(in ) :: d
-    type(t_flow  ), intent(out) :: f
+    type(t_domain), intent(in   ) :: d
+    type(t_flow  ), intent(inout) :: f
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
@@ -368,13 +365,14 @@ contains
 !> \param[out]    f             flow
 !_______________________________________________________________________________
   subroutine  Initialize_sinetest_flow(f, d)
+    use udf_type_mod, only: t_domain, t_flow
+    use math_mod, only: sin_wp
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
-    use udf_type_mod
-    use math_mod
+    
     implicit none
 
-    type(t_domain), intent(in ) :: d
-    type(t_flow  ), intent(out) :: f
+    type(t_domain), intent(in )   :: d
+    type(t_flow  ), intent(inout) :: f
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
@@ -458,11 +456,12 @@ contains
 
   subroutine Check_maximum_velocity(f, d, str)
     use precision_mod
+    use math_mod
     implicit none
 
     type(t_domain), intent(in ) :: d
     type(t_flow  ), intent(in ) :: f
-    character,      intent(in) :: str(:) 
+    character(*),   intent(in ) :: str 
 
     real(WP)   :: u(3)
     integer(4) :: i, j, k
@@ -491,7 +490,8 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Calculate_xbulk_velocity(f, d, umean)
-    use parameters_constant_mod, only : ZERO
+    use parameters_constant_mod, only : ZERO, HALF
+    use operations, only: Get_midp_interpolation
     implicit none
 
     type(t_domain), intent(in ) :: d
@@ -542,13 +542,17 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Initialize_flow_variables( )
-    use geometry_mod
-    use input_general_mod, only: REN, dt
+    use save_vars_mod
+    use input_general_mod
     use parameters_constant_mod
     use solver_tools_mod
+    use boundary_conditions_mod
+    use continuity_eq_mod
+    use test_algrithms_mod
     implicit none
 
     real(WP) :: umean
+    logical :: itest = .false.
 
     interface 
        subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
@@ -569,7 +573,7 @@ contains
 ! to initialize thermal variables 
 !-------------------------------------------------------------------------------
     if (ithermo == 1) then
-      call Initialize_thermal_variables (flow, domain)
+      call Initialize_thermal_variables (flow, thermo)
     else
       flow%dDens(:, :, :) = ONE
       flow%mVisc(:, :, :) = ONE
@@ -592,6 +596,10 @@ contains
 ! to initialize pressure correction term
 !-------------------------------------------------------------------------------
     flow%pcor(:, :, :) = ZERO
+!-------------------------------------------------------------------------------
+! to test algorithms based on given values.
+!-------------------------------------------------------------------------------
+    if(itest) call Test_schemes()
 !-------------------------------------------------------------------------------
 ! to adjust the initial velocity to match a zero mean of x, z direction 
 !-------------------------------------------------------------------------------
@@ -616,7 +624,7 @@ contains
 ! to update mass flux terms 
 !-------------------------------------------------------------------------------
     if (ithermo == 1) then
-      call Calculate_massflux_from_velocity (f, d)
+      call Calculate_massflux_from_velocity (flow, domain)
     else
       flow%gx(:, :, :) = flow%qx(:, :, :)
       flow%gy(:, :, :) = flow%qy(:, :, :)
@@ -630,21 +638,21 @@ contains
 !-------------------------------------------------------------------------------
 ! to check divergence
 !-------------------------------------------------------------------------------
-    call Check_divergence(flow, domain)
+    call Check_divergence(flow, domain, 0)
 !-------------------------------------------------------------------------------
 ! to write and display the initial fields
 !-------------------------------------------------------------------------------
     !call Display_vtk_slice(domain, 'xy', 'u', 1, qx)
     !call Display_vtk_slice(domain, 'xy', 'v', 2, qy)
-    call Display_vtk_slice(domain, 'xy', 'p', 0, pres)
+    !call Display_vtk_slice(domain, 'xy', 'p', 0, pres)
 
     !call Display_vtk_slice(domain, 'yz', 'v', 2, qy)
     !call Display_vtk_slice(domain, 'yz', 'w', 3, qz)
-    call Display_vtk_slice(domain, 'yz', 'p', 0, pres)
+    !call Display_vtk_slice(domain, 'yz', 'p', 0, pres)
 
     !call Display_vtk_slice(domain, 'zx', 'u', 1, qx)
     !call Display_vtk_slice(domain, 'zx', 'w', 3, qz)
-    call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
+    !call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
 
 
 

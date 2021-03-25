@@ -14,17 +14,21 @@ DIR_MOD= ./mod
 
 OBJS= modules.o\
       mpi_mod.o\
-      tools.o\
+      tools_general.o\
       input_general.o\
       input_thermo.o\
       geometry.o\
-			flow_initialization.o\
 			algorithms.o\
 			operations.o\
+			tools_solver.o\
+			boundary_conditions.o\
+			eq_continuity.o\
+			test_algrithms.o\
+			flow_initialization.o\
 			display.o\
       chapsim.o
 
-OPTIONS= -O -g -fbacktrace -fbounds-check -fcheck=all -Wall -ffpe-trap=invalid,zero,overflow 
+OPTIONS= -g -fbacktrace -fbounds-check -fcheck=all -Wall -ffpe-trap=invalid,zero,overflow 
 
 default :
 	@cd $(DIR_BIN)

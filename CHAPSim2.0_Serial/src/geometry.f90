@@ -25,11 +25,8 @@
 !>
 !===============================================================================
 module geometry_mod
-  use precision_mod
-  use udf_type_mod
+  use save_vars_mod, only: domain
   implicit none
-
-  type(t_domain), save :: domain
 
   !private
   private :: Buildup_grid_mapping_1D

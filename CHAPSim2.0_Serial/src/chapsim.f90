@@ -29,10 +29,7 @@ program chapsim
 
   call Initialize_chapsim ()
   call Initialize_flow ()
-  call Solve_eqs_iteration()
-
-
-  call Test_schemes()
+  !call Solve_eqs_iteration()
 
   call Finalise_chapsim ()
   
@@ -126,33 +123,7 @@ subroutine Finalise_chapsim()
   !call Finalise_mpi()
   return
 end subroutine Finalise_chapsim
-!===============================================================================
-!===============================================================================
-!> \brief In-code independent test code for algorithms and schemes
-!>
-!> This subroutine is only called in the main program for testing.
-!> Please select the test options which you are interested in.
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     none          NA
-!> \param[out]    none          NA
-!_______________________________________________________________________________
-subroutine Test_schemes()
-  use geometry_mod
-  use operations
-  use tridiagonal_matrix_algorithm
-  implicit none
 
-  !call Test_TDMA_cyclic
-  !call Test_TDMA_noncyclic
-  call Test_interpolation(domain)
-  call Test_1st_derivative(domain)
-  return 
-end subroutine 
-!===============================================================================
 
 
 

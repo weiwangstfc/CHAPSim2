@@ -1,19 +1,25 @@
 module continuity_eq_mod
 
   private :: Calculate_drhodt
-
   public  :: Check_divergence
 contains
 
   subroutine Calculate_drhodt(f, d, drhodt, itime)
-    use input_general_mod, only: dt
+    use precision_mod
+    use udf_type_mod, only : t_flow, t_domain
+    use input_general_mod, only: dt, iTimeScheme, ITIME_RK3, ITIME_RK3_CN, ITIME_AB2, &
+         nsubitr, tGamma, tZeta, tAlpha
+    use parameters_constant_mod, only: ONEPFIVE, TWO, HALF
     implicit none
+
     type(t_domain), intent( in  ) :: d
     type(t_flow),   intent( in  ) :: f
     integer(4),     intent( in  ) :: itime
     real(WP), dimension(:, :, :), intent (out)  :: drhodt
 
-    if(itime == 1) then
+    integer(4) :: i
+
+    if(itime == 0 .or. itime == 1 ) then
       drhodt(:, :, :) = f%dDens(:, :, :) - f%dDensm1(:, :, :)
       drhodt(:, :, :) = drhodt(:, :, :) * dt
     else 
@@ -43,15 +49,21 @@ contains
   end subroutine Calculate_drhodt
 
 
-  subroutine Check_divergence(f, d)
+  subroutine Check_divergence(f, d, itime)
+    use precision_mod
+    use udf_type_mod, only: t_domain, t_flow
     use input_general_mod, only: ithermo
     use parameters_constant_mod, only: ZERO
+    use operations, only: Get_1st_derivative
     implicit none
-    type(t_domain), intent( in  ) :: d
-    type(t_flow),   intent( in  ) :: f
+
+    type(t_domain), intent( in ) :: d
+    type(t_flow),   intent( in ) :: f
+    integer(4),     intent( in ) :: itime
 
     real(WP), allocatable :: fi(:), fo(:)
     real(WP), allocatable :: div(:, :, :)
+    integer(4) :: i, j, k
 
     allocate ( div( d%nc(1), d%nc(2), d%nc(3) ) ); div = ZERO
 

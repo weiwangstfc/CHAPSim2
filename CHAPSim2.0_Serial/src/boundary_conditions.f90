@@ -7,6 +7,8 @@ contains
 
   subroutine Apply_BC_velocity (f, d)
     use parameters_constant_mod, only: ZERO
+    use udf_type_mod, only: t_domain, t_flow
+    use input_general_mod, only: IBC_UDIRICHLET
     implicit none
     type(t_domain), intent(in )   :: d
     type(t_flow  ), intent(inout) :: f

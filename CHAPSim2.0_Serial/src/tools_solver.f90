@@ -25,6 +25,8 @@ contains
 !_______________________________________________________________________________
   subroutine Calculate_massflux_from_velocity(f, d)
     use parameters_constant_mod, only: ZERO
+    use udf_type_mod
+    use operations
     implicit none
 !===============================================================================
 ! Arguments
@@ -87,6 +89,8 @@ contains
 
   subroutine Check_cfl_diffusion(x2r, rre)
     use input_general_mod, only: dt
+    use parameters_constant_mod, only: TWO, ONE
+    use precision_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
     real(WP), intent(in) :: rre
@@ -106,14 +110,18 @@ contains
 
   subroutine Check_cfl_convection(u, v, w, d)
     use input_general_mod, only: ithermo, dt
-    use parameters_constant_mod, only: ZERO
+    use parameters_constant_mod, only: ZERO, ONE
+    use precision_mod
+    use udf_type_mod, only: t_domain
     implicit none
+
     type(t_domain),               intent(in) :: d
     real(WP), dimension(:, :, :), intent(in) :: u, v, w
 
     real(WP), allocatable :: fi(:), fo(:)
     real(WP), allocatable :: udx(:, :, :)
     real(WP)              :: cfl_convection
+    integer(4)            :: i, j, k
 
     allocate ( udx( d%nc(1), d%nc(2), d%nc(3) ) ); udx = ZERO
 
@@ -171,5 +179,5 @@ contains
 
     return
   end subroutine
-  
+
 end module
