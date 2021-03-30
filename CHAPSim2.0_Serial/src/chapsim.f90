@@ -29,7 +29,7 @@ program chapsim
 
   call Initialize_chapsim ()
   call Initialize_flow ()
-  !call Solve_eqs_iteration()
+  call Solve_eqs_iteration()
 
   call Finalise_chapsim ()
   
@@ -88,6 +88,7 @@ subroutine Initialize_flow()
   implicit none
 
   call Allocate_variables ()
+  call Define_parameters_in_eqs ()
   if (irestart == INITIAL_RANDOM) then
     call Initialize_flow_variables ()
   else if (irestart == INITIAL_RESTART) then

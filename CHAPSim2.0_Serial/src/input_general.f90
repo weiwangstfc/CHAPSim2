@@ -75,6 +75,15 @@ module input_general_mod
                         INITIAL_RESTART = 2, &
                         INITIAL_INTERPL = 3
 
+  integer, parameter :: IVIS_EXPLICIT   = 1, &
+                        IVIS_SEMIMPLT   = 2
+
+  integer, parameter :: IDRVF_NO        = 0, &
+                        IDRVF_MASSFLUX  = 1, &
+                        IDRVF_SKINFRIC  = 2, &
+                        IDRVF_PRESLOSS  = 3
+
+
   ! flow type
   integer :: icase
   integer :: ithermo
@@ -129,6 +138,7 @@ module input_general_mod
 
   ! PeriodicDrv
   integer :: idriven
+  real(WP) :: drvf
   
   ! ThermoParam
   integer :: ifluid
@@ -286,6 +296,7 @@ contains
       else if ( section_name(1:slen) == '[periodicdriven]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, idriven
+        read(inputUnit, *, iostat = ioerr) variableName, drvf
 
       else if ( section_name(1:slen) == '[thermohydraulics]' ) then
 
@@ -411,6 +422,7 @@ contains
 !_______________________________________________________________________________
   subroutine Set_timestepping_coefficients()
     use parameters_constant_mod
+    implicit none
 
     if(iTimeScheme == ITIME_RK3 .or. &
        iTimeScheme == ITIME_RK3_CN) then

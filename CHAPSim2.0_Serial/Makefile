@@ -23,8 +23,11 @@ OBJS= modules.o\
 			tools_solver.o\
 			boundary_conditions.o\
 			eq_continuity.o\
+			eq_energy.o\
+			eq_momentum.o\
 			test_algrithms.o\
 			flow_initialization.o\
+			solver_iteration.o\
 			display.o\
       chapsim.o
 

@@ -56,40 +56,55 @@ contains
     use save_vars_mod
     implicit none
 
-    allocate ( flow%qx( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) ) )
-    allocate ( flow%qy( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) ) )
-    allocate ( flow%qz( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) ) )
+    allocate ( flow%qx( domain%np(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%qy( domain%nc(1), domain%np(2), domain%nc(3) ) )
+    allocate ( flow%qz( domain%nc(1), domain%nc(2), domain%np(3) ) )
     flow%qx = ZERO
     flow%qy = ZERO
     flow%qz = ZERO
 
-    allocate ( flow%gx ( 1 : domain%np(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( flow%gy ( 1 : domain%nc(1), 1 : domain%np(2), 1 : domain%nc(3) )  )
-    allocate ( flow%gz ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%np(3) )  )
+    allocate ( flow%gx ( domain%np(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%gy ( domain%nc(1), domain%np(2), domain%nc(3) )  )
+    allocate ( flow%gz ( domain%nc(1), domain%nc(2), domain%np(3) )  )
     flow%gx = ZERO
     flow%gy = ZERO
     flow%gz = ZERO
 
-    allocate ( flow%pres ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( flow%pcor ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%pres ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%pcor ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
     flow%pres = ZERO
     flow%pcor = ZERO
 
-    allocate ( flow%dDens ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( flow%mVisc ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%dDens ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%mVisc ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
     flow%dDens = ONE
     flow%mVisc = ONE
 
-    allocate ( flow%dDensm1 ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-    allocate ( flow%dDensm2 ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+    allocate ( flow%dDensm1 ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%dDensm2 ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
     flow%dDensm1 = ONE
     flow%dDensm2 = ONE
 
+    allocate ( flow%m1_rhs ( domain%np(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%m2_rhs ( domain%nc(1), domain%np(2), domain%nc(3) )  )
+    allocate ( flow%m3_rhs ( domain%nc(1), domain%nc(2), domain%np(3) )  )
+    flow%m1_rhs = ZERO
+    flow%m2_rhs = ZERO
+    flow%m3_rhs = ZERO
+
+    allocate ( flow%m1_rhs0 ( domain%np(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%m2_rhs0 ( domain%nc(1), domain%np(2), domain%nc(3) )  )
+    allocate ( flow%m3_rhs0 ( domain%nc(1), domain%nc(2), domain%np(3) )  )
+    flow%m1_rhs0 = ZERO
+    flow%m2_rhs0 = ZERO
+    flow%m3_rhs0 = ZERO
+
+
     if(ithermo == 1) then
-      allocate ( thermo%dh    ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      allocate ( thermo%hEnth ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      allocate ( thermo%kCond ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
-      allocate ( thermo%tTemp ( 1 : domain%nc(1), 1 : domain%nc(2), 1 : domain%nc(3) )  )
+      allocate ( thermo%dh    ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+      allocate ( thermo%hEnth ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+      allocate ( thermo%kCond ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+      allocate ( thermo%tTemp ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
       thermo%dh    = ZERO
       thermo%hEnth = ZERO
       thermo%kCond = ONE
@@ -148,39 +163,14 @@ contains
   subroutine Calculate_xbulk_velocity(ux, d, ubulk)
     use parameters_constant_mod, only : ZERO, HALF
     use operations, only: Get_midp_interpolation
+    use solver_tools_mod, only: Calculate_y_bulk
     implicit none
 
     type(t_domain), intent(in ) :: d
     real(WP),       intent(in ) :: ux(:, :, :)
     real(WP),       intent(out) :: ubulk
 
-    real(WP), allocatable :: fi(:), fo(:)
-    real(WP) :: lmean
-    integer(4) :: i, j, k
-
-    lmean = ZERO
-    do j = 1, d%nc(2)
-      lmean = lmean + ( d%yp(j+1) - d%yc(j) ) + &
-                      ( d%yc(j  ) - d%yp(j) )
-    end do
-
-    ubulk = ZERO
-    allocate ( fi( d%nc(2) ) ); fi = ZERO
-    allocate ( fo( d%np(2) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do i = 1, d%nc(1)
-        fi(:) = ux(i, :, k)
-        call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
-        do j = 1, d%nc(2)
-          ubulk = ubulk + &
-                  (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
-                  (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
-        end do
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-    ubulk = ubulk / real(d%nc(1) * d%nc(3), WP) / lmean 
+    call Calculate_y_integral(ux, d, ubulk)
 
     write(*,*) "-------------------------------------------------------------------------------"
     write(*, *) "The bulk velocity :"
@@ -563,10 +553,7 @@ contains
        end subroutine Display_vtk_slice
     end interface
 
-!-------------------------------------------------------------------------------
-! global flow info 
-!-------------------------------------------------------------------------------    
-    flow%rre = ONE / REN
+    call Calculate_parameters_in_eqs(flow, thermo, 0)
 !-------------------------------------------------------------------------------
 ! to initialize thermal variables 
 !-------------------------------------------------------------------------------
@@ -621,10 +608,6 @@ contains
 !-------------------------------------------------------------------------------
     flow%dDensm1(:, :, :) = flow%dDens(:, :, :)
     flow%dDensm2(:, :, :) = flow%dDens(:, :, :)
-!-------------------------------------------------------------------------------
-! to check divergence
-!-------------------------------------------------------------------------------
-    call Check_divergence(flow, domain, 0)
 !-------------------------------------------------------------------------------
 ! to write and display the initial fields
 !-------------------------------------------------------------------------------

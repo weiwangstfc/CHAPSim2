@@ -3,10 +3,88 @@ module solver_tools_mod
   ! procedure
   private
   public  :: Compute_CFL_diffusion
-
+  public  :: Calculate_parameters_in_eqs
   public  :: Calculate_massflux_from_velocity
+  public  :: Calculate_y_bulk
 
 contains
+
+subroutine Calculate_y_bulk(u, d, uybulk)
+  use parameters_constant_mod, only : ZERO, HALF
+  use operations, only: Get_midp_interpolation
+  implicit none
+
+  type(t_domain), intent(in ) :: d
+  real(WP),       intent(in ) :: u(:, :, :)
+  real(WP),       intent(out) :: uybulk
+
+  real(WP) :: fi(d%nc(2)), fo(d%np(2))
+  real(WP) :: lmean
+  integer(4) :: i, j, k
+
+  
+  uybulk = ZERO
+  fi = ZERO
+  fo = ZERO
+  do k = 1, d%nc(3)
+    do i = 1, d%nc(1)
+      fi(:) = ux(i, :, k)
+      call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
+      do j = 1, d%nc(2)
+        uybulk = uybulk + &
+              (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
+              (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
+      end do
+    end do
+  end do
+
+  uybulk = uybulk / real(d%nc(1) * d%nc(3), WP) / ( d%yp( d%np(2) ) - d%yp(1) )
+  return 
+end subroutine Calculate_y_integral
+
+
+
+subroutine Calculate_parameters_in_eqs(f, t, iter)
+  use input_general_mod, only: ithermo, nIterFlow0, ren, renIni, lenRef
+  use input_thermo_mod, only: tpRef0
+  use parameters_constant_mod, only: GRAVITY
+  implicit none
+  type(t_flow),   intent(inout) :: f
+  type(t_thermo), intent(inout) :: t
+  integer(4)      intent(in   ) :: iter  
+
+  real(WP) :: u0
+
+  if(iter < nIterIniRen) then
+    f%rre = ONE / renIni
+  else
+    f%rre = ONE / ren
+  end if
+
+  if(ithermo == 1) then
+
+    t%rPrRen = f%rre * tpRef0%k / tpRef0%m / tpRef0%cp
+
+    u0 = ONE / f%rre * tpRef0%m / tpRef0%d / lenRef
+    if (igravity == 0) then
+      ! no gravity
+      f%fgravity = ZERO
+    else if (igravity == 1 .or. igravity == 2 .or. igravity == 3 ) then 
+      ! flow/gravity same dirction
+      f%fgravity =  lenRef / u0 / u0 * GRAVITY
+    else if (igravity == -1 .or. igravity == -2 .or. igravity == -3 ) then 
+      ! flow/gravity opposite dirction
+      f%fgravity = -lenRef / u0 / u0 * GRAVITY
+    else
+      ! no gravity
+      f%fgravity = ZERO
+    end if
+
+  end if
+
+  return
+end subroutine 
+
 !===============================================================================
 !===============================================================================
 !> \brief Calculate the conservative variables from primary variable.     
@@ -34,7 +112,12 @@ contains
 !===============================================================================
 ! Local arguments
 !===============================================================================
-    real(WP), allocatable :: fi(:), fo(:)
+    real(WP), dimension( d%nc(1) ) :: fix
+    real(WP), dimension( d%np(1) ) :: fox
+    real(WP), dimension( d%nc(2) ) :: fiy
+    real(WP), dimension( d%np(2) ) :: foy
+    real(WP), dimension( d%nc(3) ) :: fiz
+    real(WP), dimension( d%np(3) ) :: foz
     integer(4) :: i, j, k
 !===============================================================================
 ! Code
@@ -42,45 +125,33 @@ contains
 !-------------------------------------------------------------------------------
 ! u1 -> g1
 !_______________________________________________________________________________
-    allocate ( fi( d%nc(1) ) ); fi = ZERO
-    allocate ( fo( d%np(1) ) ); fo = ZERO
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
-        fi(:) = f%dDens(:, j, k)
-        call Get_midp_interpolation( 'x', 'C2P', d, fi(:), fo(:) )
-        f%gx(:, j, k) = fo(:) * f%qx(:, j, k)
+        fix(:) = f%dDens(:, j, k)
+        call Get_midp_interpolation( 'x', 'C2P', d, fix(:), fox(:) )
+        f%gx(:, j, k) = fox(:) * f%qx(:, j, k)
       end do
     end do
-    deallocate (fi)
-    deallocate (fo)
 !-------------------------------------------------------------------------------
 ! u2 -> g2
 !_______________________________________________________________________________
-    allocate ( fi( d%nc(2) ) ); fi = ZERO
-    allocate ( fo( d%np(2) ) ); fo = ZERO
     do k = 1, d%nc(3)
       do i = 1, d%nc(1)
-        fi(:) = f%dDens(i, :, k)
-        call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
-        f%gy(i, :, k) = fo(:) * f%qy(i, :, k)
+        fiy(:) = f%dDens(i, :, k)
+        call Get_midp_interpolation( 'y', 'C2P', d, fiy(:), foy(:) )
+        f%gy(i, :, k) = foy(:) * f%qy(i, :, k)
       end do
     end do
-    deallocate (fi)
-    deallocate (fo)
 !-------------------------------------------------------------------------------
 ! u3 -> g3
 !_______________________________________________________________________________
-    allocate ( fi( d%nc(3) ) ); fi = ZERO
-    allocate ( fo( d%np(3) ) ); fo = ZERO
     do j = 1, d%nc(2)
       do i = 1, d%nc(1)
-        fi(:) = f%dDens(i, j, :)
-        call Get_midp_interpolation( 'z', 'C2P', d, fi(:), fo(:) )
-        f%gz(i, j, :) = fo(:) * f%qz(i, j, :)
+        fiz(:) = f%dDens(i, j, :)
+        call Get_midp_interpolation( 'z', 'C2P', d, fiz(:), foz(:) )
+        f%gz(i, j, :) = foz(:) * f%qz(i, j, :)
       end do
     end do
-    deallocate (fi)
-    deallocate (fo)
 
     return
   end subroutine Calculate_massflux_from_velocity

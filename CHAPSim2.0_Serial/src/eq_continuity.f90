@@ -1,7 +1,7 @@
 module continuity_eq_mod
 
   private :: Calculate_drhodt
-  public  :: Check_divergence
+  public  :: Get_divergence
 contains
 
   subroutine Calculate_drhodt(dDens, dDensm1, dDensm2, drhodt, itime)
@@ -47,7 +47,70 @@ contains
   end subroutine Calculate_drhodt
 
 
-  subroutine Check_divergence(f, d, itime)
+  subroutine Get_divergence(ux, uv, uz, div, d)
+    use precision_mod
+    use udf_type_mod, only: t_domain, t_flow
+    use input_general_mod, only: ithermo
+    use parameters_constant_mod, only: ZERO
+    use operations, only: Get_1st_derivative
+    implicit none
+
+    type(t_domain), intent( in ) :: d
+    real(WP), dimension(:, :, :), intent (in   ) :: ux, uv, uz
+    real(WP), dimension(:, :, :), intent (inout) :: div
+
+    real(WP), allocatable :: fi(:), fo(:)
+
+    integer(4) :: i, j, k
+
+!-------------------------------------------------------------------------------
+! du/dx at cell centre
+!_______________________________________________________________________________
+    allocate ( fi( d%np(1) ) ); fi = ZERO
+    allocate ( fo( d%nc(1) ) ); fo = ZERO
+    do k = 1, d%nc(3)
+      do j = 1, d%nc(2)
+        fi(:) = ux(:, j, k)
+        call Get_1st_derivative('x', 'P2C', d, fi(:), fo(:))
+        div(:, j, k) = div(:, j, k) + fo(:)
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+!-------------------------------------------------------------------------------
+! dv/dy at cell centre
+!_______________________________________________________________________________
+    allocate ( fi( d%np(2) ) ); fi = ZERO
+    allocate ( fo( d%nc(2) ) ); fo = ZERO
+    do k = 1, d%nc(3)
+      do i = 1, d%nc(1)
+        fi(:) = uy(i, :, k)
+        call Get_1st_derivative('y', 'P2C', d, fi(:), fo(:))
+        div(i, :, k) = div(i, :, k) + fo(:)
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+!-------------------------------------------------------------------------------
+! $dw/dz$ at cell centre
+!_______________________________________________________________________________
+    allocate ( fi( d%np(3) ) ); fi = ZERO
+    allocate ( fo( d%nc(3) ) ); fo = ZERO
+    do j = 1, d%nc(2)
+      do i = 1, d%nc(1)
+        fi(:) = uz(i, j, :)
+        call Get_1st_derivative('z', 'P2C', d, fi(:), fo(:))
+        div(i, j, :) = div(i, j, :) + fo(:)
+      end do
+    end do
+    deallocate (fi)
+    deallocate (fo)
+
+    return
+  end subroutine
+
+
+  subroutine Check_continuity(f, d, itime)
     use precision_mod
     use udf_type_mod, only: t_domain, t_flow
     use input_general_mod, only: ithermo
@@ -72,47 +135,9 @@ contains
       call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, div, itime)
     end if
 !-------------------------------------------------------------------------------
-! du/dx at cell centre
+! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
-    allocate ( fi( d%np(1) ) ); fi = ZERO
-    allocate ( fo( d%nc(1) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do j = 1, d%nc(2)
-        fi(:) = f%gx(:, j, k)
-        call Get_1st_derivative('x', 'P2C', d, fi(:), fo(:))
-        div(:, j, k) = div(:, j, k) + fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-!-------------------------------------------------------------------------------
-! dv/dy at cell centre
-!_______________________________________________________________________________
-    allocate ( fi( d%np(2) ) ); fi = ZERO
-    allocate ( fo( d%nc(2) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do i = 1, d%nc(1)
-        fi(:) = f%gy(i, :, k)
-        call Get_1st_derivative('y', 'P2C', d, fi(:), fo(:))
-        div(i, :, k) = div(i, :, k) + fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-!-------------------------------------------------------------------------------
-! $dw/dz$ at cell centre
-!_______________________________________________________________________________
-    allocate ( fi( d%np(3) ) ); fi = ZERO
-    allocate ( fo( d%nc(3) ) ); fo = ZERO
-    do j = 1, d%nc(2)
-      do i = 1, d%nc(1)
-        fi(:) = f%gz(i, j, :)
-        call Get_1st_derivative('z', 'P2C', d, fi(:), fo(:))
-        div(i, j, :) = div(i, j, :) + fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
+    call Get_divergence(f%gx, f%gy, f%gz, div, d)
 
     write(*,*) "-------------------------------------------------------------------------------"
     write(*,*) "The maximum divergence :"

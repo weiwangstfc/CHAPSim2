@@ -44,6 +44,8 @@ module input_thermo_mod
   character(len = 64) :: inputProperty
 
   integer :: ipropertyState
+  real(WP) :: fgravity
+  real(WP) :: u0dim
 
   real(WP), parameter :: TM0_Na = 371.0 ! unit: K, melting temperature at 1 atm for Na
   real(WP), parameter :: TM0_Pb = 600.6 ! unit: K, melting temperature at 1 atm for Lead
@@ -859,6 +861,7 @@ contains
 
     return
   end subroutine Initialize_thermo_parameters
+
 !===============================================================================
 !===============================================================================
 !> \brief The main code for thermal property initialisation.
@@ -880,6 +883,7 @@ contains
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
+    call Compute_gravity_coefficient
 
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test

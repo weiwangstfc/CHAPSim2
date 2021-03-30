@@ -37,6 +37,8 @@ module parameters_constant_mod
   real(WP), parameter :: SEVEN       = 7.0_WP
   real(WP), parameter :: EIGHT       = 8.0_WP
   real(WP), parameter :: NINE        = 9.0_WP
+  real(WP), parameter :: ONE_THIRD   = ONE / THREE
+  real(WP), parameter :: TWO_THIRD   = TWO / THREE
 
   real(WP), parameter :: TEN         = 10.0_WP
   real(WP), parameter :: ELEVEN      = 11.0_WP
@@ -73,6 +75,8 @@ module parameters_constant_mod
 
   real(WP), parameter :: TRUNCERR    = 1.0E-15_WP
 
+  
+
   real(WP), parameter :: PI          = dacos( -ONE )
   real(WP), parameter :: TWOPI       = TWO * dacos( -ONE )
 
@@ -82,6 +86,9 @@ module parameters_constant_mod
                                             ZERO, ONE, ZERO, &
                                             ZERO, ZERO, ONE  /), &
                                             (/3, 3/) )
+
+  real(WP), parameter :: GRAVITY     = 9.80665_WP
+
 end module parameters_constant_mod
 module udf_type_mod
   use precision_mod
@@ -114,7 +121,8 @@ module udf_type_mod
 
   type t_flow
     real(WP) :: time
-    real(WP) :: rre                       ! 1 / Re
+    real(WP) :: rre
+    real(WP) :: fgravity                      ! 1 / Re
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)
     real(WP), allocatable :: qz(:, :, :)
@@ -129,6 +137,14 @@ module udf_type_mod
     real(WP), allocatable :: mVisc(:, :, :)
     real(WP), allocatable :: dDensm1(:, :, :)
     real(WP), allocatable :: dDensm2(:, :, :)
+
+    real(WP), allocatable :: m1_rhs(:, :, :) ! current step rhs in x
+    real(WP), allocatable :: m2_rhs(:, :, :) ! current step rhs in y
+    real(WP), allocatable :: m3_rhs(:, :, :) ! current step rhs in z
+
+    real(WP), allocatable :: m1_rhs0(:, :, :)! last step rhs in x
+    real(WP), allocatable :: m2_rhs0(:, :, :)! last step rhs in y
+    real(WP), allocatable :: m3_rhs0(:, :, :)! last step rhs in z
 
   end type t_flow
   type t_thermo
