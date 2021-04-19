@@ -110,7 +110,7 @@ contains
   end subroutine
 
 
-  subroutine Check_continuity(f, d, itime)
+  subroutine Calculate_continuity_constrains(f, d, itime)
     use precision_mod
     use udf_type_mod, only: t_domain, t_flow
     use input_general_mod, only: ithermo
@@ -137,7 +137,11 @@ contains
 !-------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
-    call Get_divergence(f%gx, f%gy, f%gz, div, d)
+    if (ithermo == 1) then
+      call Get_divergence(f%gx, f%gy, f%gz, div, d)
+    else
+      call Get_divergence(f%qx, f%qy, f%qz, div, d)
+    end if
 
     write(*,*) "-------------------------------------------------------------------------------"
     write(*,*) "The maximum divergence :"

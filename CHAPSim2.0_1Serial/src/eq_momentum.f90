@@ -56,13 +56,13 @@ contains
     rhs1(:, :, :) = rhs1_expl(:, :, :) + &
                     tAlpha(isub) * rhs1_semi(:, :, :)
 
+    ! times the time step 
     rhs1(:, :, :) = dt * rhs1(:, :, :)
 
     deallocate (rhs_dummy)
 
     return
   end subroutine
-
 
   subroutine Compute_momentum_rhs(f, d, isub)
     use input_general_mod, only: ithermo, iviscous, igravity, idriven, IDRVF_NO
@@ -932,13 +932,14 @@ contains
 ! to build up rhs in total
 !_______________________________________________________________________________ 
     ! x-momentum
-    call Calculate_momentum_rhs(f%m1_rhs0, f%m1_rhs1, m1_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m1_rhs0, f%m1_rhs1, m1_rhs_semimplt, isub)
     if(idriven /= IDRVF_NO) call Calculate_momentum_driven_source(f%m1_rhs, d, isub) 
 
     ! y-momentum
-    call Calculate_momentum_rhs(f%m2_rhs0, f%m2_rhs1, m2_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m2_rhs0, f%m2_rhs1, m2_rhs_semimplt, isub)
+
     ! z-momentum
-    call Calculate_momentum_rhs(f%m3_rhs0, f%m3_rhs1, m3_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m3_rhs0, f%m3_rhs1, m3_rhs_semimplt, isub)
  
     return
   end subroutine Compute_momentum_rhs
@@ -962,8 +963,13 @@ contains
     type(t_domain), intent(in   ) :: d
     integer(4),     intent(in   ) :: isub
 
-    call Calculate_momentum_fractional_step(f, d, isub)
-
+!-------------------------------------------------------------------------------
+! to calculate the rhs of the momenturn equation
+!_______________________________________________________________________________ 
+    call Compute_momentum_rhs(f, d, isub)
+!-------------------------------------------------------------------------------
+! to calculate provisional (q) or (g)
+!_______________________________________________________________________________ 
     if(iviscous == IVIS_EXPLICIT) then
 
       if(ithermo == 0) then 
@@ -985,6 +991,10 @@ contains
     else 
 
     end if
+!-------------------------------------------------------------------------------
+! to calculate the provisional divergence constrains
+!_______________________________________________________________________________
+     
 
     return
   end subroutine
