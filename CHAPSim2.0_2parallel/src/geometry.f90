@@ -265,14 +265,15 @@ contains
 
     domain%is_periodic(:) = is_periodic(:)
 
+    ! cell number
     domain%nc(1) = ncx
     domain%nc(2) = ncy
     domain%nc(3) = ncz
-
+    ! node number in geometry
     domain%np_geo(1) = ncx + 1 
     domain%np_geo(2) = ncy + 1
     domain%np_geo(3) = ncz + 1
-
+    ! calculation node number
     do i = 1, 3
       if ( domain%is_periodic(i) ) then
         domain%np(i) = domain%nc(i)

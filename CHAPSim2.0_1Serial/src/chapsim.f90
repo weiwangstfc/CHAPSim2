@@ -30,7 +30,6 @@ program chapsim
   call Initialize_chapsim ()
   call Initialize_flow ()
   call Solve_eqs_iteration()
-
   call Finalise_chapsim ()
   
 end program
@@ -50,12 +49,11 @@ end program
 !_______________________________________________________________________________
 subroutine Initialize_chapsim()
   !use mpi_mod
-  use input_general_mod
-  use input_thermo_mod
   !use domain_decomposition_mod
-  use geometry_mod
-  use flow_variables_mod
-  use operations
+  use input_general_mod, only: Initialize_general_input
+  use input_thermo_mod,  only: Initialize_thermo_input
+  use geometry_mod,      only: Initialize_geometry_variables
+  use operations,        only: Prepare_coeffs_for_operations
   implicit none
 
   !call Initialize_mpi()
@@ -88,7 +86,6 @@ subroutine Initialize_flow()
   implicit none
 
   call Allocate_variables ()
-  call Define_parameters_in_eqs ()
   if (irestart == INITIAL_RANDOM) then
     call Initialize_flow_variables ()
   else if (irestart == INITIAL_RESTART) then
@@ -101,6 +98,74 @@ subroutine Initialize_flow()
   
   return
 end subroutine Initialize_flow
+!===============================================================================
+!===============================================================================
+!> \brief solve the governing equations in iteration
+!>
+!> This subroutine is the main solver. 
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
+subroutine Solve_eqs_iteration
+  use input_general_mod
+  use parameters_constant_mod
+  use save_vars_mod
+  use flow_variables_mod, only: Calculate_RePrGr
+  use eq_momentum_mod, only: Solve_momentum_eq
+  use solver_tools_mod, only: Check_cfl_diffusion, Check_cfl_convection
+  implicit none
+  logical    :: is_flow   = .false.
+  logical    :: is_thermo = .false.
+  integer(4) :: iter, isub, niter
+  
+  if(ithermo == 1) then
+    niter = MAX(nIterFlowEnd, nIterThermoEnd)
+    thermo%time = tThermo
+  else
+    niter = nIterFlowEnd
+    flow%time = tFlow
+  end if
+
+  do iter = iterchkpt + 1, niter
+!===============================================================================
+!      setting up 1/re, 1/re/prt, gravity, etc
+!===============================================================================
+     call Calculate_RePrGr(flow, thermo, iter)
+!===============================================================================
+!      setting up flow solver
+!===============================================================================
+    if ( (iter >= nIterFlowStart) .and. (iter <=nIterFlowEnd)) then
+      is_flow = .true.
+      flow%time = flow%time + dt
+      call Check_cfl_diffusion (domain%h2r(:), flow%rre)
+      call Check_cfl_convection(flow%qx, flow%qy, flow%qz, domain)
+    end if
+!===============================================================================
+!     setting up thermo solver
+!===============================================================================
+    if ( (iter >= nIterThermoStart) .and. (iter <=nIterThermoEnd)) then
+      is_thermo = .true.
+      thermo%time = thermo%time  + dt
+    end if
+!===============================================================================
+!     main solver
+!===============================================================================
+    do isub = 1, nsubitr
+      !if(is_thermo) call Solve_energy_eq(flow, thermo, domain, isub)
+      if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
+    end do
+
+  end do
+
+
+
+end subroutine Solve_eqs_iteration
 
 !===============================================================================
 !===============================================================================

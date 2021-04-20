@@ -11,7 +11,7 @@ module precision_mod
   integer, parameter :: QP = selected_real_kind( p = 33, r = 4931 )
 
   integer, parameter :: WP = DP
-  integer, parameter :: WP = mytype ! inherit from decomp_2d, flag of -DDOUBLE_PREC is required.
+  !integer, parameter :: WP = mytype ! inherit from decomp_2d, flag of -DDOUBLE_PREC is required.
 
 end module precision_mod
 

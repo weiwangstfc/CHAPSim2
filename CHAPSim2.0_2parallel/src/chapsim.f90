@@ -55,6 +55,7 @@ subroutine Initialize_chapsim()
   use geometry_mod, only: Initialize_geometry_variables
   use input_thermo_mod, only: Initialize_thermo_input
   use operations, only: Prepare_coeffs_for_operations
+  use save_vars_mod, only: domain
   implicit none
 
   call Initialize_mpi()
@@ -62,8 +63,7 @@ subroutine Initialize_chapsim()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
   call Prepare_coeffs_for_operations()
-
-  !call Initialize_domain_decompsition ()
+  call Initialize_domain_decompsition (domian)
   return
 end subroutine Initialize_chapsim
 !===============================================================================

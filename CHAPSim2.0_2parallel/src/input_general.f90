@@ -193,6 +193,7 @@ contains
 !===============================================================================
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
     use parameters_constant_mod, only: ZERO, ONE, TWO, PI
+    use mpi_mod, only: ncol, nrow
     implicit none
 !===============================================================================
 ! Local arguments
@@ -228,7 +229,12 @@ contains
         cycle
       end if
 
-      block_section: if ( section_name(1:slen) == '[flowtype]' ) then
+      block_section: if ( section_name(1:slen) == '[mpi]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, nrow
+        read(inputUnit, *, iostat = ioerr) variableName, ncol
+
+      else if ( section_name(1:slen) == '[flowtype]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, icase
         read(inputUnit, *, iostat = ioerr) variableName, ithermo

@@ -47,16 +47,15 @@ contains
   end subroutine Calculate_drhodt
 
 
-  subroutine Get_divergence(ux, uv, uz, div, d)
+  subroutine Get_divergence(ux, uy, uz, div, d)
     use precision_mod
     use udf_type_mod, only: t_domain, t_flow
-    use input_general_mod, only: ithermo
     use parameters_constant_mod, only: ZERO
     use operations, only: Get_1st_derivative
     implicit none
 
     type(t_domain), intent( in ) :: d
-    real(WP), dimension(:, :, :), intent (in   ) :: ux, uv, uz
+    real(WP), dimension(:, :, :), intent (in   ) :: ux, uy, uz
     real(WP), dimension(:, :, :), intent (inout) :: div
 
     real(WP), allocatable :: fi(:), fo(:)
@@ -115,16 +114,13 @@ contains
     use udf_type_mod, only: t_domain, t_flow
     use input_general_mod, only: ithermo
     use parameters_constant_mod, only: ZERO
-    use operations, only: Get_1st_derivative
     implicit none
 
     type(t_domain), intent( in ) :: d
     type(t_flow),   intent( in ) :: f                    
     integer(4),     intent( in ) :: itime
 
-    real(WP), allocatable :: fi(:), fo(:)
     real(WP), allocatable :: div(:, :, :)
-    integer(4) :: i, j, k
 
     allocate ( div( d%nc(1), d%nc(2), d%nc(3) ) ); div = ZERO
 

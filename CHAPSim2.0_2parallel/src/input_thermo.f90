@@ -721,7 +721,7 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Write_thermo_property
-    use mpi_mod, only: nrank
+    use mpi_mod, only: myid 
     use parameters_constant_mod, only : ZERO, TRUNCERR
     implicit none
     type(thermoProperty_t) :: tp
@@ -730,7 +730,7 @@ contains
     real(WP) :: dhmax, dhmin
     integer :: tp_unit
 
-    if (nrank /= 0) return
+    if (myid /= 0) return
 
     n = 128
     call tp%Get_initialized_thermal_properties

@@ -883,8 +883,6 @@ contains
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
-    call Compute_gravity_coefficient
-
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return

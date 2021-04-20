@@ -1,10 +1,12 @@
 !##############################################################################
 module mpi_mod
   include "mpif.h"
-
-  integer :: ierr
-  integer :: nrank
-  integer :: nproc
+  
+  integer :: myid ! ==> nproc
+  integer :: npar ! ==> npar
+  integer :: nrow ! ==> p_row
+  integer :: ncol ! ==> p_col
+  integer :: ierror
 
   public :: Initialize_mpi, Finalise_mpi
 
@@ -13,9 +15,9 @@ contains
   subroutine Initialize_mpi()
     implicit none
     
-    call MPI_INIT(ierr)
-    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
-    call MPI_COMM_SIZE(MPI_COMM_WORLD, npar, ierr)
+    call MPI_INIT(ierror)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierror)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, npar, ierror)
 
   end subroutine Initialize_mpi
 

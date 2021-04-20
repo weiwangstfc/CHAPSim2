@@ -34,6 +34,7 @@ module flow_variables_mod
 
   public  :: Allocate_variables
   public  :: Initialize_flow_variables
+  public  :: Calculate_RePrGr
 
 contains
 !===============================================================================
@@ -170,7 +171,7 @@ contains
     real(WP),       intent(in ) :: ux(:, :, :)
     real(WP),       intent(out) :: ubulk
 
-    call Calculate_y_integral(ux, d, ubulk)
+    call Calculate_y_bulk(ux, d, ubulk)
 
     write(*,*) "-------------------------------------------------------------------------------"
     write(*, *) "The bulk velocity :"
@@ -534,10 +535,10 @@ contains
     use save_vars_mod
     use input_general_mod
     use parameters_constant_mod
-    use solver_tools_mod
     use boundary_conditions_mod
     use continuity_eq_mod
     use test_algrithms_mod
+    use solver_tools_mod
     implicit none
 
     logical :: itest = .false.
@@ -553,7 +554,7 @@ contains
        end subroutine Display_vtk_slice
     end interface
 
-    call Calculate_parameters_in_eqs(flow, thermo, 0)
+    call Calculate_RePrGr(flow, thermo, 0)
 !-------------------------------------------------------------------------------
 ! to initialize thermal variables 
 !-------------------------------------------------------------------------------
@@ -627,5 +628,47 @@ contains
 
     return
   end subroutine
+
+  subroutine Calculate_RePrGr(f, t, iter)
+    use input_general_mod
+    use input_thermo_mod, only: tpRef0
+    use parameters_constant_mod, only: GRAVITY, ONE
+    use udf_type_mod, only: t_flow, t_thermo
+    implicit none
+    type(t_flow),   intent(inout) :: f
+    type(t_thermo), intent(inout) :: t
+    integer(4),     intent(in   ) :: iter  
+  
+    real(WP) :: u0
+  
+    if(iter < nIterIniRen) then
+      f%rre = ONE / renIni
+    else
+      f%rre = ONE / ren
+    end if
+  
+    if(ithermo == 1) then
+  
+      t%rPrRen = f%rre * tpRef0%k / tpRef0%m / tpRef0%cp
+  
+      u0 = ONE / f%rre * tpRef0%m / tpRef0%d / lenRef
+      if (igravity == 0) then
+        ! no gravity
+        f%fgravity = ZERO
+      else if (igravity == 1 .or. igravity == 2 .or. igravity == 3 ) then 
+        ! flow/gravity same dirction
+        f%fgravity =  lenRef / u0 / u0 * GRAVITY
+      else if (igravity == -1 .or. igravity == -2 .or. igravity == -3 ) then 
+        ! flow/gravity opposite dirction
+        f%fgravity = -lenRef / u0 / u0 * GRAVITY
+      else
+        ! no gravity
+        f%fgravity = ZERO
+      end if
+  
+    end if
+  
+    return
+  end subroutine Calculate_RePrGr
 
 end module flow_variables_mod

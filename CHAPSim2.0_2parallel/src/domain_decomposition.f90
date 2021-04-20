@@ -2,12 +2,12 @@
 module domain_decomposition_mod
   implicit none
   type pencil_t
-    integer :: isz
-    integer :: jsz
-    integer :: ksz
-    integer :: irange(2)
-    integer :: jrange(2)
-    integer :: krange(2)
+    integer :: ipsz
+    integer :: jpsz
+    integer :: kpsz
+    integer :: iprange(2)
+    integer :: jprange(2)
+    integer :: kprange(2)
   contains
     private
     procedure :: Print_debug
@@ -15,7 +15,7 @@ module domain_decomposition_mod
     generic :: write(formatted) => Print_debug
   end type pencil_t
   
-  type(pencil_t), save :: local_xpencil
+  type(pencil_t), save :: local0_xpencil
   public :: Initialize_domain_decompsition
 
 contains
@@ -57,24 +57,26 @@ contains
     end if
   end subroutine Print_debug
 
-  subroutine Initialize_domain_decompsition ()
-    use mpi_mod
+  subroutine Initialize_domain_decompsition (d)
+    use mpi_mod, only: nrow, ncol
     use input_general_mod
     use decomp_2d
+    implicit none
+    type(t_domain), intent(in)   :: d
 
-    call decomp_2d_init( npx, npy, npz, p_row, p_col, is_periodic(:) )
+    call decomp_2d_init( d%np(1), d%np(2), d%np(3), nrow, ncol, is_periodic(:) )
     
-    local_xpencil%irange(1) = xstart(1)
-    local_xpencil%jrange(1) = xstart(2)
-    local_xpencil%krange(1) = xstart(3)
+    local0_xpencil%iprange(1) = xstart(1)
+    local0_xpencil%jprange(1) = xstart(2)
+    local0_xpencil%kprange(1) = xstart(3)
 
-    local_xpencil%irange(2) = xend(1)
-    local_xpencil%jrange(2) = xend(2)
-    local_xpencil%krange(2) = xend(3)
+    local0_xpencil%iprange(2) = xend(1)
+    local0_xpencil%jprange(2) = xend(2)
+    local0_xpencil%kprange(2) = xend(3)
 
-    local_xpencil%isz = xsize(1)
-    local_xpencil%jsz = xsize(2)
-    local_xpencil%ksz = xsize(3)
+    local0_xpencil%ipsz = xsize(1)
+    local0_xpencil%jpsz = xsize(2)
+    local0_xpencil%kpsz = xsize(3)
 
     write(*, '(dt)') local_xpencil
 
