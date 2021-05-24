@@ -1,6 +1,6 @@
 !##############################################################################
 module precision_mod
-  use decomp_2d
+  use decomp_2d, only: mytype
   implicit none
 
   integer, parameter :: I4 = selected_int_kind( 4 )

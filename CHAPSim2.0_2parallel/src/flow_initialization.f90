@@ -34,6 +34,7 @@ module flow_variables_mod
 
   public  :: Allocate_variables
   public  :: Initialize_flow_variables
+  public  :: Calculate_RePrGr
 
 contains
 !===============================================================================
@@ -173,7 +174,7 @@ contains
     real(WP),       intent(in ) :: ux(:, :, :)
     real(WP),       intent(out) :: ubulk
 
-    call Calculate_y_integral(ux, d, ubulk)
+    call Calculate_y_bulk(ux, d, ubulk)
 
     write(*,*) "-------------------------------------------------------------------------------"
     write(*, *) "The bulk velocity :"

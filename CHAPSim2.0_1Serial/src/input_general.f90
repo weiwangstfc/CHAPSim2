@@ -25,9 +25,11 @@
 !>
 !===============================================================================
 module input_general_mod
-  use precision_mod
+  use precision_mod, only :: WP
   use parameters_constant_mod, only: ZERO
   implicit none
+
+  private ! make everything private unless declared public
 
   character(len = 9), parameter :: INPUT_FILE = 'input.ini'
 
@@ -50,12 +52,15 @@ module input_general_mod
                         ITIME_RK3_CN = 2, &
                         ITIME_AB2    = 1
 
-  integer, parameter :: IBC_INTERIOR    = 0, &
-                        IBC_PERIODIC    = 1, &
-                        IBC_UDIRICHLET  = 2, &
-                        IBC_SYMMETRIC   = 3, &
-                        IBC_ASYMMETRIC  = 4
-
+  integer, parameter :: IBC_INTERIOR    = 9, &
+                        IBC_PERIODIC    = 0, &
+                        IBC_UDIRICHLET  = 1, &
+                        IBC_NEUMANN     = 2, &
+                        IBC_CONVECTIVE  = 3, &
+                        IBC_SYMMETRIC   = 4, &
+                        IBC_ASYMMETRIC  = 5, &
+                        IBC_TURBGEN     = 6, &
+                        IBC_DATABASE    = 7
 !                        IBC_INLET_MEAN  = 4, &
 !                        IBC_INLET_TG    = 5, &
 !                        IBC_INLET_MAP   = 6, &
@@ -97,8 +102,8 @@ module input_general_mod
   real(WP) :: lxx, lzz, lyt, lyb
 
   ! domain mesh
-  integer :: ncx, ncy, ncz
-  integer :: istret
+  integer  :: ncx, ncy, ncz
+  integer  :: istret
   real(WP) :: rstret
 
   ! flow parameter
@@ -106,13 +111,13 @@ module input_general_mod
 
   ! time stepping
   real(WP) :: dt
-  integer :: nIterFlowStart
-  integer :: nIterFlowEnd
+  integer  :: nIterFlowStart
+  integer  :: nIterFlowEnd
 
   ! boundary condition
-  integer :: ifbcx(1:2)
-  integer :: ifbcy(1:2)
-  integer :: ifbcz(1:2)
+  integer  :: ifbcx(1:2)
+  integer  :: ifbcy(1:2)
+  integer  :: ifbcz(1:2)
   real(WP) :: uxinf(2)
   real(WP) :: uyinf(2)
   real(WP) :: uzinf(2)
@@ -137,22 +142,22 @@ module input_general_mod
   real(WP) :: initNoise
 
   ! PeriodicDrv
-  integer :: idriven
+  integer  :: idriven
   real(WP) :: drvf
   
   ! ThermoParam
-  integer :: ifluid
-  integer :: igravity
+  integer  :: ifluid
+  integer  :: igravity
   real(WP) :: lenRef
   real(WP) :: t0Ref
   real(WP) :: tiRef
-  integer :: itbcy(1:2)
+  integer  :: itbcy(1:2)
   real(WP) :: tbcy(1:2)
-  integer :: nIterThermoStart
-  integer :: nIterThermoEnd
+  integer  :: nIterThermoStart
+  integer  :: nIterThermoEnd
 
   ! parameters from restart
-  integer :: iterchkpt = 0       ! iteration number from restart/checkpoint
+  integer  :: iterchkpt = 0       ! iteration number from restart/checkpoint
   real(WP) :: tThermo  = ZERO
   real(WP) :: tFlow    = ZERO
 
@@ -160,10 +165,13 @@ module input_general_mod
   logical :: is_periodic(3)
   integer :: icoordinate
 
-  integer :: nsubitr
+  integer  :: nsubitr
   real(WP) :: tGamma(0 : 3)
   real(WP) :: tZeta (0 : 3)
   real(WP) :: tAlpha(0 : 3)
+
+  real(WP) :: sigma1p
+  real(WP) :: sigma2p
 
   ! procedure
   public  :: Initialize_general_input
@@ -191,8 +199,9 @@ contains
 !===============================================================================
 ! Module files
 !===============================================================================
-    use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
-    use parameters_constant_mod, only: ZERO, ONE, TWO, PI
+    use iso_fortran_env,         only : ERROR_UNIT, IOSTAT_END
+    use parameters_constant_mod, only : ZERO, ONE, TWO, PI
+    use mpi_mod,                 only : ncol, nrow
     implicit none
 !===============================================================================
 ! Local arguments
@@ -222,13 +231,18 @@ contains
       slen = len_trim(section_name)
       if (ioerr /=0 ) exit
       if ( (section_name(1:1) == ';') .or. &
-          (section_name(1:1) == '#') .or. &
-          (section_name(1:1) == ' ') .or. &
-          (slen == 0) ) then
+           (section_name(1:1) == '#') .or. &
+           (section_name(1:1) == ' ') .or. &
+           (slen == 0) ) then
         cycle
       end if
 
-      block_section: if ( section_name(1:slen) == '[flowtype]' ) then
+      block_section: if ( section_name(1:slen) == '[mpi]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, nrow
+        read(inputUnit, *, iostat = ioerr) variableName, ncol
+
+      else if ( section_name(1:slen) == '[flowtype]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, icase
         read(inputUnit, *, iostat = ioerr) variableName, ithermo
@@ -320,8 +334,9 @@ contains
     'in Subroutine: '// "Initialize_general_input")
 
     close(inputUnit)
-
-    ! set up some default values to overcome wrong input
+!===============================================================================
+! set up some default values to overcome wrong input
+!===============================================================================  
     if (icase == ICASE_CHANNEL) then
       if(istret /= ISTRET_2SIDES) &
       call Print_warning_msg ("Grids are not two-side clustered.")
@@ -354,7 +369,9 @@ contains
       ! do nothing...
     end if
 
-    ! to set up cooridnates
+!===============================================================================
+! set up some parameters derived from the input
+!=============================================================================== 
     if (icase == ICASE_CHANNEL) then
       icoordinate = ICARTESIAN
     else if (icase == ICASE_PIPE) then
@@ -395,7 +412,7 @@ contains
 !_______________________________________________________________________________
   subroutine Set_periodic_bc( bc, flg )
     integer, intent(inout) :: bc(1:2)
-    logical, intent(out) :: flg
+    logical, intent(out  ) :: flg
 
     if ( (bc(1) == IBC_PERIODIC) .or. (bc(2) == IBC_PERIODIC) ) then
       bc(1) = IBC_PERIODIC
@@ -404,7 +421,7 @@ contains
     else 
       flg = .false.
     end if
-
+    return
   end subroutine Set_periodic_bc
 !===============================================================================
 !===============================================================================
@@ -424,7 +441,15 @@ contains
     use parameters_constant_mod
     implicit none
 
-    if(iTimeScheme == ITIME_RK3 .or. &
+    !option 1: to set up pressure treatment, for O(dt^2)
+    sigma1p = ONE
+    sigma2p = HALF
+
+    !option 2: to set up pressure treatment, for O(dt)
+    !sigma1p = ONE
+    !sigma2p = ONE
+
+    if(iTimeScheme == ITIME_RK3     .or. &
        iTimeScheme == ITIME_RK3_CN) then
       
       nsubitr = 3

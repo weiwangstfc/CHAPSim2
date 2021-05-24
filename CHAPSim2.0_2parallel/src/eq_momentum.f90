@@ -1,8 +1,10 @@
 module eq_momentum_mod
+  use precision_mod
 
   private :: Calculate_momentum_driven_source
   private :: Calculate_momentum_fractional_step
   private :: Compute_momentum_rhs
+  public  :: Solve_momentum_eq
 
 contains
   subroutine Calculate_momentum_driven_source(rhs, d, isub)
@@ -10,9 +12,12 @@ contains
           IDRVF_NO, IDRVF_MASSFLUX, IDRVF_SKINFRIC, IDRVF_PRESLOSS, &
           tAlpha, dt
     use solver_tools_mod, only: Calculate_y_bulk
+    use udf_type_mod, only: t_domain
+    use parameters_constant_mod, only: HALF, ZERO
     implicit none
     real(WP),   intent(inout) :: rhs(:, :, :)
     integer(4), intent(in   ) :: isub
+    type(t_domain), intent(in) :: d
 
     real(WP) :: rhs_bulk
 
@@ -36,11 +41,13 @@ contains
   end subroutine 
 
   subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, isub)
-    use input_general_mod, only: tGamma, tZeta, tAlpha, dt
+    use input_general_mod, only: tGamma, tZeta, tAlpha, dt, IVIS_SEMIMPLT, iviscous
     implicit none
-    real(WP), dimension(:, :, :), intent(in) :: rhs0, rhs1
+    real(WP), dimension(:, :, :), intent(in)    :: rhs1_semi
+    real(WP), dimension(:, :, :), intent(inout) :: rhs0, rhs1
     integer(4), intent(in) :: isub
     integer(4) :: n(3)
+    real(WP), allocatable :: rhs_dummy(:, :, :)
 
     n(1:3) = shape(rhs1)
 
@@ -53,9 +60,11 @@ contains
     rhs0(:, :, :) = rhs_dummy(:, :, :)
 
     ! add semi-implicit
-    rhs1(:, :, :) = rhs1_expl(:, :, :) + &
+    if((iviscous == IVIS_SEMIMPLT )) then
+      rhs1(:, :, :) = rhs1(:, :, :) + &
                     tAlpha(isub) * rhs1_semi(:, :, :)
 
+    end if
     ! times the time step 
     rhs1(:, :, :) = dt * rhs1(:, :, :)
 
@@ -65,8 +74,11 @@ contains
   end subroutine
 
   subroutine Compute_momentum_rhs(f, d, isub)
-    use input_general_mod, only: ithermo, iviscous, igravity, idriven, IDRVF_NO
+    use input_general_mod, only: ithermo, iviscous, igravity, idriven, IDRVF_NO, &
+        IVIS_EXPLICIT, IVIS_SEMIMPLT
     use udf_type_mod, only: t_flow, t_domain
+    use parameters_constant_mod, only: TWO, ZERO, ONE_THIRD
+    use operations
     implicit none
     type(t_flow),   intent(inout) :: f
     type(t_domain), intent(in   ) :: d
@@ -128,6 +140,7 @@ contains
 
     integer(4), parameter :: II = 1, JJ = 2, KK = 3
     real(WP) :: one_third_rre, two_rre
+    integer(4) :: i, j, k
 
 !===============================================================================
 ! Initilisation
@@ -147,6 +160,8 @@ contains
     m2_rhs_semimplt(:, :, :) =  ZERO
     m3_rhs_semimplt(:, :, :) =  ZERO
 
+    one_third_rre = ONE_THIRD * f%rre
+    two_rre       = TWO * f%rre
     if(ithermo == 1) then
       foxm(:) = ZERO
       foxd(:) = ZERO
@@ -155,8 +170,6 @@ contains
       fozd(:) = ZERO
       fozm(:) = ZERO
       div(:, :, :) = ZERO
-      one_third_rre = ONE_THIRD * f%rre
-      two_rre       = TWO * f%rre
     end if
       
 !===============================================================================
@@ -185,7 +198,7 @@ contains
         if( j <= d%nc(JJ) ) then
           ! qz, x average
           fix( 1 : d%nc(II) ) = f%qz(:, j, k)  !qz(i, j, k')
-          call Get_midp_interpolation('x', 'C2P', d, fix( 1 : d%nc(II) ), fo(:) ) ! qz(i', j, k')
+          call Get_midp_interpolation('x', 'C2P', d, fix( 1 : d%nc(II) ), fox(:) ) ! qz(i', j, k')
           qzxp(:, j, k) = fox(:)
         end if
 
@@ -299,7 +312,7 @@ contains
           ! qx, z average
           fiz( 1 : d%nc(KK) ) = f%qx(i, j, :) ! qx(i', j, k)
           call Get_midp_interpolation('z', 'C2P', d, fiz( 1 : d%nc(KK) ), foz(:) ) ! qx(i', j, k')
-          qxzp(i, j, :) = fo(:)
+          qxzp(i, j, :) = foz(:)
         end if
 
         if( i <= d%nc(II) ) then
@@ -343,7 +356,7 @@ contains
             call Get_midp_interpolation('z', 'P2C', d, fiz(:), foz( 1 : d%nc(KK) ) ) ! gz(i, j, k)
             gzzc(i, j, :) = foz( 1 : d%nc(KK) )
             ! mu, z average
-            fi( 1 : d%nc(KK) ) = f%mVisc(i, j, :) ! mu(i, j, k)
+            fiz( 1 : d%nc(KK) ) = f%mVisc(i, j, :) ! mu(i, j, k)
             call Get_midp_interpolation('z', 'C2P', d, fiz( 1 : d%nc(KK) ), foz(:) ) ! mu(i, j, k')
             mzp(i, j, :) = foz(:)
           end if
@@ -862,7 +875,7 @@ contains
               call Get_2nd_derivative( 'z', 'P2P', d, fiz(:), foz (:) )              ! LL(qz)         (i, j, k')
               f%m3_rhs(i, j, :) =  f%m3_rhs(i, j, :) + &
                                             f%rre * mzp(i, j, :) * foz (:)
-            else if (iviscous == IVIS_SEMIMPLT)
+            else if (iviscous == IVIS_SEMIMPLT) then
               ! for z diffusion term (1/7), \mu * LL(w)
               fiz(:) = f%qz(i, j, :)                                                 ! qz             (i, j, k')
               call Get_2nd_derivative( 'z', 'P2P', d, fiz(:), foz (:) )              ! LL(qz)         (i, j, k')
@@ -932,14 +945,14 @@ contains
 ! to build up rhs in total
 !_______________________________________________________________________________ 
     ! x-momentum
-    call Calculate_momentum_fractional_step(f%m1_rhs0, f%m1_rhs1, m1_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m1_rhs0, f%m1_rhs, m1_rhs_semimplt, isub)
     if(idriven /= IDRVF_NO) call Calculate_momentum_driven_source(f%m1_rhs, d, isub) 
 
     ! y-momentum
-    call Calculate_momentum_fractional_step(f%m2_rhs0, f%m2_rhs1, m2_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m2_rhs0, f%m2_rhs, m2_rhs_semimplt, isub)
 
     ! z-momentum
-    call Calculate_momentum_fractional_step(f%m3_rhs0, f%m3_rhs1, m3_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m3_rhs0, f%m3_rhs, m3_rhs_semimplt, isub)
  
     return
   end subroutine Compute_momentum_rhs
@@ -948,7 +961,7 @@ contains
   subroutine Calculate_provisional_mvar(rhs, u)
     use precision_mod
     implicit none
-    real(WP), dimension(:, :, :), intent(in) :: rhs, u
+    real(WP), dimension(:, :, :), intent(inout) :: rhs, u
 
     u(:, :, :) = u(:, :, :) + rhs(:, :, :)
 

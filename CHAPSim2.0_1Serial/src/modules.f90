@@ -18,6 +18,7 @@ end module precision_mod
 !##############################################################################
 module parameters_constant_mod
   use precision_mod
+  implicit none
 
   real(WP), parameter :: ZPONE       = 0.1_WP
   real(WP), parameter :: ZPTWO       = 0.2_WP
@@ -95,6 +96,7 @@ module parameters_constant_mod
 end module parameters_constant_mod
 module udf_type_mod
   use precision_mod
+  implicit none
   type t_domain
     logical :: is_periodic(3)
     logical :: is_stretching(3)
@@ -161,8 +163,10 @@ module udf_type_mod
 
 end module
 
-module save_vars_mod
+module type_vars_mod
   use udf_type_mod
+  implicit none
+
   type(t_domain), save :: domain
   type(t_flow),   save :: flow
   type(t_thermo), save :: thermo
@@ -172,6 +176,7 @@ end module
 module math_mod
   use precision_mod
   use parameters_constant_mod, only: ONE, ZERO, MINP
+  implicit none
 
   interface sqrt_wp
     module procedure sqrt_sp

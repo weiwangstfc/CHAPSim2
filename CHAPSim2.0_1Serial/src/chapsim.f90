@@ -56,11 +56,11 @@ subroutine Initialize_chapsim()
   use operations,        only: Prepare_coeffs_for_operations
   implicit none
 
-  !call Initialize_mpi()
+  !call Initialize_mpi ()
   call Initialize_general_input ()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
-  call Prepare_coeffs_for_operations()
+  call Prepare_coeffs_for_operations ()
 
   !call Initialize_domain_decompsition ()
   return
@@ -79,15 +79,19 @@ end subroutine Initialize_chapsim
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !_______________________________________________________________________________
-subroutine Initialize_flow()
-  use flow_variables_mod
-  use input_general_mod, only : irestart, &
+subroutine Initialize_flow ()
+  use flow_variables_mod, only : Allocate_thermoflow_variables
+  use solver_tools_mod,   only : Calculate_parameters_in_eqs
+  use flow_variables_mod, only : Initialize_flow_variables
+  use input_general_mod,  only : irestart, &
       INITIAL_RANDOM, INITIAL_RESTART, INITIAL_INTERPL
+  use type_vars_mod,      only : domain, flow, thermo 
   implicit none
 
-  call Allocate_variables ()
+  call Allocate_thermoflow_variables (domain, flow, thermo)
+  call Calculate_parameters_in_eqs (flow, thermo)
   if (irestart == INITIAL_RANDOM) then
-    call Initialize_flow_variables ()
+    call Initialize_flow_variables ( domain, flow, thermo )
   else if (irestart == INITIAL_RESTART) then
 
   else if (irestart == INITIAL_INTERPL) then
@@ -113,13 +117,15 @@ end subroutine Initialize_flow
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Solve_eqs_iteration
-  use input_general_mod
-  use parameters_constant_mod
-  use save_vars_mod
-  use flow_variables_mod, only: Calculate_RePrGr
-  use eq_momentum_mod, only: Solve_momentum_eq
-  use solver_tools_mod, only: Check_cfl_diffusion, Check_cfl_convection
+  use input_general_mod,       only : ithermo, nIterFlowEnd, nIterThermoEnd, &
+                                      tThermo, tFlow, nIterFlowEnd, iterchkpt, &
+                                      dt, nsubitr
+  use type_vars_mod,           only : flow, thermo, domain
+  use flow_variables_mod,      only : Calculate_RePrGr
+  use eq_momentum_mod,         only : Solve_momentum_eq
+  use solver_tools_mod,        only : Check_cfl_diffusion, Check_cfl_convection
   implicit none
+
   logical    :: is_flow   = .false.
   logical    :: is_thermo = .false.
   integer(4) :: iter, isub, niter
@@ -157,14 +163,14 @@ subroutine Solve_eqs_iteration
 !     main solver
 !===============================================================================
     do isub = 1, nsubitr
-      !if(is_thermo) call Solve_energy_eq(flow, thermo, domain, isub)
+      !if(is_thermo) call Solve_energy_eq  (flow, thermo, domain, isub)
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
     end do
 
   end do
 
 
-
+  return
 end subroutine Solve_eqs_iteration
 
 !===============================================================================

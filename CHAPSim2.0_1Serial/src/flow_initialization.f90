@@ -22,7 +22,7 @@
 !>
 !===============================================================================
 module flow_variables_mod
-  use save_vars_mod
+  use type_vars_mod
   implicit none
 
   private :: Calculate_xbulk_velocity
@@ -32,7 +32,7 @@ module flow_variables_mod
   private :: Initialize_vortexgreen_flow
   private :: Initialize_thermal_variables
 
-  public  :: Allocate_variables
+  public  :: Allocate_thermoflow_variables
   public  :: Initialize_flow_variables
   public  :: Calculate_RePrGr
 
@@ -51,11 +51,14 @@ contains
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !_______________________________________________________________________________
-  subroutine Allocate_variables
-    use input_general_mod, only : ithermo
+  subroutine Allocate_thermoflow_variables (domain, flow, thermo)
+    use input_general_mod,       only : ithermo
     use parameters_constant_mod, only : ZERO, ONE
-    use save_vars_mod
     implicit none
+
+    type(t_domain), intent(in)    :: domain
+    type(t_flow),   intent(inout) :: flow
+    type(t_thermo), intent(inout) :: thermo
 
     allocate ( flow%qx( domain%np(1), domain%nc(2), domain%nc(3) ) )
     allocate ( flow%qy( domain%nc(1), domain%np(2), domain%nc(3) ) )
@@ -100,7 +103,6 @@ contains
     flow%m2_rhs0 = ZERO
     flow%m3_rhs0 = ZERO
 
-
     if(ithermo == 1) then
       allocate ( thermo%dh    ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
       allocate ( thermo%hEnth ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
@@ -113,7 +115,7 @@ contains
     end if
 
     return
-  end subroutine Allocate_variables
+  end subroutine Allocate_thermoflow_variables
 !===============================================================================
 !===============================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     
@@ -163,7 +165,7 @@ contains
 !_______________________________________________________________________________
   subroutine Calculate_xbulk_velocity(ux, d, ubulk)
     use parameters_constant_mod, only : ZERO, HALF
-    use operations, only: Get_midp_interpolation
+    use operations, only: Get_midp_interpolation_1D
     use solver_tools_mod, only: Calculate_y_bulk
     implicit none
 
@@ -531,8 +533,7 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
-  subroutine Initialize_flow_variables( )
-    use save_vars_mod
+  subroutine Initialize_flow_variables( domain, flow, thermo )
     use input_general_mod
     use parameters_constant_mod
     use boundary_conditions_mod
@@ -540,6 +541,9 @@ contains
     use test_algrithms_mod
     use solver_tools_mod
     implicit none
+    type(t_domain), intent(in   ) :: domain
+    type(t_flow),   intent(inout) :: flow
+    type(t_thermo), intent(inout) :: thermo
 
     logical :: itest = .false.
 

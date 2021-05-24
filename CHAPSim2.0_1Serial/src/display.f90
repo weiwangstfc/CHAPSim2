@@ -2,7 +2,7 @@
 subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
   use udf_type_mod
   use parameters_constant_mod, only: ZERO
-  use operations, only: Get_midp_interpolation
+  use operations, only: Get_midp_interpolation_1D
   implicit none
   type(t_domain), intent( in ) :: d
   integer(4) :: vartp
@@ -86,7 +86,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
     do k = 1, nc3
       do j = 1, nc2
         fi(:) = var0(:, j, k)
-        call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
+        call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
         var1(:, j, k) = fo(:)
       end do
     end do
@@ -103,7 +103,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
     do k = 1, nc3
       do i = 1, nc1
         fi(:) = var0(i, :, k)
-        call Get_midp_interpolation('y', 'P2C', d, fi(:), fo(:))
+        call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
         var1(i, :, k) = fo(:)
       end do
     end do
@@ -119,7 +119,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
     do j = 1, nc2
       do i = 1, nc1
         fi(:) = var0(i, j, :)
-        call Get_midp_interpolation('z', 'P2C', d, fi(:), fo(:))
+        call Get_midp_interpolation_1D('z', 'P2C', d, fi(:), fo(:))
         var1(i, j, :) = fo(:)
       end do
     end do

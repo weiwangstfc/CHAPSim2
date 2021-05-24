@@ -6,12 +6,16 @@ module solver_tools_mod
   public  :: Calculate_parameters_in_eqs
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_y_bulk
+  public  :: Check_cfl_convection
+  public  :: Check_cfl_diffusion
 
 contains
 
 subroutine Calculate_y_bulk(u, d, uybulk)
+  use precision_mod
   use parameters_constant_mod, only : ZERO, HALF
   use operations, only: Get_midp_interpolation
+  use udf_type_mod, only: t_domain
   implicit none
 
   type(t_domain), intent(in ) :: d
@@ -19,7 +23,6 @@ subroutine Calculate_y_bulk(u, d, uybulk)
   real(WP),       intent(out) :: uybulk
 
   real(WP) :: fi(d%nc(2)), fo(d%np(2))
-  real(WP) :: lmean
   integer(4) :: i, j, k
 
   
@@ -28,7 +31,7 @@ subroutine Calculate_y_bulk(u, d, uybulk)
   fo = ZERO
   do k = 1, d%nc(3)
     do i = 1, d%nc(1)
-      fi(:) = ux(i, :, k)
+      fi(:) = u(i, :, k)
       call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
       do j = 1, d%nc(2)
         uybulk = uybulk + &
@@ -40,7 +43,7 @@ subroutine Calculate_y_bulk(u, d, uybulk)
 
   uybulk = uybulk / real(d%nc(1) * d%nc(3), WP) / ( d%yp( d%np(2) ) - d%yp(1) )
   return 
-end subroutine Calculate_y_integral
+end subroutine Calculate_y_bulk
 
 
 
@@ -178,10 +181,10 @@ end subroutine
   end subroutine
 
   subroutine Check_cfl_convection(u, v, w, d)
-    use input_general_mod, only: dt
     use parameters_constant_mod, only: ZERO, ONE
     use precision_mod
     use udf_type_mod, only: t_domain
+    use operations, only: Get_midp_interpolation
     implicit none
 
     type(t_domain),               intent(in) :: d
@@ -231,7 +234,7 @@ end subroutine
       do i = 1, d%nc(1)
         fi(:) = w(i, j, :)
         call Get_midp_interpolation('z', 'P2C', d, fi(:), fo(:))
-        udx(i, :, k) = udx(i, :, k) + fo(:) * d%h1r(3)
+        udx(i, j, :) = udx(i, j, :) + fo(:) * d%h1r(3)
       end do
     end do
     deallocate (fi)

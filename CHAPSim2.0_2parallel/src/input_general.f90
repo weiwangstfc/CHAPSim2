@@ -106,8 +106,8 @@ module input_general_mod
 
   ! time stepping
   real(WP) :: dt
-  integer :: nIterFlow0
-  integer :: nIterFlow1
+  integer :: nIterFlowStart
+  integer :: nIterFlowEnd
 
   ! boundary condition
   integer :: ifbcx(1:2)
@@ -148,8 +148,8 @@ module input_general_mod
   real(WP) :: tiRef
   integer :: itbcy(1:2)
   real(WP) :: tbcy(1:2)
-  integer :: nIterThermo0
-  integer :: nIterThermo1
+  integer :: nIterThermoStart
+  integer :: nIterThermoEnd
 
   ! parameters from restart
   integer :: iterchkpt = 0       ! iteration number from restart/checkpoint
@@ -267,8 +267,8 @@ contains
       else if ( section_name(1:slen) == '[timestepping]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, dt
-        read(inputUnit, *, iostat = ioerr) variableName, nIterFlow0
-        read(inputUnit, *, iostat = ioerr) variableName, nIterFlow1
+        read(inputUnit, *, iostat = ioerr) variableName, nIterFlowStart
+        read(inputUnit, *, iostat = ioerr) variableName, nIterFlowEnd
 
       else if ( section_name(1:slen) == '[boundary]' ) then
 
@@ -313,8 +313,8 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, tiRef
         read(inputUnit, *, iostat = ioerr) variableName, itbcy(1), itbcy(2)
         read(inputUnit, *, iostat = ioerr) variableName, tbcy(1), tbcy(2)
-        read(inputUnit, *, iostat = ioerr) variableName, nIterThermo0
-        read(inputUnit, *, iostat = ioerr) variableName, nIterThermo1
+        read(inputUnit, *, iostat = ioerr) variableName, nIterThermoStart
+        read(inputUnit, *, iostat = ioerr) variableName, nIterThermoEnd
 
       else
         exit

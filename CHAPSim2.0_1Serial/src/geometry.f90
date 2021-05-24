@@ -25,7 +25,7 @@
 !>
 !===============================================================================
 module geometry_mod
-  use save_vars_mod, only: domain
+  use type_vars_mod, only: domain
   implicit none
 
   !private
