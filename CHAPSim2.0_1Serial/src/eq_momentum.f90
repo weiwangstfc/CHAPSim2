@@ -625,7 +625,7 @@ contains
 !-------------------------------------------------------------------------------
 ! to calculate the provisional divergence constrains
 !_______________________________________________________________________________
-     
+    call Calculate_continuity_constrains(f, d, isub)
 
     return
   end subroutine

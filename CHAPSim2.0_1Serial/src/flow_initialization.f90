@@ -103,6 +103,9 @@ contains
     flow%m2_rhs0 = ZERO
     flow%m3_rhs0 = ZERO
 
+    allocate ( flow%rhsp ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    flow%rhsp = ZERO
+
     if(ithermo == 1) then
       allocate ( thermo%dh    ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
       allocate ( thermo%hEnth ( domain%nc(1), domain%nc(2), domain%nc(3) )  )

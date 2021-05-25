@@ -151,7 +151,10 @@ module udf_type_mod
     real(WP), allocatable :: m2_rhs0(:, :, :)! last step rhs in y
     real(WP), allocatable :: m3_rhs0(:, :, :)! last step rhs in z
 
+    real(WP), allocatable :: rhsp(:, :, :)   !  continuity constrains
+
   end type t_flow
+
   type t_thermo
     real(WP) :: time
     real(WP) :: rPrRen

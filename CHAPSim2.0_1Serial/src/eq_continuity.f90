@@ -38,7 +38,7 @@ contains
 
     else if (iTimeScheme == ITIME_RK3 .or. iTimeScheme == ITIME_RK3_CN) then
 
-      ! to check this part!
+      ! to check this part, is iteration necessary?
       drhodt(:, :, :) = dDens  (:, :, :)
       do i = 1, nsubitr
         drhodt(:, :, :) = drhodt(:, :, :) + tAlpha(i) * &
@@ -71,64 +71,40 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Get_divergence(ux, uy, uz, div, d)
+  subroutine Get_divergence_vel(ux, uy, uz, div, d)
     use precision_mod
     use udf_type_mod, only: t_domain, t_flow
     use parameters_constant_mod, only: ZERO
     use operations, only: Get_1st_derivative_1D
     implicit none
 
-    type(t_domain),               intent ( in  ) :: d
+    type(t_domain),               intent (in   ) :: d
     real(WP), dimension(:, :, :), intent (in   ) :: ux, uy, uz
     real(WP), dimension(:, :, :), intent (inout) :: div
 
-    real(WP), allocatable :: fi(:), fo(:)
+    real(WP), allocatable  :: div0 (:, :, :)
 
-    integer(4) :: i, j, k
+    allocate(div0, MOLD = div)
+    div = ZERO
+!-------------------------------------------------------------------------------
+! operation in x pencil
+!_______________________________________________________________________________
+    call Get_x_1st_derivative_P2C_3dArray( d, ux, div0,  d%np(1), d%nc(2), d%nc(3) )
+    div = div + div0
 
 !-------------------------------------------------------------------------------
-! du/dx at cell centre
+! operation in y pencil
 !_______________________________________________________________________________
-    allocate ( fi( d%np(1) ) ); fi = ZERO
-    allocate ( fo( d%nc(1) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do j = 1, d%nc(2)
-        fi(:) = ux(:, j, k)
-        call Get_1st_derivative_1D('x', 'P2C', d, fi(:), fo(:))
-        div(:, j, k) = div(:, j, k) + fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-!-------------------------------------------------------------------------------
-! dv/dy at cell centre
-!_______________________________________________________________________________
-    allocate ( fi( d%np(2) ) ); fi = ZERO
-    allocate ( fo( d%nc(2) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do i = 1, d%nc(1)
-        fi(:) = uy(i, :, k)
-        call Get_1st_derivative_1D('y', 'P2C', d, fi(:), fo(:))
-        div(i, :, k) = div(i, :, k) + fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-!-------------------------------------------------------------------------------
-! $dw/dz$ at cell centre
-!_______________________________________________________________________________
-    allocate ( fi( d%np(3) ) ); fi = ZERO
-    allocate ( fo( d%nc(3) ) ); fo = ZERO
-    do j = 1, d%nc(2)
-      do i = 1, d%nc(1)
-        fi(:) = uz(i, j, :)
-        call Get_1st_derivative_1D('z', 'P2C', d, fi(:), fo(:))
-        div(i, j, :) = div(i, j, :) + fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
+    call Get_y_1st_derivative_P2C_3dArray( d, uy, div0,  d%nc(1), d%np(2), d%nc(3) )
+    div = div + div0
 
+!-------------------------------------------------------------------------------
+! operation in z pencil
+!_______________________________________________________________________________
+    call Get_z_1st_derivative_P2C_3dArray( d, uz, div0,  d%nc(1), d%nc(2), d%np(3) )
+    div = div + div0
+
+    deallocate(div0)
     return
   end subroutine
 
@@ -146,44 +122,44 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Calculate_continuity_constrains(f, d, rhsp, isub)
+  subroutine Calculate_continuity_constrains(f, d, isub)
     use precision_mod
     use udf_type_mod, only: t_domain, t_flow
     use input_general_mod, only: ithermo
     use parameters_constant_mod, only: ZERO
     implicit none
 
-    type(t_domain),               intent( in ) :: d
-    type(t_flow),                 intent( in ) :: f
-    real(WP), dimension(:, :, :)  intent( out) :: rhsp                    
-    integer(4),                   intent( in ) :: isub
+    type(t_domain),               intent( in )    :: d
+    type(t_flow),                 intent( inout ) :: f                  
+    integer(4),                   intent( in )    :: isub
 
-    rhsp(:, :, :) = ZERO
+    real(WP), allocatable  :: div (:, :, :)
+
+    allocate(div, MOLD = f%rhsp)
+
+    f%rhsp = ZERO
+    div  = ZERO
 !-------------------------------------------------------------------------------
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
     if (ithermo == 1) then
-      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, rhsp, isub)
+      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, f%rhsp, isub)
     end if
 !-------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
     if (ithermo == 1) then
-      call Get_divergence(f%gx, f%gy, f%gz, div, d)
+      call Get_divergence_vel(f%gx, f%gy, f%gz, div, d)
     else
-      call Get_divergence(f%qx, f%qy, f%qz, div, d)
+      call Get_divergence_vel(f%qx, f%qy, f%qz, div, d)
     end if
+    f%rhsp = f%rhsp + div
 
-    write(*,*) "-------------------------------------------------------------------------------"
-    write(*,*) "The maximum divergence :"
-    write(*,'(12X, 1ES13.5)') MAXVAL(div)
-    write(*,*) "-------------------------------------------------------------------------------"
-   
-
+    f%rhsp = f%rhsp / (tAlpha(isub) * sigma2p * dt)
+    
     deallocate (div)
 
     return
-  end subroutine
-
+  end subroutine Calculate_continuity_constrains
 
 end module continuity_eq_mod
