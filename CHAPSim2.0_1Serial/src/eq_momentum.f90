@@ -564,7 +564,6 @@ contains
 !> \param[inout]  u            provisional u or rho u.
 !_______________________________________________________________________________
   subroutine Calculate_intermediate_mvar(rhs, u)
-    use precision_mod
     implicit none
     real(WP), dimension(:, :, :), intent(inout) :: rhs, u
 
@@ -596,11 +595,11 @@ contains
     integer(4),     intent(in   ) :: isub
 
 !-------------------------------------------------------------------------------
-! to calculate the rhs of the momenturn equation
+! to calculate the rhs of the momenturn equation in stepping method
 !_______________________________________________________________________________ 
     call Compute_momentum_rhs(f, d, isub)
 !-------------------------------------------------------------------------------
-! to calculate provisional (q) or (g)
+! to update intermediate (\hat{q}) or (\hat{g})
 !_______________________________________________________________________________ 
     if(iviscous == IVIS_EXPLICIT) then
 
