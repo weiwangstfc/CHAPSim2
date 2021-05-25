@@ -5,47 +5,10 @@ module solver_tools_mod
   public  :: Compute_CFL_diffusion
   public  :: Calculate_parameters_in_eqs
   public  :: Calculate_massflux_from_velocity
-  public  :: Calculate_y_bulk
   public  :: Check_cfl_convection
   public  :: Check_cfl_diffusion
 
 contains
-
-subroutine Calculate_y_bulk(u, d, uybulk)
-  ! how to get a high order bulk value?
-  use precision_mod
-  use parameters_constant_mod, only : ZERO, HALF
-  use operations, only: Get_midp_interpolation_1D
-  use udf_type_mod, only: t_domain
-  implicit none
-
-  type(t_domain), intent(in ) :: d
-  real(WP),       intent(in ) :: u(:, :, :)
-  real(WP),       intent(out) :: uybulk
-
-  real(WP) :: fi(d%nc(2)), fo(d%np(2))
-  integer(4) :: i, j, k
-
-  uybulk = ZERO
-  fi = ZERO
-  fo = ZERO
-  do k = 1, d%nc(3)
-    do i = 1, d%nc(1)
-      fi(:) = u(i, :, k)
-      call Get_midp_interpolation_1D( 'y', 'C2P', d, fi(:), fo(:) )
-      do j = 1, d%nc(2)
-        uybulk = uybulk + &
-              (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
-              (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
-      end do
-    end do
-  end do
-
-  uybulk = uybulk / real(d%nc(1) * d%nc(3), WP) / ( d%yp( d%np(2) ) - d%yp(1) )
-  return 
-end subroutine Calculate_y_bulk
-
-
 
 subroutine Calculate_parameters_in_eqs(f, t, iter)
   use input_general_mod, only: ithermo, nIterFlow0, ren, renIni, lenRef

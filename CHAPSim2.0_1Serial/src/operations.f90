@@ -2607,7 +2607,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(inout):: fo3d(nix + 1, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix + 1, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix + 1)
@@ -2640,7 +2640,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(inout):: fo3d(nix - 1, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix - 1, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix - 1)
@@ -2673,7 +2673,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy + 1, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy + 1, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy + 1)
@@ -2706,7 +2706,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy - 1, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy - 1, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy - 1)
@@ -2739,7 +2739,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz    )
-    real(WP),       intent(inout):: fo3d(nix, niy, niz + 1)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz + 1)
 
     real(WP)   :: fi(niz)
     real(WP)   :: fo(niz + 1)
@@ -2772,7 +2772,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz    )
-    real(WP),       intent(inout):: fo3d(nix, niy, niz - 1)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz - 1)
 
     real(WP)   :: fi(niz)
     real(WP)   :: fo(niz - 1)
@@ -2809,7 +2809,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix)
@@ -2843,7 +2843,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix)
@@ -2877,7 +2877,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(inout):: fo3d(nix + 1, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix + 1, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix + 1)
@@ -2911,7 +2911,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(inout):: fo3d(nix - 1, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix - 1, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix - 1)
@@ -2945,7 +2945,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy)
@@ -2979,7 +2979,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy)
@@ -3013,7 +3013,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(inout):: fo3d(nix, niy + 1, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy + 1, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy + 1)
@@ -3047,7 +3047,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(inout):: fo3d(nix, niy - 1, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy - 1, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy - 1)
@@ -3081,7 +3081,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niz)
     real(WP)   :: fo(niz)
@@ -3115,7 +3115,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niz)
     real(WP)   :: fo(niz)
@@ -3149,7 +3149,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(inout):: fo3d(nix, niy + 1, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy + 1, niz)
 
     real(WP)   :: fi(niz    )
     real(WP)   :: fo(niz + 1)
@@ -3183,7 +3183,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(inout):: fo3d(nix, niy - 1, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy - 1, niz)
 
     real(WP)   :: fi(niz    )
     real(WP)   :: fo(niz - 1)
@@ -3220,7 +3220,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix)
@@ -3254,7 +3254,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(nix)
     real(WP)   :: fo(nix)
@@ -3287,7 +3287,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy)
@@ -3321,7 +3321,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niy)
     real(WP)   :: fo(niy)
@@ -3354,7 +3354,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niz)
     real(WP)   :: fo(niz)
@@ -3388,7 +3388,7 @@ contains
     type(t_domain), intent(in)   :: d
     integer(4),     intent(in)   :: nix, niy, niz
     real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(inout):: fo3d(nix, niy, niz)
+    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
 
     real(WP)   :: fi(niz)
     real(WP)   :: fo(niz)
@@ -3411,5 +3411,64 @@ contains
 
     return
   end subroutine Get_z_2nd_derivative_P2P_3dArray
+
+!===============================================================================
+!>\brief : to calculate:
+!>         fo = \int_1^nx \int_
+!===============================================================================
+  subroutine Get_volumetric_average_3d(d, fi3d, fo, nix, niy, niz, is_yvar)
+    ! how to get a high order bulk value?
+    use parameters_constant_mod, only : ZERO, HALF
+    use operations,              only : Get_midp_interpolation_1D
+    use udf_type_mod,            only : t_domain
+    implicit none
+  
+    type(t_domain), intent(in)  :: d
+    integer(4),     intent(in)  :: nix, niy, niz
+    real(WP),       intent(in)  :: fi3d(nix, niy, niz)
+    real(WP),       intent(out) :: fo
+    logical,        intent(in)  :: is_yvar
+  
+    real(WP)   :: fi3dp(nix, niy + 1, niz)
+    real(WP)   :: fi3dc(nix, niy - 1, niz)
+    real(WP)   :: vol
+!-------------------------------------------------------------------------------
+!   if variable is not stored in y-nodes, convert them to y-nodes
+!-------------------------------------------------------------------------------
+    fo = ZERO
+    vol = ZERO
+    if(.not. is_yvar) then
+
+      call Get_y_midp_C2P_3dArray ( d, fi3d, fi3dp, nix, niy, niz )
+      do k = 1, niz
+        do i = 1, nix
+          do j = 1, niy
+            fo = fo + &
+                ( fi3dp(i, j + 1, k) + fi3d(i, j, k) ) * ( d%yp(j + 1) - d%yc(j) ) * HALF + &
+                ( fi3dp(i, j,     k) + fi3d(i, j, k) ) * ( d%yc(j    ) - d%yp(j) ) * HALF
+            vol = vol + ( d%yp(j + 1) - d%yp(j) )
+          end do
+        end do
+      end do
+
+    else
+
+      call Get_y_midp_P2C_3dArray ( d, fi3d, fi3dc, nix, niy, niz )
+      do k = 1, niz
+        do i = 1, nix
+          do j = 1, niy - 1
+            fo = fo + &
+                ( fi3d(i, j + 1, k) + fi3dc(i, j, k) ) * ( d%yp(j + 1) - d%yc(j) ) * HALF + &
+                ( fi3d(i, j,     k) + fi3dc(i, j, k) ) * ( d%yc(j    ) - d%yp(j) ) * HALF
+            vol = vol + ( d%yp(j + 1) - d%yp(j) )
+          end do
+        end do
+      end do
+
+    end if
+
+    fo = fo / real(nix * niy, WP) / vol
+    return 
+  end subroutine Get_volumetric_average_3d
 
 end module

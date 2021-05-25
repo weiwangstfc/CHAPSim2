@@ -163,18 +163,24 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
-  subroutine Calculate_xbulk_velocity(ux, d, ubulk)
+  subroutine Calculate_xbulk_velocity(u, d, ubulk)
     use parameters_constant_mod, only : ZERO, HALF
-    use operations, only: Get_midp_interpolation_1D
-    use solver_tools_mod, only: Calculate_y_bulk
+    use operations,              only: Get_midp_interpolation_1D, &
+                                       Get_volumetric_average_3d
     implicit none
 
     type(t_domain), intent(in ) :: d
-    real(WP),       intent(in ) :: ux(:, :, :)
+    real(WP),       intent(in ) :: u(:, :, :)
     real(WP),       intent(out) :: ubulk
 
-    call Calculate_y_bulk(ux, d, ubulk)
+    integer(4) :: nix, niy, niz
 
+    nix = shape(u, 1)
+    niy = shape(u, 2)
+    niz = shape(u, 3)
+
+    call Get_volumetric_average_3d(d, ux, ubulk, nix, niy, niz, .false.)
+    
     write(*,*) "-------------------------------------------------------------------------------"
     write(*, *) "The bulk velocity :"
     write(*, '(12X, 1ES15.7)') ubulk

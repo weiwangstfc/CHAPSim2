@@ -26,7 +26,7 @@ contains
     use input_general_mod,       only : idriven, drvf,  IDRVF_NO, IDRVF_MASSFLUX, &
                                         IDRVF_SKINFRIC, IDRVF_PRESLOSS, &
                                         tAlpha, dt
-    use solver_tools_mod,        only : Calculate_y_bulk
+    use operations,              only : Get_volumetric_average_3d
     use udf_type_mod,            only : t_domain
     use parameters_constant_mod, only : HALF, ZERO
     implicit none
@@ -36,12 +36,17 @@ contains
     type(t_domain), intent(in   ) :: d
 
     real(WP) :: rhs_bulk
+    integer(4) :: nix, niy, niz
 
     rhs_bulk = ZERO
 
     if(idriven == IDRVF_MASSFLUX) then
 
-      call Calculate_y_bulk(rhs, d, rhs_bulk)
+      nix = shape(rhs, 1)
+      niy = shape(rhs, 2)
+      niz = shape(rhs, 3)
+
+      call Get_volumetric_average_3d(d, rhs, rhs_bulk, nix, niy, niz, .false.)
       
     else if (idriven == IDRVF_SKINFRIC) then
 
@@ -366,7 +371,7 @@ contains
 
     ! pressure gradient in x direction, d(sigma_1 p)
     call Get_x_1st_derivative_C2P_3dArray( d, sigma1p * f%pres, m1_rhs_implicit0, d%nc(1), d%nc(2), d%nc(3) )
-    m1_rhs_implicit =  m1_rhs_implicit + m1_rhs_implicit0
+    m1_rhs_implicit =  m1_rhs_implicit - m1_rhs_implicit0
 
     ! gravity force in x direction
     if( ithermo == 1 .and. ( igravity == 1 .or. igravity == -1) ) then
@@ -444,7 +449,7 @@ contains
 
     ! pressure gradient in y direction, d(sigma_1 p)
     call Get_y_1st_derivative_C2P_3dArray( d, sigma1p * f%pres, m2_rhs_implicit0, d%nc(1), d%nc(2), d%nc(3) )
-    m2_rhs_implicit =  m2_rhs_implicit + m2_rhs_implicit0
+    m2_rhs_implicit =  m2_rhs_implicit - m2_rhs_implicit0
 
     ! gravity force in y direction
     if( ithermo == 1 .and. ( igravity == 2 .or. igravity == -2) ) then
@@ -452,7 +457,7 @@ contains
       m2_rhs_implicit =  m2_rhs_implicit + f%fgravity * m2_rhs_implicit0
     end if
 !-------------------------------------------------------------------------------
-! the RHS of momentum equation in z direction
+! the RHS terms of all 3 momentum equations operating in the z direction
 !_______________________________________________________________________________
     if(ithermo == 0 ) then
 
@@ -521,7 +526,7 @@ contains
 
     ! pressure gradient in z direction, d(sigma_1 p)
     call Get_z_1st_derivative_C2P_3dArray( d, sigma1p * f%pres, m3_rhs_implicit0, d%nc(1), d%nc(2), d%nc(3) )
-    m3_rhs_implicit =  m3_rhs_implicit + m3_rhs_implicit0
+    m3_rhs_implicit =  m3_rhs_implicit - m3_rhs_implicit0
 
     ! gravity force in z direction
     if( ithermo == 1 .and. ( igravity == 3 .or. igravity == -3) ) then
@@ -558,7 +563,7 @@ contains
 !> \param[inout]  rhs          the rhs
 !> \param[inout]  u            provisional u or rho u.
 !_______________________________________________________________________________
-  subroutine Calculate_provisional_mvar(rhs, u)
+  subroutine Calculate_intermediate_mvar(rhs, u)
     use precision_mod
     implicit none
     real(WP), dimension(:, :, :), intent(inout) :: rhs, u
@@ -566,7 +571,7 @@ contains
     u(:, :, :) = u(:, :, :) + rhs(:, :, :)
 
     return
-  end subroutine Calculate_provisional_mvar
+  end subroutine Calculate_intermediate_mvar
 !===============================================================================
 !===============================================================================
 !> \brief To update the provisional u or rho u.
@@ -582,8 +587,8 @@ contains
 !> \param[in]     isub         RK sub-iteration
 !_______________________________________________________________________________
   subroutine Solve_momentum_eq(f, d, isub)
-    use input_general_mod, only: iviscous, IVIS_SEMIMPLT, IVIS_EXPLICIT, ithermo
-    use udf_type_mod, only: t_flow, t_domain
+    use input_general_mod, only : iviscous, IVIS_SEMIMPLT, IVIS_EXPLICIT, ithermo
+    use udf_type_mod,      only : t_flow, t_domain
     implicit none
 
     type(t_flow),   intent(inout) :: f
@@ -600,13 +605,13 @@ contains
     if(iviscous == IVIS_EXPLICIT) then
 
       if(ithermo == 0) then 
-        call Calculate_provisional_mvar(f%m1_rhs, f%qx)
-        call Calculate_provisional_mvar(f%m2_rhs, f%qy)
-        call Calculate_provisional_mvar(f%m3_rhs, f%qz)
+        call Calculate_intermediate_mvar(f%m1_rhs, f%qx)
+        call Calculate_intermediate_mvar(f%m2_rhs, f%qy)
+        call Calculate_intermediate_mvar(f%m3_rhs, f%qz)
       else
-        call Calculate_provisional_mvar(f%m1_rhs, f%gx)
-        call Calculate_provisional_mvar(f%m2_rhs, f%gy)
-        call Calculate_provisional_mvar(f%m3_rhs, f%gz)
+        call Calculate_intermediate_mvar(f%m1_rhs, f%gx)
+        call Calculate_intermediate_mvar(f%m2_rhs, f%gy)
+        call Calculate_intermediate_mvar(f%m3_rhs, f%gz)
       end if
 
     else if(iviscous == IVIS_SEMIMPLT) then
