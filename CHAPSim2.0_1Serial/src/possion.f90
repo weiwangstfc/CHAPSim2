@@ -78,6 +78,7 @@ contains
 !_______________________________________________________________________________
   subroutine Calculate_sine_cosine_factors(afsin, bfcos, nsz, bc)
     use parameters_constant_mod, only: PI, TWO
+    use math_mod
     implicit none
     integer(4), intent(in) :: nsz
     integer(4), intent(in) :: bc
@@ -89,19 +90,19 @@ contains
     if (bc == 0) then
 
         do i = 1, nsz
-          afsin(i) = sin( real(i - 1, kind = mytype) * PI / &
-                          real(nsz,   kind = mytype) )
-          bfsin(i) = cos( real(i - 1, kind = mytype) * PI / &
-                          real(nsz,   kind = mytype) )
+          afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
+                             real(nsz,   kind = mytype) )
+          bfsin(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
+                             real(nsz,   kind = mytype) )
         end do
 
     else if (bc == 1) then
 
         do i = 1, nsz
-          afsin(i) = sin( real(i - 1, kind = mytype) * PI / TWO / &
-                          real(nsz,   kind = mytype) )
-          bfsin(i) = cos( real(i - 1, kind = mytype) * PI / TWO / &
-                          real(nsz,   kind = mytype))
+          afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
+                             real(nsz,   kind = mytype) )
+          bfsin(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
+                             real(nsz,   kind = mytype))
         end do
     else
     end if

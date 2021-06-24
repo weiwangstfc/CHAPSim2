@@ -53,14 +53,14 @@ module input_general_mod
                         ITIME_AB2    = 1
 
   integer, parameter :: IBC_INTERIOR    = 9, &
-                        IBC_PERIODIC    = 0, &
-                        IBC_UDIRICHLET  = 1, &
-                        IBC_NEUMANN     = 2, &
-                        IBC_CONVECTIVE  = 3, &
-                        IBC_SYMMETRIC   = 4, &
-                        IBC_ASYMMETRIC  = 5, &
-                        IBC_TURBGEN     = 6, &
-                        IBC_DATABASE    = 7
+                        IBC_PERIODIC    = 1, &
+                        IBC_UDIRICHLET  = 2, &
+                        IBC_SYMMETRIC   = 3, &
+                        IBC_ASYMMETRIC  = 4, &
+                        IBC_NEUMANN     = 5, &
+                        IBC_CONVECTIVE  = 6, &
+                        IBC_TURBGEN     = 7, &
+                        IBC_DATABASE    = 8
 !                        IBC_INLET_MEAN  = 4, &
 !                        IBC_INLET_TG    = 5, &
 !                        IBC_INLET_MAP   = 6, &
