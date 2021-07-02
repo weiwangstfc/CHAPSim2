@@ -25,11 +25,9 @@
 !>
 !===============================================================================
 module input_general_mod
-  use precision_mod, only :: WP
-  use parameters_constant_mod, only: ZERO
+  use precision_mod, only : WP
+  use parameters_constant_mod, only : ZERO
   implicit none
-
-  private ! make everything private unless declared public
 
   character(len = 9), parameter :: INPUT_FILE = 'input.ini'
 
@@ -225,6 +223,8 @@ contains
       write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
       stop 1
     end if
+
+    call Print_debug_start_msg("Reading General Parameters from "//INPUT_FILE//" ...")
     
     do 
       read(inputUnit, '(a)', iostat = ioerr) section_name
@@ -334,6 +334,8 @@ contains
     'in Subroutine: '// "Initialize_general_input")
 
     close(inputUnit)
+
+    call Print_debug_mid_msg("Initialize parameters based on given parameters ...")
 !===============================================================================
 ! set up some default values to overcome wrong input
 !===============================================================================  
@@ -393,6 +395,8 @@ contains
 
     ! to set up parameters for time stepping
     call Set_timestepping_coefficients ( )
+
+    call Print_debug_end_msg
 
     return
   end subroutine Initialize_general_input

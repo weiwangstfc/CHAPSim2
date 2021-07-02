@@ -58,7 +58,7 @@ contains
   end subroutine Print_debug
 
   subroutine Initialize_domain_decompsition (d)
-    use mpi_mod, only: nrow, ncol
+    use mpi_mod, only : nrow, ncol
     use input_general_mod
     use decomp_2d
     implicit none

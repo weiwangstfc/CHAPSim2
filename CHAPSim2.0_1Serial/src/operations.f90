@@ -241,17 +241,17 @@ module operations
   public  :: Get_x_1st_derivative_C2C_3dArray
   public  :: Get_x_1st_derivative_P2P_3dArray
   public  :: Get_x_1st_derivative_C2P_3dArray
-  public  :: Get_x_1st_derivative_P2P_3dArray
+  public  :: Get_x_1st_derivative_P2C_3dArray
 
   public  :: Get_y_1st_derivative_C2C_3dArray
   public  :: Get_y_1st_derivative_P2P_3dArray
   public  :: Get_y_1st_derivative_C2P_3dArray
-  public  :: Get_y_1st_derivative_P2P_3dArray
+  public  :: Get_y_1st_derivative_P2C_3dArray
 
   public  :: Get_z_1st_derivative_C2C_3dArray
   public  :: Get_z_1st_derivative_P2P_3dArray
   public  :: Get_z_1st_derivative_C2P_3dArray
-  public  :: Get_z_1st_derivative_P2P_3dArray
+  public  :: Get_z_1st_derivative_P2C_3dArray
 
   public  :: Get_x_2nd_derivative_C2C_3dArray
   public  :: Get_x_2nd_derivative_P2P_3dArray
@@ -261,6 +261,8 @@ module operations
 
   public  :: Get_z_2nd_derivative_C2C_3dArray
   public  :: Get_z_2nd_derivative_P2P_3dArray
+
+  public  :: Get_volumetric_average_3d
 
 contains
 !===============================================================================
@@ -286,7 +288,10 @@ contains
     real(WP) :: alpha,  a,  b,  c,  d
     real(WP) :: alpha1, a1, b1, c1, d1
     real(WP) :: alpha2, a2, b2, c2, d2
-!______________________________________________________________________________!
+
+    call Print_debug_start_msg &
+         ("Assigning coefficient matrix for the compact FD ...")
+!_____________________________________________________________________________!
 !1st derivative on collocated grids
 !_______________________________________________________________________________!
     ! C2C/P2P coefficients
@@ -1197,7 +1202,7 @@ contains
     ! P2P
     d2fP2P(:, :, :) = d2fC2C(:, :, :)
     d2rP2P(:, :, :) = d2rC2C(:, :, :)
-
+    call Print_debug_end_msg
     return
   end subroutine Assign_TDMA_coeffs
 !===============================================================================
@@ -1224,7 +1229,7 @@ contains
 !===============================================================================
 ! Module files
 !===============================================================================
-    use input_general_mod, only: IBC_PERIODIC
+    use input_general_mod, only : IBC_PERIODIC
     use tridiagonal_matrix_algorithm
     implicit none
 !===============================================================================
@@ -1281,15 +1286,17 @@ contains
 ! Module files
 !===============================================================================
     use tridiagonal_matrix_algorithm
-    use input_general_mod, only: IBC_PERIODIC
+    use input_general_mod, only : IBC_PERIODIC
     use udf_type_mod
-    use parameters_constant_mod, only: ZERO
+    use parameters_constant_mod, only : ZERO
     implicit none
 
     type(t_domain), intent(in) :: d
 
     integer(4) :: i, nsz
 
+    call Print_debug_start_msg &
+         ("Preparing geometric matrix for the compact FD ...")
 !-------------------------------------------------------------------------------
 ! 1st derivative in x direction
 !-------------------------------------------------------------------------------
@@ -1524,19 +1531,20 @@ contains
     call Buildup_TDMA_LHS_array( nsz, d%bc(:, i), d2fP2P, &
         ad2z_P2P, bd2z_P2P, cd2z_P2P, dd2z_P2P)
 
+    call Print_debug_end_msg
     return
   end subroutine Prepare_TDMA_LHS_matrix
 !===============================================================================
 !===============================================================================
   subroutine Prepare_coeffs_for_operations
-    use input_general_mod, only: iAccuracy
-    use geometry_mod,      only: domain
+    use input_general_mod, only : iAccuracy
+    use geometry_mod,      only : domain
     implicit none
 
     call Assign_TDMA_coeffs (iAccuracy)
     call Prepare_TDMA_LHS_matrix (domain)
     return
-  end subroutine
+  end subroutine Prepare_coeffs_for_operations
 !===============================================================================
 !===============================================================================
 !> \brief Preparing the RHS array for the TDMA algorithm for interpolation.
@@ -2338,7 +2346,7 @@ contains
   ! Module files
   !===============================================================================
       use parameters_constant_mod
-      use udf_type_mod, only: t_domain
+      use udf_type_mod, only : t_domain
       use tridiagonal_matrix_algorithm
       implicit none
   !===============================================================================
@@ -2700,7 +2708,7 @@ contains
   subroutine Get_y_midp_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDM
+    use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
@@ -2766,7 +2774,7 @@ contains
   subroutine Get_z_midp_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDM
+    use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
@@ -3336,7 +3344,7 @@ contains
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_2deri_RHS_array( 'P2P', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2y_P2PC(:), bd2y_P2P(:), &
+        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2y_P2P(:), bd2y_P2P(:), &
                 cd2y_P2P(:), dd2y_P2P(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -3419,7 +3427,6 @@ contains
   subroutine Get_volumetric_average_3d(d, fi3d, fo, nix, niy, niz, is_yvar)
     ! how to get a high order bulk value?
     use parameters_constant_mod, only : ZERO, HALF
-    use operations,              only : Get_midp_interpolation_1D
     use udf_type_mod,            only : t_domain
     implicit none
   
@@ -3432,6 +3439,7 @@ contains
     real(WP)   :: fi3dp(nix, niy + 1, niz)
     real(WP)   :: fi3dc(nix, niy - 1, niz)
     real(WP)   :: vol
+    integer(4) :: i, j, k
 !-------------------------------------------------------------------------------
 !   if variable is not stored in y-nodes, convert them to y-nodes
 !-------------------------------------------------------------------------------

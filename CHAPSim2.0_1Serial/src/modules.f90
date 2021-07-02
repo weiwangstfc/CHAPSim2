@@ -1,6 +1,6 @@
 !##############################################################################
 module precision_mod
-  use decomp_2d, only: mytype
+  use decomp_2d, only : mytype
   implicit none
 
   integer, parameter :: I4 = selected_int_kind( 4 )
@@ -151,8 +151,6 @@ module udf_type_mod
     real(WP), allocatable :: m2_rhs0(:, :, :)! last step rhs in y
     real(WP), allocatable :: m3_rhs0(:, :, :)! last step rhs in z
 
-    real(WP), allocatable :: rhsp(:, :, :)   !  continuity constrains
-
   end type t_flow
 
   type t_thermo
@@ -178,7 +176,7 @@ end module
 !##############################################################################
 module math_mod
   use precision_mod
-  use parameters_constant_mod, only: ONE, ZERO, MINP
+  use parameters_constant_mod, only : ONE, ZERO, MINP
   implicit none
 
   interface sqrt_wp
@@ -316,7 +314,15 @@ contains
     d = ZERO
     if (r > MINP) d = ONE
   end function
-
 end module math_mod
+
+module typeconvert_mod
+contains
+  character(len=20) function int2str(k)
+    integer, intent(in) :: k
+    write (int2str, *) k
+    int2str = adjustl(int2str)
+  end function int2str
+end module typeconvert_mod
 
 

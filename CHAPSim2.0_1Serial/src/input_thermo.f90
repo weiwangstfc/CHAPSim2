@@ -154,7 +154,7 @@ contains
 !> \param[inout]  this          a cell element with udf property
 !_______________________________________________________________________________
   subroutine Get_initialized_thermal_properties ( this )
-    use parameters_constant_mod, only: ZERO, ONE
+    use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
     class(thermoProperty_t), intent(inout) :: this
@@ -229,8 +229,8 @@ contains
 !_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_T ( this, dim )
     use parameters_constant_mod, only : MINP, ONE, ZERO
-    use input_general_mod, only: ifluid
-
+    use input_general_mod, only : ifluid
+    implicit none
     class(thermoProperty_t), intent(inout) :: this
     integer, intent(in), optional :: dim ! without = undim, with = dim.
     
@@ -780,9 +780,10 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Initialize_thermo_parameters
-    use input_general_mod, only: ifluid, t0Ref, tiRef
+    use input_general_mod, only : ifluid, t0Ref, tiRef
     implicit none
 
+    call Print_debug_start_msg("Initializing thermal parameters ...")
     select case (ifluid)
     case (ISCP_WATER)
       ipropertyState = IPROPERTY_TABLE
@@ -859,6 +860,7 @@ contains
     call tpIni0%Get_initialized_thermal_properties()
     tpIni0%t = tiRef
 
+    call Print_debug_end_msg
     return
   end subroutine Initialize_thermo_parameters
 
@@ -883,7 +885,6 @@ contains
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
-    call Compute_gravity_coefficient
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return

@@ -18,16 +18,17 @@ OBJS= modules.o\
       input_general.o\
       input_thermo.o\
       geometry.o\
-			algorithms.o\
-			operations.o\
-			tools_solver.o\
-			boundary_conditions.o\
-			eq_continuity.o\
-			eq_energy.o\
-			eq_momentum.o\
-			test_algrithms.o\
-			flow_initialization.o\
-			display.o\
+      algorithms.o\
+      operations.o\
+      tools_solver.o\
+      boundary_conditions.o\
+      poisson0.o\
+      eq_continuity.o\
+      eq_energy.o\
+      eq_momentum.o\
+      test_algrithms.o\
+      flow_initialization.o\
+      display.o\
       chapsim.o
 
 OPTIONS= -g -fbacktrace -fbounds-check -fcheck=all -Wall -ffpe-trap=invalid,zero,overflow 

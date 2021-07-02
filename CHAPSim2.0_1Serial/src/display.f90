@@ -1,8 +1,8 @@
 
 subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
   use udf_type_mod
-  use parameters_constant_mod, only: ZERO
-  use operations, only: Get_midp_interpolation_1D
+  use parameters_constant_mod, only : ZERO
+  use operations, only : Get_midp_interpolation_1D
   implicit none
   type(t_domain), intent( in ) :: d
   integer(4) :: vartp

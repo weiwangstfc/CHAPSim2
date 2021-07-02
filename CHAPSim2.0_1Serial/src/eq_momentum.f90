@@ -4,6 +4,7 @@ module eq_momentum_mod
   private :: Calculate_momentum_driven_source
   private :: Calculate_momentum_fractional_step
   private :: Compute_momentum_rhs
+  private :: Correct_massflux
   public  :: Solve_momentum_eq
 
 contains
@@ -42,9 +43,9 @@ contains
 
     if(idriven == IDRVF_MASSFLUX) then
 
-      nix = shape(rhs, 1)
-      niy = shape(rhs, 2)
-      niz = shape(rhs, 3)
+      nix = size(rhs, 1)
+      niy = size(rhs, 2)
+      niz = size(rhs, 3)
 
       call Get_volumetric_average_3d(d, rhs, rhs_bulk, nix, niy, niz, .false.)
       
@@ -128,10 +129,11 @@ contains
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
   subroutine Compute_momentum_rhs(f, d, isub)
-    use input_general_mod,       only : ithermo, iviscous, igravity, idriven, &
+    use input_general_mod,       only : ithermo, igravity, idriven, &
+                                        sigma1p, &   
                                         IDRVF_NO, IVIS_EXPLICIT, IVIS_SEMIMPLT
     use udf_type_mod,            only : t_flow, t_domain
-    use parameters_constant_mod, only : TWO, ZERO, ONE_THIRD
+    use parameters_constant_mod, only : TWO, ZERO, ONE_THIRD, TWO_THIRD
     use operations
     implicit none
 
@@ -205,7 +207,6 @@ contains
 
     integer(4), parameter :: II = 1, JJ = 2, KK = 3
     real(WP)              :: one_third_rre, two_third_rre, two_rre
-    integer(4)            :: i, j, k
 
 !===============================================================================
 ! Initilisation
@@ -287,7 +288,7 @@ contains
       call Get_y_1st_derivative_C2C_3dArray( d, mxp,     dmdy_xp, d%np(1), d%nc(2), d%nc(3) )
       call Get_y_1st_derivative_C2P_3dArray( d, f%mVisc, dmdy_yp, d%nc(1), d%nc(2), d%nc(3) )
       call Get_y_1st_derivative_C2C_3dArray( d, mzp,     dmdy_zp, d%nc(1), d%nc(2), d%np(3) )
-      call Get_y_1st_derivative_P2C_3dArray( d, f%qy,    div0,    d%nc(1), d%nq(2), d%nc(3) )
+      call Get_y_1st_derivative_P2C_3dArray( d, f%qy,    div0,    d%nc(1), d%np(2), d%nc(3) )
       div = div + div0
 !_______________________________________________________________________________
 ! dmxp/dz & dmyp/dz operation in z direction
@@ -295,7 +296,7 @@ contains
       call Get_z_1st_derivative_C2C_3dArray( d, mxp,     dmdz_xp, d%np(1), d%nc(2), d%nc(3) )
       call Get_z_1st_derivative_C2C_3dArray( d, myp,     dmdz_yp, d%nc(1), d%np(2), d%nc(3) )
       call Get_z_1st_derivative_C2P_3dArray( d, f%mVisc, dmdz_zp, d%nc(1), d%nc(2), d%nc(3) )
-      call Get_z_1st_derivative_P2C_3dArray( d, f%qz,    div0,    d%nc(1), d%nq(2), d%nc(3) )
+      call Get_z_1st_derivative_P2C_3dArray( d, f%qz,    div0,    d%nc(1), d%np(2), d%nc(3) )
       div = div + div0
     end if
 
@@ -364,7 +365,7 @@ contains
       f%m2_rhs =  f%m2_rhs + f%rre * dmdx_yp * m2_rhs
 
       ! for z-mom diffusion term (z-v5/7), d(mu)/dx * d(qz)/dx at (i, j, k')
-      call Get_x_1st_derivative_C2C_3dArray( d, f%qz, m3_rhs, d%nc(1), d%nc(2), d%nq(3) )
+      call Get_x_1st_derivative_C2C_3dArray( d, f%qz, m3_rhs, d%nc(1), d%nc(2), d%np(3) )
       f%m3_rhs =  f%m3_rhs + f%rre * dmdx_zp * m3_rhs
     else
     end if
@@ -538,14 +539,14 @@ contains
 ! to build up rhs in total, in all directions
 !_______________________________________________________________________________ 
     ! x-momentum
-    call Calculate_momentum_fractional_step(f%m1_rhs0, f%m1_rhs, m1_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m1_rhs0, f%m1_rhs, m1_rhs_implicit, isub)
     if(idriven /= IDRVF_NO) call Calculate_momentum_driven_source(f%m1_rhs, d, isub) 
 
     ! y-momentum
-    call Calculate_momentum_fractional_step(f%m2_rhs0, f%m2_rhs, m2_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m2_rhs0, f%m2_rhs, m2_rhs_implicit, isub)
 
     ! z-momentum
-    call Calculate_momentum_fractional_step(f%m3_rhs0, f%m3_rhs, m3_rhs_semimplt, isub)
+    call Calculate_momentum_fractional_step(f%m3_rhs0, f%m3_rhs, m3_rhs_implicit, isub)
  
     return
   end subroutine Compute_momentum_rhs
@@ -573,6 +574,37 @@ contains
   end subroutine Calculate_intermediate_mvar
 !===============================================================================
 !===============================================================================
+  subroutine Correct_massflux(ux, uy, uz, phi, d, isub)
+    use udf_type_mod,      only : t_domain
+    use input_general_mod, only : tAlpha, dt, sigma2p
+    use operations
+    implicit none
+
+    type(t_domain), intent(in   ) :: d
+    integer(4),     intent(in   ) :: isub
+    real(WP), dimension( d%np(1), d%nc(2), d%nc(3) ), intent(inout) :: ux
+    real(WP), dimension( d%nc(1), d%np(2), d%nc(3) ), intent(inout) :: uy
+    real(WP), dimension( d%nc(1), d%nc(2), d%np(3) ), intent(inout) :: uz
+    real(WP), dimension( d%nc(1), d%nc(2), d%nc(3) ), intent(in   ) :: phi
+
+    real(WP), dimension( d%np(1), d%nc(2), d%nc(3) ) :: dphidx
+    real(WP), dimension( d%nc(1), d%np(2), d%nc(3) ) :: dphidy
+    real(WP), dimension( d%nc(1), d%nc(2), d%np(3) ) :: dphidz
+
+
+    call Get_x_1st_derivative_C2P_3dArray( d, phi,  dphidx, d%nc(1), d%nc(2), d%nc(3))
+    ux = ux - dt * tAlpha(isub) * sigma2p * dphidx
+
+    call Get_y_1st_derivative_C2P_3dArray( d, phi,  dphidy, d%nc(1), d%nc(2), d%nc(3))
+    uy = uy - dt * tAlpha(isub) * sigma2p * dphidy
+
+    call Get_z_1st_derivative_C2P_3dArray( d, phi,  dphidz, d%nc(1), d%nc(2), d%nc(3))
+    uz = uz - dt * tAlpha(isub) * sigma2p * dphidz
+
+    return
+  end subroutine Correct_massflux
+!===============================================================================
+!===============================================================================
 !> \brief To update the provisional u or rho u.
 !>
 !>
@@ -588,6 +620,8 @@ contains
   subroutine Solve_momentum_eq(f, d, isub)
     use input_general_mod, only : iviscous, IVIS_SEMIMPLT, IVIS_EXPLICIT, ithermo
     use udf_type_mod,      only : t_flow, t_domain
+    use continuity_eq_mod
+    use poisson_mod
     implicit none
 
     type(t_flow),   intent(inout) :: f
@@ -626,7 +660,22 @@ contains
 ! to calculate the provisional divergence constrains
 !_______________________________________________________________________________
     call Calculate_continuity_constrains(f, d, isub)
-
+!-------------------------------------------------------------------------------
+! to solve Poisson equation
+!_______________________________________________________________________________
+    CALL Solve_poisson(f%pcor)
+!-------------------------------------------------------------------------------
+! to update velocity/massflux correction
+!_______________________________________________________________________________
+    if(ithermo == 0) then 
+      call Correct_massflux(f%qx, f%qy, f%qz, f%pcor, d, isub)
+    else
+      call Correct_massflux(f%gx, f%gy, f%gz, f%pcor, d, isub)
+    end if
+!-------------------------------------------------------------------------------
+! to update pressure
+!_______________________________________________________________________________
+    f%pres = f%pres + f%pcor
     return
   end subroutine
 

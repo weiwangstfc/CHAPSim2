@@ -3,58 +3,11 @@ module solver_tools_mod
   ! procedure
   private
   public  :: Compute_CFL_diffusion
-  public  :: Calculate_parameters_in_eqs
   public  :: Calculate_massflux_from_velocity
   public  :: Check_cfl_convection
   public  :: Check_cfl_diffusion
 
 contains
-
-subroutine Calculate_parameters_in_eqs(f, t, iter)
-  use input_general_mod, only: ithermo, nIterFlow0, ren, renIni, lenRef
-  use input_thermo_mod, only: tpRef0
-  use parameters_constant_mod, only: GRAVITY
-  implicit none
-  type(t_flow),   intent(inout)         :: f
-  type(t_thermo), intent(inout)         :: t
-  integer(4),     intent(in ), optional :: iter  
-
-  real(WP) :: u0
-
-  if ( present(dim) ) then
-    if(iter < nIterIniRen) then
-      f%rre = ONE / renIni
-    else
-      f%rre = ONE / ren
-    end if
-  else 
-    f%rre = ONE / ren
-  end if
-
-  if(ithermo == 1) then
-
-    t%rPrRen = f%rre * tpRef0%k / tpRef0%m / tpRef0%cp
-
-    u0 = ONE / f%rre * tpRef0%m / tpRef0%d / lenRef
-    if (igravity == 0) then
-      ! no gravity
-      f%fgravity = ZERO
-    else if (igravity == 1 .or. igravity == 2 .or. igravity == 3 ) then 
-      ! flow/gravity same dirction
-      f%fgravity =  lenRef / u0 / u0 * GRAVITY
-    else if (igravity == -1 .or. igravity == -2 .or. igravity == -3 ) then 
-      ! flow/gravity opposite dirction
-      f%fgravity = -lenRef / u0 / u0 * GRAVITY
-    else
-      ! no gravity
-      f%fgravity = ZERO
-    end if
-
-  end if
-
-  return
-end subroutine 
-
 !===============================================================================
 !===============================================================================
 !> \brief Calculate the conservative variables from primary variable.     
@@ -70,7 +23,7 @@ end subroutine
 !> \param[in]     f             flow
 !_______________________________________________________________________________
   subroutine Calculate_massflux_from_velocity(f, d)
-    use parameters_constant_mod, only: ZERO
+    use parameters_constant_mod, only : ZERO
     use udf_type_mod
     use operations
     implicit none
@@ -127,8 +80,8 @@ end subroutine
   end subroutine Calculate_massflux_from_velocity
 
   subroutine Check_cfl_diffusion(x2r, rre)
-    use input_general_mod, only: dt
-    use parameters_constant_mod, only: TWO, ONE
+    use input_general_mod, only : dt
+    use parameters_constant_mod, only : TWO, ONE
     use precision_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
@@ -148,10 +101,10 @@ end subroutine
   end subroutine
 
   subroutine Check_cfl_convection(u, v, w, d)
-    use parameters_constant_mod, only: ZERO, ONE
+    use parameters_constant_mod, only : ZERO, ONE
     use precision_mod
-    use udf_type_mod, only: t_domain
-    use operations, only: Get_midp_interpolation_1D
+    use udf_type_mod, only : t_domain
+    use operations, only : Get_midp_interpolation_1D
     implicit none
 
     type(t_domain),               intent(in) :: d

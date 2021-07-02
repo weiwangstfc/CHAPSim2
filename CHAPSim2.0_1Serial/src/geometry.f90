@@ -25,7 +25,7 @@
 !>
 !===============================================================================
 module geometry_mod
-  use type_vars_mod, only: domain
+  use type_vars_mod, only : domain
   implicit none
 
   !private
@@ -252,6 +252,7 @@ contains
 !===============================================================================
 ! Code
 !===============================================================================
+    call Print_debug_start_msg("Initializing domain geometric information ...")
     ! Build up domain info
     domain%case   = icase
 
@@ -319,6 +320,8 @@ contains
         write(*, '(I5, 1F8.4)') i, domain%yp(i)
       end do
     end if
+
+    call Print_debug_end_msg
     return
   end subroutine  Initialize_geometry_variables
 end module geometry_mod

@@ -1,5 +1,5 @@
 module possion_module
-  use decomp_2d, only: DECOMP_INFO, mytype, nrank
+  use decomp_2d, only : DECOMP_INFO, mytype, nrank
   implicit none
 
   private
@@ -56,7 +56,7 @@ END INTERFACE
 
 PROCEDURE (poisson_xxx), POINTER :: poisson
 
-public :: decomp_2d_poisson_init, &
+public :: Initialize_decomp_poisson, &
           decomp_2d_poisson_finalize, &
           poisson
 
@@ -77,7 +77,7 @@ contains
 !> \param[out]   bfsin         cosine factors
 !_______________________________________________________________________________
   subroutine Calculate_sine_cosine_factors(afsin, bfcos, nsz, bc)
-    use parameters_constant_mod, only: PI, TWO
+    use parameters_constant_mod, only : PI, TWO
     use math_mod
     implicit none
     integer(4), intent(in) :: nsz
@@ -432,10 +432,10 @@ contains
 !> \param[inout]  d             domain    
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine decomp_2d_poisson_init(is_periodic)
-    use udf_type_mod, only: t_domain
-    use parameters_constant_mod, only: ZERO
-    use decomp_2d,    only: nx_global, ny_global, nz_global
+  subroutine Initialize_decomp_poisson(is_periodic)
+    use udf_type_mod, only : t_domain
+    use parameters_constant_mod, only : ZERO
+    use decomp_2d,    only : nx_global, ny_global, nz_global
     implicit none
     logical, intent(in) :: is_periodic(3)
 
@@ -499,7 +499,7 @@ contains
     if (bcz == 1) nz = nz - 1
 
   #ifdef DEBG 
-    if (nrank == 0) print *,'# decomp_2d_poisson_init start'
+    if (nrank == 0) print *,'# Initialize_decomp_poisson start'
   #endif
 !_______________________________________________________________________________
 ! preparing sine and cosine factors
@@ -512,7 +512,7 @@ contains
     call Calculate_sine_cosine_factors(az, bz, nz, bcz)
 
   #ifdef DEBG 
-    if (nrank .eq. 0) print *,'# decomp_2d_poisson_init decomp_info_init'
+    if (nrank .eq. 0) print *,'# Initialize_decomp_poisson decomp_info_init'
   #endif
 !_______________________________________________________________________________
 ! decomp_info_init to prepare two working decomp_type
@@ -521,7 +521,7 @@ contains
     call decomp_info_init(nx, ny, nz/2 + 1, sp)
 
   #ifdef DEBG 
-    if (nrank .eq. 0) print *,'# decomp_2d_poisson_init decomp_info_init ok'
+    if (nrank .eq. 0) print *,'# Initialize_decomp_poisson decomp_info_init ok'
   #endif
 
 !_______________________________________________________________________________
@@ -625,17 +625,17 @@ contains
   
 
   #ifdef DEBG 
-    if (nrank .eq. 0) print *,'# decomp_2d_poisson_init before waves'
+    if (nrank .eq. 0) print *,'# Initialize_decomp_poisson before waves'
   #endif
 
     call waves()
 
   #ifdef DEBG 
-    if (nrank .eq. 0) print *,'# decomp_2d_poisson_init end'
+    if (nrank .eq. 0) print *,'# Initialize_decomp_poisson end'
   #endif
 
     return
-  end subroutine decomp_2d_poisson_init
+  end subroutine Initialize_decomp_poisson
 
 
 end module possion_module

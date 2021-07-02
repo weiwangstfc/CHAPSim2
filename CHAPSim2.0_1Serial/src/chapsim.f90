@@ -50,13 +50,13 @@ end program
 subroutine Initialize_chapsim()
   !use mpi_mod
   !use domain_decomposition_mod
-  use input_general_mod, only: Initialize_general_input
-  use input_thermo_mod,  only: Initialize_thermo_input
-  use geometry_mod,      only: Initialize_geometry_variables
-  use operations,        only: Prepare_coeffs_for_operations
+  use input_general_mod, only : Initialize_general_input
+  use input_thermo_mod,  only : Initialize_thermo_input
+  use geometry_mod,      only : Initialize_geometry_variables
+  use operations,        only : Prepare_coeffs_for_operations
   implicit none
 
-  !call Initialize_mpi ()
+ !call Initialize_mpi ()
   call Initialize_general_input ()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
@@ -81,15 +81,15 @@ end subroutine Initialize_chapsim
 !_______________________________________________________________________________
 subroutine Initialize_flow ()
   use flow_variables_mod, only : Allocate_thermoflow_variables
-  use solver_tools_mod,   only : Calculate_parameters_in_eqs
   use flow_variables_mod, only : Initialize_flow_variables
   use input_general_mod,  only : irestart, &
       INITIAL_RANDOM, INITIAL_RESTART, INITIAL_INTERPL
-  use type_vars_mod,      only : domain, flow, thermo 
+  use type_vars_mod,      only : domain, flow, thermo
+  use flow_variables_mod, only : Calculate_RePrGr
   implicit none
 
   call Allocate_thermoflow_variables (domain, flow, thermo)
-  call Calculate_parameters_in_eqs (flow, thermo)
+  call Calculate_RePrGr(flow, thermo, 0)
   if (irestart == INITIAL_RANDOM) then
     call Initialize_flow_variables ( domain, flow, thermo )
   else if (irestart == INITIAL_RESTART) then
@@ -117,13 +117,16 @@ end subroutine Initialize_flow
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Solve_eqs_iteration
-  use input_general_mod,       only : ithermo, nIterFlowEnd, nIterThermoEnd, &
-                                      tThermo, tFlow, nIterFlowEnd, iterchkpt, &
-                                      dt, nsubitr
-  use type_vars_mod,           only : flow, thermo, domain
-  use flow_variables_mod,      only : Calculate_RePrGr
-  use eq_momentum_mod,         only : Solve_momentum_eq
-  use solver_tools_mod,        only : Check_cfl_diffusion, Check_cfl_convection
+  use input_general_mod,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
+                                  nIterFlowStart, nIterThermoStart, &
+                                  tThermo, tFlow, nIterFlowEnd, iterchkpt, &
+                                  dt, nsubitr
+  use type_vars_mod,      only : flow, thermo, domain
+  use flow_variables_mod, only : Calculate_RePrGr, Check_maximum_velocity
+  use eq_momentum_mod,    only : Solve_momentum_eq
+  use solver_tools_mod,   only : Check_cfl_diffusion, Check_cfl_convection
+  use typeconvert_mod,    only : int2str
+  use poisson_mod
   implicit none
 
   logical    :: is_flow   = .false.
@@ -138,11 +141,14 @@ subroutine Solve_eqs_iteration
     flow%time = tFlow
   end if
 
+  call Initialize_decomp_poisson (domain)
+
   do iter = iterchkpt + 1, niter
+    call Print_debug_start_msg("Iter = "//trim(int2str(iter))//" ...")
 !===============================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
 !===============================================================================
-     call Calculate_RePrGr(flow, thermo, iter)
+    call Calculate_RePrGr(flow, thermo, iter)
 !===============================================================================
 !      setting up flow solver
 !===============================================================================
@@ -167,6 +173,8 @@ subroutine Solve_eqs_iteration
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
     end do
 
+    call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)
+    call Print_debug_end_msg
   end do
 
 

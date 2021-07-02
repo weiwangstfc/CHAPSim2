@@ -36,6 +36,35 @@ subroutine Print_warning_msg(msg)
   return
 end subroutine Print_warning_msg
 
+subroutine Print_debug_start_msg(msg)
+  use mpi_mod
+  implicit none
+
+  character(len=*), intent(IN) :: msg
+  
+  write(*,*) "-------------------------------------------------------------------------------"
+  write(*,*) msg
+  return
+end subroutine Print_debug_start_msg
+
+subroutine Print_debug_mid_msg(msg)
+  use mpi_mod
+  implicit none
+
+  character(len=*), intent(IN) :: msg
+  
+  write(*,*) msg
+  return
+end subroutine Print_debug_mid_msg
+
+subroutine Print_debug_end_msg
+  use mpi_mod
+  implicit none
+  
+  write(*,*) "Done."
+  write(*,*) "-------------------------------------------------------------------------------"
+  return
+end subroutine Print_debug_end_msg
 
 module random_number_generation_mod
   use precision_mod

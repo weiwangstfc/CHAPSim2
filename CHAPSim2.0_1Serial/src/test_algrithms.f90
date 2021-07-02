@@ -22,7 +22,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Test_schemes()
-  use type_vars_mod, only: flow, domain
+  use type_vars_mod, only : flow, domain
   implicit none
 
   !call Test_TDMA_cyclic

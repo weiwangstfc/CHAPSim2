@@ -26,12 +26,12 @@ module flow_variables_mod
   implicit none
 
   private :: Calculate_xbulk_velocity
-  private :: Check_maximum_velocity
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
   private :: Initialize_vortexgreen_flow
   private :: Initialize_thermal_variables
 
+  public  :: Check_maximum_velocity
   public  :: Allocate_thermoflow_variables
   public  :: Initialize_flow_variables
   public  :: Calculate_RePrGr
@@ -59,6 +59,8 @@ contains
     type(t_domain), intent(in)    :: domain
     type(t_flow),   intent(inout) :: flow
     type(t_thermo), intent(inout) :: thermo
+
+    call Print_debug_start_msg("Allocating flow and thermal variables ...")
 
     allocate ( flow%qx( domain%np(1), domain%nc(2), domain%nc(3) ) )
     allocate ( flow%qy( domain%nc(1), domain%np(2), domain%nc(3) ) )
@@ -103,9 +105,6 @@ contains
     flow%m2_rhs0 = ZERO
     flow%m3_rhs0 = ZERO
 
-    allocate ( flow%rhsp ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-    flow%rhsp = ZERO
-
     if(ithermo == 1) then
       allocate ( thermo%dh    ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
       allocate ( thermo%hEnth ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
@@ -117,6 +116,7 @@ contains
       thermo%tTemp = ONE
     end if
 
+    call Print_debug_end_msg
     return
   end subroutine Allocate_thermoflow_variables
 !===============================================================================
@@ -168,7 +168,7 @@ contains
 !_______________________________________________________________________________
   subroutine Calculate_xbulk_velocity(u, d, ubulk)
     use parameters_constant_mod, only : ZERO, HALF
-    use operations,              only: Get_midp_interpolation_1D, &
+    use operations,              only : Get_midp_interpolation_1D, &
                                        Get_volumetric_average_3d
     implicit none
 
@@ -178,11 +178,11 @@ contains
 
     integer(4) :: nix, niy, niz
 
-    nix = shape(u, 1)
-    niy = shape(u, 2)
-    niz = shape(u, 3)
+    nix = size(u, 1)
+    niy = size(u, 2)
+    niz = size(u, 3)
 
-    call Get_volumetric_average_3d(d, ux, ubulk, nix, niy, niz, .false.)
+    call Get_volumetric_average_3d(d, u, ubulk, nix, niy, niz, .false.)
     
     write(*,*) "-------------------------------------------------------------------------------"
     write(*, *) "The bulk velocity :"
@@ -444,8 +444,8 @@ contains
 !> \param[out]    f             flow
 !_______________________________________________________________________________
   subroutine  Initialize_sinetest_flow(ux, uy, uz, p, d)
-    use udf_type_mod, only: t_domain, t_flow
-    use math_mod, only: sin_wp
+    use udf_type_mod, only : t_domain, t_flow
+    use math_mod, only : sin_wp
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     
     implicit none
@@ -521,11 +521,9 @@ contains
     u(2) = MAXVAL( abs_wp( uy(:, :, :) ) )
     u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
 
-    write(*,*) "-------------------------------------------------------------------------------"
-    write(*, *) "The maximum velocity (u, v, w) :"
+    Call Print_debug_start_msg("The maximum velocity (u, v, w) :")
     write(*, '(12X, 3ES15.7)') u(:)
-    write(*,*) "-------------------------------------------------------------------------------"
-    
+
     return
   end subroutine
 
@@ -567,10 +565,12 @@ contains
        end subroutine Display_vtk_slice
     end interface
 
+    call Print_debug_start_msg("Initializing flow and thermal fields ...")
     call Calculate_RePrGr(flow, thermo, 0)
 !-------------------------------------------------------------------------------
 ! to initialize thermal variables 
 !-------------------------------------------------------------------------------
+    call Print_debug_mid_msg("Initializing thermal field ...")
     if (ithermo == 1) then
       call Initialize_thermal_variables (flow, thermo)
     else
@@ -580,6 +580,7 @@ contains
 !-------------------------------------------------------------------------------
 ! to initialize flow velocity and pressure
 !-------------------------------------------------------------------------------
+    call Print_debug_mid_msg("Initializing flow field ...")
     if ( (icase == ICASE_CHANNEL) .or. &
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
@@ -637,16 +638,27 @@ contains
     !call Display_vtk_slice(domain, 'zx', 'w', 3, qz)
     !call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
 
-
-
+    call Print_debug_end_msg
     return
   end subroutine
-
+!===============================================================================
+!===============================================================================
+!> \brief The main code for initializing flow variables
+!>
+!> This subroutine is called once in \ref Initialize_chapsim.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[inout]  
+!_______________________________________________________________________________
   subroutine Calculate_RePrGr(f, t, iter)
     use input_general_mod
-    use input_thermo_mod, only: tpRef0
-    use parameters_constant_mod, only: GRAVITY, ONE
-    use udf_type_mod, only: t_flow, t_thermo
+    use input_thermo_mod, only : tpRef0
+    use parameters_constant_mod, only : GRAVITY, ONE
+    use udf_type_mod, only : t_flow, t_thermo
     implicit none
     type(t_flow),   intent(inout) :: f
     type(t_thermo), intent(inout) :: t

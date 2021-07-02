@@ -7,9 +7,9 @@ contains
 
   subroutine Apply_BC_velocity (ux, uy, uz, d)
     use precision_mod
-    use parameters_constant_mod, only: ZERO
-    use udf_type_mod, only: t_domain, t_flow
-    use input_general_mod, only: IBC_UDIRICHLET
+    use parameters_constant_mod, only : ZERO
+    use udf_type_mod, only : t_domain, t_flow
+    use input_general_mod, only : IBC_UDIRICHLET
     implicit none
     type(t_domain), intent(in )   :: d
     real(WP), intent(inout)       :: ux(:, :, :), &
