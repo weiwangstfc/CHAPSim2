@@ -176,13 +176,10 @@ contains
     real(WP),       intent(in ) :: u(:, :, :)
     real(WP),       intent(out) :: ubulk
 
-    integer(4) :: nix, niy, niz
+    logical :: is_stored_nyp
+    is_stored_nyp = .false.
 
-    nix = size(u, 1)
-    niy = size(u, 2)
-    niz = size(u, 3)
-
-    call Get_volumetric_average_3d(d, u, ubulk, nix, niy, niz, .false.)
+    call Get_volumetric_average_3d(d, u, ubulk, is_stored_nyp)
     
     write(*,*) "-------------------------------------------------------------------------------"
     write(*, *) "The bulk velocity :"

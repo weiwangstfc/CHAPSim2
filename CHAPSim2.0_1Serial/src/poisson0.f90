@@ -86,8 +86,6 @@ contains
     else
       bcz = 1
     end if
-
-    call Print_debug_mid_msg("step1")
 !_______________________________________________________________________________
 ! Top level wrapper
 ! Note: if periodic b.c. exsits, it should be z direction first. 
@@ -112,7 +110,6 @@ contains
     else
       stop 'boundary condition not supported'
     end if
-    call Print_debug_mid_msg("step2")
 !_______________________________________________________________________________
 ! size of working array
 ! pressure-grid having 1 fewer point for non-periodic directions
@@ -135,14 +132,14 @@ contains
     allocate (t2x(nx)) ;  t2x = ZERO
     allocate (t2y(ny)) ;  t2y = ZERO
     allocate (t2z(nz)) ;  t2z = ZERO
-    call Print_debug_mid_msg("step3")
+
     call Transform_2nd_derivative_spectral_1d(d%bc(1, 1), d%nc(1), d%h(1), t2x)
     call Transform_2nd_derivative_spectral_1d(d%bc(1, 2), d%nc(2), d%h(2), t2y)
     call Transform_2nd_derivative_spectral_1d(d%bc(1, 3), d%nc(3), d%h(3), t2z)
-    call Print_debug_mid_msg("step4")
+
     allocate (t2xyz(nx, ny, nz)) ;  t2xyz = ZERO
     call Transform_2nd_derivative_spectral_3d(nx, ny, nz, t2x, t2y, t2z, t2xyz)
-    call Print_debug_mid_msg("step5")
+
     deallocate(t2x)
     deallocate(t2y)
     deallocate(t2z)
@@ -173,10 +170,10 @@ contains
     use math_mod,                only : cos_wp
     implicit none
 
-    integer(4), intent(in) :: nn
-    integer(4), intent(in) :: ibc
-    real(wp),    intent(in) :: dd
-    real(wp),    intent(out) :: t2(:)
+    integer(4), intent(in)    :: nn
+    integer(4), intent(in)    :: ibc
+    real(wp),   intent(in)    :: dd
+    real(wp),   intent(inout) :: t2(:)
 
     real(wp) :: a, b, alpha
     real(wp) :: w, cosw
@@ -189,10 +186,11 @@ contains
     b     = d2rC2C(3, 2, ibc) * FOUR
 
     do i = 1, nn
-      w = TWO * PI / REAL( nn * (i - 1), WP)
+      w = TWO * PI * REAL(i - 1, WP) / REAL(nn, WP)
       cosw = cos_wp(w)
       t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
       t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
+      !write(*, *) i, t2(i)
     end do
     
     end if

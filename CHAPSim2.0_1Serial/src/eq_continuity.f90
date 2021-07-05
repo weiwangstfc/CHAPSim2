@@ -96,19 +96,19 @@ contains
 !-------------------------------------------------------------------------------
 ! operation in x pencil
 !_______________________________________________________________________________
-    call Get_x_1st_derivative_P2C_3dArray( d, ux, div0,  d%np(1), d%nc(2), d%nc(3) )
+    call Get_x_1st_derivative_P2C_3dArray( d, ux, div0)
     div = div + div0
 
 !-------------------------------------------------------------------------------
 ! operation in y pencil
 !_______________________________________________________________________________
-    call Get_y_1st_derivative_P2C_3dArray( d, uy, div0,  d%nc(1), d%np(2), d%nc(3) )
+    call Get_y_1st_derivative_P2C_3dArray( d, uy, div0)
     div = div + div0
 
 !-------------------------------------------------------------------------------
 ! operation in z pencil
 !_______________________________________________________________________________
-    call Get_z_1st_derivative_P2C_3dArray( d, uz, div0,  d%nc(1), d%nc(2), d%np(3) )
+    call Get_z_1st_derivative_P2C_3dArray( d, uz, div0)
     div = div + div0
 
     deallocate(div0)

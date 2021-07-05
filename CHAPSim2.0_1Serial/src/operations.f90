@@ -1599,7 +1599,6 @@ contains
 ! bulk body and b.c. for periodic b.c.
 !-------------------------------------------------------------------------------
     do i = 1, n
-
       ! exclude non-periodic b.c. at both sides
       fbc = (i == 1 .or. i == 2 .or. i == n-1 .or. i==n)
       if( (.not. bc(1)==IBC_PERIODIC) .and. fbc) cycle
@@ -2263,8 +2262,6 @@ contains
 
     if(str1=='x') then
       i = 1
-
-      
       if (str2 == 'P2C') then
       
         call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
@@ -2606,27 +2603,26 @@ contains
 !>  for interpolation
 !-------------------------------------------------------------------------------
 !===============================================================================
-  subroutine Get_x_midp_C2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_midp_C2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix + 1, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix + 1)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix + 1
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_interp_RHS_array('C2P', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
@@ -2639,27 +2635,26 @@ contains
     return 
   end subroutine Get_x_midp_C2P_3dArray
 !===============================================================================
-  subroutine Get_x_midp_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_midp_P2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix - 1, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix - 1)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix - 1
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_interp_RHS_array('P2C', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
@@ -2672,27 +2667,27 @@ contains
     return 
   end subroutine Get_x_midp_P2C_3dArray
 !===============================================================================
-  subroutine Get_y_midp_C2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_midp_C2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy + 1, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy + 1)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy + 1
+    noy = size(fo3d, 2)
+
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_interp_RHS_array('C2P', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
@@ -2705,27 +2700,27 @@ contains
     return 
   end subroutine Get_y_midp_C2P_3dArray
 !===============================================================================
-  subroutine Get_y_midp_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_midp_P2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy - 1, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy - 1)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy - 1
+    noy = size(fo3d, 2)
+
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_interp_RHS_array('P2C', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
@@ -2738,27 +2733,27 @@ contains
     return 
   end subroutine Get_y_midp_P2C_3dArray
   !===============================================================================
-  subroutine Get_z_midp_C2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_midp_C2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz    )
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz + 1)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz)
-    real(WP)   :: fo(niz + 1)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz + 1
+    noz = size(fo3d, 3)
+
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_interp_RHS_array('C2P', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
@@ -2771,27 +2766,27 @@ contains
     return 
   end subroutine Get_z_midp_C2P_3dArray
 !===============================================================================
-  subroutine Get_z_midp_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_midp_P2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz    )
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz - 1)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz)
-    real(WP)   :: fo(niz - 1)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz - 1
+    noz = size(fo3d, 3)
+
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_interp_RHS_array('P2C', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
@@ -2808,27 +2803,26 @@ contains
 !>  for 1st-derivative
 !-------------------------------------------------------------------------------
 !===============================================================================
-  subroutine Get_x_1st_derivative_C2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_1st_derivative_C2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_1deri_RHS_array( 'C2C', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), d%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
@@ -2842,27 +2836,26 @@ contains
   end subroutine Get_x_1st_derivative_C2C_3dArray
 
 !===============================================================================
-  subroutine Get_x_1st_derivative_P2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_1st_derivative_P2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_1deri_RHS_array( 'P2P', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), d%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
@@ -2876,27 +2869,26 @@ contains
   end subroutine Get_x_1st_derivative_P2P_3dArray
 
 !===============================================================================
-  subroutine Get_x_1st_derivative_C2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_1st_derivative_C2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix + 1, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix + 1)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix + 1
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_1deri_RHS_array( 'C2P', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), d%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
@@ -2910,27 +2902,26 @@ contains
   end subroutine Get_x_1st_derivative_C2P_3dArray
 
 !===============================================================================
-  subroutine Get_x_1st_derivative_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_1st_derivative_P2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix,     niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix - 1, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix - 1)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix - 1
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_1deri_RHS_array( 'P2C', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), d%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
@@ -2944,27 +2935,26 @@ contains
   end subroutine Get_x_1st_derivative_P2C_3dArray
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_C2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_1st_derivative_C2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy
+    noy = size(fi3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_1deri_RHS_array( 'C2C', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
@@ -2978,27 +2968,26 @@ contains
   end subroutine Get_y_1st_derivative_C2C_3dArray
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_P2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_1st_derivative_P2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy
+    noy = size(fi3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_1deri_RHS_array( 'P2P', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
@@ -3012,27 +3001,26 @@ contains
   end subroutine Get_y_1st_derivative_P2P_3dArray
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_C2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_1st_derivative_C2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy + 1, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy + 1)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy + 1
+    noy = size(fi3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_1deri_RHS_array( 'C2P', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
@@ -3046,27 +3034,26 @@ contains
   end subroutine Get_y_1st_derivative_C2P_3dArray
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_1st_derivative_P2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy - 1, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy - 1)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy - 1
+    noy = size(fi3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_1deri_RHS_array( 'P2C', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
@@ -3080,27 +3067,27 @@ contains
   end subroutine Get_y_1st_derivative_P2C_3dArray
 
 !===============================================================================
-  subroutine Get_z_1st_derivative_C2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_1st_derivative_C2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz)
-    real(WP)   :: fo(niz)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz
+    noz = size(fo3d, 3)
+
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_1deri_RHS_array( 'C2C', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), d%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
@@ -3114,27 +3101,27 @@ contains
   end subroutine Get_z_1st_derivative_C2C_3dArray
 
 !===============================================================================
-  subroutine Get_z_1st_derivative_P2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_1st_derivative_P2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz)
-    real(WP)   :: fo(niz)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz
+    noz = size(fo3d, 3)
+
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_1deri_RHS_array( 'P2P', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), d%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
@@ -3148,27 +3135,27 @@ contains
   end subroutine Get_z_1st_derivative_P2P_3dArray
 
 !===============================================================================
-  subroutine Get_z_1st_derivative_C2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_1st_derivative_C2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy + 1, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz    )
-    real(WP)   :: fo(niz + 1)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz + 1
+    noz = size(fo3d, 3)
+
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_1deri_RHS_array( 'C2P', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), d%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
@@ -3182,27 +3169,27 @@ contains
   end subroutine Get_z_1st_derivative_C2P_3dArray
 
   !===============================================================================
-  subroutine Get_z_1st_derivative_P2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_1st_derivative_P2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy,     niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy - 1, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz    )
-    real(WP)   :: fo(niz - 1)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz - 1
+    noz = size(fo3d, 3)
+
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_1deri_RHS_array( 'P2C', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), d%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
@@ -3219,27 +3206,26 @@ contains
 !>  for 2nd-derivative
 !-------------------------------------------------------------------------------
 !===============================================================================
-  subroutine Get_x_2nd_derivative_C2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_2nd_derivative_C2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_2deri_RHS_array( 'C2C', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), d%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
@@ -3253,27 +3239,26 @@ contains
   end subroutine Get_x_2nd_derivative_C2C_3dArray
 
   !===============================================================================
-  subroutine Get_x_2nd_derivative_P2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_x_2nd_derivative_P2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(nix)
-    real(WP)   :: fo(nix)
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 
     dim = 1
-    nox = nix
+    nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do j = 1, niy
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
         call Prepare_TDMA_2deri_RHS_array( 'P2P', nox, d%bc(:, dim), &
                 d%iNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
@@ -3286,27 +3271,26 @@ contains
     return
   end subroutine Get_x_2nd_derivative_P2P_3dArray
 !===============================================================================
-  subroutine Get_y_2nd_derivative_C2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_2nd_derivative_C2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy
+    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_2deri_RHS_array( 'C2C', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
@@ -3320,27 +3304,26 @@ contains
   end subroutine Get_y_2nd_derivative_C2C_3dArray
 
 !===============================================================================
-  subroutine Get_y_2nd_derivative_P2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_y_2nd_derivative_P2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niy)
-    real(WP)   :: fo(niy)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 
     dim = 2
-    noy = niy
+    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, niz
-      do i = 1, nix
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         call Prepare_TDMA_2deri_RHS_array( 'P2P', noy, d%bc(:, dim), &
                 d%jNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
@@ -3353,27 +3336,26 @@ contains
     return
   end subroutine Get_y_2nd_derivative_P2P_3dArray
 !===============================================================================
-  subroutine Get_z_2nd_derivative_C2C_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_2nd_derivative_C2C_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
     type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    real(WP),       intent(in)   :: fi3d(:, :, :)
+    real(WP),       intent(out)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz)
-    real(WP)   :: fo(niz)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz
+    noz = size(fo3d, 3)
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_2deri_RHS_array( 'C2C', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), d%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
@@ -3387,27 +3369,26 @@ contains
   end subroutine Get_z_2nd_derivative_C2C_3dArray
 
 !===============================================================================
-  subroutine Get_z_2nd_derivative_P2P_3dArray(d, fi3d, fo3d, nix, niy, niz)
+  subroutine Get_z_2nd_derivative_P2P_3dArray(d, fi3d, fo3d)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain
     use tridiagonal_matrix_algorithm, only : Solve_TDMA
     implicit none
 
-    type(t_domain), intent(in)   :: d
-    integer(4),     intent(in)   :: nix, niy, niz
-    real(WP),       intent(in)   :: fi3d(nix, niy, niz)
-    real(WP),       intent(out)  :: fo3d(nix, niy, niz)
+    type(t_domain), intent(in   )  :: d
+    real(WP),       intent(in   )  :: fi3d(:, :, :)
+    real(WP),       intent(inout)  :: fo3d(:, :, :)
 
-    real(WP)   :: fi(niz)
-    real(WP)   :: fo(niz)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
 
     dim = 3
-    noz = niz
+    noz = size(fo3d, dim)
     fo3d(:, :, :) = ZERO
-    do j = 1, niy
-      do i = 1, nix
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         call Prepare_TDMA_2deri_RHS_array( 'P2P', noz, d%bc(:, dim), &
                 d%kNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
@@ -3424,55 +3405,74 @@ contains
 !>\brief : to calculate:
 !>         fo = \int_1^nx \int_
 !===============================================================================
-  subroutine Get_volumetric_average_3d(d, fi3d, fo, nix, niy, niz, is_yvar)
+  subroutine Get_volumetric_average_3d(d, fi3d, fo, is_stored_nyp)
     ! how to get a high order bulk value?
     use parameters_constant_mod, only : ZERO, HALF
     use udf_type_mod,            only : t_domain
     implicit none
   
     type(t_domain), intent(in)  :: d
-    integer(4),     intent(in)  :: nix, niy, niz
-    real(WP),       intent(in)  :: fi3d(nix, niy, niz)
+    real(WP),       intent(in)  :: fi3d(:, :, :)
     real(WP),       intent(out) :: fo
-    logical,        intent(in)  :: is_yvar
+    logical,        intent(in)  :: is_stored_nyp
   
-    real(WP)   :: fi3dp(nix, niy + 1, niz)
-    real(WP)   :: fi3dc(nix, niy - 1, niz)
+    real(WP), allocatable   :: fi3dy(:, :, :)
     real(WP)   :: vol
     integer(4) :: i, j, k
-!-------------------------------------------------------------------------------
-!   if variable is not stored in y-nodes, convert them to y-nodes
-!-------------------------------------------------------------------------------
+    integer(4) :: nix, niy, niz
+
     fo = ZERO
     vol = ZERO
-    if(.not. is_yvar) then
-
-      call Get_y_midp_C2P_3dArray ( d, fi3d, fi3dp, nix, niy, niz )
+    nix = size(fi3d, 1)
+    niz = size(fi3d, 3)
+    if(.not. is_stored_nyp) then
+!-------------------------------------------------------------------------------
+!   if variable is not stored in y-nodes, extends them to y-nodes
+!-------------------------------------------------------------------------------
+      if( d%is_periodic(2) ) then
+        niy = size(fi3d, 2)
+      else
+        niy = size(fi3d, 2) + 1
+      end if
+      allocate( fi3dy(nix, niy, niz) )
+      call Get_y_midp_C2P_3dArray ( d, fi3d, fi3dy)
       do k = 1, niz
         do i = 1, nix
           do j = 1, niy
             fo = fo + &
-                ( fi3dp(i, j + 1, k) + fi3d(i, j, k) ) * ( d%yp(j + 1) - d%yc(j) ) * HALF + &
-                ( fi3dp(i, j,     k) + fi3d(i, j, k) ) * ( d%yc(j    ) - d%yp(j) ) * HALF
+                ( fi3dy(i, d%jNeighb(3, j), k) + fi3d(i, j, k) ) * &
+                ( d%yp(j + 1) - d%yc(j) ) * HALF + &
+                ( fi3dy(i, j,               k) + fi3d(i, j, k) ) * &
+                ( d%yc(j    ) - d%yp(j) ) * HALF
             vol = vol + ( d%yp(j + 1) - d%yp(j) )
           end do
         end do
       end do
-
+      deallocate(fi3dy)
     else
-
-      call Get_y_midp_P2C_3dArray ( d, fi3d, fi3dc, nix, niy, niz )
+!-------------------------------------------------------------------------------
+!   if variable is stored in y-nodes, extend them to y-cell centres
+!-------------------------------------------------------------------------------
+      if( d%is_periodic(2) ) then
+        niy = size(fi3d, 2)
+      else
+        niy = size(fi3d, 2) - 1
+      end if
+      allocate( fi3dy(nix, niy, niz) )
+      call Get_y_midp_P2C_3dArray ( d, fi3d, fi3dy)
       do k = 1, niz
         do i = 1, nix
-          do j = 1, niy - 1
+          do j = 1, niy
             fo = fo + &
-                ( fi3d(i, j + 1, k) + fi3dc(i, j, k) ) * ( d%yp(j + 1) - d%yc(j) ) * HALF + &
-                ( fi3d(i, j,     k) + fi3dc(i, j, k) ) * ( d%yc(j    ) - d%yp(j) ) * HALF
+                ( fi3d(i, d%jNeighb(3, j), k) + fi3dy(i, j, k) ) * &
+                ( d%yp(j + 1) - d%yc(j) ) * HALF + &
+                ( fi3d(i, j,               k) + fi3dy(i, j, k) ) * &
+                ( d%yc(j    ) - d%yp(j) ) * HALF
             vol = vol + ( d%yp(j + 1) - d%yp(j) )
           end do
         end do
       end do
-
+      deallocate(fi3dy)
     end if
 
     fo = fo / real(nix * niy, WP) / vol

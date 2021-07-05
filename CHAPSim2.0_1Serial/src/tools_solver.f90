@@ -91,11 +91,9 @@ contains
     ! check, ours is two times of the one in xcompact3d.
     cfl_diff = sum(x2r) * TWO * dt * rre
 
-    write(*,*) "-------------------------------------------------------------------------------"
     if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-    write(*,*) "Diffusion number :"
+    write(*,*) "  Diffusion number :"
     write(*,"(12X, F13.8)") cfl_diff
-    write(*,*) "-------------------------------------------------------------------------------"
     
     return
   end subroutine
@@ -160,12 +158,9 @@ contains
     deallocate (fi)
     deallocate (fo)
 
-    write(*,*) "-------------------------------------------------------------------------------"
     if(cfl_convection > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
-    write(*,*) "CFL (convection) :"
+    write(*,*) "  CFL (convection) :"
     write(*,"(12X, F13.8)") cfl_convection
-    write(*,*) "-------------------------------------------------------------------------------"
-    
     deallocate (udx)
 
     return

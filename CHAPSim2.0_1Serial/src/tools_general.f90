@@ -61,7 +61,7 @@ subroutine Print_debug_end_msg
   use mpi_mod
   implicit none
   
-  write(*,*) "Done."
+  write(*,*) "... done."
   write(*,*) "-------------------------------------------------------------------------------"
   return
 end subroutine Print_debug_end_msg

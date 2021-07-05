@@ -209,13 +209,13 @@ contains
     end do
 
     if(is_peri) then
-      nbr(1, 1) = n-1  ! -1
-      nbr(1, 2) = n    ! 0
-      nbr(2, 1) = n    ! 0
+      nbr(1, 1)   = n-1  ! -2, i = 1
+      nbr(1, 2)   = n    ! -2, i = 2
+      nbr(2, 1)   = n    ! -1, i = 1
       
-      nbr(3, n) = 1 ! n + 1
-      nbr(4, n) = 2 ! n + 2
-      nbr(4, n-1) = 1  ! n + 1
+      nbr(3, n)   = 1    ! +1, i = n
+      nbr(4, n)   = 2    ! +2, i = n
+      nbr(4, n-1) = 1    ! +2, i = n-1
     end if
 
     return
