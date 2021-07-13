@@ -15,7 +15,7 @@ module domain_decomposition_mod
     generic :: write(formatted) => Print_debug
   end type pencil_t
   
-  type(pencil_t), save :: local0_xpencil
+  type(pencil_t), save :: pencilx
   public :: Initialize_domain_decompsition
 
 contains
@@ -42,11 +42,11 @@ contains
       if(iostat /= 0) exit this_block
 
       write(unit, '(I6,A,3I7)', iostat = iostat, iomsg = iomsg) &
-      myid, ":x-index", this%irange(1:2), this%isz
+      myid, ":x-index", this%iprange(1:2), this%ipsz
       write(unit, '(I6,A,3I7)', iostat = iostat, iomsg = iomsg) &
-      myid, ":y-index", this%jrange(1:2), this%jsz
+      myid, ":y-index", this%jprange(1:2), this%jpsz
       write(unit, '(I6,A,3I7)', iostat = iostat, iomsg = iomsg) &
-      myid, ":z-index", this%krange(1:2), this%ksz
+      myid, ":z-index", this%kprange(1:2), this%kpsz
       
       if(iostat /= 0) exit this_block
     end do this_block
@@ -59,26 +59,26 @@ contains
 
   subroutine Initialize_domain_decompsition (d)
     use mpi_mod, only : nrow, ncol
-    use input_general_mod
+    use udf_type_mod, only : t_domain
     use decomp_2d
     implicit none
     type(t_domain), intent(in)   :: d
 
-    call decomp_2d_init( d%np(1), d%np(2), d%np(3), nrow, ncol, is_periodic(:) )
+    call decomp_2d_init( d%np(1), d%np(2), d%np(3), nrow, ncol)!, d%is_periodic(:) )
     
-    local0_xpencil%iprange(1) = xstart(1)
-    local0_xpencil%jprange(1) = xstart(2)
-    local0_xpencil%kprange(1) = xstart(3)
+    pencilx%iprange(1) = xstart(1)
+    pencilx%jprange(1) = xstart(2)
+    pencilx%kprange(1) = xstart(3)
 
-    local0_xpencil%iprange(2) = xend(1)
-    local0_xpencil%jprange(2) = xend(2)
-    local0_xpencil%kprange(2) = xend(3)
+    pencilx%iprange(2) = xend(1)
+    pencilx%jprange(2) = xend(2)
+    pencilx%kprange(2) = xend(3)
 
-    local0_xpencil%ipsz = xsize(1)
-    local0_xpencil%jpsz = xsize(2)
-    local0_xpencil%kpsz = xsize(3)
+    pencilx%ipsz = xsize(1)
+    pencilx%jpsz = xsize(2)
+    pencilx%kpsz = xsize(3)
 
-    write(*, '(dt)') local_xpencil
+    write(*, '(dt)') pencilx
 
   end subroutine Initialize_domain_decompsition
 

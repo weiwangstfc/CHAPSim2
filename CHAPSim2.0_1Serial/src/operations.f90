@@ -46,8 +46,8 @@ module operations
 ! for 1st derivative
 !-------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP) :: d1fC2C(5, 3, 4)
-  real(WP) :: d1rC2C(5, 3, 4)
+  real(WP), public :: d1fC2C(5, 3, 4)
+  real(WP), public :: d1rC2C(5, 3, 4)
   
   ! collocated P2P
   real(WP) :: d1fP2P(5, 3, 4)

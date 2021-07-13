@@ -2,6 +2,7 @@ module continuity_eq_mod
 
   private :: Calculate_drhodt
   public  :: Get_divergence
+  public  :: Calculate_continuity_constrains
 contains
 !===============================================================================
 !===============================================================================
@@ -134,6 +135,7 @@ contains
     use udf_type_mod,            only : t_domain, t_flow
     use input_general_mod,       only : ithermo, dt, sigma2p, tAlpha
     use parameters_constant_mod, only : ZERO
+    use math_mod,                only : abs_wp
     implicit none
 
     type(t_domain), intent( in    ) :: d
@@ -142,6 +144,8 @@ contains
 
     real(WP), allocatable  :: div (:, :, :)
     integer(4) :: nx, ny, nz
+    integer(4) :: loc3d(3)
+    real(WP)   :: divmax
 
     nx = size(f%pcor, 1)
     ny = size(f%pcor, 2)
@@ -165,10 +169,14 @@ contains
       call Get_divergence_vel(f%qx, f%qy, f%qz, div, d)
     end if
     f%pcor = f%pcor + div
-
     f%pcor = f%pcor / (tAlpha(isub) * sigma2p * dt)
-    
     deallocate (div)
+
+    divmax = MAXVAL( abs_wp( f%pcor ) )
+    loc3d  = MAXLOC( abs_wp( f%pcor ) )
+
+    call Print_debug_mid_msg("  The maximum value of continuity eq and loc are:")
+    write(*, "(12X, 3I8.1, 1ES13.5)") loc3d, divmax
 
     return
   end subroutine Calculate_continuity_constrains

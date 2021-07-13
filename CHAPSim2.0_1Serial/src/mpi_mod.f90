@@ -18,7 +18,7 @@ contains
     call MPI_INIT(ierror)
     call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierror)
     call MPI_COMM_SIZE(MPI_COMM_WORLD, npar, ierror)
-
+    return
   end subroutine Initialize_mpi
 
   subroutine Finalise_mpi()  

@@ -77,7 +77,7 @@ module parameters_constant_mod
   real(WP), parameter :: MAXN        = -1.0E-20_WP
 
 
-  real(WP), parameter :: TRUNCERR    = 1.0E-15_WP
+  real(WP), parameter :: TRUNCERR    = 1.0E-16_WP
 
   
 

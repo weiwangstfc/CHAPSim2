@@ -617,6 +617,7 @@ contains
   subroutine Solve_momentum_eq(f, d, isub)
     use input_general_mod, only : iviscous, IVIS_SEMIMPLT, IVIS_EXPLICIT, ithermo
     use udf_type_mod,      only : t_flow, t_domain
+    use typeconvert_mod
     use continuity_eq_mod
     use poisson_mod
     implicit none
@@ -628,7 +629,8 @@ contains
 !-------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !_______________________________________________________________________________ 
-    call Print_debug_mid_msg("  Computing momentum RHS ...")
+    call Print_debug_mid_msg("  Computing momentum RHS for isub = "&
+                             //trim( int2str(isub) )//" >>>>>>>>>>>>>>>>>>>>>>" )
     call Compute_momentum_rhs(f, d, isub)
 !-------------------------------------------------------------------------------
 ! to update intermediate (\hat{q}) or (\hat{g})

@@ -25,10 +25,12 @@
 !>
 !===============================================================================
 program chapsim
+  use poisson_mod
   implicit none
 
   call Initialize_chapsim ()
   call Initialize_flow ()
+  call Test_poisson_solver
   call Solve_eqs_iteration()
   call Finalise_chapsim ()
   
@@ -48,21 +50,22 @@ end program
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Initialize_chapsim()
-  !use mpi_mod
-  !use domain_decomposition_mod
+  use mpi_mod,           only : Initialize_mpi
+  use domain_decomposition_mod, only : Initialize_domain_decompsition
   use input_general_mod, only : Initialize_general_input
   use input_thermo_mod,  only : Initialize_thermo_input
   use geometry_mod,      only : Initialize_geometry_variables
   use operations,        only : Prepare_coeffs_for_operations
+  use type_vars_mod,     only : domain
   implicit none
 
- !call Initialize_mpi ()
+  call Initialize_mpi ()
   call Initialize_general_input ()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
   call Prepare_coeffs_for_operations ()
+  call Initialize_domain_decompsition (domain)
 
-  !call Initialize_domain_decompsition ()
   return
 end subroutine Initialize_chapsim
 !===============================================================================
@@ -126,6 +129,7 @@ subroutine Solve_eqs_iteration
   use eq_momentum_mod,    only : Solve_momentum_eq
   use solver_tools_mod,   only : Check_cfl_diffusion, Check_cfl_convection
   use typeconvert_mod,    only : int2str
+  use continuity_eq_mod,  only : Calculate_continuity_constrains
   use poisson_mod
   implicit none
 
@@ -171,6 +175,7 @@ subroutine Solve_eqs_iteration
     do isub = 1, nsubitr
       !if(is_thermo) call Solve_energy_eq  (flow, thermo, domain, isub)
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
+      call Calculate_continuity_constrains(flow, domain, isub) ! for debug only
     end do
 
     call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)

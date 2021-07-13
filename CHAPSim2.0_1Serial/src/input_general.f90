@@ -358,15 +358,15 @@ contains
       call Print_warning_msg ("Grids are clustered.")
       lxx = TWO * PI
       lzz = TWO * PI
-      lyt = PI
-      lyb = -PI
+      lyt =   PI
+      lyb = - PI
     else if (icase == ICASE_SINETEST) then
       if(istret /= ISTRET_NO) &
       call Print_warning_msg ("Grids are clustered.")
       lxx = TWO * PI
       lzz = TWO * PI
-      lyt = PI
-      lyb = -PI
+      lyt =   PI
+      lyb = - PI
     else 
       ! do nothing...
     end if

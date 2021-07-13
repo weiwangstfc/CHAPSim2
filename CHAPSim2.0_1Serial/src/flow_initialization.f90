@@ -510,16 +510,23 @@ contains
     use math_mod
     implicit none
 
-    real(WP),       intent( in ) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
+    real(WP), intent( in ) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
 
     real(WP)   :: u(3)
+    integer(4) :: imax(3), jmax(3), kmax(3)
 
     u(1) = MAXVAL( abs_wp( ux(:, :, :) ) )
     u(2) = MAXVAL( abs_wp( uy(:, :, :) ) )
     u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
 
-    Call Print_debug_start_msg("The maximum velocity (u, v, w) :")
-    write(*, '(12X, 3ES15.7)') u(:)
+    imax = MAXLOC( abs_wp( ux(:, :, :) ) )
+    jmax = MAXLOC( abs_wp( uy(:, :, :) ) )
+    kmax = MAXLOC( abs_wp( uz(:, :, :) ) )
+
+    Call Print_debug_mid_msg("  The maximum Ux, Uy, Uz are:")
+    write(*, '(12X, 3I8.1, 1ES13.5)') imax, u(1)
+    write(*, '(12X, 3I8.1, 1ES13.5)') jmax, u(2)
+    write(*, '(12X, 3I8.1, 1ES13.5)') kmax, u(3)
 
     return
   end subroutine

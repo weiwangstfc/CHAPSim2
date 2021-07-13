@@ -35,9 +35,6 @@ OBJS= modules.o\
 OPTIONS= -g -fbacktrace -fbounds-check -fcheck=all -Wall -ffpe-trap=invalid,zero,overflow
 
 default :
-	@cp $(DIR_MOD)/* .
-	@cp $(DIR_OBJ)/* .
-	@cp $(DIR_BIN)/* .
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
 	@mv *.mod $(DIR_MOD)
