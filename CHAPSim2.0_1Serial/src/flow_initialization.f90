@@ -52,6 +52,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
   subroutine Allocate_thermoflow_variables (domain, flow, thermo)
+    use domain_decomposition_mod
     use input_general_mod,       only : ithermo
     use parameters_constant_mod, only : ZERO, ONE
     implicit none
@@ -62,6 +63,9 @@ contains
 
     call Print_debug_start_msg("Allocating flow and thermal variables ...")
 
+!_______________________________________________________________________________
+! x pencil in serial = global
+!_______________________________________________________________________________
     allocate ( flow%qx( domain%np(1), domain%nc(2), domain%nc(3) ) )
     allocate ( flow%qy( domain%nc(1), domain%np(2), domain%nc(3) ) )
     allocate ( flow%qz( domain%nc(1), domain%nc(2), domain%np(3) ) )

@@ -62,7 +62,6 @@ subroutine Print_debug_end_msg
   implicit none
   
   write(*,*) "... done."
-  write(*,*) "-------------------------------------------------------------------------------"
   return
 end subroutine Print_debug_end_msg
 

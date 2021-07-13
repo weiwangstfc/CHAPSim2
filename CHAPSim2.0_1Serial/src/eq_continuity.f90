@@ -3,6 +3,7 @@ module continuity_eq_mod
   private :: Calculate_drhodt
   public  :: Get_divergence
   public  :: Calculate_continuity_constrains
+  public  :: Check_mass_conservation
 contains
 !===============================================================================
 !===============================================================================
@@ -18,7 +19,7 @@ contains
 !> \param[out] drhodt           d(rho)/dt
 !> \param[in]  itime            the sub-step in RK3
 !_______________________________________________________________________________
-  subroutine Calculate_drhodt(dDens, dDensm1, dDensm2, drhodt, isub)
+  subroutine Calculate_drhodt(dDens, dDensm1, dDensm2, drhodt)
     use precision_mod
     use udf_type_mod, only : t_flow, t_domain
     use input_general_mod, only : dt, iTimeScheme, ITIME_RK3, ITIME_RK3_CN, ITIME_AB2, &
@@ -28,7 +29,6 @@ contains
 
     real(WP), dimension(:, :, :), intent ( in  ) :: dDens, dDensm1, dDensm2
     real(WP), dimension(:, :, :), intent ( out ) :: drhodt
-    integer(4),                   intent ( in  ) :: isub
 
     integer(4) :: i
 
@@ -130,17 +130,16 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Calculate_continuity_constrains(f, d, isub)
+  subroutine Check_mass_conservation(f, d)
     use precision_mod,           only : WP
     use udf_type_mod,            only : t_domain, t_flow
-    use input_general_mod,       only : ithermo, dt, sigma2p, tAlpha
+    use input_general_mod,       only : ithermo
     use parameters_constant_mod, only : ZERO
     use math_mod,                only : abs_wp
     implicit none
 
     type(t_domain), intent( in    ) :: d
     type(t_flow),   intent( inout ) :: f                  
-    integer(4),     intent( in    ) :: isub
 
     real(WP), allocatable  :: div (:, :, :)
     integer(4) :: nx, ny, nz
@@ -158,7 +157,57 @@ contains
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
     if (ithermo == 1) then
-      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, f%pcor, isub)
+      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, f%pcor)
+    end if
+!-------------------------------------------------------------------------------
+! $d(\rho u_i)) / dx_i $ at cell centre
+!_______________________________________________________________________________
+    if (ithermo == 1) then
+      call Get_divergence_vel(f%gx, f%gy, f%gz, div, d)
+    else
+      call Get_divergence_vel(f%qx, f%qy, f%qz, div, d)
+    end if
+  
+    divmax = MAXVAL( abs_wp( div ) )
+    loc3d  = MAXLOC( abs_wp( div ) )
+
+    call Print_debug_mid_msg("  The maximum value of mass conservation and loc are:")
+    write(*, "(12X, 3I8.1, 1ES13.5)") loc3d, divmax
+    deallocate (div)
+
+    return
+  end subroutine Check_mass_conservation
+
+
+!===============================================================================
+!===============================================================================
+  subroutine Calculate_continuity_constrains(f, d, isub)
+    use precision_mod,           only : WP
+    use udf_type_mod,            only : t_domain, t_flow
+    use input_general_mod,       only : ithermo, dt, sigma2p, tAlpha
+    use parameters_constant_mod, only : ZERO
+    use math_mod,                only : abs_wp
+    implicit none
+
+    type(t_domain), intent( in    ) :: d
+    type(t_flow),   intent( inout ) :: f                  
+    integer(4),     intent( in    ) :: isub
+
+    real(WP), allocatable  :: div (:, :, :)
+    integer(4) :: nx, ny, nz
+
+    nx = size(f%pcor, 1)
+    ny = size(f%pcor, 2)
+    nz = size(f%pcor, 3)
+    allocate( div(nx, ny, nz) )
+
+    f%pcor = ZERO
+    div  = ZERO
+!-------------------------------------------------------------------------------
+! $d\rho / dt$ at cell centre
+!_______________________________________________________________________________
+    if (ithermo == 1) then
+      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, f%pcor)
     end if
 !-------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
@@ -171,12 +220,6 @@ contains
     f%pcor = f%pcor + div
     f%pcor = f%pcor / (tAlpha(isub) * sigma2p * dt)
     deallocate (div)
-
-    divmax = MAXVAL( abs_wp( f%pcor ) )
-    loc3d  = MAXLOC( abs_wp( f%pcor ) )
-
-    call Print_debug_mid_msg("  The maximum value of continuity eq and loc are:")
-    write(*, "(12X, 3I8.1, 1ES13.5)") loc3d, divmax
 
     return
   end subroutine Calculate_continuity_constrains

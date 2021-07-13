@@ -215,7 +215,7 @@ contains
 
     real(wp) :: a, b, alpha
     real(wp) :: w, cosw
-    integer(4) :: i, i1
+    integer(4) :: i
     integer(4) :: method = 2
 
     if(ibc == IBC_PERIODIC) then

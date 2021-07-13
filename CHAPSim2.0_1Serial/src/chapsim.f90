@@ -25,14 +25,12 @@
 !>
 !===============================================================================
 program chapsim
-  use poisson_mod
   implicit none
 
   call Initialize_chapsim ()
-  call Initialize_flow ()
-  call Test_poisson_solver
+  call Initialize_flow    ()
   call Solve_eqs_iteration()
-  call Finalise_chapsim ()
+  call Finalise_chapsim   ()
   
 end program
 !===============================================================================
@@ -50,8 +48,7 @@ end program
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Initialize_chapsim()
-  use mpi_mod,           only : Initialize_mpi
-  use domain_decomposition_mod, only : Initialize_domain_decompsition
+  use domain_decomposition_mod
   use input_general_mod, only : Initialize_general_input
   use input_thermo_mod,  only : Initialize_thermo_input
   use geometry_mod,      only : Initialize_geometry_variables
@@ -122,14 +119,14 @@ end subroutine Initialize_flow
 subroutine Solve_eqs_iteration
   use input_general_mod,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
                                   nIterFlowStart, nIterThermoStart, &
-                                  tThermo, tFlow, nIterFlowEnd, iterchkpt, &
+                                  tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
                                   dt, nsubitr
   use type_vars_mod,      only : flow, thermo, domain
   use flow_variables_mod, only : Calculate_RePrGr, Check_maximum_velocity
   use eq_momentum_mod,    only : Solve_momentum_eq
   use solver_tools_mod,   only : Check_cfl_diffusion, Check_cfl_convection
   use typeconvert_mod,    only : int2str
-  use continuity_eq_mod,  only : Calculate_continuity_constrains
+  use continuity_eq_mod
   use poisson_mod
   implicit none
 
@@ -147,7 +144,7 @@ subroutine Solve_eqs_iteration
 
   call Initialize_decomp_poisson (domain)
 
-  do iter = iterchkpt + 1, niter
+  do iter = nrsttckpt + 1, niter
     call Print_debug_start_msg("Iter = "//trim(int2str(iter))//" ...")
 !===============================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
@@ -175,10 +172,10 @@ subroutine Solve_eqs_iteration
     do isub = 1, nsubitr
       !if(is_thermo) call Solve_energy_eq  (flow, thermo, domain, isub)
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
-      call Calculate_continuity_constrains(flow, domain, isub) ! for debug only
     end do
 
-    call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)
+    call Check_mass_conservation(flow, domain) ! for debug only
+    call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)   ! for debug only
     call Print_debug_end_msg
   end do
 

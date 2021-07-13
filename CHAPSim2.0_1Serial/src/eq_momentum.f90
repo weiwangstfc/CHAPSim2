@@ -629,13 +629,13 @@ contains
 !-------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !_______________________________________________________________________________ 
-    call Print_debug_mid_msg("  Computing momentum RHS for isub = "&
-                             //trim( int2str(isub) )//" >>>>>>>>>>>>>>>>>>>>>>" )
+    !call Print_debug_mid_msg("  Computing momentum RHS for isub ============= "&
+    !                         //trim( int2str(isub) ))
     call Compute_momentum_rhs(f, d, isub)
 !-------------------------------------------------------------------------------
 ! to update intermediate (\hat{q}) or (\hat{g})
 !_______________________________________________________________________________
-    call Print_debug_mid_msg("  Computing momentum intermediate variables ...") 
+    !call Print_debug_mid_msg("  Computing momentum intermediate variables ...") 
     if(iviscous == IVIS_EXPLICIT) then
 
       if(ithermo == 0) then 
@@ -660,17 +660,17 @@ contains
 !-------------------------------------------------------------------------------
 ! to calculate the provisional divergence constrains
 !_______________________________________________________________________________
-    call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
+    !call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
     call Calculate_continuity_constrains(f, d, isub)
 !-------------------------------------------------------------------------------
 ! to solve Poisson equation
 !_______________________________________________________________________________
-    call Print_debug_mid_msg("  Solving Poisson Equation ...")
+    !call Print_debug_mid_msg("  Solving Poisson Equation ...")
     call Solve_poisson(f%pcor)
 !-------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !_______________________________________________________________________________
-    call Print_debug_mid_msg("  Updating velocity/mass flux ...")
+    !call Print_debug_mid_msg("  Updating velocity/mass flux ...")
     if(ithermo == 0) then 
       call Correct_massflux(f%qx, f%qy, f%qz, f%pcor, d, isub)
     else
