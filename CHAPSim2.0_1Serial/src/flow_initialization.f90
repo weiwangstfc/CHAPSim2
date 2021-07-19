@@ -528,9 +528,9 @@ contains
     kmax = MAXLOC( abs_wp( uz(:, :, :) ) )
 
     Call Print_debug_mid_msg("  The maximum Ux, Uy, Uz are:")
-    write(*, '(12X, 3I8.1, 1ES13.5)') imax, u(1)
-    write(*, '(12X, 3I8.1, 1ES13.5)') jmax, u(2)
-    write(*, '(12X, 3I8.1, 1ES13.5)') kmax, u(3)
+    write(*, '(5X, A, 3I8.1, 1ES13.5)') 'Umax : ', imax, u(1)
+    write(*, '(5X, A, 3I8.1, 1ES13.5)') 'Vmax : ', jmax, u(2)
+    write(*, '(5X, A, 3I8.1, 1ES13.5)') 'Wmax : ', kmax, u(3)
 
     return
   end subroutine

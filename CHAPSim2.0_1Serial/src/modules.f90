@@ -6,11 +6,11 @@ module precision_mod
   integer, parameter :: I4 = selected_int_kind( 4 )
   integer, parameter :: I8 = selected_int_kind( 8 )
   integer, parameter :: I15 = selected_int_kind( 15 )
-  integer, parameter :: SP = selected_real_kind( p = 6, r = 37 )
-  integer, parameter :: DP = selected_real_kind( p = 15, r = 307 )
-  integer, parameter :: QP = selected_real_kind( p = 33, r = 4931 )
+  integer, parameter :: S6P = selected_real_kind( p = 6, r = 37 )
+  integer, parameter :: D15P = selected_real_kind( p = 15, r = 307 )
+  integer, parameter :: Q33P = selected_real_kind( p = 33, r = 4931 )
 
-  integer, parameter :: WP = DP
+  integer, parameter :: WP = D15P
   !integer, parameter :: WP = mytype ! inherit from decomp_2d, flag of -DDOUBLE_PREC is required.
 
 end module precision_mod
@@ -105,7 +105,7 @@ module udf_type_mod
     integer :: np(3) ! calculated points
     integer :: nc(3) ! geometric cell number
     integer :: bc(2, 3) ! (two sides, three directions)
-    real(WP) :: ubc(2, 3)
+    real(wp) :: ubc(2, 3) ! (two sides, three directions)
     real(wp) :: h(3) ! uniform dx
     real(wp) :: h1r(3) ! uniform (dx)^(-1)
     real(wp) :: h2r(3) ! uniform (dx)^(-2)
@@ -218,92 +218,92 @@ contains
 
   ! abs
   elemental function abs_sp ( r ) result(d)
-  real(kind = SP), intent(in) :: r
-  real(kind = SP) :: d
+  real(kind = S6P), intent(in) :: r
+  real(kind = S6P) :: d
     d = abs ( r )
   end function
 
   elemental function abs_dp ( r ) result (d)
-  real(kind = DP), intent(in) :: r
-  real(kind = DP) :: d
+  real(kind = D15P), intent(in) :: r
+  real(kind = D15P) :: d
     d = dabs ( r ) 
   end function
 
   ! sqrt
   pure function sqrt_sp ( r ) result(d)
-    real(kind = SP), intent(in) :: r
-    real(kind = SP) :: d
+    real(kind = S6P), intent(in) :: r
+    real(kind = S6P) :: d
     d = sqrt ( r )
   end function
 
   pure function sqrt_dp ( r ) result (d)
-    real(kind = DP), intent(in) :: r
-    real(kind = DP) :: d
+    real(kind = D15P), intent(in) :: r
+    real(kind = D15P) :: d
     d = dsqrt ( r ) 
   end function
 
   ! sin
   pure function sin_sp ( r ) result(d)
-    real(kind = SP), intent(in) :: r
-    real(kind = SP) :: d
+    real(kind = S6P), intent(in) :: r
+    real(kind = S6P) :: d
     d = sin ( r )
   end function
 
   pure function sin_dp ( r ) result (d)
-    real(kind = DP), intent(in) :: r
-    real(kind = DP) :: d
+    real(kind = D15P), intent(in) :: r
+    real(kind = D15P) :: d
     d = dsin ( r ) 
   end function
 
   ! cos
   pure function cos_sp ( r ) result(d)
-    real(kind = SP), intent(in) :: r
-    real(kind = SP) :: d
+    real(kind = S6P), intent(in) :: r
+    real(kind = S6P) :: d
     d = cos ( r )
   end function
 
   pure function cos_dp ( r ) result (d)
-    real(kind = DP), intent(in) :: r
-    real(kind = DP) :: d
+    real(kind = D15P), intent(in) :: r
+    real(kind = D15P) :: d
     d = dcos ( r ) 
   end function
 
   ! tanh
   pure function tanh_sp ( r ) result(d)
-    real(kind = SP), intent(in) :: r
-    real(kind = SP) :: d
+    real(kind = S6P), intent(in) :: r
+    real(kind = S6P) :: d
     d = tanh ( r )
   end function
 
   pure function tanh_dp ( r ) result (d)
-    real(kind = DP), intent(in) :: r
-    real(kind = DP) :: d
+    real(kind = D15P), intent(in) :: r
+    real(kind = D15P) :: d
     d = dtanh ( r ) 
   end function
 
   ! tan
   pure function tan_sp ( r ) result(d)
-    real(kind = SP), intent(in) :: r
-    real(kind = SP) :: d
+    real(kind = S6P), intent(in) :: r
+    real(kind = S6P) :: d
     d = tan ( r )
   end function
 
   pure function tan_dp ( r ) result (d)
-    real(kind = DP), intent(in) :: r
-    real(kind = DP) :: d
+    real(kind = D15P), intent(in) :: r
+    real(kind = D15P) :: d
     d = tan ( r ) 
   end function
 
   ! atan
   pure function atan_sp ( r ) result(d)
-    real(kind = SP), intent(in) :: r
-    real(kind = SP) :: d
+    real(kind = S6P), intent(in) :: r
+    real(kind = S6P) :: d
     d = atan ( r )
   end function
 
   pure function atan_dp ( r ) result (d)
-    real(kind = DP), intent(in) :: r
-    real(kind = DP) :: d
+    real(kind = D15P), intent(in) :: r
+    real(kind = D15P) :: d
     d = atan ( r ) 
   end function
 
@@ -319,10 +319,18 @@ end module math_mod
 module typeconvert_mod
 contains
   character(len=20) function int2str(k)
+    implicit none
     integer, intent(in) :: k
     write (int2str, *) k
     int2str = adjustl(int2str)
   end function int2str
+  character(len=20) function real2str(r)
+    use precision_mod
+    implicit none
+    real(wp), intent(in) :: r
+    write (real2str, '(F10.4)') r
+    real2str = adjustl(real2str)
+  end function real2str
 end module typeconvert_mod
 
 

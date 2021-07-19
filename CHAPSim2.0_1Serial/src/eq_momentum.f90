@@ -620,6 +620,7 @@ contains
     use typeconvert_mod
     use continuity_eq_mod
     use poisson_mod
+    use boundary_conditions_mod
     implicit none
 
     type(t_flow),   intent(inout) :: f
@@ -658,18 +659,23 @@ contains
 
     end if
 !-------------------------------------------------------------------------------
+! to update b.c. values
+!-------------------------------------------------------------------------------
+    call Apply_BC_velocity (f%gx, f%gy, f%gz, d)
+    call Apply_BC_velocity (f%qx, f%qy, f%qz, d)
+!-------------------------------------------------------------------------------
 ! to calculate the provisional divergence constrains
-!_______________________________________________________________________________
+!-------------------------------------------------------------------------------
     !call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
     call Calculate_continuity_constrains(f, d, isub)
 !-------------------------------------------------------------------------------
 ! to solve Poisson equation
-!_______________________________________________________________________________
+!-------------------------------------------------------------------------------
     !call Print_debug_mid_msg("  Solving Poisson Equation ...")
     call Solve_poisson(f%pcor)
 !-------------------------------------------------------------------------------
 ! to update velocity/massflux correction
-!_______________________________________________________________________________
+!-------------------------------------------------------------------------------
     !call Print_debug_mid_msg("  Updating velocity/mass flux ...")
     if(ithermo == 0) then 
       call Correct_massflux(f%qx, f%qy, f%qz, f%pcor, d, isub)
@@ -678,8 +684,14 @@ contains
     end if
 !-------------------------------------------------------------------------------
 ! to update pressure
-!_______________________________________________________________________________
+!-------------------------------------------------------------------------------
     f%pres = f%pres + f%pcor
+!-------------------------------------------------------------------------------
+! to update b.c. values
+!-------------------------------------------------------------------------------
+    call Apply_BC_velocity (f%gx, f%gy, f%gz, d)
+    call Apply_BC_velocity (f%qx, f%qy, f%qz, d)
+
     return
   end subroutine
 

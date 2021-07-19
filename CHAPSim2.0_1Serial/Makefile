@@ -23,7 +23,7 @@ OBJS= modules.o\
       operations.o\
       tools_solver.o\
       boundary_conditions.o\
-      poisson0.o\
+      poisson1.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\

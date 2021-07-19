@@ -1,70 +1,189 @@
-subroutine Print_error_msg_mpi(errorcode, msg)
-  use mpi_mod
-  implicit none
-  integer, intent(IN) :: errorcode
-  character(len=*), intent(IN) :: msg
-  
-  if (myid==0) then
-    write(*,*) 'CHAPSim ERROR - errorcode: ', errorcode
+!===============================================================================
+!===============================================================================
+  subroutine Print_error_msg_mpi(errorcode, msg)
+    use mpi_mod
+    implicit none
+    integer, intent(IN) :: errorcode
+    character(len=*), intent(IN) :: msg
+    
+    if (myid==0) then
+      write(*,*) 'CHAPSim ERROR - errorcode: ', errorcode
+      write(*,*) 'ERROR: ' // msg
+    end if
+    call MPI_ABORT(MPI_COMM_WORLD, errorcode, ierror)
+
+    return
+  end subroutine Print_error_msg_mpi
+!===============================================================================
+  subroutine Print_error_msg(msg)
+    use mpi_mod
+    implicit none
+    character(len=*), intent(IN) :: msg
+    
     write(*,*) 'ERROR: ' // msg
-  end if
-  call MPI_ABORT(MPI_COMM_WORLD, errorcode, ierror)
 
-  return
-end subroutine Print_error_msg_mpi
 
-subroutine Print_error_msg(msg)
-  use mpi_mod
+    write(*,*) 'Code is terminated.'
+    STOP
+
+    return
+  end subroutine Print_error_msg
+!===============================================================================
+  subroutine Print_warning_msg(msg)
+    use mpi_mod
+    implicit none
+    character(len=*), intent(IN) :: msg
+    
+    write(*,*) 'WARNNING: ' // msg
+
+    return
+  end subroutine Print_warning_msg
+  !===============================================================================
+  subroutine Print_debug_start_msg(msg)
+    use mpi_mod
+    implicit none
+
+    character(len=*), intent(IN) :: msg
+    
+    write(*,*) "==============================================================================="
+    write(*,*) msg
+    return
+  end subroutine Print_debug_start_msg
+!===============================================================================
+  subroutine Print_debug_mid_msg(msg)
+    use mpi_mod
+    implicit none
+
+    character(len=*), intent(IN) :: msg
+    
+    write(*,*) msg
+    return
+  end subroutine Print_debug_mid_msg
+!===============================================================================
+  subroutine Print_debug_end_msg
+    use mpi_mod
+    implicit none
+    
+    write(*,*) "... done."
+    return
+  end subroutine Print_debug_end_msg
+
+!===============================================================================
+!===============================================================================
+module code_performance_mod
+  use precision_mod
   implicit none
-  character(len=*), intent(IN) :: msg
   
-  write(*,*) 'ERROR: ' // msg
+  integer(4), parameter :: CPU_TIME_CODE_START = 1, &
+                           CPU_TIME_ITER_START = 2, &
+                           CPU_TIME_ITER_END   = 3, &
+                           CPU_TIME_CODE_END   = 4
 
-  STOP
+  real(wp), save :: t_code_start
+  real(wp), save :: t_iter_start
+  real(wp), save :: t_iter_end
+  real(wp), save :: t_code_end
 
-  return
-end subroutine Print_error_msg
+  private :: Convert_sec_to_hms
+  public :: Call_cpu_time
+
+  contains
+
+  subroutine Convert_sec_to_hms (s, hrs, mins, secs)
+    use precision_mod
+    use parameters_constant_mod
+    implicit none
+    real(wp), intent(in) :: s
+    integer, intent(out) :: hrs
+    integer, intent(out) :: mins
+    real(wp), intent(out) :: secs
+
+    secs = s
+
+    hrs = floor(secs / SIXTY / SIXTY)
+    
+    secs = secs - real(hrs, WP) * SIXTY * SIXTY
+    mins = floor(secs / SIXTY)
+
+    secs = secs - real(mins, WP) * SIXTY
+    return
+  end subroutine 
+
+  subroutine Call_cpu_time(itype, nrsttckpt, niter, iter)
+    use parameters_constant_mod
+    use typeconvert_mod
+    implicit none
+    integer(4), intent(in) :: itype
+    integer(4), intent(in) :: nrsttckpt, niter
+    integer(4), intent(in), optional :: iter
+    integer(4) :: hrs, mins
+    real(wp) :: secs
+    real(WP) :: t_total, t_elaspsed,t_remaining, t_aveiter, t_this_iter
+
+    if(itype == CPU_TIME_CODE_START) then
+
+      t_code_start = ZERO
+      t_iter_start = ZERO
+      t_iter_end   = ZERO
+      t_code_end   = ZERO
+      call cpu_time(t_code_start)
+
+    else if (itype == CPU_TIME_ITER_START) then
+
+      call cpu_time(t_iter_start)
+
+      call Print_debug_start_msg ("Time Step = "//trim(int2str(iter))// &
+          '/'//trim(int2str(niter-nrsttckpt)))
+
+    else if (itype == CPU_TIME_ITER_END) then
+      if(.not.present(iter)) call Print_error_msg("Error in calculating CPU Time.")
+      call cpu_time(t_iter_end)
+
+      t_this_iter = t_iter_end - t_iter_start
+      call Print_debug_mid_msg ("  Code Performance Info : ")
+      call Print_debug_mid_msg ("    Time for this time step : " // &
+          trim(real2str(t_this_iter))//' s')
+
+      t_elaspsed  = t_iter_end - t_code_start
+      call Convert_sec_to_hms (t_elaspsed, hrs, mins, secs)
+      call Print_debug_mid_msg ("    Elaspsed Wallclock Time : "// &
+           trim(int2str(hrs)) // ' h ' // &
+           trim(int2str(mins)) // ' m ' // &
+           trim(real2str(secs)) // ' s ')
+
+      t_remaining= t_elaspsed / real(iter - nrsttckpt, wp) * real(niter - iter, wp)
+      call Convert_sec_to_hms (t_remaining, hrs, mins, secs)
+      call Print_debug_mid_msg ("    Remaning Wallclock Time : "// &
+           trim(int2str(hrs)) // ' h ' // &
+           trim(int2str(mins)) // ' m ' // &
+           trim(real2str(secs)) // ' s ')
+
+    else if (itype == CPU_TIME_CODE_END) then
+
+      call cpu_time(t_code_end)
+      t_total = t_code_end - t_code_start
+      t_aveiter = t_total / real(niter - nrsttckpt, WP)
+      call Print_debug_start_msg("CHAPSim Simulation is finished successfully.")
+      call Print_debug_mid_msg ("Average wallclock time per step  : "// &
+           trim(real2str(t_aveiter))//' s')
+      
+      call Convert_sec_to_hms (t_total, hrs, mins, secs)
+      call Print_debug_mid_msg ("Total wallclock time of this run : "// &
+           trim(int2str(hrs)) // ' h ' // &
+           trim(int2str(mins)) // ' m ' // &
+           trim(real2str(secs)) // ' s ')
+      call Print_debug_start_msg(' ')
+    else
+    end if
+
+    return
+  end subroutine
+
+end module
 
 
-subroutine Print_warning_msg(msg)
-  use mpi_mod
-  implicit none
-  character(len=*), intent(IN) :: msg
-  
-  write(*,*) 'WARNNING: ' // msg
 
-  return
-end subroutine Print_warning_msg
-
-subroutine Print_debug_start_msg(msg)
-  use mpi_mod
-  implicit none
-
-  character(len=*), intent(IN) :: msg
-  
-  write(*,*) "-------------------------------------------------------------------------------"
-  write(*,*) msg
-  return
-end subroutine Print_debug_start_msg
-
-subroutine Print_debug_mid_msg(msg)
-  use mpi_mod
-  implicit none
-
-  character(len=*), intent(IN) :: msg
-  
-  write(*,*) msg
-  return
-end subroutine Print_debug_mid_msg
-
-subroutine Print_debug_end_msg
-  use mpi_mod
-  implicit none
-  
-  write(*,*) "... done."
-  return
-end subroutine Print_debug_end_msg
-
+!===============================================================================
 module random_number_generation_mod
   use precision_mod
   implicit none

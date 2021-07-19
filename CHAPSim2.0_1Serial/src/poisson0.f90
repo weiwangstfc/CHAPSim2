@@ -216,7 +216,7 @@ contains
     real(wp) :: a, b, alpha
     real(wp) :: w, cosw
     integer(4) :: i
-    integer(4) :: method = 2
+    integer(4) :: method = 1
 
     if(ibc == IBC_PERIODIC) then
     ! below is for 3 periodic only. due to enrich
@@ -233,7 +233,7 @@ contains
       cosw = cos_wp(w)
       t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
       t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
-      !write(*, *) i, t2(i)
+      write(*, *) i, t2(i)
     end do
 
 
@@ -249,7 +249,7 @@ contains
       t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
       t2(i) = t2(i) / dd
       t2(i) =  - t2(i) * t2(i)
-      !write(*, *) i, t2(i)
+      write(*, *) i, t2(i)
     end do
 
   else 
@@ -299,7 +299,7 @@ contains
     use geometry_mod
     implicit none
 
-    integer(4) :: k, j, i
+    integer(4) :: k, j, i, nn
     real(WP), allocatable :: rhsphi(:,:,:)
     real(WP) :: solution
 
@@ -308,23 +308,24 @@ contains
     do k = xstart(3),xend(3)
       do j = xstart(2),xend(2)
         do i = xstart(1),xend(1)
-          rhsphi(i, j, k) = - dsin( domain%h(3)*(real(k, WP)-HALF) ) &
-                            - dsin( domain%h(2)*(real(j, WP)-HALF) ) &
-                            - dsin( domain%h(1)*(real(i, WP)-HALF) )
+          rhsphi(i, j, k) = - dcos( domain%h(3)*(real(k, WP)-HALF) ) &
+                            - dcos( domain%h(2)*(real(j, WP)-HALF) ) &
+                            - dcos( domain%h(1)*(real(i, WP)-HALF) )
         end do
       end do
     end do
     
     call Solve_poisson(rhsphi)
-
+    nn = 0
     do k = xstart(3),xend(3)
       do j = xstart(2),xend(2)
         do i = xstart(1),xend(1)
-          solution = dsin( domain%h(3)*(real(k, WP)-HALF) ) + &
-                     dsin( domain%h(2)*(real(j, WP)-HALF) ) + &
-                     dsin( domain%h(1)*(real(i, WP)-HALF) )
+          nn = nn + 1
+          solution = dcos( domain%h(3)*(real(k, WP)-HALF) ) + &
+                     dcos( domain%h(2)*(real(j, WP)-HALF) ) + &
+                     dcos( domain%h(1)*(real(i, WP)-HALF) )
 
-          write(*, '(3I5.1, 3ES13.5)') k, j, i, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
+          write(*, '(4I5.1, 3ES13.5)') k, j, i, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
         end do
       end do
     end do

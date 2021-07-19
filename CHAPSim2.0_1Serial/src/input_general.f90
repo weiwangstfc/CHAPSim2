@@ -174,6 +174,7 @@ module input_general_mod
   ! parameters from restart
   real(WP) :: tThermo  = ZERO
   real(WP) :: tFlow    = ZERO
+  integer :: niter
 
   ! derived parameters
   logical :: is_periodic(3)
@@ -215,7 +216,7 @@ contains
 !===============================================================================
     use iso_fortran_env,         only : ERROR_UNIT, IOSTAT_END
     use parameters_constant_mod, only : ZERO, ONE, TWO, PI
-    use mpi_mod,                 only : ncol, nrow
+    use mpi_mod,                 only : p_col, p_row
     implicit none
 !===============================================================================
 ! Local arguments
@@ -230,7 +231,7 @@ contains
     character(len = 20) :: format2i='(2X, A32, 2I10.1)'
     character(len = 20) :: formatr='(2X, A32, F20.4)'
     character(len = 20) :: formate='(2X, A32, E20.4)'
-    character(len = 20) :: format2r='(2X, A32, 2F10.4)'
+    character(len = 20) :: format2r='(2X, A32, 2F10.2)'
     character(len = 20) :: formats='(2X, A32, A20)'
     integer :: slen
 !===============================================================================
@@ -346,8 +347,8 @@ contains
 
         read(inputUnit, *, iostat = ioerr) variableName, p_row
         read(inputUnit, *, iostat = ioerr) variableName, p_col
-        write(*, formati) ' Processor in Row :',     nrow
-        write(*, formati) ' Processor in Column :',  ncol
+        write(*, formati) ' Processor in Row :',     p_row
+        write(*, formati) ' Processor in Column :',  p_col
 
       else if ( section_name(1:slen) == '[geometry]' )  then 
 
@@ -417,9 +418,9 @@ contains
         write(*, formate) ' Physical Time Step : ', dt
       
       else if ( section_name(1:slen) == '[initialization]' ) then
+
         read(inputUnit, *, iostat = ioerr) variableName, irestart
         read(inputUnit, *, iostat = ioerr) variableName, nrsttckpt
-        read(inputUnit, *, iostat = ioerr) variableName, nfreqckpt
         read(inputUnit, *, iostat = ioerr) variableName, renIni
         read(inputUnit, *, iostat = ioerr) variableName, nIterIniRen
         read(inputUnit, *, iostat = ioerr) variableName, initNoise
@@ -427,9 +428,9 @@ contains
         if(irestart == 0) then
           nrsttckpt = 0
           write(*, formats) ' Start from : ', 'Scratch'
-          write(*, formatr) ' Starting Reynolds No : ', renIni
-          write(*, formati) ' Starting Re lasts until : ', nIterIniRen
-          write(*, formatr) ' Starting velocity perturbation : ', initNoise
+          write(*, formatr) ' Initial Reynolds No : ', renIni
+          write(*, formati) ' Initial Re lasts until : ', nIterIniRen
+          write(*, formatr) ' Initial velocity perturbation : ', initNoise
         else 
           write(*, formats) ' Start from : ', 'Restart' 
           write(*, formati) ' Restart iteration : ', nrsttckpt
@@ -453,9 +454,9 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, nfreqStats
 
         write(*, formati) ' Raw  data written at every : ', nfreqckpt
-        write(*, formati) ' Visualisation data written at every : ', nvisu
-        write(*, formati) ' Statistic Data written from : ', nIterStatsStart
-        write(*, formati) ' Statistic Data written at every : ', nfreqStats
+        write(*, formati) ' Vis  data written at every : ', nvisu
+        write(*, formati) ' Stat data written from : ', nIterStatsStart
+        write(*, formati) ' Stat data written at every : ', nfreqStats
 
       else if ( section_name(1:slen) == '[schemes]' ) then
 
@@ -464,7 +465,6 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, iviscous
 
         write(*, formati) ' Spatial Accuracy Order: ', iAccuracy
-        write(*, formati) ' Time Stepping Scheme: ', 
         if(iviscous == IVIS_EXPLICIT) write(*, formats) ' Viscous Term : ', 'Explicit Scheme'
         if(iviscous == IVIS_SEMIMPLT) write(*, formats) ' Viscous Term : ', 'Semi-implicit Scheme'
 
@@ -478,14 +478,15 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, tiRef
         read(inputUnit, *, iostat = ioerr) variableName, itbcy(1), itbcy(2)
         read(inputUnit, *, iostat = ioerr) variableName, tbcy(1), tbcy(2)
-        
+        if(ithermo /= 0) then
         write(*, formati) ' Fluid type : ', ifluid
         write(*, formati) ' Gravity force direction : ', igravity
         write(*, formatr) ' Reference length for normalisation : ', lenRef
         write(*, formatr) ' Reference temperature for normalisation : ', t0Ref
         write(*, formatr) ' Initialisation temperature : ', tiRef
         write(*, format2i) ' Thermal BC type: ', itbcy(1), itbcy(2)
-        write(*, format2r) ' Thermal BC value: ', bcy(1), tbcy(2)
+        write(*, format2r) ' Thermal BC value: ', tbcy(1), tbcy(2)
+        end if
 
       else
         exit

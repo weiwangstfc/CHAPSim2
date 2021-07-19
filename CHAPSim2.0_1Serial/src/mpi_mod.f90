@@ -4,8 +4,8 @@ module mpi_mod
 
   integer :: myid
   integer :: npar
-  integer :: nrow ! ==> p_row
-  integer :: ncol ! ==> p_col
+  integer :: p_row
+  integer :: p_col
   integer :: ierror
 
   public :: Initialize_mpi, Finalise_mpi

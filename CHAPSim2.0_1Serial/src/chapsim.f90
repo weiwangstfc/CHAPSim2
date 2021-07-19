@@ -54,14 +54,19 @@ subroutine Initialize_chapsim()
   use geometry_mod,      only : Initialize_geometry_variables
   use operations,        only : Prepare_coeffs_for_operations
   use type_vars_mod,     only : domain
+  use code_performance_mod
+  use poisson_mod
   implicit none
 
+  call Call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi ()
   call Initialize_general_input ()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
   call Prepare_coeffs_for_operations ()
   call Initialize_domain_decompsition (domain)
+
+  call Test_poisson_solver
 
   return
 end subroutine Initialize_chapsim
@@ -120,32 +125,32 @@ subroutine Solve_eqs_iteration
   use input_general_mod,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
                                   nIterFlowStart, nIterThermoStart, &
                                   tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
-                                  dt, nsubitr
+                                  dt, nsubitr, niter
   use type_vars_mod,      only : flow, thermo, domain
   use flow_variables_mod, only : Calculate_RePrGr, Check_maximum_velocity
   use eq_momentum_mod,    only : Solve_momentum_eq
   use solver_tools_mod,   only : Check_cfl_diffusion, Check_cfl_convection
-  use typeconvert_mod,    only : int2str
   use continuity_eq_mod
   use poisson_mod
+  use code_performance_mod
   implicit none
 
   logical    :: is_flow   = .false.
   logical    :: is_thermo = .false.
-  integer(4) :: iter, isub, niter
+  integer(4) :: iter, isub
   
   if(ithermo == 1) then
     niter = MAX(nIterFlowEnd, nIterThermoEnd)
     thermo%time = tThermo
   else
     niter = nIterFlowEnd
-    flow%time = tFlow
+    flow%time = tFlow 
   end if
 
   call Initialize_decomp_poisson (domain)
 
   do iter = nrsttckpt + 1, niter
-    call Print_debug_start_msg("Iter = "//trim(int2str(iter))//" ...")
+    call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
 !===============================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
 !===============================================================================
@@ -176,7 +181,7 @@ subroutine Solve_eqs_iteration
 
     call Check_mass_conservation(flow, domain) ! for debug only
     call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)   ! for debug only
-    call Print_debug_end_msg
+    call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
   end do
 
 
@@ -198,11 +203,14 @@ end subroutine Solve_eqs_iteration
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Finalise_chapsim()
+  use input_general_mod
   use mpi_mod
+  use code_performance_mod
   implicit none
 
   !call Deallocate_all_variables
-  !call Finalise_mpi()
+  call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
+  call Finalise_mpi()
   return
 end subroutine Finalise_chapsim
 
