@@ -590,7 +590,7 @@ contains
       do j = ph%xst(2),ph%xen(2)
         do i = ph%xst(1),ph%xen(1)
           x = domain%h(1)*(real(i, WP)-HALF)
-          rhsphi(i, j, k) =  dcos( x ) * dsin( x )
+          rhsphi(i, j, k) =  dcos( THREE * x )
                            !* dcos( domain%h(2)*(real(j, WP)-HALF) ) !&
                             
           
@@ -609,7 +609,7 @@ contains
         do i = ph%xst(1),ph%xen(1)
           x = domain%h(1)*(real(i, WP)-HALF)
           nn = nn + 1
-          solution = -TWO * dsin( TWO * x ) !- &
+          solution = -NINE * dcos( THREE * x ) !- &
                      !dsin( domain%h(1)*(real(i, WP)-HALF) )**2
                      !FOUR * dcos( TWO * domain%h(2)*(real(j, WP)-HALF) ) + &
                      !FOUR * dcos( TWO * domain%h(1)*(real(i, WP)-HALF) )

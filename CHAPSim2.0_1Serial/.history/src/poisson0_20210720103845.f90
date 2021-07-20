@@ -301,18 +301,16 @@ module poisson_mod
   
       integer(4) :: k, j, i
       real(WP), allocatable :: rhsphi(:,:,:)
-      real(WP) :: solution, x
+      real(WP) :: solution
   
       call Initialize_decomp_poisson(domain)
       allocate(rhsphi(xstart(1):xend(1),xstart(2):xend(2),xstart(3):xend(3))); rhsphi = ZERO
       do k = xstart(3),xend(3)
         do j = xstart(2),xend(2)
           do i = xstart(1),xend(1)
-            x = domain%h(1)*(real(i, WP)-HALF)
-            rhsphi(i, j, k) = dcos(x)*dsin(x)
-            ! - dsin( domain%h(3)*(real(k, WP)-HALF) ) &
-            !                  - dsin( domain%h(2)*(real(j, WP)-HALF) ) &
-            !                  - dsin( domain%h(1)*(real(i, WP)-HALF) )
+            rhsphi(i, j, k) = - dsin( domain%h(3)*(real(k, WP)-HALF) ) &
+                              - dsin( domain%h(2)*(real(j, WP)-HALF) ) &
+                              - dsin( domain%h(1)*(real(i, WP)-HALF) )
           end do
         end do
       end do
@@ -322,11 +320,9 @@ module poisson_mod
       do k = xstart(3),xend(3)
         do j = xstart(2),xend(2)
           do i = xstart(1),xend(1)
-            x = domain%h(1)*(real(i, WP)-HALF)
-            solution = -TWO * dsin( TWO * x )
-            !dsin( domain%h(3)*(real(k, WP)-HALF) ) + &
-            !           dsin( domain%h(2)*(real(j, WP)-HALF) ) + &
-            !           dsin( domain%h(1)*(real(i, WP)-HALF) )
+            solution = dsin( domain%h(3)*(real(k, WP)-HALF) ) + &
+                       dsin( domain%h(2)*(real(j, WP)-HALF) ) + &
+                       dsin( domain%h(1)*(real(i, WP)-HALF) )
   
             write(*, '(3I5.1, 3ES13.5)') k, j, i, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
           end do
