@@ -164,8 +164,8 @@ contains
 !      the complex uotput can be held in an array of size (nx, ny, nz / 2 + 1)
 !      for a x-pencil stored spectral data.
 !_______________________________________________________________________________
-    call decomp_info_init(nx,        ny, nz, ph)
-    call decomp_info_init(nx, ny, nz /2 + 1, sp)
+    call decomp_info_init(nx, ny, nz,         ph)
+    call decomp_info_init(nx, ny, nz / 2 + 1, sp)
 
     if (.not. fft_initialised) then
       call decomp_2d_fft_init(PHYSICAL_IN_Z, nx, ny, nz)
@@ -204,7 +204,8 @@ contains
     call Calculate_sine_cosine_unit(ax, bx, ph%xsz(1), bcx)
     call Calculate_sine_cosine_unit(ay, by, ph%xsz(2), bcy)
     call Calculate_sine_cosine_unit(az, bz, ph%xsz(3), bcz)
-!_______________________________________________________________________________
+
+    !_______________________________________________________________________________
 ! allocate space for wave-space variables
 !_______________________________________________________________________________
     allocate ( cw1( sp%xst(1) : sp%xen(1), &
@@ -330,6 +331,7 @@ contains
     real(wp) :: a, b, alpha
     real(wp) :: w, cosw, aunit
     integer(4) :: i, iend
+    integer(4) :: method = 1
 
     if(bc == 0) then
       aunit = TWO * PI / REAL(nn, WP)
@@ -339,7 +341,7 @@ contains
       iend = nn
     end if
 
-    if(ifft2deri == 1) then
+    if(method == 1) then
 
       alpha = d1fC2C(3, 1, IBC_PERIODIC)
       a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
@@ -350,24 +352,18 @@ contains
         t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
         t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
         t2(i) = t2(i) / dd
-        t2(i) = - t2(i) * t2(i)
-        write(*,*) i, t2(i)
+        t2(i) =  - t2(i) * t2(i)
+        !write(*,*) i, t2(i)
       end do
 
       if((.not. is_half) .and. (bc == 0)) then
         do i = nn/2 + 2, nn
-          ! w = aunit * REAL(i - 1, WP)
-          ! t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
-          ! t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
-          ! t2(i) = t2(i) / dd
-          ! t2(i) = - t2(i) * t2(i)
-
           t2(i) = t2(nn - i + 2)
-          write(*,*) i, t2(i)
+          !write(*,*) i, t2(i)
         end do
       end if
 
-    else if(ifft2deri == 2) then
+    else if(method == 2) then
 
       alpha = d2fC2C(3, 1, IBC_PERIODIC)
       a     = d2rC2C(3, 1, IBC_PERIODIC)
@@ -378,13 +374,13 @@ contains
         cosw = cos_wp(w)
         t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
         t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
-        write(*,*) i, t2(i)
+        !write(*,*) i, t2(i)
       end do
       
       if((.not. is_half) .and. (bc == 0)) then
         do i = nn/2 + 2, nn
           t2(i) = t2(nn - i + 2)
-          write(*,*) i, t2(i)
+          !write(*,*) i, t2(i)
         end do
       end if
 
@@ -406,11 +402,8 @@ contains
 
     real(wp), dimension(:,:,:), allocatable :: rhs0
     integer :: nn, i, j,k
-
-
     allocate(rhs0(nx, ny, nz))
     rhs0 = rhs
-
 !_______________________________________________________________________________
 ! compute r2c transform, forward FFT
 !_______________________________________________________________________________
@@ -435,7 +428,7 @@ contains
     !   do j = 1, ny
     !     do i = 1, nx
     !       nn = nn + 1
-    !       write(*,'(A, 4I4.1, 2ES13.5)') 'check', k, j, i, nn, rhs0(i, j, k), rhs(i, j,k)
+    !       write(*,*) 'check', k, j, i, rhs0(i, j, k), rhs(i, j,k), rhs0(i, 1, 1)-rhs(i, 1,1)
     !     end do
     !   end do
     ! end do
@@ -593,13 +586,11 @@ contains
     
     call Initialize_decomp_poisson(domain)
     allocate(rhsphi(ph%xst(1):ph%xen(1),ph%xst(2):ph%xen(2),ph%xst(3):ph%xen(3))); rhsphi = ZERO
-    do i = ph%xst(1),ph%xen(1)
+    do k = ph%xst(3),ph%xen(3)
       do j = ph%xst(2),ph%xen(2)
-        do k = ph%xst(3),ph%xen(3)
+        do i = ph%xst(1),ph%xen(1)
           x = domain%h(1)*(real(i, WP)-HALF)
-          y = domain%h(2)*(real(j, WP)-HALF)
-          z = domain%h(3)*(real(k, WP)-HALF)
-          rhsphi(i, j, k) =  -TWO * dsin( TWO * z )
+          rhsphi(i, j, k) =  dcos( x ) * dsin( x )
                            !* dcos( domain%h(2)*(real(j, WP)-HALF) ) !&
                             
           
@@ -613,18 +604,17 @@ contains
     call Solve_poisson(rhsphi)
 
     nn = 0
-    do i = ph%xst(1),ph%xen(1)
+    do k = ph%xst(3),ph%xen(3)
       do j = ph%xst(2),ph%xen(2)
-        do k = ph%xst(3),ph%xen(3)
+        do i = ph%xst(1),ph%xen(1)
           x = domain%h(1)*(real(i, WP)-HALF)
-          z = domain%h(3)*(real(k, WP)-HALF)
           nn = nn + 1
-          solution = dcos( z ) * dsin( z ) !- &
+          solution = -TWO * dsin( TWO * x ) !- &
                      !dsin( domain%h(1)*(real(i, WP)-HALF) )**2
                      !FOUR * dcos( TWO * domain%h(2)*(real(j, WP)-HALF) ) + &
                      !FOUR * dcos( TWO * domain%h(1)*(real(i, WP)-HALF) )
 
-          write(*, '(4I5.1, 3ES13.5)') i,j,k, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
+          write(*, '(4I5.1, 3ES13.5)') k, j, i, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
         end do
       end do
     end do
