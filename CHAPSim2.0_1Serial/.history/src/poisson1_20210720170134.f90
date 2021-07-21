@@ -164,8 +164,8 @@ contains
 !      the complex uotput can be held in an array of size (nx, ny, nz / 2 + 1)
 !      for a x-pencil stored spectral data.
 !_______________________________________________________________________________
-    call decomp_info_init(nx, ny, nz,         ph)
-    call decomp_info_init(nx, ny, nz / 2 + 1, sp)
+    call decomp_info_init(nx,        ny, nz, ph)
+    call decomp_info_init(nx, ny, nz /2 + 1, sp)
 
     if (.not. fft_initialised) then
       call decomp_2d_fft_init(PHYSICAL_IN_Z, nx, ny, nz)
@@ -228,9 +228,9 @@ contains
                       sp%xst(2) : sp%xen(2), &
                       sp%xst(3) : sp%xen(3))) ;  t2xyz = ZERO
 
-    call Transform_2nd_derivative_spectral_1d ('x')
-    call Transform_2nd_derivative_spectral_1d ('y')
-    call Transform_2nd_derivative_spectral_1d ('z')
+    call Transform_2nd_derivative_spectral_1d (bcx, nx, d%h(1), t2x, is_half(1))
+    call Transform_2nd_derivative_spectral_1d (bcy, ny, d%h(2), t2y, is_half(2))
+    call Transform_2nd_derivative_spectral_1d (bcz, nz, d%h(3), t2z, is_half(3))
 
     do k = sp%xst(3) , sp%xen(3)
       do j = sp%xst(2) , sp%xen(2)
@@ -333,8 +333,10 @@ contains
 
     if(bc == 0) then
       aunit = TWO * PI / REAL(nn, WP)
+      iend = nn / 2 + 1
     else
       aunit = PI / REAL(nn, WP)
+      iend = nn
     end if
 
     if(ifft2deri == 1) then
@@ -343,25 +345,25 @@ contains
       a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
       b     = d1rC2C(3, 2, IBC_PERIODIC) * FOUR
 
-      do i = 1, sp%
+      do i = 1, iend
         w = aunit * REAL(i - 1, WP)
         t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
         t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
         t2(i) = t2(i) / dd
         t2(i) = - t2(i) * t2(i)
-        !write(*,*) i, t2(i)
+        write(*,*) i, t2(i)
       end do
 
       if((.not. is_half) .and. (bc == 0)) then
-        do i = nn/2 + 1, nn
+        do i = nn/2 + 2, nn
           ! w = aunit * REAL(i - 1, WP)
           ! t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
           ! t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
           ! t2(i) = t2(i) / dd
           ! t2(i) = - t2(i) * t2(i)
 
-          t2(i) = t2(nn - i + 1)
-          !write(*,*) i, t2(i)
+          t2(i) = t2(nn - i + 2)
+          write(*,*) i, t2(i)
         end do
       end if
 
@@ -371,18 +373,18 @@ contains
       a     = d2rC2C(3, 1, IBC_PERIODIC)
       b     = d2rC2C(3, 2, IBC_PERIODIC) * FOUR
   
-      do i = 1, nn/2
+      do i = 1, nn/2 + 1
         w = aunit * REAL(i - 1, WP)! check, for 0-n/2, pi or 2pi?
         cosw = cos_wp(w)
         t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
         t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
-        !write(*,*) i, t2(i)
+        write(*,*) i, t2(i)
       end do
       
       if((.not. is_half) .and. (bc == 0)) then
-        do i = nn/2 + 1, nn
-          t2(i) = t2(nn - i + 1)
-          !write(*,*) i, t2(i)
+        do i = nn/2 + 2, nn
+          t2(i) = t2(nn - i + 2)
+          write(*,*) i, t2(i)
         end do
       end if
 
@@ -597,7 +599,7 @@ contains
           x = domain%h(1)*(real(i, WP)-HALF)
           y = domain%h(2)*(real(j, WP)-HALF)
           z = domain%h(3)*(real(k, WP)-HALF)
-          rhsphi(i, j, k) =  six*x + six*y + six*z!-TWO * dsin( TWO * z )
+          rhsphi(i, j, k) =  -TWO * dsin( TWO * z )
                            !* dcos( domain%h(2)*(real(j, WP)-HALF) ) !&
                             
           
@@ -617,7 +619,7 @@ contains
           x = domain%h(1)*(real(i, WP)-HALF)
           z = domain%h(3)*(real(k, WP)-HALF)
           nn = nn + 1
-          solution = x*3 + y*3 + z*3 !dcos( z ) * dsin( z ) !- &
+          solution = dcos( z ) * dsin( z ) !- &
                      !dsin( domain%h(1)*(real(i, WP)-HALF) )**2
                      !FOUR * dcos( TWO * domain%h(2)*(real(j, WP)-HALF) ) + &
                      !FOUR * dcos( TWO * domain%h(1)*(real(i, WP)-HALF) )

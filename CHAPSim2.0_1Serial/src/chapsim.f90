@@ -122,14 +122,14 @@ end subroutine Initialize_flow
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Solve_eqs_iteration
-  use input_general_mod,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
-                                  nIterFlowStart, nIterThermoStart, &
-                                  tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
-                                  dt, nsubitr, niter
-  use type_vars_mod,      only : flow, thermo, domain
-  use flow_variables_mod, only : Calculate_RePrGr, Check_maximum_velocity
-  use eq_momentum_mod,    only : Solve_momentum_eq
-  use solver_tools_mod,   only : Check_cfl_diffusion, Check_cfl_convection
+  use input_general_mod!,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
+                                  !nIterFlowStart, nIterThermoStart, &
+                                  !tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
+                                  !dt, nsubitr, niter
+  use type_vars_mod!,      only : flow, thermo, domain
+  use flow_variables_mod!, only : Calculate_RePrGr, Check_maximum_velocity
+  use eq_momentum_mod!,    only : Solve_momentum_eq
+  use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
   use continuity_eq_mod
   use poisson_mod
   use code_performance_mod
@@ -140,13 +140,14 @@ subroutine Solve_eqs_iteration
   integer(4) :: iter, isub
 
   interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
+       subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
         use udf_type_mod
         type(t_domain), intent( in ) :: d
         integer(4) :: vartp
         character( len = *), intent( in ) :: str
         character( len = *), intent( in ) :: varnm
         real(WP), intent( in ) :: var0(:, :, :)
+        real(WP), intent( in ) :: t
        end subroutine Display_vtk_slice
   end interface
   
@@ -190,12 +191,14 @@ subroutine Solve_eqs_iteration
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
     end do
 
+    if(icase == ICASE_TGV2D) call Validate_TGV2D_error (flow, domain)
+
     call Check_mass_conservation(flow, domain) ! for debug only
     call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)   ! for debug only
     call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
 
-    call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx)
-    !call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy)
+    call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, flow%time)
+    !call Display_vtk_slice(domain, 'xy', 'v', 0, flow%pres, flow%time)
   end do
 
 

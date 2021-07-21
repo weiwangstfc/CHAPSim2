@@ -1,14 +1,16 @@
 
-subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
+subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
   use udf_type_mod
   use parameters_constant_mod, only : ZERO
-  use operations, only : Get_midp_interpolation_1D
+  use operations!, only : Get_midp_interpolation_1D
+  use typeconvert_mod
   implicit none
   type(t_domain), intent( in ) :: d
   integer(4) :: vartp
   character( len = *), intent( in ) :: str
   character( len = *), intent( in ) :: varnm
   real(WP), intent( in ) :: var0(:, :, :)
+  real(WP), intent( in ) :: t
 
   real(WP), allocatable :: var1(:, :, :)
   real(WP), allocatable :: fi(:), fo(:)
@@ -42,7 +44,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
     nc2 = 1
   end if
 
-  filename = 'display_'//str//'.vtk'
+  filename = 'display_'//str//trim(int2str(vartp))//'at'//trim(real2str(t))//'.vtk'
 
   INQUIRE(FILE = trim(filename), exist = file_exists)
 
@@ -74,65 +76,20 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
   allocate ( var1(d%nc(1), d%nc(2), d%nc(3)) ); var1 = ZERO
 
   if (vartp == 0) then
-    ! no convert. for example, p, T, etc.
-    var1(:, :, :) = var0(:, :, :)
-
+    ! do nothing
   else if (vartp == 1 ) then
-    ! convert np data to nc data
-    
-    allocate ( fi(size(var0, vartp)) ); fi = ZERO
-    allocate ( fo(d%nc(1)) ); fo = ZERO
-
-    do k = 1, nc3
-      do j = 1, nc2
-        fi(:) = var0(:, j, k)
-        call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
-        var1(:, j, k) = fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-
+    call Get_x_midp_P2C_3dArray( d, var0,  var1 )
   else if (vartp == 2) then
-
-    ! convert np data to nc data
-    
-    allocate ( fi(size(var0, vartp)) ); fi = ZERO
-    allocate ( fo(d%nc(2)) ); fo = ZERO
-
-    do k = 1, nc3
-      do i = 1, nc1
-        fi(:) = var0(i, :, k)
-        call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
-        var1(i, :, k) = fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-
+    call Get_x_midp_P2C_3dArray( d, var0,  var1 )
   else if (vartp == 3) then
-    ! convert np data to nc data
-    
-    allocate ( fi(size(var0, vartp)) ); fi = ZERO
-    allocate ( fo(d%nc(3)) ); fo = ZERO
-
-    do j = 1, nc2
-      do i = 1, nc1
-        fi(:) = var0(i, j, :)
-        call Get_midp_interpolation_1D('z', 'P2C', d, fi(:), fo(:))
-        var1(i, j, :) = fo(:)
-      end do
-    end do
-    deallocate (fi)
-    deallocate (fo)
-
+    call Get_x_midp_P2C_3dArray( d, var0,  var1 )
   else 
     call Print_error_msg(" No such direction in Subroutine: "//"Display_vtk_slice")
   end if
 
   ! write out points data...
   write(output_unit, '(A, 1I10.1)') 'CELL_DATA', nc1 * nc2 * nc3
-  write(output_unit, '(A, 1I10.1)') 'SCALARS '//varnm(:)//' float',  nc1 * nc2 * nc3
+  write(output_unit, '(A, 1I10.1)') 'SCALARS '//varnm(:)//' float',  1
   write(output_unit, '(A)') 'LOOKUP_TABLE default'
 
   do k = 1, nc3

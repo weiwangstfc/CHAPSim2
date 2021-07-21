@@ -28,13 +28,15 @@ module flow_variables_mod
   private :: Calculate_xbulk_velocity
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
-  private :: Initialize_vortexgreen_flow
+  private :: Initialize_vortexgreen_2dflow
+  private :: Initialize_vortexgreen_3dflow
   private :: Initialize_thermal_variables
 
   public  :: Check_maximum_velocity
   public  :: Allocate_thermoflow_variables
   public  :: Initialize_flow_variables
   public  :: Calculate_RePrGr
+  public  :: Validate_TGV2D_error
 
 contains
 !===============================================================================
@@ -354,7 +356,113 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_flow(ux, uy, uz, p, d)
+  subroutine  Initialize_vortexgreen_2dflow(ux, uy, uz, p, d)
+    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    use udf_type_mod
+    use math_mod
+    implicit none
+
+    type(t_domain), intent(in   ) :: d
+    real(WP),       intent(inout) :: ux(:, :, :), &
+                                     uy(:, :, :), &
+                                     uz(:, :, :), &
+                                     p (:, :, :)
+
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    integer(4) :: i, j, k
+
+    do k = 1, d%nc(3)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%nc(2)
+        yc = d%yc(j)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc )
+        end do
+      end do
+    end do
+
+    do k = 1, d%nc(3)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%np(2)
+        yp = d%yp(j)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp )
+        end do
+      end do
+    end do
+
+    do k = 1, d%np(3)
+      do j = 1, d%nc(2)
+        do i = 1, d%nc(1)
+          uz(i, j, k) =  ZERO
+        end do
+      end do
+    end do
+
+    do k = 1, d%nc(3)
+      zc = d%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, d%nc(2)
+        yc = d%yc(j)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          p(i, j, k)= ZERO
+        end do
+      end do
+    end do
+    
+    return
+  end subroutine Initialize_vortexgreen_2dflow
+
+  subroutine  Validate_TGV2D_error(f, d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+
+    type(t_domain), intent(in   ) :: d
+    type(t_flow),   intent(in   ) :: f
+
+    integer :: k, i, j
+    real(wp) :: uerr, ue, uc
+    real(wp) :: xp, yc
+    
+    k = 1
+    uerr = ZERO
+
+    do j = 1, d%nc(2)
+      yc = d%yc(j)
+      do i = 1, d%np(1)
+        xp = d%h(1) * real(i - 1, WP)
+        uc = f%qx(i, j, k)
+        ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- FOUR * PI * PI * f%rre * f%time)
+        uerr = uerr + (uc - ue)**2
+      end do
+    end do
+    uerr = uerr / real(d%np(1), wp) / real(d%nc(2), wp)
+    uerr = sqrt_wp(uerr)
+
+    write(*, '(A, 1ES13.5)') '   The spacial error for TGV2D is ', uerr
+
+    return
+  end subroutine
+!===============================================================================
+!===============================================================================
+!> \brief Initialize Vortex Green flow
+!>
+!> This subroutine is called locally once.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!_______________________________________________________________________________
+  subroutine  Initialize_vortexgreen_3dflow(ux, uy, uz, p, d)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
@@ -414,7 +522,7 @@ contains
     end do
     
     return
-  end subroutine Initialize_vortexgreen_flow
+  end subroutine Initialize_vortexgreen_3dflow
 !===============================================================================
 !===============================================================================
 !> \brief Initialize Sine signal for test only
@@ -548,13 +656,14 @@ contains
     logical :: itest = .false.
 
     interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0)
+       subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
         use udf_type_mod
         type(t_domain), intent( in ) :: d
         integer(4) :: vartp
         character( len = *), intent( in ) :: str
         character( len = *), intent( in ) :: varnm
         real(WP), intent( in ) :: var0(:, :, :)
+        real(WP), intent( in ) :: t
        end subroutine Display_vtk_slice
     end interface
 
@@ -578,8 +687,10 @@ contains
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
       call Initialize_poiseuille_flow  (flow%qx, flow%qy, flow%qz, flow%pres, domain)
-    else if (icase == ICASE_TGV) then
-      call Initialize_vortexgreen_flow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
+    else if (icase == ICASE_TGV2D) then
+      call Initialize_vortexgreen_2dflow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
+    else if (icase == ICASE_TGV3D) then
+      call Initialize_vortexgreen_3dflow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_SINETEST) then
       call Initialize_sinetest_flow    (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else 

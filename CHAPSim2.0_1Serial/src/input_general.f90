@@ -34,8 +34,9 @@ module input_general_mod
   integer, parameter :: ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
-                        ICASE_TGV     = 4, &
-                        ICASE_SINETEST= 5
+                        ICASE_TGV3D   = 4, &
+                        ICASE_TGV2D   = 5, &
+                        ICASE_SINETEST= 6
 
   integer, parameter :: ICARTESIAN   = 1, &
                         ICYLINDRICAL = 2
@@ -278,7 +279,9 @@ contains
           ifbcy(1) = IBC_INTERIOR
         else if (icase == ICASE_ANNUAL) then
           icoordinate = ICYLINDRICAL
-        else if (icase == ICASE_TGV) then
+        else if (icase == ICASE_TGV2D) then
+          icoordinate = ICARTESIAN
+        else if (icase == ICASE_TGV3D) then
           icoordinate = ICARTESIAN
         else 
           icoordinate = ICARTESIAN
@@ -287,7 +290,8 @@ contains
         if(icase == ICASE_CHANNEL) write(*, formats) ' Case : ', "Channel flow" 
         if(icase == ICASE_PIPE)    write(*, formats) ' Case : ', "Pipe flow"
         if(icase == ICASE_ANNUAL)  write(*, formats) ' Case : ', "Annual flow"
-        if(icase == ICASE_TGV)     write(*, formats) ' Case : ', "Taylor Green Vortex flow"
+        if(icase == ICASE_TGV2D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (2D)"
+        if(icase == ICASE_TGV3D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (3D)"
         if(ithermo == 0)           write(*, formats) ' Thermal field : ', 'No' 
         if(ithermo == 1)           write(*, formats) ' Thermal field : ', 'Yes' 
         if(icht    == 0)           write(*, formats) ' Conjugate Heat Transfer : ', 'No' 
@@ -372,7 +376,14 @@ contains
           if(istret /= ISTRET_2SIDES) &
           call Print_warning_msg ("Grids are not two-side clustered.")
           lyt = ONE
-        else if (icase == ICASE_TGV) then
+        else if (icase == ICASE_TGV2D) then
+          if(istret /= ISTRET_NO) &
+          call Print_warning_msg ("Grids are clustered.")
+          lxx = TWO * PI
+          lzz = TWO * PI
+          lyt =   PI
+          lyb = - PI
+        else if (icase == ICASE_TGV3D) then
           if(istret /= ISTRET_NO) &
           call Print_warning_msg ("Grids are clustered.")
           lxx = TWO * PI
@@ -599,7 +610,4 @@ contains
 
   end subroutine Set_timestepping_coefficients
 
-end module 
-
-
-
+end module

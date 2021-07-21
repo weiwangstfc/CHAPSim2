@@ -588,7 +588,7 @@ contains
     real(WP), dimension( d%nc(1), d%np(2), d%nc(3) ) :: dphidy
     real(WP), dimension( d%nc(1), d%nc(2), d%np(3) ) :: dphidz
 
-
+  
     call Get_x_1st_derivative_C2P_3dArray( d, phi,  dphidx )
     ux = ux - dt * tAlpha(isub) * sigma2p * dphidx
 
