@@ -1,5 +1,5 @@
 
-subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
+subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
   use udf_type_mod
   use parameters_constant_mod, only : ZERO
   use operations!, only : Get_midp_interpolation_1D
@@ -10,16 +10,16 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
   character( len = *), intent( in ) :: str
   character( len = *), intent( in ) :: varnm
   real(WP), intent( in ) :: var0(:, :, :)
-  real(WP), intent( in ) :: t
+  integer(4), intent( in ) :: iter
 
   real(WP), allocatable :: var1(:, :, :)
   real(WP), allocatable :: fi(:), fo(:)
 
-  integer :: output_unit
   integer :: i, j, k
   integer :: nd1, nd2, nd3
   integer :: nc1, nc2, nc3
   real(WP) :: x, y, z
+  integer :: output_unit
   character( len = 128) :: filename
   logical :: file_exists = .FALSE.
 
@@ -44,7 +44,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
     nc2 = 1
   end if
 
-  filename = 'display_'//str//trim(int2str(vartp))//'at'//trim(real2str(t))//'.vtk'
+  filename = 'display_'//str//'_'//trim(varnm)//'_'//trim(int2str(iter))//'.vtk'
 
   INQUIRE(FILE = trim(filename), exist = file_exists)
 
@@ -56,7 +56,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
     write(output_unit, '(A)') 'ASCII'
     write(output_unit, '(A)') 'DATASET STRUCTURED_GRID'
     write(output_unit, '(A, 3I10.1)') 'DIMENSIONS', nd1, nd2, nd3
-    write(output_unit, '(A, I10.1, X, A)') 'POINTS', nd1 * nd2 * nd3, 'float'
+    write(output_unit, '(A, I10.1, 1X, A)') 'POINTS', nd1 * nd2 * nd3, 'float'
     do k = 1, nd3
       z = d%h(3) * real(k - 1, WP)
       do j = 1, nd2
@@ -78,6 +78,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
   if (vartp == 0) then
     ! do nothing
   else if (vartp == 1 ) then
+    
     call Get_x_midp_P2C_3dArray( d, var0,  var1 )
   else if (vartp == 2) then
     call Get_x_midp_P2C_3dArray( d, var0,  var1 )

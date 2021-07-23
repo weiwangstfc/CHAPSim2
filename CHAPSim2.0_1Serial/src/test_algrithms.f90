@@ -114,7 +114,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(uiy_c2p) then
@@ -161,7 +161,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(vix_c2p) then
@@ -211,7 +211,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(viy_p2c) then
@@ -258,7 +258,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     return 
@@ -346,7 +346,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dudx_P2P) then
@@ -393,7 +393,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dudy_C2P) then
@@ -440,7 +440,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)   
+      write(*, '(3ES15.7)') err(1:3)   
     end if
 
     if(dudy_C2C) then
@@ -487,7 +487,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dvdy_P2C) then
@@ -534,7 +534,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3) 
+      write(*, '(3ES15.7)') err(1:3) 
     end if 
     
     if(dvdy_P2P) then
@@ -581,7 +581,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3) 
+      write(*, '(3ES15.7)') err(1:3) 
     end if
 
     if(dvdx_C2C) then
@@ -628,7 +628,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dvdx_C2P) then
@@ -675,7 +675,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
     
     
@@ -763,7 +763,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(d2udy2_C2C) then
@@ -810,7 +810,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
     
     if(d2vdy2_P2P) then
@@ -857,7 +857,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3) 
+      write(*, '(3ES15.7)') err(1:3) 
     end if
 
     if(d2vdx2_C2C) then
@@ -904,7 +904,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     return 

@@ -630,13 +630,11 @@ contains
 !-------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !_______________________________________________________________________________ 
-    !call Print_debug_mid_msg("  Computing momentum RHS for isub ============= "&
-    !                         //trim( int2str(isub) ))
     call Compute_momentum_rhs(f, d, isub)
 !-------------------------------------------------------------------------------
 ! to update intermediate (\hat{q}) or (\hat{g})
 !_______________________________________________________________________________
-    !call Print_debug_mid_msg("  Computing momentum intermediate variables ...") 
+ 
     if(iviscous == IVIS_EXPLICIT) then
 
       if(ithermo == 0) then 
@@ -655,6 +653,7 @@ contains
       ! ref: Cui2013: Convergence analysis of high-order compact 
       ! alternating direction implicit schemes for the two-dimensional 
       ! time fractional equation
+      stop
     else 
 
     end if

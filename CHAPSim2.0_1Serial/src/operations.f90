@@ -2928,6 +2928,8 @@ contains
         call Solve_TDMA( d%is_periodic(dim), fo(:), ad1x_P2C(:), bd1x_P2C(:), &
                 cd1x_P2C(:), dd1x_P2C(:), nox )
         fo3d(:, j, k) = fo(:)
+        !write(*,*) 'input', fi3d(:, j, k)
+        !write(*,*) 'outpt', fo3d(:, j, k)
       end do
     end do
 
@@ -2951,7 +2953,7 @@ contains
     integer(4) :: k, i
 
     dim = 2
-    noy = size(fi3d, 2)
+    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -2984,7 +2986,7 @@ contains
     integer(4) :: k, i
 
     dim = 2
-    noy = size(fi3d, 2)
+    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -3017,7 +3019,7 @@ contains
     integer(4) :: k, i
 
     dim = 2
-    noy = size(fi3d, 2)
+    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -3050,7 +3052,7 @@ contains
     integer(4) :: k, i
 
     dim = 2
-    noy = size(fi3d, 2)
+    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)

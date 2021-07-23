@@ -2,7 +2,7 @@ module solver_tools_mod
 
   ! procedure
   private
-  public  :: Compute_CFL_diffusion
+
   public  :: Calculate_massflux_from_velocity
   public  :: Check_cfl_convection
   public  :: Check_cfl_diffusion

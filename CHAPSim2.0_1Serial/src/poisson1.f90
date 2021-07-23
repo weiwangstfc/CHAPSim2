@@ -34,8 +34,7 @@ module poisson_mod
 !_______________________________________________________________________________
 ! boundary conditions and index
 !_______________________________________________________________________________
-  integer(4),               save :: bcx, bcy, bcz
-  integer(4),               save :: nx,  ny,  nz
+  logical,                  save :: is_periodic(3)
   integer(4), dimension(3), save :: fft_st, fft_en, fft_sz
 !_______________________________________________________________________________
 ! work arrays, 
@@ -93,30 +92,13 @@ contains
     use parameters_constant_mod!, only : ZERO, MAXP, TRUNCERR
     implicit none
     type(t_domain), intent(in) :: d
-    logical :: is_half(3)
     integer(4) :: i, j, k
 
     call Print_debug_start_msg("Initializing variables for Poisson Solver ...")
 !_______________________________________________________________________________
 ! set up boundary flags for periodic b.c.
 !_______________________________________________________________________________
-    if ( d%is_periodic(1) ) then
-      bcx = 0
-    else
-      bcx = 1
-    end if
-
-    if ( d%is_periodic(2) ) then
-      bcy = 0
-    else
-      bcy = 1
-    end if
-
-    if ( d%is_periodic(3) ) then
-      bcz = 0
-    else
-      bcz = 1
-    end if
+    is_periodic(:) = d%is_periodic(:)
 !_______________________________________________________________________________
 ! Top level wrapper
 ! Note: if periodic b.c. exsits, it should be z direction first. 
@@ -130,30 +112,38 @@ contains
 !   0    1     1 (X, not existing)
 !   1    1     1
 !_______________________________________________________________________________
-    if      (bcx == 0 .and. bcy == 0 .and. bcz == 0) then
+    if      (is_periodic(1) .and. &
+             is_periodic(2) .and. &
+             is_periodic(3)) then
+
       Solve_poisson => Solve_poisson_000
-    else if (bcx == 1 .and. bcy == 0 .and. bcz == 0) then
+
+    else if ((.not. is_periodic(1)) .and. &
+                    is_periodic(2)  .and. &
+                    is_periodic(3)) then
+
       Solve_poisson => Solve_poisson_100
-    else if (bcx == 0 .and. bcy == 0 .and. bcz == 1) then
+
+    else if (is_periodic(1) .and. &
+             is_periodic(2) .and. &
+      (.not. is_periodic(3))) then
+
       Solve_poisson => Solve_poisson_000
-    else if (bcx == 0 .and. bcy == 1 .and. bcz == 0) then
+
+    else if (is_periodic(1)  .and. &
+      (.not. is_periodic(2)) .and. &
+             is_periodic(3)) then
+
       Solve_poisson => Solve_poisson_000
-    else if (bcx == 1 .and. bcy == 1) then   ! 110 & 111
+
+    else if ((.not. is_periodic(1)) .and. &
+             (.not. is_periodic(2))) then   ! 110 & 111
+
       Solve_poisson => Solve_poisson_000
+
     else
       stop 'boundary condition not supported'
     end if
-!_______________________________________________________________________________
-! size of working array
-! pressure-grid having 1 fewer point for non-periodic directions
-!_______________________________________________________________________________
-    nx = d%nc(1)
-    ny = d%nc(2)
-    nz = d%nc(3)
-
-    !if (bcx == 1) nx = nx + 1 ! to check ?
-    !if (bcy == 1) ny = ny + 1
-    !if (bcz == 1) nz = nz + 1
 !_______________________________________________________________________________
 ! initialise 2d-decomp library
 ! For FFT, by calling decomp_2d_fft_init(PHYSICAL_IN_Z, nx, ny, nz)
@@ -164,19 +154,16 @@ contains
 !      the complex uotput can be held in an array of size (nx, ny, nz / 2 + 1)
 !      for a x-pencil stored spectral data.
 !_______________________________________________________________________________
-    call decomp_info_init(nx, ny, nz,         ph)
-    call decomp_info_init(nx, ny, nz / 2 + 1, sp)
+    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3),         ph)
+    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3) / 2 + 1, sp)
 
     if (.not. fft_initialised) then
-      call decomp_2d_fft_init(PHYSICAL_IN_Z, nx, ny, nz)
+      call decomp_2d_fft_init(PHYSICAL_IN_Z, d%nc(1), d%nc(2), d%nc(3))
       fft_initialised = .true.
     end if
     call decomp_2d_fft_get_size(fft_st, fft_en, fft_sz)
 
-    is_half(1) = .false.
-    is_half(2) = .false.
-    is_half(3) = .true.
-
+#ifdef DEBUG
     write(*,*) 'physical domain index, i = ', ph%xst(1), ph%xen(1)
     write(*,*) 'physical domain index, j = ', ph%xst(2), ph%xen(2)
     write(*,*) 'physical domain index, k = ', ph%xst(3), ph%xen(3)
@@ -188,7 +175,7 @@ contains
     write(*,*) 'Fourier Domain index,  l = ', fft_st(1), fft_en(1)
     write(*,*) 'Fourier Domain index,  m = ', fft_st(2), fft_en(2)
     write(*,*) 'Fourier Domain index,  n = ', fft_st(3), fft_en(3)
-
+#endif
 !_______________________________________________________________________________
 ! preparing sine and cosine factors
 !_______________________________________________________________________________
@@ -201,9 +188,9 @@ contains
     allocate ( az( ph%xsz(3) ) ); az = ZERO
     allocate ( bz( ph%xsz(3) ) ); bz = ZERO
 
-    call Calculate_sine_cosine_unit(ax, bx, ph%xsz(1), bcx)
-    call Calculate_sine_cosine_unit(ay, by, ph%xsz(2), bcy)
-    call Calculate_sine_cosine_unit(az, bz, ph%xsz(3), bcz)
+    call Calculate_sine_cosine_unit(ax, bx, ph%xsz(1), is_periodic(1))
+    call Calculate_sine_cosine_unit(ay, by, ph%xsz(2), is_periodic(2))
+    call Calculate_sine_cosine_unit(az, bz, ph%xsz(3), is_periodic(3))
 !_______________________________________________________________________________
 ! allocate space for wave-space variables
 !_______________________________________________________________________________
@@ -215,8 +202,8 @@ contains
                     sp%xst(2) : sp%xen(2), &
                     sp%xst(3) : sp%xen(3)) )
 
-    if(bcx == 1) then
-      allocate ( rhsx(nx, ny, nz) )
+    if((.not. is_periodic(1))) then
+      allocate ( rhsx(d%nc(1), d%nc(2), d%nc(3)) )
     end if
 !_______________________________________________________________________________
 ! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
@@ -228,9 +215,9 @@ contains
                       sp%xst(2) : sp%xen(2), &
                       sp%xst(3) : sp%xen(3))) ;  t2xyz = ZERO
 
-    call Transform_2nd_derivative_spectral_1d ('x')
-    call Transform_2nd_derivative_spectral_1d ('y')
-    call Transform_2nd_derivative_spectral_1d ('z')
+    call Transform_2nd_derivative_spectral_1d (is_periodic(1), d%h(1), ph%xsz(1), sp%xst(1), sp%xen(1), t2x)
+    call Transform_2nd_derivative_spectral_1d (is_periodic(2), d%h(2), ph%xsz(2), sp%xst(2), sp%xen(2), t2y)
+    call Transform_2nd_derivative_spectral_1d (is_periodic(3), d%h(3), ph%xsz(3), sp%xst(3), sp%xen(3), t2z)
 
     do k = sp%xst(3) , sp%xen(3)
       do j = sp%xst(2) , sp%xen(2)
@@ -279,59 +266,58 @@ contains
 !> \param[out]   afsin         sine unit
 !> \param[out]   bfsin         cosine unit
 !_______________________________________________________________________________
-  subroutine Calculate_sine_cosine_unit(afsin, bfcos, nsz, bc)
+  subroutine Calculate_sine_cosine_unit(afsin, bfcos, nsz, is_peri)
     use parameters_constant_mod, only : PI, TWO
     use math_mod
     implicit none
     integer(4), intent(in) :: nsz
-    integer(4), intent(in) :: bc
+    logical,    intent(in) :: is_peri
     real(mytype), dimension(:), intent(out) :: afsin
     real(mytype), dimension(:), intent(out) :: bfcos
   
     integer :: i
   
-    if (bc == 0) then
+    if (is_peri) then
   
-        do i = 1, nsz
-          afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
-                             real(nsz,   kind = mytype) )
-          bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
-                             real(nsz,   kind = mytype) )
-        end do
+      do i = 1, nsz
+        afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
+                            real(nsz,   kind = mytype) )
+        bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
+                            real(nsz,   kind = mytype) )
+      end do
   
-    else if (bc == 1) then
-  
-        do i = 1, nsz
-          afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                             real(nsz,   kind = mytype) )
-          bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                             real(nsz,   kind = mytype))
-        end do
     else
+  
+      do i = 1, nsz
+        afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
+                            real(nsz,   kind = mytype) )
+        bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
+                            real(nsz,   kind = mytype))
+      end do
     end if
   
     return
   end subroutine Calculate_sine_cosine_unit
 !===============================================================================
 !===============================================================================
-  subroutine Transform_2nd_derivative_spectral_1d(bc, nn, dd, t2, is_half)
+  subroutine Transform_2nd_derivative_spectral_1d(is_peri, dd, nn, istt, iend, t2)
+    use udf_type_mod,            only : t_domain
     use operations!,              only : d2fC2C, d2rC2C
     use input_general_mod!,       only : IBC_PERIODIC
     use parameters_constant_mod!, only : FOUR, TWO, ONE, PI
     use math_mod!,                only : cos_wp
     implicit none
 
-    logical :: is_half
-    integer(4), intent(in)    :: bc
-    integer(4), intent(in)    :: nn
-    real(wp),   intent(in)    :: dd
+    logical,  intent(in) :: is_peri
+    real(wp), intent(in) :: dd
+    integer,  intent(in) :: nn, istt, iend
     real(wp),   intent(inout) :: t2(:)
 
     real(wp) :: a, b, alpha
     real(wp) :: w, cosw, aunit
-    integer(4) :: i, iend
+    integer(4) :: i
 
-    if(bc == 0) then
+    if(is_peri) then
       aunit = TWO * PI / REAL(nn, WP)
     else
       aunit = PI / REAL(nn, WP)
@@ -343,7 +329,7 @@ contains
       a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
       b     = d1rC2C(3, 2, IBC_PERIODIC) * FOUR
 
-      do i = 1, sp%
+      do i = istt, iend
         w = aunit * REAL(i - 1, WP)
         t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
         t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
@@ -352,44 +338,24 @@ contains
         !write(*,*) i, t2(i)
       end do
 
-      if((.not. is_half) .and. (bc == 0)) then
-        do i = nn/2 + 1, nn
-          ! w = aunit * REAL(i - 1, WP)
-          ! t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
-          ! t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
-          ! t2(i) = t2(i) / dd
-          ! t2(i) = - t2(i) * t2(i)
-
-          t2(i) = t2(nn - i + 1)
-          !write(*,*) i, t2(i)
-        end do
-      end if
-
     else if(ifft2deri == 2) then
 
       alpha = d2fC2C(3, 1, IBC_PERIODIC)
       a     = d2rC2C(3, 1, IBC_PERIODIC)
       b     = d2rC2C(3, 2, IBC_PERIODIC) * FOUR
   
-      do i = 1, nn/2
+      do i = istt, iend
         w = aunit * REAL(i - 1, WP)! check, for 0-n/2, pi or 2pi?
         cosw = cos_wp(w)
         t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
         t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
         !write(*,*) i, t2(i)
       end do
-      
-      if((.not. is_half) .and. (bc == 0)) then
-        do i = nn/2 + 1, nn
-          t2(i) = t2(nn - i + 1)
-          !write(*,*) i, t2(i)
-        end do
-      end if
 
     else
     end if
 
-    if(bc /= 0) then
+    if(.not. is_peri) then
       t2(1) =  ZERO
     end if
 
@@ -402,13 +368,13 @@ contains
     implicit none
     real(wp), dimension(:,:,:), intent(INOUT) :: rhs
 
-    real(wp), dimension(:,:,:), allocatable :: rhs0
+#ifdef DEBUG
     integer :: nn, i, j,k
+    real(wp), allocatable :: rhs0(:, :, :)
 
-
-    allocate(rhs0(nx, ny, nz))
+    allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
     rhs0 = rhs
-
+#endif    
 !_______________________________________________________________________________
 ! compute r2c transform, forward FFT
 !_______________________________________________________________________________
@@ -416,9 +382,20 @@ contains
 !_______________________________________________________________________________
 ! fft normalisation
 !_______________________________________________________________________________
-    cw1 = cw1 / real(nx, kind=wp) / &
-                real(ny, kind=wp) / &
-                real(nz, kind=wp)
+    cw1 = cw1 / real(ph%xsz(1), kind=wp) / &
+                real(ph%xsz(2), kind=wp) / &
+                real(ph%xsz(3), kind=wp)
+
+#ifdef DEBUG
+    nn = 0
+    do k = sp%xst(3), sp%xen(3)
+      do j = sp%xst(2), sp%xen(2)
+        do i = sp%xst(1), sp%xen(1)
+          write(*,'(A, 3I5.1, 1ES13.5)') 'After F-FFT', k, j, i, cw1(i,j,k)
+        end do
+      end do
+    end do
+#endif 
 !_______________________________________________________________________________
 ! Fourier domain calculation
 !_______________________________________________________________________________
@@ -428,18 +405,18 @@ contains
 !_______________________________________________________________________________
     call decomp_2d_fft_3d(cw1,rhs)
 
-    ! nn = 0
-    ! do k = 1, nz
-    !   do j = 1, ny
-    !     do i = 1, nx
-    !       nn = nn + 1
-    !       write(*,'(A, 4I4.1, 2ES13.5)') 'check', k, j, i, nn, rhs0(i, j, k), rhs(i, j,k)
-    !     end do
-    !   end do
-    ! end do
+#ifdef DEBUG
+    do k = ph%xst(3), ph%xen(3)
+      do j = ph%xst(2), ph%xen(2)
+        do i = ph%xst(1), ph%xen(1)
+          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+        end do
+      end do
+    end do
 
     deallocate(rhs0)
-
+#endif
+    
     return
   end subroutine Solve_poisson_000
 
@@ -454,21 +431,22 @@ contains
     real(wp) :: aRe1, bRe1, aRe2, bRe2, &
                 aIm1, bIm1, aIm2, bIm2
 
-   integer :: nn
-   real(wp), dimension(:,:,:), allocatable :: rhs0
-   
-   allocate(rhs0(nx, ny, nz))
-   rhs0 = rhs
+#ifdef DEBUG
+    real(wp), allocatable :: rhs0(:, :, :)
+
+    allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
+    rhs0 = rhs
+#endif  
 !_______________________________________________________________________________
 ! input data re-organisation to get a periodic sequence in physical domain
 !_______________________________________________________________________________
-    do k = 1, nz
-      do j = 1, ny
-        do i = 1, nx/2
+    do k = ph%xst(3), ph%xen(3)
+      do j = ph%xst(2), ph%xen(2)
+        do i = ph%xst(1), ph%xsz(1)/2
           rhsx(i, j, k) = rhs( 2 * i - 1, j,  k)
         end do
-        do i = nx/2 + 1, nx
-          rhsx(i, j, k) = rhs( 2 * (nx + 1) - 2 * i, j, k)
+        do i = ph%xsz(1)/2 + 1, ph%xen(1)
+          rhsx(i, j, k) = rhs( 2 * (ph%xsz(1) + 1) - 2 * i, j, k)
         end do
       end do
     end do 
@@ -479,9 +457,9 @@ contains
 !_______________________________________________________________________________
 ! fft normalisation
 !_______________________________________________________________________________
-    cwx = cwx / real(nx, kind=wp) / &
-                real(ny, kind=wp) / &
-                real(nz, kind=wp)
+    cwx = cwx / real(ph%xsz(1), kind=wp) / &
+                real(ph%xsz(2), kind=wp) / &
+                real(ph%xsz(3), kind=wp)
 !_______________________________________________________________________________
 ! Reconstruct FFT(rhs) from the above FFT(rhsx) in spectral domain 
 !_______________________________________________________________________________
@@ -553,28 +531,28 @@ contains
 !_______________________________________________________________________________
 ! reorganize the output physical data structure
 !_______________________________________________________________________________
-    do k = 1, nz
-      do j = 1, ny
-        do i = 1, nx/2
+    do k = ph%xst(3), ph%xen(3)
+      do j = ph%xst(2), ph%xen(2)
+        do i = ph%xst(1), ph%xsz(1)/2
           rhs( 2 * i - 1, j, k) = rhsx(i, j, k)
         end do
-        do i = 1, nx/2
-          rhs( 2 * i,     j, k) = rhsx(nx - i + 1, j, k)
+        do i = ph%xst(1), ph%xsz(1)/2
+          rhs( 2 * i,     j, k) = rhsx(ph%xsz(1) - i + 1, j, k)
         end do
       end do
     end do
 
-    ! nn = 0
-    ! do k = 1, nz
-    !   do j = 1, ny
-    !     do i = 1, nx
-    !       nn = nn + 1
-    !       write(*,*) 'check', k, j, i, rhs0(i, 1, 1), rhs(i, 1,1), rhs0(i, 1, 1)-rhs(i, 1,1)
-    !     end do
-    !   end do
-    ! end do
+#ifdef DEBUG
+    do k = ph%xst(3), ph%xen(3)
+      do j = ph%xst(2), ph%xen(2)
+        do i = ph%xst(1), ph%xen(1)
+          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+        end do
+      end do
+    end do
 
     deallocate(rhs0)
+#endif
     return
   end subroutine Solve_poisson_100
 !===============================================================================
@@ -597,7 +575,8 @@ contains
           x = domain%h(1)*(real(i, WP)-HALF)
           y = domain%h(2)*(real(j, WP)-HALF)
           z = domain%h(3)*(real(k, WP)-HALF)
-          rhsphi(i, j, k) =  six*x + six*y + six*z!-TWO * dsin( TWO * z )
+          rhsphi(i, j, k) = -sin(half * x)/FOUR
+          !  -TWO * dsin( TWO * z )
                            !* dcos( domain%h(2)*(real(j, WP)-HALF) ) !&
                             
           
@@ -613,21 +592,24 @@ contains
     nn = 0
     do i = ph%xst(1),ph%xen(1)
       do j = ph%xst(2),ph%xen(2)
-        do k = ph%xst(3),ph%xen(3)
+        !do k = ph%xst(3),ph%xen(3)
+        k = 1
           x = domain%h(1)*(real(i, WP)-HALF)
+          y = domain%h(2)*(real(j, WP)-HALF)
           z = domain%h(3)*(real(k, WP)-HALF)
           nn = nn + 1
-          solution = x*3 + y*3 + z*3 !dcos( z ) * dsin( z ) !- &
+          solution = dsin(HALF * x)
+          !dcos( z ) * dsin( z ) !- &
                      !dsin( domain%h(1)*(real(i, WP)-HALF) )**2
                      !FOUR * dcos( TWO * domain%h(2)*(real(j, WP)-HALF) ) + &
                      !FOUR * dcos( TWO * domain%h(1)*(real(i, WP)-HALF) )
 
           write(*, '(4I5.1, 3ES13.5)') i,j,k, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
-        end do
+        !end do
       end do
     end do
     deallocate(rhsphi)
-
+    stop
   end subroutine
 
 end module poisson_mod

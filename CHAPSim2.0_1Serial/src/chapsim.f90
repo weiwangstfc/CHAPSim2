@@ -66,7 +66,7 @@ subroutine Initialize_chapsim()
   call Prepare_coeffs_for_operations ()
   call Initialize_domain_decompsition (domain)
 
-  !call Test_poisson_solver
+  call Test_poisson_solver
 
   return
 end subroutine Initialize_chapsim
@@ -138,18 +138,19 @@ subroutine Solve_eqs_iteration
   logical    :: is_flow   = .false.
   logical    :: is_thermo = .false.
   integer(4) :: iter, isub
+  real(wp)   :: rtmp
 
   interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
-        use udf_type_mod
-        type(t_domain), intent( in ) :: d
-        integer(4) :: vartp
-        character( len = *), intent( in ) :: str
-        character( len = *), intent( in ) :: varnm
-        real(WP), intent( in ) :: var0(:, :, :)
-        real(WP), intent( in ) :: t
-       end subroutine Display_vtk_slice
-  end interface
+  subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
+   use udf_type_mod
+   type(t_domain), intent( in ) :: d
+   integer(4) :: vartp
+   character( len = *), intent( in ) :: str
+   character( len = *), intent( in ) :: varnm
+   real(WP), intent( in ) :: var0(:, :, :)
+   integer(4), intent( in ) :: iter
+  end subroutine Display_vtk_slice
+end interface
   
   if(ithermo == 1) then
     niter = MAX(nIterFlowEnd, nIterThermoEnd)
@@ -194,11 +195,16 @@ subroutine Solve_eqs_iteration
     if(icase == ICASE_TGV2D) call Validate_TGV2D_error (flow, domain)
 
     call Check_mass_conservation(flow, domain) ! for debug only
+#ifdef DEBUG  
     call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)   ! for debug only
+    call Calculate_xbulk_velocity(flow%qx, domain, rtmp)
+#endif
     call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
-
-    call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, flow%time)
-    !call Display_vtk_slice(domain, 'xy', 'v', 0, flow%pres, flow%time)
+    if(MOD(iter, nvisu) == 0) then
+      !call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, iter)
+      !call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, iter)
+      !call Display_vtk_slice(domain, 'xy', 'p', 0, flow%pres, iter)
+    end if
   end do
 
 

@@ -1,7 +1,7 @@
 module continuity_eq_mod
 
   private :: Calculate_drhodt
-  public  :: Get_divergence
+  public  :: Get_divergence_vel
   public  :: Calculate_continuity_constrains
   public  :: Check_mass_conservation
 contains
@@ -82,7 +82,9 @@ contains
     implicit none
 
     type(t_domain),               intent (in   ) :: d
-    real(WP), dimension(:, :, :), intent (in   ) :: ux, uy, uz
+    real(WP), dimension(:, :, :), intent (in   ) :: ux
+    real(WP), dimension(:, :, :), intent (in   ) :: uy
+    real(WP), dimension(:, :, :), intent (in   ) :: uz
     real(WP), dimension(:, :, :), intent (inout) :: div
 
     real(WP), allocatable :: div0(:, :, :)
@@ -91,26 +93,28 @@ contains
     nx = size(div, 1)
     ny = size(div, 2)
     nz = size(div, 3)
+
     allocate( div0(nx, ny, nz) )
 
-    div = ZERO
+    div(:, :, :) = ZERO
 !-------------------------------------------------------------------------------
 ! operation in x pencil
 !_______________________________________________________________________________
     call Get_x_1st_derivative_P2C_3dArray( d, ux, div0)
-    div = div + div0
+    div(:, :, :) = div(:, :, :) + div0(:, :, :)
 
 !-------------------------------------------------------------------------------
 ! operation in y pencil
 !_______________________________________________________________________________
     call Get_y_1st_derivative_P2C_3dArray( d, uy, div0)
-    div = div + div0
+    div(:, :, :) = div(:, :, :) + div0(:, :, :)
 
 !-------------------------------------------------------------------------------
 ! operation in z pencil
 !_______________________________________________________________________________
     call Get_z_1st_derivative_P2C_3dArray( d, uz, div0)
-    div = div + div0
+    div(:, :, :) = div(:, :, :) + div0(:, :, :)
+
 
     deallocate(div0)
     return

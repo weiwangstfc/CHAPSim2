@@ -192,6 +192,9 @@ contains
     write(*, '(12X, 1ES15.7)') ubulk
     write(*,*) "-------------------------------------------------------------------------------"
 
+    Call Print_debug_mid_msg("  The bulk velocity is:")
+    write(*, '(5X, A, 1ES13.5)') 'Ubulk : ', ubulk
+
     return
   end subroutine
 !===============================================================================
@@ -357,7 +360,7 @@ contains
 !> \param[out]    f             flow
 !_______________________________________________________________________________
   subroutine  Initialize_vortexgreen_2dflow(ux, uy, uz, p, d)
-    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
@@ -372,44 +375,30 @@ contains
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
 
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, d%nc(2)
-        yc = d%yc(j)
-        do i = 1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
-          ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc )
-        end do
+    do j = 1, d%nc(2)
+      yc = d%yc(j)
+      do i = 1, d%np(1)
+        xp = d%h(1) * real(i - 1, WP)
+        ux(i, j, :) =  sin_wp ( xp ) * cos_wp ( yc )
       end do
     end do
 
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, d%np(2)
-        yp = d%yp(j)
-        do i = 1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp )
-        end do
+    do j = 1, d%np(2)
+      yp = d%yp(j)
+      do i = 1, d%nc(1)
+        xc = d%h(1) * (real(i - 1, WP) + HALF)
+        uy(i, j, :) = -cos_wp ( xc ) * sin_wp ( yp )
       end do
     end do
 
-    do k = 1, d%np(3)
-      do j = 1, d%nc(2)
-        do i = 1, d%nc(1)
-          uz(i, j, k) =  ZERO
-        end do
-      end do
-    end do
+    uz(:, :, :) =  ZERO
 
-    do k = 1, d%nc(3)
-      zc = d%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, d%nc(2)
-        yc = d%yc(j)
-        do i = 1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
-          p(i, j, k)= ZERO
-        end do
+
+    do j = 1, d%nc(2)
+      yc = d%yc(j)
+      do i = 1, d%nc(1)
+        xc = d%h(1) * (real(i - 1, WP) + HALF)
+        p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) / FOUR
       end do
     end do
     
@@ -426,25 +415,74 @@ contains
     type(t_flow),   intent(in   ) :: f
 
     integer :: k, i, j
-    real(wp) :: uerr, ue, uc
-    real(wp) :: xp, yc
-    
-    k = 1
-    uerr = ZERO
+    real(wp) :: uerr, ue, uc, verr, perr
+    real(wp) :: xc, yc, xp, yp
 
-    do j = 1, d%nc(2)
-      yc = d%yc(j)
-      do i = 1, d%np(1)
-        xp = d%h(1) * real(i - 1, WP)
-        uc = f%qx(i, j, k)
-        ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- FOUR * PI * PI * f%rre * f%time)
-        uerr = uerr + (uc - ue)**2
+    integer :: output_unit
+    character( len = 128) :: filename
+    logical :: file_exists = .FALSE.
+    
+
+    filename = 'Validation_TGV2d.dat'
+
+    INQUIRE(FILE = trim(filename), exist = file_exists)
+
+    if(.not.file_exists) then
+      open(newunit = output_unit, file = trim(filename), action = "write", status = "new")
+      write(output_unit, '(A)') 'Time, SD(u), SD(v), SD(p)'
+    else
+      open(newunit = output_unit, file = trim(filename), action = "write", status = "old", position="append")
+     end if
+    ! data convert to cell centre data...
+
+
+    uerr = ZERO
+    do k = 1, d%nc(3)
+      do j = 1, d%nc(2)
+        yc = d%yc(j)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          uc = f%qx(i, j, k)
+          ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * f%rre * f%time)
+          uerr = uerr + (uc - ue)**2
+        end do
       end do
     end do
-    uerr = uerr / real(d%np(1), wp) / real(d%nc(2), wp)
+    uerr = uerr / real(d%np(1), wp) / real(d%nc(2), wp) / real(d%nc(3), wp)
     uerr = sqrt_wp(uerr)
 
-    write(*, '(A, 1ES13.5)') '   The spacial error for TGV2D is ', uerr
+    verr = ZERO
+    do k = 1, d%nc(3)
+      do j = 1, d%np(2)
+        yp = d%yp(j)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          uc = f%qy(i, j, k)
+          ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * f%rre * f%time)
+          verr = verr + (uc - ue)**2
+        end do
+      end do
+    end do
+    verr = verr / real(d%nc(1), wp) / real(d%np(2), wp) / real(d%nc(3), wp)
+    verr = sqrt_wp(verr)
+
+    perr = ZERO
+    do k = 1, d%nc(3)
+      do j = 1, d%np(2)
+        yc = d%yc(j)
+        do i = 1, d%nc(1)
+          xc = d%h(1) * (real(i - 1, WP) + HALF)
+          uc = f%pres(i, j, k)
+          ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * f%rre * f%time))**2
+          perr = perr + (uc - ue)**2
+        end do
+      end do
+    end do
+    perr = perr / real(d%nc(1), wp) / real(d%nc(2), wp) / real(d%nc(3), wp)
+    perr = sqrt_wp(perr)
+
+    write(output_unit, '(1F10.4, 3ES13.5)') f%time, uerr, verr, perr
+    close(output_unit)
 
     return
   end subroutine
@@ -656,14 +694,14 @@ contains
     logical :: itest = .false.
 
     interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0, t)
+       subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
         use udf_type_mod
         type(t_domain), intent( in ) :: d
         integer(4) :: vartp
         character( len = *), intent( in ) :: str
         character( len = *), intent( in ) :: varnm
         real(WP), intent( in ) :: var0(:, :, :)
-        real(WP), intent( in ) :: t
+        integer(4), intent( in ) :: iter
        end subroutine Display_vtk_slice
     end interface
 
@@ -686,13 +724,13 @@ contains
     if ( (icase == ICASE_CHANNEL) .or. &
          (icase == ICASE_PIPE) .or. &
          (icase == ICASE_ANNUAL) ) then
-      call Initialize_poiseuille_flow  (flow%qx, flow%qy, flow%qz, flow%pres, domain)
+      call Initialize_poiseuille_flow    (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_TGV2D) then
       call Initialize_vortexgreen_2dflow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_TGV3D) then
       call Initialize_vortexgreen_3dflow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_SINETEST) then
-      call Initialize_sinetest_flow    (flow%qx, flow%qy, flow%qz, flow%pres, domain)
+      call Initialize_sinetest_flow      (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else 
       call Print_error_msg("No such case defined" )
     end if
@@ -741,6 +779,10 @@ contains
     !call Display_vtk_slice(domain, 'zx', 'u', 1, qx)
     !call Display_vtk_slice(domain, 'zx', 'w', 3, qz)
     !call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
+
+    call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, 0)
+    call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, 0)
+    call Display_vtk_slice(domain, 'xy', 'w', 0, flow%pres, 0)
 
     call Print_debug_end_msg
     return
