@@ -4,6 +4,7 @@ obj/
 lib/
 obsolete/
 .history/
+test*/
 
 # Prerequisites
 *.d
