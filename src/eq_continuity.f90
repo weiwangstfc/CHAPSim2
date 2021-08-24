@@ -1,7 +1,7 @@
 module continuity_eq_mod
 
   private :: Calculate_drhodt
-  private :: Get_divergence_vel
+  public  :: Get_divergence_vel
   public  :: Calculate_continuity_constrains
   public  :: Check_mass_conservation
 contains
@@ -90,33 +90,30 @@ contains
     real(WP), allocatable :: div0(:, :, :)
     integer(4) :: nx, ny, nz
 
-    nx = d%nc(1)
-    ny = d%nc(2)
-    nz = d%nc(3)
+    nx = size(div, 1)
+    ny = size(div, 2)
+    nz = size(div, 3)
 
     allocate( div0(nx, ny, nz) )
 
     div(:, :, :) = ZERO
 !-------------------------------------------------------------------------------
-! operation in x pencil, du/dx
+! operation in x pencil
 !_______________________________________________________________________________
-    !call Print_3d_array(ux, nx, ny, nz, 'ux:') ! test
     call Get_x_1st_derivative_P2C_3dArray( d, ux, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    !call Print_3d_array(div0, nx, ny, nz, 'du/dx:') ! test
+
 !-------------------------------------------------------------------------------
-! operation in y pencil, dv/dy
+! operation in y pencil
 !_______________________________________________________________________________
     call Get_y_1st_derivative_P2C_3dArray( d, uy, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    !call Print_3d_array(div0, nx, ny, nz, 'dv/dy:')
 
 !-------------------------------------------------------------------------------
-! operation in z pencil, dv/dz
+! operation in z pencil
 !_______________________________________________________________________________
     call Get_z_1st_derivative_P2C_3dArray( d, uz, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    !call Print_3d_array(div0, nx, ny, nz, 'dw/dz:')
 
 
     deallocate(div0)
@@ -203,9 +200,9 @@ contains
     real(WP), allocatable  :: div (:, :, :)
     integer(4) :: nx, ny, nz
 
-    nx = d%nc(1)
-    ny = d%nc(2)
-    nz = d%nc(3)
+    nx = size(f%pcor, 1)
+    ny = size(f%pcor, 2)
+    nz = size(f%pcor, 3)
     allocate( div(nx, ny, nz) )
 
     f%pcor = ZERO
@@ -224,10 +221,8 @@ contains
     else
       call Get_divergence_vel(f%qx, f%qy, f%qz, div, d)
     end if
-
     f%pcor = f%pcor + div
     f%pcor = f%pcor / (tAlpha(isub) * sigma2p * dt)
-    
     deallocate (div)
 
     return

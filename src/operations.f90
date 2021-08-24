@@ -2917,10 +2917,6 @@ contains
     integer(4) :: dim, nox
     integer(4) :: k, j
 
-
-    !write(*,*) 'check input  sz:', size(fi3d, 1), size(fi3d, 2), size(fi3d, 3)
-    !write(*,*) 'check output sz:', size(fo3d, 1), size(fo3d, 2), size(fo3d, 3)
-
     dim = 1
     nox = size(fo3d, 1)
     fo3d(:, :, :) = ZERO
@@ -3426,7 +3422,6 @@ contains
     real(WP)   :: vol
     integer(4) :: i, j, k
     integer(4) :: nix, niy, niz
-    integer(4) :: ncy
 
     fo = ZERO
     vol = ZERO
@@ -3438,16 +3433,14 @@ contains
 !-------------------------------------------------------------------------------
       if( d%is_periodic(2) ) then
         niy = size(fi3d, 2)
-        ncy = niy
       else
         niy = size(fi3d, 2) + 1
-        ncy = niy - 1
       end if
       allocate( fi3dy(nix, niy, niz) )
       call Get_y_midp_C2P_3dArray ( d, fi3d, fi3dy)
       do k = 1, niz
         do i = 1, nix
-          do j = 1, ncy
+          do j = 1, niy
             fo = fo + &
                 ( fi3dy(i, d%jNeighb(3, j), k) + fi3d(i, j, k) ) * &
                 ( d%yp(j + 1) - d%yc(j) ) * HALF + &
@@ -3464,16 +3457,14 @@ contains
 !-------------------------------------------------------------------------------
       if( d%is_periodic(2) ) then
         niy = size(fi3d, 2)
-        ncy = niy
       else
         niy = size(fi3d, 2) - 1
-        ncy = niy
       end if
       allocate( fi3dy(nix, niy, niz) )
       call Get_y_midp_P2C_3dArray ( d, fi3d, fi3dy)
       do k = 1, niz
         do i = 1, nix
-          do j = 1, ncy
+          do j = 1, niy
             fo = fo + &
                 ( fi3d(i, d%jNeighb(3, j), k) + fi3dy(i, j, k) ) * &
                 ( d%yp(j + 1) - d%yc(j) ) * HALF + &
@@ -3486,7 +3477,7 @@ contains
       deallocate(fi3dy)
     end if
 
-    fo = fo / vol
+    fo = fo / real(nix * niy, WP) / vol
     return 
   end subroutine Get_volumetric_average_3d
 

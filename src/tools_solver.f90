@@ -101,7 +101,6 @@ contains
   subroutine Check_cfl_convection(u, v, w, d)
     use parameters_constant_mod, only : ZERO, ONE
     use precision_mod
-    use input_general_mod, only : dt
     use udf_type_mod, only : t_domain
     use operations, only : Get_midp_interpolation_1D
     implicit none
@@ -121,12 +120,11 @@ contains
 !_______________________________________________________________________________
     allocate ( fi( d%np(1) ) ); fi = ZERO
     allocate ( fo( d%nc(1) ) ); fo = ZERO
-    udx(:, :, :) = ZERO
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
         fi(:) = u(:, j, k)
         call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
-        udx(:, j, k) = fo(:) * d%h1r(3) * dt
+        udx(:, j, k) = fo(:) * d%h1r(3)
       end do
     end do
     deallocate (fi)
@@ -140,7 +138,7 @@ contains
       do i = 1, d%nc(1)
         fi(:) = v(i, :, k)
         call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
-        udx(i, :, k) = udx(i, :, k) + fo(:) * d%h1r(2) * dt
+        udx(i, :, k) = udx(i, :, k) + fo(:) / d%yc(:)
       end do
     end do
     deallocate (fi)
@@ -154,21 +152,17 @@ contains
       do i = 1, d%nc(1)
         fi(:) = w(i, j, :)
         call Get_midp_interpolation_1D('z', 'P2C', d, fi(:), fo(:))
-        udx(i, j, :) = udx(i, j, :) + fo(:) * d%h1r(3) * dt
+        udx(i, j, :) = udx(i, j, :) + fo(:) * d%h1r(3)
       end do
     end do
     deallocate (fi)
     deallocate (fo)
-!-------------------------------------------------------------------------------
-! maximum 
-!_______________________________________________________________________________
-    cfl_convection = MAXVAL(udx)
-    deallocate (udx)
 
     if(cfl_convection > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
     write(*,*) "  CFL (convection) :"
     write(*,"(12X, F13.8)") cfl_convection
-    
+    deallocate (udx)
+
     return
   end subroutine
 

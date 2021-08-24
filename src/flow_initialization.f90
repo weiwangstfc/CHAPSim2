@@ -25,14 +25,13 @@ module flow_variables_mod
   use type_vars_mod
   implicit none
 
-  
+  private :: Calculate_xbulk_velocity
   private :: Generate_poiseuille_flow_profile
   private :: Initialize_poiseuille_flow
   private :: Initialize_vortexgreen_2dflow
   private :: Initialize_vortexgreen_3dflow
   private :: Initialize_thermal_variables
 
-  public  :: Calculate_xbulk_velocity
   public  :: Check_maximum_velocity
   public  :: Allocate_thermoflow_variables
   public  :: Initialize_flow_variables
@@ -188,6 +187,11 @@ contains
 
     call Get_volumetric_average_3d(d, u, ubulk, is_stored_nyp)
     
+    write(*,*) "-------------------------------------------------------------------------------"
+    write(*, *) "The bulk velocity :"
+    write(*, '(12X, 1ES15.7)') ubulk
+    write(*,*) "-------------------------------------------------------------------------------"
+
     Call Print_debug_mid_msg("  The bulk velocity is:")
     write(*, '(5X, A, 1ES13.5)') 'Ubulk : ', ubulk
 
@@ -284,9 +288,7 @@ contains
     integer :: pf_unit
     real(WP) :: uxa, uya, uza, ubulk
 
-!===============================================================================
-!   to get Poiseuille profile
-!===============================================================================
+    ! to get the profile
     allocate ( u_laminar ( d%nc(2) ) ); u_laminar(:) = ZERO
     call Generate_poiseuille_flow_profile ( u_laminar, d )
 
@@ -294,9 +296,7 @@ contains
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
-!===============================================================================
-!   to get random fields [-1,1]
-!===============================================================================
+
     seed = 0 ! real random
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
@@ -310,10 +310,8 @@ contains
         end do
       end do
     end do
-    call Apply_BC_velocity(ux, uy, uz, d)
-!===============================================================================
-!   The x-z plane averaged should be zero
-!===============================================================================
+
+    ! The x-z plane averaged should be zero.
     do j = 1, d%nc(2)
       uxa = sum( ux( 1:d%nc(1), j, 1:d%nc(3) ) )
       uya = sum( uy( 1:d%nc(1), j, 1:d%nc(3) ) )
@@ -324,9 +322,7 @@ contains
       ux(:, j, :) = ux(:, j, :) - uxa + u_laminar(j)
       uy(:, j, :) = uy(:, j, :) - uya
       uz(:, j, :) = uz(:, j, :) - uza
-      !write(*, *) 'inif', ux(1, j, 1), uy(1, j, 1), uz(1, j, 1) ! test
     end do
-    call Apply_BC_velocity(ux, uy, uz, d)
 
     ! unified bulk
     call Calculate_xbulk_velocity(ux, d, ubulk)
@@ -334,14 +330,12 @@ contains
 
     call Apply_BC_velocity(ux, uy, uz, d)
 
-    call Calculate_xbulk_velocity(ux, d, ubulk)
     ! to write out velocity profile
     open ( newunit = pf_unit,     &
            file    = 'output_check_poiseuille_profile.dat', &
            status  = 'replace',         &
            action  = 'write')
     ! check the bulk velocity is one
-    write(pf_unit, '(A)') "# :yc, ux_laminar, ux, uy, uz"
     do j = 1, d%nc(2)
       write(pf_unit, '(5ES13.5)') d%yc(j), u_laminar(j), ux(d%nc(1)/2, j, d%nc(3)/2), &
                                   uy(d%nc(1)/2, j, d%nc(3)/2), uz(d%nc(1)/2, j, d%nc(3)/2)
@@ -423,7 +417,6 @@ contains
     integer :: k, i, j
     real(wp) :: uerr, ue, uc, verr, perr
     real(wp) :: xc, yc, xp, yp
-    real(wp) :: uerrmax, verrmax, perrmax
 
     integer :: output_unit
     character( len = 128) :: filename
@@ -444,7 +437,6 @@ contains
 
 
     uerr = ZERO
-    uerrmax = ZERO
     do k = 1, d%nc(3)
       do j = 1, d%nc(2)
         yc = d%yc(j)
@@ -453,7 +445,6 @@ contains
           uc = f%qx(i, j, k)
           ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * f%rre * f%time)
           uerr = uerr + (uc - ue)**2
-          if(dabs(uc - ue) > uerrmax) uerrmax = dabs(uc - ue)
         end do
       end do
     end do
@@ -461,7 +452,6 @@ contains
     uerr = sqrt_wp(uerr)
 
     verr = ZERO
-    verrmax = ZERO
     do k = 1, d%nc(3)
       do j = 1, d%np(2)
         yp = d%yp(j)
@@ -470,7 +460,6 @@ contains
           uc = f%qy(i, j, k)
           ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * f%rre * f%time)
           verr = verr + (uc - ue)**2
-          if(dabs(uc - ue) > verrmax) verrmax = dabs(uc - ue)
         end do
       end do
     end do
@@ -478,7 +467,6 @@ contains
     verr = sqrt_wp(verr)
 
     perr = ZERO
-    perrmax = ZERO
     do k = 1, d%nc(3)
       do j = 1, d%np(2)
         yc = d%yc(j)
@@ -487,14 +475,13 @@ contains
           uc = f%pres(i, j, k)
           ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * f%rre * f%time))**2
           perr = perr + (uc - ue)**2
-          if(dabs(uc - ue) > perrmax) perrmax = dabs(uc - ue)
         end do
       end do
     end do
     perr = perr / real(d%nc(1), wp) / real(d%nc(2), wp) / real(d%nc(3), wp)
     perr = sqrt_wp(perr)
 
-    write(output_unit, '(1F10.4, 6ES15.7)') f%time, uerr, verr, perr, uerrmax, verrmax, perrmax
+    write(output_unit, '(1F10.4, 3ES13.5)') f%time, uerr, verr, perr
     close(output_unit)
 
     return

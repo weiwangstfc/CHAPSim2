@@ -56,7 +56,6 @@ subroutine Initialize_chapsim()
   use type_vars_mod,     only : domain
   use code_performance_mod
   use poisson_mod
-  use mpi_mod
   implicit none
 
   call Call_cpu_time(CPU_TIME_CODE_START, 0, 0)
@@ -66,7 +65,6 @@ subroutine Initialize_chapsim()
   call Initialize_geometry_variables ()
   call Prepare_coeffs_for_operations ()
   call Initialize_domain_decompsition (domain)
-  call Initialize_decomp_poisson (domain)
 
   call Test_poisson_solver
 
@@ -162,6 +160,8 @@ end interface
     flow%time = tFlow 
   end if
 
+  call Initialize_decomp_poisson (domain)
+
   do iter = nrsttckpt + 1, niter
     call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
 !===============================================================================
@@ -190,27 +190,20 @@ end interface
     do isub = 1, nsubitr
       !if(is_thermo) call Solve_energy_eq  (flow, thermo, domain, isub)
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
-#ifdef DEBUG
-      write(*, '(A, I1)') "  Sub-iteration in RK = ", isub
-      call Check_mass_conservation(flow, domain) 
-      call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)   
-      call Calculate_xbulk_velocity(flow%qx, domain, rtmp)
-#endif
     end do
-!===============================================================================
-!     validation
-!===============================================================================
-    call Check_mass_conservation(flow, domain) 
+
     if(icase == ICASE_TGV2D) call Validate_TGV2D_error (flow, domain)
 
+    call Check_mass_conservation(flow, domain) ! for debug only
+#ifdef DEBUG  
+    call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)   ! for debug only
+    call Calculate_xbulk_velocity(flow%qx, domain, rtmp)
+#endif
     call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
-!===============================================================================
-!   visualisation
-!===============================================================================
     if(MOD(iter, nvisu) == 0) then
-      call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, iter)
-      call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, iter)
-      call Display_vtk_slice(domain, 'xy', 'p', 0, flow%pres, iter)
+      !call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, iter)
+      !call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, iter)
+      !call Display_vtk_slice(domain, 'xy', 'p', 0, flow%pres, iter)
     end if
   end do
 

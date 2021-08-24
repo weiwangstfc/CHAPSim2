@@ -1,3 +1,20 @@
+
+!===============================================================================
+!===============================================================================
+!Property Used :
+! (1) if the input data in[i] are purely real numbers, in which case the DFT 
+! output satisfies the “Hermitian” redundancy: 
+! out[i] is the conjugate of out[n-i]
+! (2)  DFT of real number :
+! the 0th (the “DC”) and n/2-th (the “Nyquist” frequency, when n is even) 
+! elements of the complex output are purely real.
+! (3) For 2D and 3D FFTs, the FFT length along the innermost dimension is used 
+! to compute the  value. This is because the FFT along the innermost dimension 
+! is computed first and is logically a real-to-hermitian transform. 
+! The FFTs along other dimensions are computed next, and they are simply 
+! ‘complex-to-complex’ transforms. 
+!===============================================================================
+!===============================================================================
 module poisson_mod
   use precision_mod
   use decomp_2d
@@ -36,15 +53,17 @@ module poisson_mod
 !_______________________________________________________________________________
   logical,                  save :: is_periodic(3)
   integer(4), dimension(3), save :: fft_st, fft_en, fft_sz
+  integer(4), dimension(3), save :: nw
 !_______________________________________________________________________________
 ! work arrays, 
 ! naming convention: cw (complex); rw (real); 
 !                    b =     ; c = 
 !                    1 = X-pencil; 2 = Y-pencil; 3 = Z-pencil
 !_______________________________________________________________________________
-  real(wp),    allocatable, dimension(:, :, :) :: rhsx
-  complex(wp), allocatable, dimension(:, :, :) :: cw1
-  complex(wp), allocatable, dimension(:, :, :) :: cwx
+  real(wp),    allocatable, dimension(:, :, :) :: rw_xpen, rw_ypen, rw_zpen
+  real(wp),    allocatable, dimension(:, :, :) :: rw_recons_xpen, rw_recons_ypen, rw_recons_zpen
+  complex(wp), allocatable, dimension(:, :, :) :: cw_xpen, cw_ypen, cw_zpen
+  complex(wp), allocatable, dimension(:, :, :) :: cw_recons_xpen, cw_recons_ypen, cw_recons_zpen
 !_______________________________________________________________________________
 ! FFT library only needs to be initialised once
 !_______________________________________________________________________________
@@ -99,48 +118,51 @@ contains
 ! set up boundary flags for periodic b.c.
 !_______________________________________________________________________________
     is_periodic(:) = d%is_periodic(:)
+    nw(:) = d%nc(:)
 !_______________________________________________________________________________
-! Top level wrapper
-! Note: if periodic b.c. exsits, it should be z direction first. 
+! boundary conditions, periodic or not
 !   x    y     z
-!   0    0     0 
-!   1    0     0
-!   0    1     0
-!   0    0     1 (X, not existing)
-!   1    1     0
-!   1    0     1 (X, not existing)
-!   0    1     1 (X, not existing)
-!   1    1     1
+!   0    0     0 (x, y, z periodic)
+!   1    0     0 (y, z periodic)
+!   0    1     0 (x, z periodic)
+!   0    0     1 (x, y periodic)
+!   1    1     0 (z periodic)
+!   1    0     1 (y periodic)
+!   0    1     1 (x periodic)
+!   1    1     1 (none periodic)
 !_______________________________________________________________________________
     if      (is_periodic(1) .and. &
              is_periodic(2) .and. &
              is_periodic(3)) then
-
       Solve_poisson => Solve_poisson_000
-
     else if ((.not. is_periodic(1)) .and. &
                     is_periodic(2)  .and. &
                     is_periodic(3)) then
-
       Solve_poisson => Solve_poisson_100
-
-    else if (is_periodic(1) .and. &
-             is_periodic(2) .and. &
-      (.not. is_periodic(3))) then
-
-      Solve_poisson => Solve_poisson_000
-
-    else if (is_periodic(1)  .and. &
-      (.not. is_periodic(2)) .and. &
-             is_periodic(3)) then
-
-      Solve_poisson => Solve_poisson_000
-
+    else if (       is_periodic(1)  .and. &
+             (.not. is_periodic(2)) .and. &
+                    is_periodic(3)) then
+      Solve_poisson => Solve_poisson_010
+    else if (       is_periodic(1)  .and. &
+                    is_periodic(2)  .and. &
+             (.not. is_periodic(3))) then
+      Solve_poisson => Solve_poisson_001
     else if ((.not. is_periodic(1)) .and. &
-             (.not. is_periodic(2))) then   ! 110 & 111
-
-      Solve_poisson => Solve_poisson_000
-
+             (.not. is_periodic(2)) .and. &
+                    is_periodic(3))  then
+      Solve_poisson => Solve_poisson_110
+    else if ((.not. is_periodic(1)) .and. &
+                    is_periodic(2)  .and. &
+             (.not. is_periodic(3))) then
+      Solve_poisson => Solve_poisson_101
+    else if (       is_periodic(1)  .and. &
+             (.not. is_periodic(2)) .and. &
+             (.not. is_periodic(3))) then
+      Solve_poisson => Solve_poisson_011
+    else if ( (.not. is_periodic(1)) .and. &
+              (.not. is_periodic(2)) .and. &
+              (.not. is_periodic(3))) then
+      Solve_poisson => Solve_poisson_111
     else
       stop 'boundary condition not supported'
     end if
@@ -154,70 +176,82 @@ contains
 !      the complex uotput can be held in an array of size (nx, ny, nz / 2 + 1)
 !      for a x-pencil stored spectral data.
 !_______________________________________________________________________________
-    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3),         ph)
-    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3) / 2 + 1, sp)
+!_______________________________________________________________________________
+! initialise 2d-decomp library using advanced 2d decomposition API
+! Derived data type DECOMP_INFO: ph, physical domain of input rhs 
+!                                size: nclx, ncly, nclz
+! Derived data type DECOMP_INFO: sp, spectral domain of output fft(rhs)
+!                                size: nclx, ncly, nclz / 2 + 1
+! Note: default FFT API: decomp_2d_fft_init (PHYSICAL_IN_X)
+!                        physical-space data stored in x pencil format
+!                        spectral-space data stored in z pencil format
+!_______________________________________________________________________________
+    call decomp_info_init(nw(1), nw(2), nw(3),         ph)
+    call decomp_info_init(nw(1), nw(2), nw(3) / 2 + 1, sp)
 
     if (.not. fft_initialised) then
       call decomp_2d_fft_init(PHYSICAL_IN_Z, d%nc(1), d%nc(2), d%nc(3))
       fft_initialised = .true.
     end if
-    call decomp_2d_fft_get_size(fft_st, fft_en, fft_sz)
 
 #ifdef DEBUG
-    write(*,*) 'physical domain index, i = ', ph%xst(1), ph%xen(1)
-    write(*,*) 'physical domain index, j = ', ph%xst(2), ph%xen(2)
-    write(*,*) 'physical domain index, k = ', ph%xst(3), ph%xen(3)
+    write(*,*) 'For x-pencil : '
+    write(*,*) '  physical domain index, i = ', ph%xst(1), ph%xen(1)
+    write(*,*) '  physical domain index, j = ', ph%xst(2), ph%xen(2)
+    write(*,*) '  physical domain index, k = ', ph%xst(3), ph%xen(3)
 
-    write(*,*) 'spectral domain index, l = ', sp%xst(1), sp%xen(1)
-    write(*,*) 'spectral domain index, m = ', sp%xst(2), sp%xen(2)
-    write(*,*) 'spectral domain index, n = ', sp%xst(3), sp%xen(3)
+    write(*,*) '  spectral domain index, l = ', sp%xst(1), sp%xen(1)
+    write(*,*) '  spectral domain index, m = ', sp%xst(2), sp%xen(2)
+    write(*,*) '  spectral domain index, n = ', sp%xst(3), sp%xen(3)
 
-    write(*,*) 'Fourier Domain index,  l = ', fft_st(1), fft_en(1)
-    write(*,*) 'Fourier Domain index,  m = ', fft_st(2), fft_en(2)
-    write(*,*) 'Fourier Domain index,  n = ', fft_st(3), fft_en(3)
+    write(*,*) 'For y-pencil : '
+    write(*,*) '  physical domain index, i = ', ph%yst(1), ph%yen(1)
+    write(*,*) '  physical domain index, j = ', ph%yst(2), ph%yen(2)
+    write(*,*) '  physical domain index, k = ', ph%yst(3), ph%yen(3)
+
+    write(*,*) '  spectral domain index, l = ', sp%yst(1), sp%yen(1)
+    write(*,*) '  spectral domain index, m = ', sp%yst(2), sp%yen(2)
+    write(*,*) '  spectral domain index, n = ', sp%yst(3), sp%yen(3)
+
+    write(*,*) 'For z-pencil : '
+    write(*,*) '  physical domain index, i = ', ph%zst(1), ph%zen(1)
+    write(*,*) '  physical domain index, j = ', ph%zst(2), ph%zen(2)
+    write(*,*) '  physical domain index, k = ', ph%zst(3), ph%zen(3)
+
+    write(*,*) '  spectral domain index, l = ', sp%zst(1), sp%zen(1)
+    write(*,*) '  spectral domain index, m = ', sp%zst(2), sp%zen(2)
+    write(*,*) '  spectral domain index, n = ', sp%zst(3), sp%zen(3)
+
 #endif
 !_______________________________________________________________________________
 ! preparing sine and cosine factors
 !_______________________________________________________________________________
-    allocate ( ax( ph%xsz(1) ) ); ax = ZERO
-    allocate ( bx( ph%xsz(1) ) ); bx = ZERO
+    allocate ( ax( nw(1) ) ); ax = ZERO
+    allocate ( bx( nw(1) ) ); bx = ZERO
 
-    allocate ( ay( ph%xsz(2) ) ); ay = ZERO
-    allocate ( by( ph%xsz(2) ) ); by = ZERO
+    allocate ( ay( nw(2) ) ); ay = ZERO
+    allocate ( by( nw(2) ) ); by = ZERO
 
-    allocate ( az( ph%xsz(3) ) ); az = ZERO
-    allocate ( bz( ph%xsz(3) ) ); bz = ZERO
+    allocate ( az( nw(3) ) ); az = ZERO
+    allocate ( bz( nw(3) ) ); bz = ZERO
 
-    call Calculate_sine_cosine_unit(ax, bx, ph%xsz(1), is_periodic(1))
-    call Calculate_sine_cosine_unit(ay, by, ph%xsz(2), is_periodic(2))
-    call Calculate_sine_cosine_unit(az, bz, ph%xsz(3), is_periodic(3))
-!_______________________________________________________________________________
-! allocate space for wave-space variables
-!_______________________________________________________________________________
-    allocate ( cw1( sp%xst(1) : sp%xen(1), &
-                    sp%xst(2) : sp%xen(2), &
-                    sp%xst(3) : sp%xen(3)) )
-
-    allocate ( cwx( sp%xst(1) : sp%xen(1), &
-                    sp%xst(2) : sp%xen(2), &
-                    sp%xst(3) : sp%xen(3)) )
-
-    if((.not. is_periodic(1))) then
-      allocate ( rhsx(d%nc(1), d%nc(2), d%nc(3)) )
-    end if
+    call Calculate_sine_cosine_unit(ax, bx, nw(1), is_periodic(1))
+    call Calculate_sine_cosine_unit(ay, by, nw(2), is_periodic(2))
+    call Calculate_sine_cosine_unit(az, bz, nw(3), is_periodic(3))
 !_______________________________________________________________________________
 ! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
+! the operation of spetral data is in x-pencil (from PHYSICAL_IN_Z)
 !_______________________________________________________________________________
-    allocate ( t2x(sp%xst(1) : sp%xen(1)) ) ;  t2x = ZERO
-    allocate ( t2y(sp%xst(2) : sp%xen(2)) ) ;  t2y = ZERO
-    allocate ( t2z(sp%xst(3) : sp%xen(3)) ) ;  t2z = ZERO
+    allocate ( t2x( nw(1) ) ) ;  t2x = ZERO
+    allocate ( t2y( nw(2) ) ) ;  t2y = ZERO
+    allocate ( t2z( nw(3) ) ) ;  t2z = ZERO
     allocate (t2xyz(  sp%xst(1) : sp%xen(1), &
                       sp%xst(2) : sp%xen(2), &
                       sp%xst(3) : sp%xen(3))) ;  t2xyz = ZERO
 
-    call Transform_2nd_derivative_spectral_1d (is_periodic(1), d%h(1), ph%xsz(1), sp%xst(1), sp%xen(1), t2x)
-    call Transform_2nd_derivative_spectral_1d (is_periodic(2), d%h(2), ph%xsz(2), sp%xst(2), sp%xen(2), t2y)
-    call Transform_2nd_derivative_spectral_1d (is_periodic(3), d%h(3), ph%xsz(3), sp%xst(3), sp%xen(3), t2z)
+    call Transform_2nd_derivative_spectral_1d (is_periodic(1), d%h(1), nw(1), t2x)
+    call Transform_2nd_derivative_spectral_1d (is_periodic(2), d%h(2), nw(2), t2y)
+    call Transform_2nd_derivative_spectral_1d (is_periodic(3), d%h(3), nw(3), t2z)
 
     do k = sp%xst(3) , sp%xen(3)
       do j = sp%xst(2) , sp%xen(2)
@@ -234,6 +268,97 @@ contains
     deallocate(t2y)
     deallocate(t2z)
 
+!_______________________________________________________________________________
+! allocate space for wave-space variables
+!_______________________________________________________________________________
+    if      (is_periodic(1) .and. &
+             is_periodic(2) .and. &
+             is_periodic(3)) then ! 000
+    
+      allocate ( cw_xpen( sp%xst(1) : sp%xen(1), &
+                          sp%xst(2) : sp%xen(2), &
+                          sp%xst(3) : sp%xen(3)) )
+      
+    else if ((.not. is_periodic(1)) .and. &
+                    is_periodic(2)  .and. &
+                    is_periodic(3)) then ! 100
+
+      allocate ( rw_xpen( ph%xst(1) : ph%xen(1), &
+                          ph%xst(2) : ph%xen(2), &
+                          ph%xst(3) : ph%xen(3)) )
+
+      allocate ( rw_ypen( ph%yst(1) : ph%yen(1), &
+                          ph%yst(2) : ph%yen(2), &
+                          ph%yst(3) : ph%yen(3)) )
+
+      allocate ( rw_zpen( ph%zst(1) : ph%zen(1), &
+                          ph%zst(2) : ph%zen(2), &
+                          ph%zst(3) : ph%zen(3)) )
+
+      allocate ( rw_recons_xpen( ph%xst(1) : ph%xen(1), &
+                                 ph%xst(2) : ph%xen(2), &
+                                 ph%xst(3) : ph%xen(3)) )
+
+      allocate ( cw_xpen       ( sp%xst(1) : sp%xen(1), &
+                                 sp%xst(2) : sp%xen(2), &
+                                 sp%xst(3) : sp%xen(3)) )
+
+      allocate ( cw_recons_xpen( sp%xst(1) : sp%xen(1), &
+                                 sp%xst(2) : sp%xen(2), &
+                                 sp%xst(3) : sp%xen(3)) )
+      
+    else if (       is_periodic(1)  .and. &
+             (.not. is_periodic(2)) .and. &
+                    is_periodic(3)) then ! 010
+
+      allocate ( rw_ypen( ph%yst(1) : ph%yen(1), &
+                          ph%yst(2) : ph%yen(2), &
+                          ph%yst(3) : ph%yen(3)) )
+
+      allocate ( rw_zpen( ph%zst(1) : ph%zen(1), &
+                          ph%zst(2) : ph%zen(2), &
+                          ph%zst(3) : ph%zen(3)) )
+
+      allocate ( rw_recons_ypen( ph%yst(1) : ph%yen(1), &
+                                 ph%yst(2) : ph%yen(2), &
+                                 ph%yst(3) : ph%yen(3)) )
+
+      allocate ( cw_xpen       ( sp%xst(1) : sp%xen(1), &
+                                 sp%xst(2) : sp%xen(2), &
+                                 sp%xst(3) : sp%xen(3)) )
+
+      allocate ( cw_ypen       ( sp%yst(1) : sp%yen(1), &
+                                 sp%yst(2) : sp%yen(2), &
+                                 sp%yst(3) : sp%yen(3)) )
+
+      allocate ( cw_recons_ypen( sp%yst(1) : sp%yen(1), &
+                                 sp%yst(2) : sp%yen(2), &
+                                 sp%yst(3) : sp%yen(3)) )
+      
+    else if (       is_periodic(1)  .and. &
+                    is_periodic(2)  .and. &
+             (.not. is_periodic(3))) then ! 001
+      
+    else if ((.not. is_periodic(1)) .and. &
+             (.not. is_periodic(2)) .and. &
+                    is_periodic(3))  then ! 110
+      
+    else if ((.not. is_periodic(1)) .and. &
+                    is_periodic(2)  .and. &
+             (.not. is_periodic(3))) then ! 101
+      
+    else if (       is_periodic(1)  .and. &
+             (.not. is_periodic(2)) .and. &
+             (.not. is_periodic(3))) then ! 011
+      
+    else if ( (.not. is_periodic(1)) .and. &
+              (.not. is_periodic(2)) .and. &
+              (.not. is_periodic(3))) then ! 111
+      
+    else
+      stop 'boundary condition not supported'
+    end if
+
     call Print_debug_end_msg
     return
   end subroutine Initialize_decomp_poisson
@@ -247,7 +372,6 @@ contains
     is_fft_initialised = .false.
 
     deallocate(t2xyz)
-    deallocate(cw1)
 
     return
   end subroutine Finalize_decomp_poisson
@@ -281,26 +405,27 @@ contains
   
       do i = 1, nsz
         afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
-                            real(nsz,   kind = mytype) )
+                           real(nsz,   kind = mytype) )
         bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
-                            real(nsz,   kind = mytype) )
+                           real(nsz,   kind = mytype) )
       end do
   
     else
   
       do i = 1, nsz
         afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                            real(nsz,   kind = mytype) )
+                           real(nsz,   kind = mytype) )
         bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                            real(nsz,   kind = mytype))
+                           real(nsz,   kind = mytype))
       end do
     end if
   
     return
   end subroutine Calculate_sine_cosine_unit
+  
 !===============================================================================
 !===============================================================================
-  subroutine Transform_2nd_derivative_spectral_1d(is_peri, dd, nn, istt, iend, t2)
+  subroutine Transform_2nd_derivative_spectral_1d(is_peri, dd, nn, t2)
     use udf_type_mod,            only : t_domain
     use operations!,              only : d2fC2C, d2rC2C
     use input_general_mod!,       only : IBC_PERIODIC
@@ -310,7 +435,7 @@ contains
 
     logical,  intent(in) :: is_peri
     real(wp), intent(in) :: dd
-    integer,  intent(in) :: nn, istt, iend
+    integer,  intent(in) :: nn
     real(wp),   intent(inout) :: t2(:)
 
     real(wp) :: a, b, alpha
@@ -329,13 +454,13 @@ contains
       a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
       b     = d1rC2C(3, 2, IBC_PERIODIC) * FOUR
 
-      do i = istt, iend
+      do i = 1, nn
         w = aunit * REAL(i - 1, WP)
         t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
         t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
         t2(i) = t2(i) / dd
         t2(i) = - t2(i) * t2(i)
-        !write(*,*) i, t2(i)
+        write(*,*) i, t2(i)
       end do
 
     else if(ifft2deri == 2) then
@@ -344,12 +469,12 @@ contains
       a     = d2rC2C(3, 1, IBC_PERIODIC)
       b     = d2rC2C(3, 2, IBC_PERIODIC) * FOUR
   
-      do i = istt, iend
+      do i = 1, nn
         w = aunit * REAL(i - 1, WP)! check, for 0-n/2, pi or 2pi?
         cosw = cos_wp(w)
         t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
         t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
-        !write(*,*) i, t2(i)
+        write(*,*) i, t2(i)
       end do
 
     else
@@ -361,6 +486,7 @@ contains
 
     return
   end subroutine Transform_2nd_derivative_spectral_1d
+
 !===============================================================================
 !===============================================================================
   subroutine Solve_poisson_000(rhs)
@@ -374,45 +500,61 @@ contains
 
     allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
     rhs0 = rhs
-#endif    
+#endif
+
+#ifdef DEBUG
+! cw1 : x pencil format
+    ! do k = sp%xst(3), sp%xen(3)
+    !   do j = sp%xst(2), sp%xen(2)
+    !     do i = sp%xst(1), sp%xen(1)
+    !       write(*,'(A, 3I5.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
+    !     end do
+    !   end do
+    ! end do
+#endif 
+
 !_______________________________________________________________________________
 ! compute r2c transform, forward FFT
+! rhs : default z pencil format
+! cw1 : x pencil format
 !_______________________________________________________________________________
-    call decomp_2d_fft_3d(rhs,cw1)
+    call decomp_2d_fft_3d(rhs, cw_xpen)
 !_______________________________________________________________________________
 ! fft normalisation
 !_______________________________________________________________________________
-    cw1 = cw1 / real(ph%xsz(1), kind=wp) / &
-                real(ph%xsz(2), kind=wp) / &
-                real(ph%xsz(3), kind=wp)
+    cw_xpen = cw_xpen / real(nw(1), kind=wp) / &
+                        real(nw(2), kind=wp) / &
+                        real(nw(3), kind=wp)
 
 #ifdef DEBUG
-    nn = 0
-    do k = sp%xst(3), sp%xen(3)
-      do j = sp%xst(2), sp%xen(2)
-        do i = sp%xst(1), sp%xen(1)
-          write(*,'(A, 3I5.1, 1ES13.5)') 'After F-FFT', k, j, i, cw1(i,j,k)
-        end do
-      end do
-    end do
+! cw1 : x pencil format
+    ! do k = sp%xst(3), sp%xen(3)
+    !   do j = sp%xst(2), sp%xen(2)
+    !     do i = sp%xst(1), sp%xen(1)
+    !       write(*,'(A, 3I5.1, 2ES13.5)') 'After F-FFT', k, j, i, cw_xpen(i,j,k)
+    !     end do
+    !   end do
+    ! end do
 #endif 
 !_______________________________________________________________________________
 ! Fourier domain calculation
 !_______________________________________________________________________________
-    cw1(:,:,:) = cw1(:,:,:) / t2xyz(:, :, :) 
+    cw_xpen(:,:,:) = cw_xpen(:,:,:) / t2xyz(:, :, :) 
 !_______________________________________________________________________________
 ! compute c2r transform, inverse FFT
+! rhs : z pencil format
+! cw1 : x pencil format
 !_______________________________________________________________________________
-    call decomp_2d_fft_3d(cw1,rhs)
+    call decomp_2d_fft_3d(cw_xpen, rhs)
 
 #ifdef DEBUG
-    do k = ph%xst(3), ph%xen(3)
-      do j = ph%xst(2), ph%xen(2)
-        do i = ph%xst(1), ph%xen(1)
-          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
-        end do
-      end do
-    end do
+    ! do k = ph%zst(3), ph%zen(3)
+    !   do j = ph%zst(2), ph%zen(2)
+    !     do i = ph%zst(1), ph%zen(1)
+    !       write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+    !     end do
+    !   end do
+    ! end do
 
     deallocate(rhs0)
 #endif
@@ -436,111 +578,127 @@ contains
 
     allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
     rhs0 = rhs
-#endif  
+#endif
+
+#ifdef DEBUG
+! cw1 : x pencil format
+    ! do k = sp%xst(3), sp%xen(3)
+    !   do j = sp%xst(2), sp%xen(2)
+    !     do i = sp%xst(1), sp%xen(1)
+    !       write(*,'(A, 3I5.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
+    !     end do
+    !   end do
+    ! end do
+#endif 
+
 !_______________________________________________________________________________
-! input data re-organisation to get a periodic sequence in physical domain
+! in z-pencil format
+! step 1 : change to x-pencil format
+!_______________________________________________________________________________
+    call transpose_z_to_y(rhs,     rw_ypen, ph)
+    call transpose_y_to_x(rw_ypen, rw_xpen, ph)
+!_______________________________________________________________________________
+! in x-pencil format
+! step 2 : nput data re-organisation to get a periodic sequence in physical domain
 !_______________________________________________________________________________
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
-        do i = ph%xst(1), ph%xsz(1)/2
-          rhsx(i, j, k) = rhs( 2 * i - 1, j,  k)
+        do i = 1, nw(1)/2
+          rw_recons_xpen(i, j, k) = rw_xpen( 2 * i - 1, j,  k)
         end do
-        do i = ph%xsz(1)/2 + 1, ph%xen(1)
-          rhsx(i, j, k) = rhs( 2 * (ph%xsz(1) + 1) - 2 * i, j, k)
+        do i = nw(1)/2 + 1, nw(1)
+          rw_recons_xpen(i, j, k) = rw_xpen( 2 * nw(1) - 2 * i + 2, j, k)
         end do
       end do
     end do 
 !_______________________________________________________________________________
-! compute r2c transform, forward FFT
+! in x-pencil format
+! step 3 : back to z-pencil format
 !_______________________________________________________________________________
-    call decomp_2d_fft_3d(rhsx,cwx)
+    call transpose_x_to_y(rw_recons_xpen, rw_ypen, ph)
+    call transpose_y_to_z(rw_ypen,        rhs,     ph)
+!_______________________________________________________________________________
+! in z-pencil format
+! compute r2c transform, forward FFT
+! input : rhs     : default z pencil format
+! output: cw_xpen : x pencil format
+!_______________________________________________________________________________
+    call decomp_2d_fft_3d(rhs,cw_xpen)
 !_______________________________________________________________________________
 ! fft normalisation
 !_______________________________________________________________________________
-    cwx = cwx / real(ph%xsz(1), kind=wp) / &
-                real(ph%xsz(2), kind=wp) / &
-                real(ph%xsz(3), kind=wp)
+    cw_xpen = cw_xpen / real(nw(1), kind=wp) / &
+                        real(nw(2), kind=wp) / &
+                        real(nw(3), kind=wp)
+#ifdef DEBUG
+! cw1 : x pencil format
+    ! do k = sp%xst(3), sp%xen(3)
+    !   do j = sp%xst(2), sp%xen(2)
+    !     do i = sp%xst(1), sp%xen(1)
+    !       write(*,'(A, 3I5.1, 2ES13.5)') 'After F-FFT', k, j, i, cw_xpen(i,j,k)
+    !     end do
+    !   end do
+    ! end do
+#endif 
 !_______________________________________________________________________________
+! cwx in x pencil format
 ! Reconstruct FFT(rhs) from the above FFT(rhsx) in spectral domain 
 !_______________________________________________________________________________
     do k = sp%xst(3),sp%xen(3)
       do j = sp%xst(2),sp%xen(2)
-        cw1(1, j, k) = cwx(1, j, k)
-        do i = sp%xst(1) + 1, sp%xen(1)
-          cwRe1 = real ( cwx(i, j, k), wp )
-          cwIm1 = aimag( cwx(i, j, k) )
-          cwRe2 = real ( cwx(sp%xen(1) - i + 2, j, k), wp )
-          cwIm2 = aimag( cwx(sp%xen(1) - i + 2, j, k) )
-
-          bRe1 = cwRe1 * bx(i) * HALF
-          aRe1 = cwRe1 * ax(i) * HALF
-
-          bIm1 = cwIm1 * bx(i) * HALF
-          aIm1 = cwIm1 * ax(i) * HALF
-
-          bRe2 = cwRe2 * bx(i) * HALF
-          aRe2 = cwRe2 * ax(i) * HALF
-
-          bIm2 = cwIm2 * bx(i) * HALF
-          aIm2 = cwIm2 * ax(i) * HALF
-
-          cw1(i, j, k) = cmplx( bRe1 + aIm1 + bRe2 - aIm2, &
-                               -aRe1 + bIm1 + aRe2 + bIm2, WP)
-
+        cw_recons_xpen(1, j, k) = cw_xpen(1, j, k)
+        do i = 2, nw(1)
+          cw_recons_xpen(i, j, k) = cw_xpen(i, j, k) + cw_xpen(nw(1) - i + 2, j, k)
         end do
       end do
     end do
 !_______________________________________________________________________________
 ! Fourier domain calculation
 !_______________________________________________________________________________
-    cw1(:,:,:) = cw1(:,:,:) / t2xyz(:, :, :) 
+    cw_recons_xpen(:,:,:) = cw_recons_xpen(:,:,:) / t2xyz(:, :, :) 
 !_______________________________________________________________________________
 ! Reconstruct the func(FFT(rhsx)) from the above func(FFT(rhs))
 !_______________________________________________________________________________
     do k = sp%xst(3),sp%xen(3)
       do j = sp%xst(2),sp%xen(2)
-        cwx(1, j, k) = cw1(1, j, k)
-        do i = sp%xst(1) + 1, sp%xen(1)
-          cwRe1 = real ( cw1(i, j, k), wp )
-          cwIm1 = aimag( cw1(i, j, k) )
-          cwRe2 = real ( cw1(sp%xen(1) - i + 2, j, k), wp )
-          cwIm2 = aimag( cw1(sp%xen(1) - i + 2, j, k) )
-
-          bRe1 = cwRe1 * bx(i)
-          aRe1 = cwRe1 * ax(i)
-
-          bIm1 = cwIm1 * bx(i)
-          aIm1 = cwIm1 * ax(i)
-
-          bRe2 = cwRe2 * bx(i)
-          aRe2 = cwRe2 * ax(i)
-
-          bIm2 = cwIm2 * bx(i)
-          aIm2 = cwIm2 * ax(i)
-
-          cwx(i, j, k) = cmplx( bRe1 - aIm1 + aRe2 + bIm2, &
-                                aRe1 + bIm1 - bRe2 + aIm2, WP)
-
+        cw_xpen(1, j, k) = cw_recons_xpen(1, j, k)
+        do i = 2, nw(1)
+          cw_xpen(i, j, k) = cw_recons_xpen(i, j, k) + cw_recons_xpen(nw(1) - i + 2, j, k)
         end do
       end do
     end do
 !_______________________________________________________________________________
 ! compute c2r transform, inverse FFT
+! input: cw in x-pencil format
+! output: rhs in z pencil
 !_______________________________________________________________________________
-    call decomp_2d_fft_3d(cwx,rhsx)
+    call decomp_2d_fft_3d(cw_xpen,rw_zpen)
+!_______________________________________________________________________________
+! in z-pencil format
+! back to x-pencil format
+!_______________________________________________________________________________
+    call transpose_z_to_y(rw_zpen, rw_ypen,        ph)
+    call transpose_y_to_x(rw_ypen, rw_recons_xpen, ph)
 !_______________________________________________________________________________
 ! reorganize the output physical data structure
+! rhs in x-pencil format
 !_______________________________________________________________________________
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
-        do i = ph%xst(1), ph%xsz(1)/2
-          rhs( 2 * i - 1, j, k) = rhsx(i, j, k)
+        do i = 1, nw(1)/2
+          rw_recons_xpen( 2 * i - 1, j, k) = rw_xpen(i, j, k)
         end do
-        do i = ph%xst(1), ph%xsz(1)/2
-          rhs( 2 * i,     j, k) = rhsx(ph%xsz(1) - i + 1, j, k)
+        do i = 1, nw(1)/2
+          rw_recons_xpen( 2 * i,     j, k) = rw_xpen(nw(1) - i + 1, j, k)
         end do
       end do
     end do
+!_______________________________________________________________________________
+! in x-pencil format
+! back to z-pencil format
+!_______________________________________________________________________________
+    call transpose_x_to_y(rw_recons_xpen, rw_ypen, ph)
+    call transpose_y_to_z(rw_ypen,        rhs,     ph)
 
 #ifdef DEBUG
     do k = ph%xst(3), ph%xen(3)
@@ -555,6 +713,187 @@ contains
 #endif
     return
   end subroutine Solve_poisson_100
+
+!===============================================================================
+  subroutine Solve_poisson_010(rhs)
+    use decomp_2d_fft!, only : decomp_2d_fft_3d
+    use parameters_constant_mod
+    use input_general_mod
+    implicit none
+    real(wp), dimension(:,:,:), intent(INOUT) :: rhs
+    integer(4) :: i, j, k
+    real(wp) :: cwRe1, cwRe2, cwIm1, cwIm2
+    real(wp) :: aRe1, bRe1, aRe2, bRe2, &
+                aIm1, bIm1, aIm2, bIm2
+
+#ifdef DEBUG
+    real(wp), allocatable :: rhs0(:, :, :)
+
+    allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
+    rhs0 = rhs
+#endif
+
+!_______________________________________________________________________________
+! in z-pencil format
+! change to y-pencil format
+!_______________________________________________________________________________
+    call transpose_z_to_y(rhs, rw_ypen, ph)
+!_______________________________________________________________________________
+! in y-pencil format
+! nput data re-organisation to get a periodic sequence in physical domain
+!_______________________________________________________________________________
+    do k = ph%xst(3), ph%xen(3)
+      do i = ph%xst(1), ph%xen(1)
+        do j = 1, nw(2)/2
+          rw_recons_ypen(i, j, k) = rw_ypen(i, 2 * j - 1, k)
+        end do
+        do j = nw(2)/2 + 1, nw(2)
+          rw_recons_ypen(i, j, k) = rw_ypen(i, 2 * nw(2) - 2 * j + 2, k)
+        end do
+      end do
+    end do 
+!_______________________________________________________________________________
+! in y-pencil format
+! change to z-pencil format
+!_______________________________________________________________________________
+    call transpose_y_to_z(rw_recons_ypen, rhs, ph)
+!_______________________________________________________________________________
+! in z-pencil format
+! compute r2c transform, forward FFT
+! input : rhs     : default z pencil format
+! output: cw_xpen : x pencil format
+!_______________________________________________________________________________
+    call decomp_2d_fft_3d(rhs,cw_xpen)
+!_______________________________________________________________________________
+! fft normalisation
+!_______________________________________________________________________________
+    cw_xpen = cw_xpen / real(nw(1), kind=wp) / &
+                        real(nw(2), kind=wp) / &
+                        real(nw(3), kind=wp)
+!_______________________________________________________________________________
+! cw in x-pencil format
+! change to y-pencil format
+!_______________________________________________________________________________
+    call transpose_x_to_y(cw_xpen, cw_ypen, sp)         
+!_______________________________________________________________________________
+! cwx in y pencil format
+! Reconstruct FFT(rhs) from the above FFT(rhsx) in spectral domain 
+!_______________________________________________________________________________
+    do k = sp%xst(3),sp%xen(3)
+      do i = sp%xst(1),sp%xen(1)
+        cw_recons_ypen(i, 1, k) = cw_ypen(i, 1, k)
+        do j = 2, nw(2)
+          cw_recons_ypen(i, j, k) = cw_ypen(i, j, k) + cw_ypen(i, nw(2) - j + 2, k)
+        end do
+      end do
+    end do
+!_______________________________________________________________________________
+! Fourier domain calculation
+!_______________________________________________________________________________
+    if(istret == ISTRET_NO) then
+      cw_recons_ypen(:,:,:) = cw_recons_ypen(:,:,:) / t2xyz(:, :, :) 
+    else 
+      ! to add ...
+    end if
+!_______________________________________________________________________________
+! Reconstruct the func(FFT(rhs)) from the above func(FFT(rhs))
+!_______________________________________________________________________________
+    do k = sp%xst(3),sp%xen(3)
+      do i = sp%xst(1),sp%xen(1)
+        cw_ypen(i, 1, k) = cw_recons_ypen(i, 1, k)
+        do j = 2, nw(2)
+          cw_ypen(i, j, k) = cw_recons_ypen(i, j, k) + cw_recons_ypen(i, nw(2) - j + 2, k)
+        end do
+      end do
+    end do
+!_______________________________________________________________________________
+! cw in y-pencil format
+! change to x-pencil format
+!_______________________________________________________________________________
+    call transpose_y_to_x(cw_ypen, cw_xpen, sp)
+!_______________________________________________________________________________
+! compute c2r transform, inverse FFT
+! input: cw in y-pencil format
+! output: rhs in z pencil
+!_______________________________________________________________________________
+    call decomp_2d_fft_3d(cw_xpen,rw_zpen)
+!_______________________________________________________________________________
+! in z-pencil format
+! back to y-pencil format
+!_______________________________________________________________________________
+    call transpose_z_to_y(rw_zpen, rw_recons_ypen,        ph)
+!_______________________________________________________________________________
+! reorganize the output physical data structure
+! rhs in y-pencil format
+!_______________________________________________________________________________
+    do k = ph%xst(3), ph%xen(3)
+      do i = ph%xst(1), ph%xen(1)
+        do j = 1, nw(2)/2
+          rw_ypen(i, 2 * j - 1, k) = rw_recons_ypen(i, j, k)
+        end do
+        do j = 1, nw(2)/2
+          rw_ypen(i, 2 * j, k) = rw_recons_ypen(i, nw(2) - j + 1, k)
+        end do
+      end do
+    end do
+
+    call transpose_y_to_z(rw_ypen, rhs, ph)
+
+#ifdef DEBUG
+    do k = ph%xst(3), ph%xen(3)
+      do j = ph%xst(2), ph%xen(2)
+        do i = ph%xst(1), ph%xen(1)
+          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+        end do
+      end do
+    end do
+
+    deallocate(rhs0)
+#endif
+    return
+  end subroutine Solve_poisson_010
+
+!===============================================================================
+  subroutine Solve_poisson_001(rhs)
+    use decomp_2d_fft!, only : decomp_2d_fft_3d
+    implicit none
+    real(wp), dimension(:,:,:), intent(INOUT) :: rhs
+
+    return
+  end subroutine Solve_poisson_001
+
+!===============================================================================
+  subroutine Solve_poisson_110(rhs)
+    use decomp_2d_fft!, only : decomp_2d_fft_3d
+    implicit none
+    real(wp), dimension(:,:,:), intent(INOUT) :: rhs
+
+    return
+  end subroutine Solve_poisson_110
+!===============================================================================
+  subroutine Solve_poisson_101(rhs)
+    use decomp_2d_fft!, only : decomp_2d_fft_3d
+    implicit none
+    real(wp), dimension(:,:,:), intent(INOUT) :: rhs
+
+    return
+  end subroutine Solve_poisson_101
+!===============================================================================
+  subroutine Solve_poisson_011(rhs)
+    use decomp_2d_fft!, only : decomp_2d_fft_3d
+    implicit none
+    real(wp), dimension(:,:,:), intent(INOUT) :: rhs
+
+    return
+  end subroutine Solve_poisson_011
+!===============================================================================
+  subroutine Solve_poisson_111(rhs)
+    use decomp_2d_fft!, only : decomp_2d_fft_3d
+    implicit none
+    real(wp), dimension(:,:,:), intent(INOUT) :: rhs
+
+    return
+  end subroutine Solve_poisson_111
 !===============================================================================
   subroutine Test_poisson_solver
     use parameters_constant_mod
@@ -567,22 +906,17 @@ contains
     real(WP) :: solution
     real(WP) :: x, y, z
     
-    call Initialize_decomp_poisson(domain)
+    write(*, *) 'Test Poisson Solver '
+
     allocate(rhsphi(ph%xst(1):ph%xen(1),ph%xst(2):ph%xen(2),ph%xst(3):ph%xen(3))); rhsphi = ZERO
+    
     do i = ph%xst(1),ph%xen(1)
       do j = ph%xst(2),ph%xen(2)
         do k = ph%xst(3),ph%xen(3)
-          x = domain%h(1)*(real(i, WP)-HALF)
-          y = domain%h(2)*(real(j, WP)-HALF)
-          z = domain%h(3)*(real(k, WP)-HALF)
-          rhsphi(i, j, k) = -sin(half * x)/FOUR
-          !  -TWO * dsin( TWO * z )
-                           !* dcos( domain%h(2)*(real(j, WP)-HALF) ) !&
-                            
-          
-          !rhsphi(i, j, k) = - dsin( domain%h(3)*(real(k, WP)-HALF) ) &
-          !                  - dsin( domain%h(2)*(real(j, WP)-HALF) ) &
-          !                  - dsin( domain%h(1)*(real(i, WP)-HALF) )
+          x = domain%h(1)*(real(i, WP))
+          y = domain%h(2)*(real(j, WP))
+          z = domain%h(3)*(real(k, WP))
+          rhsphi(i, j, k) = -dsin(TWO*x)*FOUR
         end do
       end do
     end do
@@ -590,22 +924,17 @@ contains
     call Solve_poisson(rhsphi)
 
     nn = 0
-    do i = ph%xst(1),ph%xen(1)
-      do j = ph%xst(2),ph%xen(2)
-        !do k = ph%xst(3),ph%xen(3)
-        k = 1
-          x = domain%h(1)*(real(i, WP)-HALF)
-          y = domain%h(2)*(real(j, WP)-HALF)
-          z = domain%h(3)*(real(k, WP)-HALF)
-          nn = nn + 1
-          solution = dsin(HALF * x)
-          !dcos( z ) * dsin( z ) !- &
-                     !dsin( domain%h(1)*(real(i, WP)-HALF) )**2
-                     !FOUR * dcos( TWO * domain%h(2)*(real(j, WP)-HALF) ) + &
-                     !FOUR * dcos( TWO * domain%h(1)*(real(i, WP)-HALF) )
+    do j = ph%xst(2),ph%xen(2)
+      do i = ph%xst(1),ph%xen(1)
+        do k = ph%xst(3),ph%xen(3)
+          x = domain%h(1)*(real(i, WP))
+          y = domain%h(2)*(real(j, WP))
+          z = domain%h(3)*(real(k, WP))
 
-          write(*, '(4I5.1, 3ES13.5)') i,j,k, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
-        !end do
+          solution = dsin(TWO*x)
+
+          write(*, *) j, i, k, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)/solution
+        end do
       end do
     end do
     deallocate(rhsphi)

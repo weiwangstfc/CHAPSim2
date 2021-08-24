@@ -69,29 +69,6 @@
   end subroutine Print_debug_end_msg
 
 !===============================================================================
-  subroutine Print_3d_array(var, nx, ny, nz, str)
-    use mpi_mod
-    use precision_mod
-    implicit none
-    integer(4), intent(in) :: nx, ny, nz
-    real(wp), intent(in) :: var(nx, ny, nz)
-    character(len=*),  intent(in) :: str
-
-    integer(4) :: i, j, k
-
-    write(*, *) str
-    do k = 1, nz
-      do j = 1, ny
-        do i = 1, nx
-          write(*, *) k, j, i, var(i, j, k)
-        end do
-      end do
-    end do
-
-    return
-  end subroutine Print_3d_array
-
-!===============================================================================
 !===============================================================================
 module code_performance_mod
   use precision_mod
@@ -163,7 +140,7 @@ module code_performance_mod
       call cpu_time(t_iter_end)
 
       t_this_iter = t_iter_end - t_iter_start
-      call Print_debug_mid_msg ("  Code Performance Info :")
+      call Print_debug_mid_msg ("  Code Performance Info : ")
       call Print_debug_mid_msg ("    Time for this time step : " // &
           trim(real2str(t_this_iter))//' s')
 
