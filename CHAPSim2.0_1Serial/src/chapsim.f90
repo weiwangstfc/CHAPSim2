@@ -68,7 +68,7 @@ subroutine Initialize_chapsim()
   call Initialize_domain_decompsition (domain)
   call Initialize_decomp_poisson (domain)
 
-  call Test_poisson_solver
+  !call Test_poisson_solver
 
   return
 end subroutine Initialize_chapsim
@@ -197,6 +197,10 @@ end interface
       call Calculate_xbulk_velocity(flow%qx, domain, rtmp)
 #endif
     end do
+!
+    !comment this part code for testing 
+    ! below is for validation
+    ! cpu time will be calculated later today 
 !===============================================================================
 !     validation
 !===============================================================================

@@ -377,9 +377,9 @@ contains
                                      uz(:, :, :), &
                                      p (:, :, :)
 
-    real(WP) :: xc, yc, zc
-    real(WP) :: xp, yp, zp
-    integer(4) :: i, j, k
+    real(WP) :: xc, yc
+    real(WP) :: xp, yp
+    integer(4) :: i, j
 
     do j = 1, d%nc(2)
       yc = d%yc(j)

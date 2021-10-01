@@ -65,7 +65,7 @@ module poisson_mod
             Finalize_decomp_poisson, &
             Solve_poisson
 
-  private :: Transform_2nd_derivative_spectral_1d
+  private :: Calculate_compact_coef_in_spectral
   private :: Calculate_sine_cosine_unit
 
   public :: Test_poisson_solver
@@ -215,9 +215,9 @@ contains
                       sp%xst(2) : sp%xen(2), &
                       sp%xst(3) : sp%xen(3))) ;  t2xyz = ZERO
 
-    call Transform_2nd_derivative_spectral_1d (is_periodic(1), d%h(1), ph%xsz(1), sp%xst(1), sp%xen(1), t2x)
-    call Transform_2nd_derivative_spectral_1d (is_periodic(2), d%h(2), ph%xsz(2), sp%xst(2), sp%xen(2), t2y)
-    call Transform_2nd_derivative_spectral_1d (is_periodic(3), d%h(3), ph%xsz(3), sp%xst(3), sp%xen(3), t2z)
+    call Calculate_compact_coef_in_spectral (is_periodic(1), d%h(1), ph%xsz(1), sp%xst(1), sp%xen(1), t2x)
+    call Calculate_compact_coef_in_spectral (is_periodic(2), d%h(2), ph%xsz(2), sp%xst(2), sp%xen(2), t2y)
+    call Calculate_compact_coef_in_spectral (is_periodic(3), d%h(3), ph%xsz(3), sp%xst(3), sp%xen(3), t2z)
 
     do k = sp%xst(3) , sp%xen(3)
       do j = sp%xst(2) , sp%xen(2)
@@ -300,7 +300,7 @@ contains
   end subroutine Calculate_sine_cosine_unit
 !===============================================================================
 !===============================================================================
-  subroutine Transform_2nd_derivative_spectral_1d(is_peri, dd, nn, istt, iend, t2)
+  subroutine Calculate_compact_coef_in_spectral(is_peri, dd, nn, istt, iend, t2)
     use udf_type_mod,            only : t_domain
     use operations!,              only : d2fC2C, d2rC2C
     use input_general_mod!,       only : IBC_PERIODIC
@@ -360,7 +360,7 @@ contains
     end if
 
     return
-  end subroutine Transform_2nd_derivative_spectral_1d
+  end subroutine Calculate_compact_coef_in_spectral
 !===============================================================================
 !===============================================================================
   subroutine Solve_poisson_000(rhs)

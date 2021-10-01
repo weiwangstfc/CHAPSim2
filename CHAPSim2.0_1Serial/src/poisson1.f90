@@ -27,7 +27,7 @@ module poisson_mod
 !_______________________________________________________________________________
 ! Variables for debugging and I/O
 !_______________________________________________________________________________
-  CHARACTER(LEN=*), PARAMETER :: cmplxfmt = '(ES13.5,SP,ES13.5,"i")'
+  CHARACTER(LEN=*), PARAMETER :: complexfmt = '(ES13.5,SP,ES13.5,"i")'
 !_______________________________________________________________________________
 ! store sine/cosine unit
 !_______________________________________________________________________________
@@ -46,8 +46,8 @@ module poisson_mod
 !_______________________________________________________________________________
 ! Transformation Matrix from \hat{f} to \hat{f''}
 !_______________________________________________________________________________
-  real(wp),       allocatable, dimension(:)       :: t2x, t2y, t2z
-  real(wp), save, allocatable, dimension(:, :, :) :: t2xyz
+  complex(wp),       allocatable, dimension(:)       :: t2x, t2y, t2z
+  complex(wp), save, allocatable, dimension(:, :, :) :: t2xyz
 !_______________________________________________________________________________
 ! boundary conditions and index
 !_______________________________________________________________________________
@@ -84,13 +84,198 @@ module poisson_mod
             Finalize_decomp_poisson, &
             Solve_poisson
 
-  private :: Transform_2nd_derivative_spectral_1d
+  private :: Calculate_compact_coef_in_spectral
   private :: Calculate_sine_cosine_unit
 
   public :: Test_poisson_solver
 
 contains
+!===============================================================================
+!===============================================================================
+!> \brief To asign sine and cosine unit
+!>
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]    nsz           working array size
+!> \param[in]    bc            b.c. flags 
+!> \param[out]   afsin         sine unit
+!> \param[out]   bfsin         cosine unit
+!_______________________________________________________________________________
+  subroutine Calculate_sine_cosine_unit(afsin, bfcos, nsz, is_peri)
+    use parameters_constant_mod, only : PI, TWO
+    use math_mod
+    implicit none
+    integer(4), intent(in) :: nsz
+    logical,    intent(in) :: is_peri
+    real(mytype), dimension(:), intent(out) :: afsin
+    real(mytype), dimension(:), intent(out) :: bfcos
 
+    integer :: i
+
+    if (is_peri) then
+
+      do i = 1, nsz
+        afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
+                          real(nsz,   kind = mytype) )
+        bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
+                          real(nsz,   kind = mytype) )
+      end do
+
+    else
+
+      do i = 1, nsz
+        afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
+                          real(nsz,   kind = mytype) )
+        bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
+                          real(nsz,   kind = mytype))
+      end do
+    end if
+
+    return
+  end subroutine Calculate_sine_cosine_unit
+
+!===============================================================================
+!===============================================================================
+  subroutine Calculate_compact_coef_in_spectral(is_peri, dd, nc, t2)
+    use udf_type_mod,            only : t_domain
+    use operations!,              only : d2fC2C, d2rC2C
+    use input_general_mod!,       only : IBC_PERIODIC
+    use parameters_constant_mod!, only : FOUR, TWO, ONE, PI
+    use math_mod!,                only : cos_wp
+    implicit none
+
+    logical,  intent(in) :: is_peri
+    real(wp), intent(in) :: dd ! dx
+    integer,  intent(in) :: nc ! 
+    complex(wp),   intent(inout) :: t2(:)
+
+    real(wp) :: a, b, alpha
+    real(wp) :: w, cosw, aunit
+    real(wp) :: tr, ti
+    complex(wp) :: tc, ic
+    integer(4) :: l
+
+    if(is_peri) then
+
+      aunit = TWO * PI / REAL(nc, WP)
+      alpha = d1fC2C(3, 1, IBC_PERIODIC)
+      a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
+      b     = d1rC2C(3, 2, IBC_PERIODIC) * FOUR
+
+      do l = 1, nc / 2 + 1
+        w = aunit * REAL(l - 1, WP)
+        tr = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
+        tr = tr / (ONE + TWO * alpha * cos_wp(w))
+        tr = tr / dd
+        t2(l) = complex(- tr * tr, ZERO)
+      end do
+
+      do l = nc / 2 + 2, nc
+        t2(l) = t2(nc - l + 2)
+      end do
+
+    else
+!_______________________________________________________________________________
+!     non-periodic pressure bc. is Neumann B.C.
+!     for pressure stored at cell centre
+!     it could be represented by symmetric b.c. ? check!
+!_______________________________________________________________________________     
+      ic = complex(ZERO, ONE)
+
+      aunit = PI / REAL(nc, WP)
+!_______________________________________________________________________________
+!     bc = 1
+!_______________________________________________________________________________
+      l = 1
+      w = aunit * real(l - 1, WP)
+
+      alpha = d1fC2C(1, 1, IBC_SYMMETRIC)
+      a     = d1rC2C(1, 1, IBC_SYMMETRIC) * TWO
+      b     = d1rC2C(1, 2, IBC_SYMMETRIC) * FOUR
+
+      tc = (TWO * a - b) / FOUR / dd * exp(ic * w) + &
+          b / FOUR / dd * exp(ic * TWO * w) - &
+          a / TWO / dd
+
+      tc = tc / (-alpha + ONE + alpha * exp(ic * w))
+
+      t2(l) = tc * tc
+!_______________________________________________________________________________
+!     bc = 2
+!_______________________________________________________________________________
+      l = 2
+      w = aunit * real(l - 1, WP)
+
+      alpha = d1fC2C(2, 1, IBC_SYMMETRIC)
+      a     = d1rC2C(2, 1, IBC_SYMMETRIC) * TWO
+      b     = d1rC2C(2, 2, IBC_SYMMETRIC) * FOUR
+
+      tc = b / FOUR / dd * exp(ic * TWO * w) + &
+          a / TWO / dd * exp(ic * w) - &
+          (TWO * a + b) / FOUR / dd * exp(-ic * w)
+
+      tc = tc / (ONE + TWO * alpha * dcos(w))
+      t2(l) = tc * tc
+!_______________________________________________________________________________
+!     bc = bulk
+!_______________________________________________________________________________
+      alpha = d1fC2C(3, 1, IBC_SYMMETRIC)
+      a     = d1rC2C(3, 1, IBC_SYMMETRIC) * TWO
+      b     = d1rC2C(3, 2, IBC_SYMMETRIC) * FOUR
+
+      do l = 3, nc - 2
+        w = aunit * REAL(l - 1, WP)
+        tr = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
+        tr = tr / (ONE + TWO * alpha * cos_wp(w))
+        tr = tr / dd
+        t2(l) = complex(- tr * tr, ZERO)
+      end do
+!_______________________________________________________________________________
+!     bc = n - 1
+!_______________________________________________________________________________
+      l = nc - 1
+      w = aunit * real(l - 1, WP)
+      alpha = d1fC2C(4, 1, IBC_SYMMETRIC)
+      a     = d1rC2C(4, 1, IBC_SYMMETRIC) * TWO
+      b     = d1rC2C(4, 2, IBC_SYMMETRIC) * FOUR
+
+      tc = -b / FOUR / dd * exp(-ic * TWO * w) - &
+          a / TWO / dd * exp(-ic * w) + &
+          (TWO * a + b) / FOUR / dd * exp(ic * w)
+
+      tc = tc / (ONE + TWO * alpha * dcos(w))
+      t2(l) = tc * tc
+!_______________________________________________________________________________
+!     bc = n
+!_______________________________________________________________________________
+      l = nc
+      w = aunit * real(l - 1, WP)
+
+      alpha = d1fC2C(5, 1, IBC_SYMMETRIC)
+      a     = d1rC2C(5, 1, IBC_SYMMETRIC) * TWO
+      b     = d1rC2C(5, 2, IBC_SYMMETRIC) * FOUR
+
+      tc = -(TWO * a - b) / FOUR / dd * exp(-ic * w) - &
+          b / FOUR / dd * exp(-ic * TWO * w) + &
+          a / TWO / dd
+
+      tc = tc / (-alpha + ONE + alpha * exp(-ic * w))
+
+      t2(l) = tc * tc
+    end if
+
+#ifdef DEBUG
+    do l = 1, nc
+      write(*, *) 'modified wavenumber = ', l, t2(l)
+    end do
+#endif 
+
+    return
+  end subroutine Calculate_compact_coef_in_spectral
 !===============================================================================
 !===============================================================================
 !> \brief To calcuate all rhs of momentum eq.
@@ -112,6 +297,7 @@ contains
     implicit none
     type(t_domain), intent(in) :: d
     integer(4) :: i, j, k
+    integer(4) :: it1s, it2s, it3s, it1e, it2e, it3e
 
     call Print_debug_start_msg("Initializing variables for Poisson Solver ...")
 !_______________________________________________________________________________
@@ -189,11 +375,6 @@ contains
     call decomp_info_init(nw(1), nw(2), nw(3),         ph)
     call decomp_info_init(nw(1), nw(2), nw(3) / 2 + 1, sp)
 
-    if (.not. fft_initialised) then
-      call decomp_2d_fft_init(PHYSICAL_IN_Z, d%nc(1), d%nc(2), d%nc(3))
-      fft_initialised = .true.
-    end if
-
 #ifdef DEBUG
     write(*,*) 'For x-pencil : '
     write(*,*) '  physical domain index, i = ', ph%xst(1), ph%xen(1)
@@ -239,42 +420,16 @@ contains
     call Calculate_sine_cosine_unit(ay, by, nw(2), is_periodic(2))
     call Calculate_sine_cosine_unit(az, bz, nw(3), is_periodic(3))
 !_______________________________________________________________________________
-! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
-! the operation of spetral data is in x-pencil (from PHYSICAL_IN_Z)
-!_______________________________________________________________________________
-    allocate ( t2x( nw(1) ) ) ;  t2x = ZERO
-    allocate ( t2y( nw(2) ) ) ;  t2y = ZERO
-    allocate ( t2z( nw(3) ) ) ;  t2z = ZERO
-    allocate (t2xyz(  sp%xst(1) : sp%xen(1), &
-                      sp%xst(2) : sp%xen(2), &
-                      sp%xst(3) : sp%xen(3))) ;  t2xyz = ZERO
-
-    call Transform_2nd_derivative_spectral_1d (is_periodic(1), d%h(1), nw(1), t2x)
-    call Transform_2nd_derivative_spectral_1d (is_periodic(2), d%h(2), nw(2), t2y)
-    call Transform_2nd_derivative_spectral_1d (is_periodic(3), d%h(3), nw(3), t2z)
-
-    do k = sp%xst(3) , sp%xen(3)
-      do j = sp%xst(2) , sp%xen(2)
-        do i = sp%xst(1) , sp%xen(1)
-          t2xyz(i, j, k) = t2x(i) + t2y(j) + t2z(k)
-          if(dabs(t2xyz(i, j, k)) < TRUNCERR) then
-            t2xyz(i, j, k) = MAXP
-          end if
-        end do
-      end do
-    end do
-
-    deallocate(t2x)
-    deallocate(t2y)
-    deallocate(t2z)
-
-!_______________________________________________________________________________
 ! allocate space for wave-space variables
 !_______________________________________________________________________________
     if      (is_periodic(1) .and. &
              is_periodic(2) .and. &
              is_periodic(3)) then ! 000
     
+      allocate (t2xyz( sp%xst(1) : sp%xen(1), &
+                       sp%xst(2) : sp%xen(2), &
+                       sp%xst(3) : sp%xen(3))) ;  t2xyz = complex(ZERO, ZERO)
+
       allocate ( cw_xpen( sp%xst(1) : sp%xen(1), &
                           sp%xst(2) : sp%xen(2), &
                           sp%xst(3) : sp%xen(3)) )
@@ -282,6 +437,10 @@ contains
     else if ((.not. is_periodic(1)) .and. &
                     is_periodic(2)  .and. &
                     is_periodic(3)) then ! 100
+
+      allocate (t2xyz( sp%xst(1) : sp%xen(1), &
+                       sp%xst(2) : sp%xen(2), &
+                       sp%xst(3) : sp%xen(3))) ;  t2xyz = complex(ZERO, ZERO)
 
       allocate ( rw_xpen( ph%xst(1) : ph%xen(1), &
                           ph%xst(2) : ph%xen(2), &
@@ -310,6 +469,10 @@ contains
     else if (       is_periodic(1)  .and. &
              (.not. is_periodic(2)) .and. &
                     is_periodic(3)) then ! 010
+
+      allocate (t2xyz( sp%yst(1) : sp%yen(1), &
+                       sp%yst(2) : sp%yen(2), &
+                       sp%yst(3) : sp%yen(3))) ;  t2xyz = complex(ZERO, ZERO)
 
       allocate ( rw_ypen( ph%yst(1) : ph%yen(1), &
                           ph%yst(2) : ph%yen(2), &
@@ -358,6 +521,47 @@ contains
     else
       stop 'boundary condition not supported'
     end if
+!_______________________________________________________________________________
+! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
+! the operation of spetral data is in x-pencil (from PHYSICAL_IN_Z)
+!_______________________________________________________________________________
+    allocate ( t2x( nw(1) ) ) ;  t2x = complex(ZERO, ZERO)
+    allocate ( t2y( nw(2) ) ) ;  t2y = complex(ZERO, ZERO)
+    allocate ( t2z( nw(3) ) ) ;  t2z = complex(ZERO, ZERO)
+
+    call Calculate_compact_coef_in_spectral (is_periodic(1), d%h(1), nw(1), t2x)
+    call Calculate_compact_coef_in_spectral (is_periodic(2), d%h(2), nw(2), t2y)
+    call Calculate_compact_coef_in_spectral (is_periodic(3), d%h(3), nw(3), t2z)
+
+    if (       is_periodic(1)  .and. &
+        (.not. is_periodic(2)) .and. &
+               is_periodic(3)) then ! 010
+      it1s = sp%yst(1)
+      it1e = sp%yen(1)
+      it2s = sp%yst(2) 
+      it2e = sp%yen(2)
+      it3s = sp%yst(3) 
+      it3e = sp%yen(3)
+    else
+      it1s = sp%xst(1)
+      it1e = sp%xen(1)
+      it2s = sp%xst(2) 
+      it2e = sp%xen(2)
+      it3s = sp%xst(3) 
+      it3e = sp%xen(3)
+    end if
+
+    do k = it3s, it3e
+      do j = it2s, it2e
+        do i = it1s, it1e
+          t2xyz(i, j, k) = t2x(i) + t2y(j) + t2z(k)
+        end do
+      end do
+    end do
+
+    deallocate(t2x)
+    deallocate(t2y)
+    deallocate(t2z)
 
     call Print_debug_end_msg
     return
@@ -377,142 +581,36 @@ contains
   end subroutine Finalize_decomp_poisson
 !===============================================================================
 !===============================================================================
-!> \brief To asign sine and cosine unit
-!>
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]    nsz           working array size
-!> \param[in]    bc            b.c. flags 
-!> \param[out]   afsin         sine unit
-!> \param[out]   bfsin         cosine unit
-!_______________________________________________________________________________
-  subroutine Calculate_sine_cosine_unit(afsin, bfcos, nsz, is_peri)
-    use parameters_constant_mod, only : PI, TWO
-    use math_mod
-    implicit none
-    integer(4), intent(in) :: nsz
-    logical,    intent(in) :: is_peri
-    real(mytype), dimension(:), intent(out) :: afsin
-    real(mytype), dimension(:), intent(out) :: bfcos
-  
-    integer :: i
-  
-    if (is_peri) then
-  
-      do i = 1, nsz
-        afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
-                           real(nsz,   kind = mytype) )
-        bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
-                           real(nsz,   kind = mytype) )
-      end do
-  
-    else
-  
-      do i = 1, nsz
-        afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                           real(nsz,   kind = mytype) )
-        bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                           real(nsz,   kind = mytype))
-      end do
-    end if
-  
-    return
-  end subroutine Calculate_sine_cosine_unit
-  
-!===============================================================================
-!===============================================================================
-  subroutine Transform_2nd_derivative_spectral_1d(is_peri, dd, nn, t2)
-    use udf_type_mod,            only : t_domain
-    use operations!,              only : d2fC2C, d2rC2C
-    use input_general_mod!,       only : IBC_PERIODIC
-    use parameters_constant_mod!, only : FOUR, TWO, ONE, PI
-    use math_mod!,                only : cos_wp
-    implicit none
-
-    logical,  intent(in) :: is_peri
-    real(wp), intent(in) :: dd
-    integer,  intent(in) :: nn
-    real(wp),   intent(inout) :: t2(:)
-
-    real(wp) :: a, b, alpha
-    real(wp) :: w, cosw, aunit
-    integer(4) :: i
-
-    if(is_peri) then
-      aunit = TWO * PI / REAL(nn, WP)
-    else
-      aunit = PI / REAL(nn, WP)
-    end if
-
-    if(ifft2deri == 1) then
-
-      alpha = d1fC2C(3, 1, IBC_PERIODIC)
-      a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
-      b     = d1rC2C(3, 2, IBC_PERIODIC) * FOUR
-
-      do i = 1, nn
-        w = aunit * REAL(i - 1, WP)
-        t2(i) = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
-        t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
-        t2(i) = t2(i) / dd
-        t2(i) = - t2(i) * t2(i)
-        write(*,*) i, t2(i)
-      end do
-
-    else if(ifft2deri == 2) then
-
-      alpha = d2fC2C(3, 1, IBC_PERIODIC)
-      a     = d2rC2C(3, 1, IBC_PERIODIC)
-      b     = d2rC2C(3, 2, IBC_PERIODIC) * FOUR
-  
-      do i = 1, nn
-        w = aunit * REAL(i - 1, WP)! check, for 0-n/2, pi or 2pi?
-        cosw = cos_wp(w)
-        t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
-        t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
-        write(*,*) i, t2(i)
-      end do
-
-    else
-    end if
-
-    if(.not. is_peri) then
-      t2(1) =  ZERO
-    end if
-
-    return
-  end subroutine Transform_2nd_derivative_spectral_1d
-
-!===============================================================================
-!===============================================================================
   subroutine Solve_poisson_000(rhs)
     use decomp_2d_fft!, only : decomp_2d_fft_3d
+    use parameters_constant_mod
     implicit none
     real(wp), dimension(:,:,:), intent(INOUT) :: rhs
 
+    integer :: i, j, k
 #ifdef DEBUG
-    integer :: nn, i, j,k
+    integer :: nn
     real(wp), allocatable :: rhs0(:, :, :)
 
     allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
     rhs0 = rhs
-#endif
 
-#ifdef DEBUG
 ! cw1 : x pencil format
-    ! do k = sp%xst(3), sp%xen(3)
-    !   do j = sp%xst(2), sp%xen(2)
-    !     do i = sp%xst(1), sp%xen(1)
-    !       write(*,'(A, 3I5.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
-    !     end do
-    !   end do
-    ! end do
+    do k = sp%xst(3), sp%xen(3)
+      do j = sp%xst(2), sp%xen(2)
+        do i = sp%xst(1), sp%xen(1)
+          write(*, '(A, 3I4.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
+        end do
+      end do
+    end do
 #endif 
-
+!_______________________________________________________________________________
+! initialize FFT
+!_______________________________________________________________________________
+    if (.not. fft_initialised) then
+      call decomp_2d_fft_init(PHYSICAL_IN_Z, nw(1), nw(2), nw(3))
+      fft_initialised = .true.
+    end if
 !_______________________________________________________________________________
 ! compute r2c transform, forward FFT
 ! rhs : default z pencil format
@@ -528,18 +626,41 @@ contains
 
 #ifdef DEBUG
 ! cw1 : x pencil format
-    ! do k = sp%xst(3), sp%xen(3)
-    !   do j = sp%xst(2), sp%xen(2)
-    !     do i = sp%xst(1), sp%xen(1)
-    !       write(*,'(A, 3I5.1, 2ES13.5)') 'After F-FFT', k, j, i, cw_xpen(i,j,k)
-    !     end do
-    !   end do
-    ! end do
+    do k = sp%xst(3), sp%xen(3)
+      do j = sp%xst(2), sp%xen(2)
+        do i = sp%xst(1), sp%xen(1)
+          write(*, '(A, 3I5.1, 4ES13.5)') 'After F-FFT', k, j, i, & 
+            cw_xpen(i,j,k), t2xyz(i,j,k)
+        end do
+      end do
+    end do
 #endif 
 !_______________________________________________________________________________
 ! Fourier domain calculation
 !_______________________________________________________________________________
-    cw_xpen(:,:,:) = cw_xpen(:,:,:) / t2xyz(:, :, :) 
+  do k = sp%xst(3), sp%xen(3)
+    do j = sp%xst(2), sp%xen(2)
+      do i = sp%xst(1), sp%xen(1)
+        if ( ( dabs( real(t2xyz(i, j, k))) < TRUNCERR ) .AND. &
+             ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
+          cw_xpen(i, j, k) = complex(ZERO, ZERO)
+        else 
+          cw_xpen(i, j, k) = cw_xpen(i, j, k) / t2xyz(i, j, k)
+        end if
+      end do
+    end do
+  end do
+!_______________________________________________________________________________
+#ifdef DEBUG
+! cw1 : x pencil format
+    do k = sp%xst(3), sp%xen(3)
+      do j = sp%xst(2), sp%xen(2)
+        do i = sp%xst(1), sp%xen(1)
+          write(*, '(A, 3I4.1, 2ES13.5)') 'D/F in spectral', k, j, i, cw_xpen(i,j,k)
+        end do
+      end do
+    end do
+#endif 
 !_______________________________________________________________________________
 ! compute c2r transform, inverse FFT
 ! rhs : z pencil format
@@ -548,14 +669,13 @@ contains
     call decomp_2d_fft_3d(cw_xpen, rhs)
 
 #ifdef DEBUG
-    ! do k = ph%zst(3), ph%zen(3)
-    !   do j = ph%zst(2), ph%zen(2)
-    !     do i = ph%zst(1), ph%zen(1)
-    !       write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
-    !     end do
-    !   end do
-    ! end do
-
+    do k = ph%zst(3), ph%zen(3)
+      do j = ph%zst(2), ph%zen(2)
+        do i = ph%zst(1), ph%zen(1)
+          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+        end do
+      end do
+    end do
     deallocate(rhs0)
 #endif
     
@@ -618,12 +738,19 @@ contains
     call transpose_x_to_y(rw_recons_xpen, rw_ypen, ph)
     call transpose_y_to_z(rw_ypen,        rhs,     ph)
 !_______________________________________________________________________________
+! initialize FFT
+!_______________________________________________________________________________
+    if (.not. fft_initialised) then
+      call decomp_2d_fft_init(PHYSICAL_IN_Z, nw(1), nw(2), nw(3))
+      fft_initialised = .true.
+    end if
+!_______________________________________________________________________________
 ! in z-pencil format
 ! compute r2c transform, forward FFT
 ! input : rhs     : default z pencil format
 ! output: cw_xpen : x pencil format
 !_______________________________________________________________________________
-    call decomp_2d_fft_3d(rhs,cw_xpen)
+    call decomp_2d_fft_3d(rhs, cw_xpen)
 !_______________________________________________________________________________
 ! fft normalisation
 !_______________________________________________________________________________
@@ -655,7 +782,18 @@ contains
 !_______________________________________________________________________________
 ! Fourier domain calculation
 !_______________________________________________________________________________
-    cw_recons_xpen(:,:,:) = cw_recons_xpen(:,:,:) / t2xyz(:, :, :) 
+    do k = sp%xst(3), sp%xen(3)
+      do j = sp%xst(2), sp%xen(2)
+        do i = sp%xst(1), sp%xen(1)
+          if ( ( dabs( real(t2xyz(i, j, k))) < TRUNCERR ) .AND. &
+               ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
+            cw_recons_xpen(i, j, k) = complex(ZERO, ZERO)
+          else 
+            cw_recons_xpen(i, j, k) = cw_recons_xpen(i, j, k) / t2xyz(i, j, k)
+          end if
+        end do
+      end do
+    end do
 !_______________________________________________________________________________
 ! Reconstruct the func(FFT(rhsx)) from the above func(FFT(rhs))
 !_______________________________________________________________________________
@@ -758,6 +896,13 @@ contains
 !_______________________________________________________________________________
     call transpose_y_to_z(rw_recons_ypen, rhs, ph)
 !_______________________________________________________________________________
+! initialize FFT
+!_______________________________________________________________________________
+    if (.not. fft_initialised) then
+      call decomp_2d_fft_init(PHYSICAL_IN_Z, nw(1), nw(2), nw(3))
+      fft_initialised = .true.
+    end if
+!_______________________________________________________________________________
 ! in z-pencil format
 ! compute r2c transform, forward FFT
 ! input : rhs     : default z pencil format
@@ -791,7 +936,18 @@ contains
 ! Fourier domain calculation
 !_______________________________________________________________________________
     if(istret == ISTRET_NO) then
-      cw_recons_ypen(:,:,:) = cw_recons_ypen(:,:,:) / t2xyz(:, :, :) 
+      do k = sp%yst(3), sp%yen(3)
+        do j = sp%yst(2), sp%yen(2)
+          do i = sp%yst(1), sp%yen(1)
+            if ( ( dabs( real(t2xyz(i, j, k))) < TRUNCERR ) .AND. &
+                 ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
+              cw_recons_ypen(i, j, k) = complex(ZERO, ZERO)
+            else 
+              cw_recons_ypen(i, j, k) = cw_recons_ypen(i, j, k) / t2xyz(i, j, k)
+            end if
+          end do
+        end do
+      end do
     else 
       ! to add ...
     end if
@@ -906,17 +1062,19 @@ contains
     real(WP) :: solution
     real(WP) :: x, y, z
     
-    write(*, *) 'Test Poisson Solver '
+    write(*, *) ' Test Poisson Solver >>'
 
-    allocate(rhsphi(ph%xst(1):ph%xen(1),ph%xst(2):ph%xen(2),ph%xst(3):ph%xen(3))); rhsphi = ZERO
+    allocate(rhsphi(ph%zst(1):ph%zen(1),ph%zst(2):ph%zen(2),ph%zst(3):ph%zen(3))); rhsphi = ZERO
     
-    do i = ph%xst(1),ph%xen(1)
-      do j = ph%xst(2),ph%xen(2)
-        do k = ph%xst(3),ph%xen(3)
-          x = domain%h(1)*(real(i, WP))
-          y = domain%h(2)*(real(j, WP))
-          z = domain%h(3)*(real(k, WP))
-          rhsphi(i, j, k) = -dsin(TWO*x)*FOUR
+    do i = ph%zst(1),ph%zen(1)
+      do j = ph%zst(2),ph%zen(2)
+        do k = ph%zst(3),ph%zen(3)
+          x = domain%h(1)*(real(i - 1, WP))
+          y = domain%h(2)*(real(j - 1, WP))
+          z = domain%h(3)*(real(k - 1, WP))
+          rhsphi(i, j, k) = -dsin(TWO*x + TWO*y + TWO*z)*FOUR &
+                            -dsin(TWO*x + TWO*y + TWO*z)*FOUR &
+                            -dsin(TWO*x + TWO*y + TWO*z)*FOUR
         end do
       end do
     end do
@@ -924,16 +1082,16 @@ contains
     call Solve_poisson(rhsphi)
 
     nn = 0
-    do j = ph%xst(2),ph%xen(2)
-      do i = ph%xst(1),ph%xen(1)
-        do k = ph%xst(3),ph%xen(3)
-          x = domain%h(1)*(real(i, WP))
-          y = domain%h(2)*(real(j, WP))
-          z = domain%h(3)*(real(k, WP))
+    do i = ph%zst(1),ph%zen(1)
+      do j = ph%zst(2),ph%zen(2)
+        do k = ph%zst(3),ph%zen(3)
+          x = domain%h(1)*(real(i - 1, WP))
+          y = domain%h(2)*(real(j - 1, WP))
+          z = domain%h(3)*(real(k - 1, WP))
 
-          solution = dsin(TWO*x)
+          solution = dsin(TWO*x + TWO*y + TWO*z)
 
-          write(*, *) j, i, k, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)/solution
+          write(*, *) j, i, k, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)
         end do
       end do
     end do

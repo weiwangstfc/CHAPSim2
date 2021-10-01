@@ -144,7 +144,6 @@ module input_general_mod
   integer :: iAccuracy
   integer :: iTimeScheme
   integer :: iviscous
-  integer :: ifft2deri
 !-------------------------------------------------------------------------------
 ! simulation control
 !-------------------------------------------------------------------------------
@@ -475,7 +474,6 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, iAccuracy
         read(inputUnit, *, iostat = ioerr) variableName, iTimeScheme
         read(inputUnit, *, iostat = ioerr) variableName, iviscous
-        read(inputUnit, *, iostat = ioerr) variableName, ifft2deri
 
         write(*, formati) ' Spatial Accuracy Order: ', iAccuracy
         if(iviscous == IVIS_EXPLICIT) write(*, formats) ' Viscous Term : ', 'Explicit Scheme'
