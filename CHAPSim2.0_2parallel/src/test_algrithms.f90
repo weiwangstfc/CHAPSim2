@@ -22,7 +22,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Test_schemes()
-  use save_vars_mod, only: flow, domain
+  use type_vars_mod, only : flow, domain
   implicit none
 
   !call Test_TDMA_cyclic
@@ -81,7 +81,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qx(:, j, k)
-          call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
+          call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
 
           do i = 4, d%nc(1)-3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -114,7 +114,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(uiy_c2p) then
@@ -132,7 +132,7 @@ end subroutine
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
-          call Get_midp_interpolation('y', 'C2P', d, fi(:), fo(:))
+          call Get_midp_interpolation_1D('y', 'C2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
@@ -161,7 +161,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(vix_c2p) then
@@ -179,7 +179,7 @@ end subroutine
         do j = 1, d%nc(2)
           yp = d%yp(j)
           fi(:) = f%qy(:, j, k)
-          call Get_midp_interpolation('x', 'C2P', d, fi(:), fo(:))
+          call Get_midp_interpolation_1D('x', 'C2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * (real(i - 1, WP))
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
@@ -211,7 +211,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(viy_p2c) then
@@ -229,7 +229,7 @@ end subroutine
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
-          call Get_midp_interpolation('y', 'P2C', d, fi(:), fo(:))
+          call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
@@ -258,7 +258,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     return 
@@ -317,7 +317,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qx(:, j, k)
-          call Get_1st_derivative('x', 'P2C', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('x', 'P2C', d, fi(:), fo(:))
           do i = 4, d%nc(1)-3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
@@ -346,7 +346,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dudx_P2P) then
@@ -364,7 +364,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qx(:, j, k)
-          call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('x', 'P2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
@@ -393,7 +393,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dudy_C2P) then
@@ -411,7 +411,7 @@ end subroutine
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
-          call Get_1st_derivative('y', 'C2P', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('y', 'C2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
             ref = cos_wp(yp)
@@ -440,7 +440,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)   
+      write(*, '(3ES15.7)') err(1:3)   
     end if
 
     if(dudy_C2C) then
@@ -458,7 +458,7 @@ end subroutine
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
-          call Get_1st_derivative('y', 'C2C', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('y', 'C2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
             ref = cos_wp(yc)
@@ -487,7 +487,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dvdy_P2C) then
@@ -505,7 +505,7 @@ end subroutine
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
-          call Get_1st_derivative('y', 'P2C', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('y', 'P2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
             ref = cos_wp ( yc )
@@ -534,7 +534,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3) 
+      write(*, '(3ES15.7)') err(1:3) 
     end if 
     
     if(dvdy_P2P) then
@@ -552,7 +552,7 @@ end subroutine
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
-          call Get_1st_derivative('y', 'P2P', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('y', 'P2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
             ref = cos_wp ( yp )
@@ -581,7 +581,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3) 
+      write(*, '(3ES15.7)') err(1:3) 
     end if
 
     if(dvdx_C2C) then
@@ -599,7 +599,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qy(:, j, k)
-          call Get_1st_derivative('x', 'C2C', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('x', 'C2C', d, fi(:), fo(:))
           do i = 4, d%nc(1)-3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
@@ -628,7 +628,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(dvdx_C2P) then
@@ -646,7 +646,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qx(:, j, k)
-          call Get_1st_derivative('x', 'P2P', d, fi(:), fo(:))
+          call Get_1st_derivative_1D('x', 'P2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
@@ -675,7 +675,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
     
     
@@ -734,7 +734,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qx(:, j, k)
-          call Get_2nd_derivative('x', 'P2P', d, fi(:), fo(:))
+          call Get_2nd_derivative_1D('x', 'P2P', d, fi(:), fo(:))
           do i = 4, d%np(1)-3
             xp = d%h(1) * real(i - 1, WP)
             ref = -sin_wp ( xp )
@@ -763,7 +763,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     if(d2udy2_C2C) then
@@ -781,7 +781,7 @@ end subroutine
         do i = 1, d%np(1)
           xp = d%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
-          call Get_2nd_derivative('y', 'C2C', d, fi(:), fo(:))
+          call Get_2nd_derivative_1D('y', 'C2C', d, fi(:), fo(:))
           do j = 4, d%nc(2)-3
             yc = d%yc(j)
             ref = -sin_wp(yc)
@@ -810,7 +810,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
     
     if(d2vdy2_P2P) then
@@ -828,7 +828,7 @@ end subroutine
         do i = 1, d%nc(1)
           xc = d%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
-          call Get_2nd_derivative('y', 'P2P', d, fi(:), fo(:))
+          call Get_2nd_derivative_1D('y', 'P2P', d, fi(:), fo(:))
           do j = 4, d%np(2)-3
             yp = d%yp(j)
             ref = -sin_wp ( yp )
@@ -857,7 +857,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3) 
+      write(*, '(3ES15.7)') err(1:3) 
     end if
 
     if(d2vdx2_C2C) then
@@ -875,7 +875,7 @@ end subroutine
         do j = 1, d%nc(2)
           yc = d%yc(j)
           fi(:) = f%qy(:, j, k)
-          call Get_2nd_derivative('x', 'C2C', d, fi(:), fo(:))
+          call Get_2nd_derivative_1D('x', 'C2C', d, fi(:), fo(:))
           do i = 4, d%nc(1)-3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
             ref = -sin_wp ( xc )
@@ -904,7 +904,7 @@ end subroutine
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3(","ES15.7))') err(1:3)
+      write(*, '(3ES15.7)') err(1:3)
     end if
 
     return 

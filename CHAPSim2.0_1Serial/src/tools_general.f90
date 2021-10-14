@@ -1,40 +1,23 @@
 !===============================================================================
-!===============================================================================
-  subroutine Print_error_msg_mpi(errorcode, msg)
-    use mpi_mod
-    implicit none
-    integer, intent(IN) :: errorcode
-    character(len=*), intent(IN) :: msg
-    
-    if (myid==0) then
-      write(*,*) 'CHAPSim ERROR - errorcode: ', errorcode
-      write(*,*) 'ERROR: ' // msg
-    end if
-    call MPI_ABORT(MPI_COMM_WORLD, errorcode, ierror)
-
-    return
-  end subroutine Print_error_msg_mpi
-!===============================================================================
-  subroutine Print_error_msg(msg)
-    use mpi_mod
+  subroutine Print_error_msg(msg, myid)
     implicit none
     character(len=*), intent(IN) :: msg
+    integer(4), intent(in) :: myid
     
     write(*,*) 'ERROR: ' // msg
 
-
-    write(*,*) 'Code is terminated.'
+    write(*,*) 'Code is terminated in processor = ', myid
     STOP
 
     return
   end subroutine Print_error_msg
 !===============================================================================
-  subroutine Print_warning_msg(msg)
-    use mpi_mod
+  subroutine Print_warning_msg(msg, myid)
     implicit none
     character(len=*), intent(IN) :: msg
+    integer(4), intent(in) :: myid
     
-    write(*,*) 'WARNNING: ' // msg
+    write(*,*) 'WARNNING: ' // msg // ' in processor = ', myid
 
     return
   end subroutine Print_warning_msg
@@ -42,20 +25,20 @@
   subroutine Print_debug_start_msg(msg)
     use mpi_mod
     implicit none
-
     character(len=*), intent(IN) :: msg
-    
+
+    if(myid /= 0) return
     write(*,*) "==============================================================================="
     write(*,*) msg
+
     return
   end subroutine Print_debug_start_msg
 !===============================================================================
   subroutine Print_debug_mid_msg(msg)
     use mpi_mod
     implicit none
-
     character(len=*), intent(IN) :: msg
-    
+    if(myid /= 0) return
     write(*,*) msg
     return
   end subroutine Print_debug_mid_msg
@@ -63,7 +46,7 @@
   subroutine Print_debug_end_msg
     use mpi_mod
     implicit none
-    
+    if(myid /= 0) return
     write(*,*) "... done."
     return
   end subroutine Print_debug_end_msg

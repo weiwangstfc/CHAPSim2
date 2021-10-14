@@ -227,7 +227,7 @@ contains
 !> This subroutine is used once in \ref Initialize_chapsim. It builds up the udf
 !> domain. Currently only one domain is defined, and it could extend to multiple
 !> domain simulations.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.

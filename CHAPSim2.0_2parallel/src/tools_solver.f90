@@ -2,92 +2,12 @@ module solver_tools_mod
 
   ! procedure
   private
-  public  :: Compute_CFL_diffusion
-  public  :: Calculate_parameters_in_eqs
+
   public  :: Calculate_massflux_from_velocity
-  public  :: Calculate_y_bulk
   public  :: Check_cfl_convection
   public  :: Check_cfl_diffusion
 
 contains
-
-subroutine Calculate_y_bulk(u, d, uybulk)
-  use precision_mod
-  use parameters_constant_mod, only : ZERO, HALF
-  use operations, only: Get_midp_interpolation
-  use udf_type_mod, only: t_domain
-  implicit none
-
-  type(t_domain), intent(in ) :: d
-  real(WP),       intent(in ) :: u(:, :, :)
-  real(WP),       intent(out) :: uybulk
-
-  real(WP) :: fi(d%nc(2)), fo(d%np(2))
-  integer(4) :: i, j, k
-
-  
-  uybulk = ZERO
-  fi = ZERO
-  fo = ZERO
-  do k = 1, d%nc(3)
-    do i = 1, d%nc(1)
-      fi(:) = u(i, :, k)
-      call Get_midp_interpolation( 'y', 'C2P', d, fi(:), fo(:) )
-      do j = 1, d%nc(2)
-        uybulk = uybulk + &
-              (fo(j + 1) + fi(j) ) * ( d%yp(j+1) - d%yc(j) ) * HALF + &
-              (fo(j    ) + fi(j) ) * ( d%yc(j  ) - d%yp(j) ) * HALF
-      end do
-    end do
-  end do
-
-  uybulk = uybulk / real(d%nc(1) * d%nc(3), WP) / ( d%yp( d%np(2) ) - d%yp(1) )
-  return 
-end subroutine Calculate_y_bulk
-
-
-
-subroutine Calculate_parameters_in_eqs(f, t, iter)
-  use input_general_mod, only: ithermo, nIterFlow0, ren, renIni, lenRef
-  use input_thermo_mod, only: tpRef0
-  use parameters_constant_mod, only: GRAVITY
-  implicit none
-  type(t_flow),   intent(inout) :: f
-  type(t_thermo), intent(inout) :: t
-  integer(4)      intent(in   ) :: iter  
-
-  real(WP) :: u0
-
-  if(iter < nIterIniRen) then
-    f%rre = ONE / renIni
-  else
-    f%rre = ONE / ren
-  end if
-
-  if(ithermo == 1) then
-
-    t%rPrRen = f%rre * tpRef0%k / tpRef0%m / tpRef0%cp
-
-    u0 = ONE / f%rre * tpRef0%m / tpRef0%d / lenRef
-    if (igravity == 0) then
-      ! no gravity
-      f%fgravity = ZERO
-    else if (igravity == 1 .or. igravity == 2 .or. igravity == 3 ) then 
-      ! flow/gravity same dirction
-      f%fgravity =  lenRef / u0 / u0 * GRAVITY
-    else if (igravity == -1 .or. igravity == -2 .or. igravity == -3 ) then 
-      ! flow/gravity opposite dirction
-      f%fgravity = -lenRef / u0 / u0 * GRAVITY
-    else
-      ! no gravity
-      f%fgravity = ZERO
-    end if
-
-  end if
-
-  return
-end subroutine 
-
 !===============================================================================
 !===============================================================================
 !> \brief Calculate the conservative variables from primary variable.     
@@ -103,65 +23,91 @@ end subroutine
 !> \param[in]     f             flow
 !_______________________________________________________________________________
   subroutine Calculate_massflux_from_velocity(f, d)
-    use parameters_constant_mod, only: ZERO
+    use parameters_constant_mod, only : ZERO
     use udf_type_mod
     use operations
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
     type(t_domain), intent(in )   :: d
     type(t_flow  ), intent(inout) :: f
-!===============================================================================
-! Local arguments
-!===============================================================================
     real(WP), dimension( d%nc(1) ) :: fix
     real(WP), dimension( d%np(1) ) :: fox
     real(WP), dimension( d%nc(2) ) :: fiy
     real(WP), dimension( d%np(2) ) :: foy
     real(WP), dimension( d%nc(3) ) :: fiz
     real(WP), dimension( d%np(3) ) :: foz
+    real(WP), dimension( d%uy_ysz(1), d%uy_ysz(2), d%uy_ysz(3)) ::  uy_ypencil
+    real(WP), dimension( d%uy_ysz(1), d%uy_ysz(2), d%uy_ysz(3)) :: duy_ypencil
+    real(WP), dimension( d%uz_ysz(1), d%uz_ysz(2), d%uz_ysz(3)) ::  uz_ypencil
+    real(WP), dimension( d%uz_ysz(1), d%uz_ysz(2), d%uz_ysz(3)) :: duz_ypencil
+    real(WP), dimension( d%ps_ysz(1), d%ps_ysz(2), d%ps_ysz(3)) ::   d_ypencil
+    
+    real(WP), dimension( d%uz_zsz(1), d%uz_zsz(2), d%uz_zsz(3)) ::  uz_zpencil
+    real(WP), dimension( d%uz_zsz(1), d%uz_zsz(2), d%uz_zsz(3)) :: duz_zpencil
+    real(WP), dimension( d%ps_zsz(1), d%ps_zsz(2), d%ps_zsz(3)) ::   d_zpencil
+    
     integer(4) :: i, j, k
-!===============================================================================
-! Code
-!===============================================================================
 !-------------------------------------------------------------------------------
-! u1 -> g1
-!_______________________________________________________________________________
-    do k = 1, d%nc(3)
-      do j = 1, d%nc(2)
+! Default x-pencil
+!-------------------------------------------------------------------------------
+    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+!-------------------------------------------------------------------------------
+! x-pencil : u1 -> g1
+!-------------------------------------------------------------------------------
+    do k = 1, d%ux_xsz(3)
+      do j = 1, d%ux_xsz(2)
         fix(:) = f%dDens(:, j, k)
-        call Get_midp_interpolation( 'x', 'C2P', d, fix(:), fox(:) )
+        call Get_midp_interpolation_1D( 'x', 'C2P', d, fix(:), fox(:) )
         f%gx(:, j, k) = fox(:) * f%qx(:, j, k)
       end do
     end do
 !-------------------------------------------------------------------------------
-! u2 -> g2
-!_______________________________________________________________________________
-    do k = 1, d%nc(3)
-      do i = 1, d%nc(1)
-        fiy(:) = f%dDens(i, :, k)
-        call Get_midp_interpolation( 'y', 'C2P', d, fiy(:), foy(:) )
-        f%gy(i, :, k) = foy(:) * f%qy(i, :, k)
+! x-pencil --> y-pencil
+!-------------------------------------------------------------------------------
+    call transpose_x_to_y(f%qy,    uy_ypencil, d%dcpc)
+    call transpose_x_to_y(f%dDens,  d_ypencil, d%dccc)
+    call transpose_x_to_y(f%qz,    uz_ypencil, d%dccp)
+!-------------------------------------------------------------------------------
+! y-pencil : u2 -> g2
+!-------------------------------------------------------------------------------
+    do k = 1, d%uy_ysz(3)
+      do i = 1, d%uy_ysz(1)
+        fiy(:) = d_ypencil(i, :, k)
+        call Get_midp_interpolation_1D( 'y', 'C2P', d, fiy(:), foy(:) )
+        duy_ypencil(i, :, k) = foy(:) * uy_ypencil
       end do
     end do
 !-------------------------------------------------------------------------------
-! u3 -> g3
-!_______________________________________________________________________________
-    do j = 1, d%nc(2)
-      do i = 1, d%nc(1)
-        fiz(:) = f%dDens(i, j, :)
-        call Get_midp_interpolation( 'z', 'C2P', d, fiz(:), foz(:) )
-        f%gz(i, j, :) = foz(:) * f%qz(i, j, :)
+! y-pencil --> z-pencil
+!-------------------------------------------------------------------------------
+    call transpose_y_to_z( d_ypencil,  d_zpencil, d%dccc)
+    call transpose_y_to_z(uz_ypencil, uz_zpencil, d%dccp)
+!-------------------------------------------------------------------------------
+! Z-pencil : u3 -> g3
+!-------------------------------------------------------------------------------
+    do j = 1, d%uz_zsz(2)
+      do i = 1, d%uz_zsz(1)
+        fiz(:) = d_zpencil(i, j, :)
+        call Get_midp_interpolation_1D( 'z', 'C2P', d, fiz(:), foz(:) )
+        duz_zpencil(i, j, :) = foz(:) * uz_zpencil(i, j, :)
       end do
     end do
+!-------------------------------------------------------------------------------
+! z-pencil --> y-pencil
+!-------------------------------------------------------------------------------
+    call transpose_z_to_y(duz_zpencil, duz_ypencil, d%dccp)
+!-------------------------------------------------------------------------------
+! y-pencil --> x-pencil
+!-------------------------------------------------------------------------------
+    call transpose_y_to_x(duz_ypencil, f%gz, d%dccp)
+    call transpose_y_to_x(duy_ypencil, f%gy, d%dcpc)
 
     return
   end subroutine Calculate_massflux_from_velocity
-
+!===============================================================================
+!===============================================================================
   subroutine Check_cfl_diffusion(x2r, rre)
-    use input_general_mod, only: dt
-    use parameters_constant_mod, only: TWO, ONE
+    use input_general_mod, only : dt
+    use parameters_constant_mod, only : TWO, ONE
     use precision_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
@@ -171,83 +117,113 @@ end subroutine
     ! check, ours is two times of the one in xcompact3d.
     cfl_diff = sum(x2r) * TWO * dt * rre
 
-    write(*,*) "-------------------------------------------------------------------------------"
     if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-    write(*,*) "Diffusion number :"
+    write(*,*) "  Diffusion number :"
     write(*,"(12X, F13.8)") cfl_diff
-    write(*,*) "-------------------------------------------------------------------------------"
     
     return
   end subroutine
-
+!===============================================================================
+!===============================================================================
   subroutine Check_cfl_convection(u, v, w, d)
-    use parameters_constant_mod, only: ZERO, ONE
+    use parameters_constant_mod, only : ZERO, ONE
     use precision_mod
-    use udf_type_mod, only: t_domain
-    use operations, only: Get_midp_interpolation
+    use input_general_mod, only : dt
+    use udf_type_mod, only : t_domain
+    use operations, only : Get_midp_interpolation_1D
+    use domain_decomposition_mod
     implicit none
 
     type(t_domain),               intent(in) :: d
     real(WP), dimension(:, :, :), intent(in) :: u, v, w
 
     real(WP), allocatable :: fi(:), fo(:)
-    real(WP), allocatable :: udx(:, :, :)
-    real(WP)              :: cfl_convection
-    integer(4)            :: i, j, k
+    real(WP) :: udx_xpencil (d%ps_xsz(1), d%ps_xsz(2), d%ps_xsz(3))
+    real(WP) :: udx_ypencil (d%ps_ysz(1), d%ps_ysz(2), d%ps_ysz(3))
+    real(WP) :: udx_ypencil (d%ps_zsz(1), d%ps_zsz(2), d%ps_zsz(3))
+    real(WP) ::   v_ypencil (d%uy_ysz(1), d%uy_ysz(2), d%uy_ysz(3))
+    real(WP) ::   w_ypencil (d%uz_ysz(1), d%uz_ysz(2), d%uz_ysz(3))
+    real(WP) ::   w_zpencil (d%uz_zsz(1), d%uz_zsz(2), d%uz_zsz(3))
+    real(WP)   :: cfl_convection, cfl_convection_work
+    integer(4) :: i, j, k
 
-    allocate ( udx( d%nc(1), d%nc(2), d%nc(3) ) ); udx = ZERO
 
 !-------------------------------------------------------------------------------
-! \overline{u}^x/dx at cell centre
-!_______________________________________________________________________________
+!   Ensure it is in x-pencil
+!-------------------------------------------------------------------------------
+    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+!-------------------------------------------------------------------------------
+! X-pencil
+!-------------------------------------------------------------------------------
+    allocate ( udx_xpencil( d%ps_xsz(1), d%ps_xsz(2), d%ps_xsz(3) ) )
+    udx_xpencil = ZERO
+!-------------------------------------------------------------------------------
+! X-pencil : \overline{u}^x/dx at cell centre
+!-------------------------------------------------------------------------------
     allocate ( fi( d%np(1) ) ); fi = ZERO
     allocate ( fo( d%nc(1) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do j = 1, d%nc(2)
+    udx_pencil(:, :, :) = ZERO
+    do k = 1, d%ux_xsz(3)
+      do j = 1, d%ux_xsz(2)
         fi(:) = u(:, j, k)
-        call Get_midp_interpolation('x', 'P2C', d, fi(:), fo(:))
-        udx(:, j, k) = fo(:) * d%h1r(3)
+        call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
+        udx_xpencil(:, j, k) = fo(:) * d%h1r(3) * dt
       end do
     end do
     deallocate (fi)
     deallocate (fo)
 !-------------------------------------------------------------------------------
-! \overline{v}^y/dy at cell centre
-!_______________________________________________________________________________
+! Convert X-pencil to Y-Pencil
+!-------------------------------------------------------------------------------
+    call transpose_x_to_y(udx_xpencil, udx_ypencil, d%dccc)
+    call transpose_x_to_y(v,             v_ypencil, d%dcpc)
+    call transpose_x_to_y(w,             w_ypencil, d%dccp)
+!-------------------------------------------------------------------------------
+! Y-pencil : \overline{v}^y/dy at cell centre
+!-------------------------------------------------------------------------------
     allocate ( fi( d%np(2) ) ); fi = ZERO
     allocate ( fo( d%nc(2) ) ); fo = ZERO
-    do k = 1, d%nc(3)
-      do i = 1, d%nc(1)
+    do k = 1, d%uy_ysz(3)
+      do i = 1, d%uy_ysz(1)
         fi(:) = v(i, :, k)
-        call Get_midp_interpolation('y', 'P2C', d, fi(:), fo(:))
-        udx(i, :, k) = udx(i, :, k) + fo(:) / d%yc(:)
+        call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
+        udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + fo(:) * d%h1r(2) * dt
       end do
     end do
     deallocate (fi)
     deallocate (fo)
 !-------------------------------------------------------------------------------
-! \overline{w}^z/dz at cell centre
-!_______________________________________________________________________________
+! Convert Y-pencil to Z-Pencil
+!-------------------------------------------------------------------------------
+    call transpose_y_to_z(udx_ypencil, udx_zpencil, d%dccc)
+    call transpose_y_to_z(  w_ypencil,   w_zpencil, d%dccp)
+!-------------------------------------------------------------------------------
+! Z-pencil : \overline{w}^z/dz at cell centre
+!-------------------------------------------------------------------------------
     allocate ( fi( d%np(3) ) ); fi = ZERO
     allocate ( fo( d%nc(3) ) ); fo = ZERO
-    do j = 1, d%nc(2)
-      do i = 1, d%nc(1)
-        fi(:) = w(i, j, :)
-        call Get_midp_interpolation('z', 'P2C', d, fi(:), fo(:))
-        udx(i, j, :) = udx(i, j, :) + fo(:) * d%h1r(3)
+    do j = 1, d%uz_zsz(2)
+      do i = 1, d%uz_zsz(1)
+        fi(:) = w_zpencil(i, j, :)
+        call Get_midp_interpolation_1D('z', 'P2C', d, fi(:), fo(:))
+        udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + fo(:) * d%h1r(3) * dt
       end do
     end do
     deallocate (fi)
     deallocate (fo)
+!-------------------------------------------------------------------------------
+! Z-pencil : Find the maximum 
+!-------------------------------------------------------------------------------
+    cfl_convection = MAXVAL(udx_zpencil(:, :, :))
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(cfl_convection, cfl_convection_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
 
-    write(*,*) "-------------------------------------------------------------------------------"
-    if(cfl_convection > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
-    write(*,*) "CFL (convection) :"
-    write(*,"(12X, F13.8)") cfl_convection
-    write(*,*) "-------------------------------------------------------------------------------"
+    if(nrank == 0) then
+      if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
+      write(*,*) "  CFL (convection) :"
+      write(*,"(12X, F13.8)") cfl_convection_work
+    end if
     
-    deallocate (udx)
-
     return
   end subroutine
 

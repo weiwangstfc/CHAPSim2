@@ -2,8 +2,8 @@
 module mpi_mod
   include "mpif.h"
 
-  integer :: myid
-  integer :: npar
+  integer :: myid ! same as 'nrank' in decomp_2d.f90
+  integer :: npar ! same as 'nproc' in decomp_2d.f90
   integer :: p_row
   integer :: p_col
   integer :: ierror

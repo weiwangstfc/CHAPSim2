@@ -67,56 +67,56 @@ contains
     call Print_debug_start_msg("Allocating flow and thermal variables ...")
 
 !_______________________________________________________________________________
-! x pencil in serial = global
+! x pencil
 !_______________________________________________________________________________
-    allocate ( flow%qx( domain%np(1), domain%nc(2), domain%nc(3) ) )
-    allocate ( flow%qy( domain%nc(1), domain%np(2), domain%nc(3) ) )
-    allocate ( flow%qz( domain%nc(1), domain%nc(2), domain%np(3) ) )
+    allocate ( flow%qx( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
+    allocate ( flow%qy( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
+    allocate ( flow%qz( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
     flow%qx = ZERO
     flow%qy = ZERO
     flow%qz = ZERO
 
-    allocate ( flow%gx ( domain%np(1), domain%nc(2), domain%nc(3) )  )
-    allocate ( flow%gy ( domain%nc(1), domain%np(2), domain%nc(3) )  )
-    allocate ( flow%gz ( domain%nc(1), domain%nc(2), domain%np(3) )  )
+    allocate ( flow%gx( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
+    allocate ( flow%gy( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
+    allocate ( flow%gz( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
     flow%gx = ZERO
     flow%gy = ZERO
     flow%gz = ZERO
 
-    allocate ( flow%pres ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-    allocate ( flow%pcor ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%pres( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+    allocate ( flow%pcor( physs%xst(1) : physs%xen(1), physv%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
     flow%pres = ZERO
     flow%pcor = ZERO
 
-    allocate ( flow%dDens ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-    allocate ( flow%mVisc ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%dDens( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+    allocate ( flow%mVisc( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
     flow%dDens = ONE
     flow%mVisc = ONE
 
-    allocate ( flow%dDensm1 ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-    allocate ( flow%dDensm2 ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+    allocate ( flow%dDensm1( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+    allocate ( flow%dDensm2( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
     flow%dDensm1 = ONE
     flow%dDensm2 = ONE
 
-    allocate ( flow%m1_rhs ( domain%np(1), domain%nc(2), domain%nc(3) )  )
-    allocate ( flow%m2_rhs ( domain%nc(1), domain%np(2), domain%nc(3) )  )
-    allocate ( flow%m3_rhs ( domain%nc(1), domain%nc(2), domain%np(3) )  )
+    allocate ( flow%m1_rhs( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
+    allocate ( flow%m2_rhs( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
+    allocate ( flow%m3_rhs( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
     flow%m1_rhs = ZERO
     flow%m2_rhs = ZERO
     flow%m3_rhs = ZERO
 
-    allocate ( flow%m1_rhs0 ( domain%np(1), domain%nc(2), domain%nc(3) )  )
-    allocate ( flow%m2_rhs0 ( domain%nc(1), domain%np(2), domain%nc(3) )  )
-    allocate ( flow%m3_rhs0 ( domain%nc(1), domain%nc(2), domain%np(3) )  )
+    allocate ( flow%m1_rhs0( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
+    allocate ( flow%m2_rhs0( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
+    allocate ( flow%m3_rhs0( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
     flow%m1_rhs0 = ZERO
     flow%m2_rhs0 = ZERO
     flow%m3_rhs0 = ZERO
 
     if(ithermo == 1) then
-      allocate ( thermo%dh    ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-      allocate ( thermo%hEnth ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-      allocate ( thermo%kCond ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
-      allocate ( thermo%tTemp ( domain%nc(1), domain%nc(2), domain%nc(3) )  )
+      allocate ( thermo%dh    ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+      allocate ( thermo%hEnth ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+      allocate ( thermo%kCond ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+      allocate ( thermo%tTemp ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
       thermo%dh    = ZERO
       thermo%hEnth = ZERO
       thermo%kCond = ONE
@@ -146,9 +146,11 @@ contains
     implicit none
     type(t_flow),   intent(inout) :: f
     type(t_thermo), intent(inout) :: t
+    logical :: is_dim
   
     tpIni%t = tiRef / t0Ref
-    call tpIni%Refresh_thermal_properties_from_T()
+    is_dim = .false.
+    call tpIni%Refresh_thermal_properties_from_T(is_dim)
 
     f%dDens(:, :, :)  = tpIni%d
     f%mVisc(:, :, :)  = tpIni%m

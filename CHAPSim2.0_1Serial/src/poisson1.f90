@@ -376,33 +376,29 @@ contains
     call decomp_info_init(nw(1), nw(2), nw(3) / 2 + 1, sp)
 
 #ifdef DEBUG
-    write(*,*) 'For x-pencil : '
-    write(*,*) '  physical domain index, i = ', ph%xst(1), ph%xen(1)
-    write(*,*) '  physical domain index, j = ', ph%xst(2), ph%xen(2)
-    write(*,*) '  physical domain index, k = ', ph%xst(3), ph%xen(3)
+    if(myid == 0) write(*, *) 'Physical Domain (Poisson), 2D decompisiton : '
+    write(*, *) 'In x-pencil, rank = ', myid, ' size in x-dir = ', ph%xsz(1), ' x id from ', ph%xst(1), ph%xen(1)
+    write(*, *) 'In x-pencil, rank = ', myid, ' size in y-dir = ', ph%xsz(2), ' y id from ', ph%xst(2), ph%xen(2)
+    write(*, *) 'In x-pencil, rank = ', myid, ' size in z-dir = ', ph%xsz(3), ' z id from ', ph%xst(3), ph%xen(3)
+    write(*, *) 'In y-pencil, rank = ', myid, ' size in x-dir = ', ph%ysz(1), ' x id from ', ph%yst(1), ph%yen(1)
+    write(*, *) 'In y-pencil, rank = ', myid, ' size in y-dir = ', ph%ysz(2), ' y id from ', ph%yst(2), ph%yen(2)
+    write(*, *) 'In y-pencil, rank = ', myid, ' size in z-dir = ', ph%ysz(3), ' z id from ', ph%yst(3), ph%yen(3)
+    write(*, *) 'In z-pencil, rank = ', myid, ' size in x-dir = ', ph%zsz(1), ' x id from ', ph%zst(1), ph%zen(1)
+    write(*, *) 'In z-pencil, rank = ', myid, ' size in y-dir = ', ph%zsz(2), ' y id from ', ph%zst(2), ph%zen(2)
+    write(*, *) 'In z-pencil, rank = ', myid, ' size in z-dir = ', ph%zsz(3), ' z id from ', ph%zst(3), ph%zen(3)
+#endif
 
-    write(*,*) '  spectral domain index, l = ', sp%xst(1), sp%xen(1)
-    write(*,*) '  spectral domain index, m = ', sp%xst(2), sp%xen(2)
-    write(*,*) '  spectral domain index, n = ', sp%xst(3), sp%xen(3)
-
-    write(*,*) 'For y-pencil : '
-    write(*,*) '  physical domain index, i = ', ph%yst(1), ph%yen(1)
-    write(*,*) '  physical domain index, j = ', ph%yst(2), ph%yen(2)
-    write(*,*) '  physical domain index, k = ', ph%yst(3), ph%yen(3)
-
-    write(*,*) '  spectral domain index, l = ', sp%yst(1), sp%yen(1)
-    write(*,*) '  spectral domain index, m = ', sp%yst(2), sp%yen(2)
-    write(*,*) '  spectral domain index, n = ', sp%yst(3), sp%yen(3)
-
-    write(*,*) 'For z-pencil : '
-    write(*,*) '  physical domain index, i = ', ph%zst(1), ph%zen(1)
-    write(*,*) '  physical domain index, j = ', ph%zst(2), ph%zen(2)
-    write(*,*) '  physical domain index, k = ', ph%zst(3), ph%zen(3)
-
-    write(*,*) '  spectral domain index, l = ', sp%zst(1), sp%zen(1)
-    write(*,*) '  spectral domain index, m = ', sp%zst(2), sp%zen(2)
-    write(*,*) '  spectral domain index, n = ', sp%zst(3), sp%zen(3)
-
+#ifdef DEBUG
+    if(myid == 0) write(*, *) 'Spectral domain (Poisson), 2D decompisiton : '
+    write(*, *) 'In x-pencil, rank = ', myid, ' size in x-dir = ', sp%xsz(1), ' x id from ', sp%xst(1), sp%xen(1)
+    write(*, *) 'In x-pencil, rank = ', myid, ' size in y-dir = ', sp%xsz(2), ' y id from ', sp%xst(2), sp%xen(2)
+    write(*, *) 'In x-pencil, rank = ', myid, ' size in z-dir = ', sp%xsz(3), ' z id from ', sp%xst(3), sp%xen(3)
+    write(*, *) 'In y-pencil, rank = ', myid, ' size in x-dir = ', sp%ysz(1), ' x id from ', sp%yst(1), sp%yen(1)
+    write(*, *) 'In y-pencil, rank = ', myid, ' size in y-dir = ', sp%ysz(2), ' y id from ', sp%yst(2), sp%yen(2)
+    write(*, *) 'In y-pencil, rank = ', myid, ' size in z-dir = ', sp%ysz(3), ' z id from ', sp%yst(3), sp%yen(3)
+    write(*, *) 'In z-pencil, rank = ', myid, ' size in x-dir = ', sp%zsz(1), ' x id from ', sp%zst(1), sp%zen(1)
+    write(*, *) 'In z-pencil, rank = ', myid, ' size in y-dir = ', sp%zsz(2), ' y id from ', sp%zst(2), sp%zen(2)
+    write(*, *) 'In z-pencil, rank = ', myid, ' size in z-dir = ', sp%zsz(3), ' z id from ', sp%zst(3), sp%zen(3)
 #endif
 !_______________________________________________________________________________
 ! preparing sine and cosine factors

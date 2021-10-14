@@ -154,7 +154,7 @@ contains
 !> \param[inout]  this          a cell element with udf property
 !_______________________________________________________________________________
   subroutine Get_initialized_thermal_properties ( this )
-    use parameters_constant_mod, only: ZERO, ONE
+    use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
     class(thermoProperty_t), intent(inout) :: this
@@ -227,12 +227,12 @@ contains
 !>                              /dimensionless T. Exsiting of \ref dim indicates
 !>                              the known/given T is dimensional. Otherwise, not.
 !_______________________________________________________________________________
-  subroutine Refresh_thermal_properties_from_T ( this, dim )
+  subroutine Refresh_thermal_properties_from_T ( this, is_dim )
     use parameters_constant_mod, only : MINP, ONE, ZERO
-    use input_general_mod, only: ifluid
-
+    use input_general_mod, only : ifluid
+    implicit none
     class(thermoProperty_t), intent(inout) :: this
-    integer, intent(in), optional :: dim ! without = undim, with = dim.
+    logical, intent(in) :: is_dim 
     
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -266,7 +266,7 @@ contains
 
     else if(ipropertyState == IPROPERTY_FUNCS) then 
       
-      if (present(dim)) then 
+      if (is_dim) then 
         t1 = this%t
       else 
         ! convert undim to dim 
@@ -275,7 +275,7 @@ contains
   
       ! D = density = f(T)
       dummy = CoD(0) + CoD(1) * t1
-      if (present(dim)) then 
+      if (is_dim) then 
         this%d = dummy
       else 
         this%d = dummy / tpRef0%d
@@ -283,7 +283,7 @@ contains
   
       ! K = thermal conductivity = f(T)
       dummy = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
-      if (present(dim)) then 
+      if (is_dim) then 
         this%k = dummy
       else 
         this%k = dummy / tpRef0%k
@@ -291,7 +291,7 @@ contains
   
       ! Cp = f(T)
       dummy = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
-      if (present(dim)) then 
+      if (is_dim) then 
         this%cp = dummy
       else 
         this%cp = dummy / tpRef0%cp
@@ -304,7 +304,7 @@ contains
         CoH(1) * (t1 - Tm0) + &
         CoH(2) * (t1**2 - Tm0**2) + &
         CoH(3) * (t1**3 - Tm0**3)
-      if (present(dim)) then 
+      if (is_dim) then 
         this%h = dummy
       else 
         this%h = (dummy - tpRef0%h) / (tpRef0%cp * tpRef0%t)
@@ -312,7 +312,7 @@ contains
   
       ! B = f(T)
       dummy = ONE / (CoB - t1)
-      if (present(dim)) then 
+      if (is_dim) then 
         this%b = dummy
       else 
         this%b = dummy / tpRef0%b
@@ -332,7 +332,7 @@ contains
         case default
           dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
       end select
-      if (present(dim)) then 
+      if (is_dim) then 
         this%m = dummy
       else 
         this%m = dummy / tpRef0%m
@@ -421,6 +421,7 @@ contains
     integer :: i1, i2, im
     real(WP) :: d1, dm
     real(WP) :: w1, w2
+    logical :: is_dim
 
     i1 = 1
     i2 = nlist
@@ -444,7 +445,8 @@ contains
       call this%Refresh_thermal_properties_from_H
     else if (ipropertyState == IPROPERTY_FUNCS) then 
       this%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
-      call this%Refresh_thermal_properties_from_T
+      is_dim =  .false.
+      call this%Refresh_thermal_properties_from_T(is_dim)
     else  
       STOP 'Error. No such option of ipropertyState.'
     end if
@@ -607,7 +609,7 @@ contains
 !> \brief Building up the thermal property relations from the given table.
 !>
 !> This subroutine is called once after reading the table.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -626,6 +628,7 @@ contains
     character(len = 80) :: str
     real(WP) :: rtmp
     integer :: i
+    logical :: is_dim
 
     ! to read given table of thermal properties
     open ( newunit = inputUnit,     &
@@ -663,8 +666,9 @@ contains
     call Sort_listTP_Tsmall2big ( listTP(:) )
 
     ! to update reference of thermal properties
-    call tpRef0%Refresh_thermal_properties_from_T(1)
-    call tpIni0%Refresh_thermal_properties_from_T(1)
+    is_dim = .true.
+    call tpRef0%Refresh_thermal_properties_from_T(is_dim)
+    call tpIni0%Refresh_thermal_properties_from_T(is_dim)
 
     ! to unify/undimensionalize the table of thermal property
     listTP(:)%t = listTP(:)%t / tpRef0%t
@@ -692,18 +696,20 @@ contains
 !_______________________________________________________________________________
   subroutine Buildup_property_relations_from_function ( )
     integer :: i
+    logical :: is_dim
 
     ! to update reference of thermal properties
-    call tpRef0%Refresh_thermal_properties_from_T(1)
-    call tpIni0%Refresh_thermal_properties_from_T(1)
+    is_dim = .true.
+    call tpRef0%Refresh_thermal_properties_from_T(is_dim)
+    call tpIni0%Refresh_thermal_properties_from_T(is_dim)
     
     nlist = 1024
     allocate ( listTP (nlist) )
-    
+    is_dim = .false.
     do i = 1, nlist
       call listTP(i)%Get_initialized_thermal_properties()
       listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
-      call listTP(i)%Refresh_thermal_properties_from_T()
+      call listTP(i)%Refresh_thermal_properties_from_T(is_dim)
     end do
     return
   end subroutine Buildup_property_relations_from_function
@@ -721,7 +727,7 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Write_thermo_property
-    use mpi_mod, only: myid 
+    !use mpi_mod ! for test
     use parameters_constant_mod, only : ZERO, TRUNCERR
     implicit none
     type(thermoProperty_t) :: tp
@@ -729,8 +735,9 @@ contains
     real(WP) :: dhmax1, dhmin1
     real(WP) :: dhmax, dhmin
     integer :: tp_unit
+    logical :: is_dim
 
-    if (myid /= 0) return
+    !if (nrank /= 0) return
 
     n = 128
     call tp%Get_initialized_thermal_properties
@@ -743,12 +750,14 @@ contains
     end if
 
     if(ipropertyState == IPROPERTY_FUNCS) then 
+      is_dim = .false.
+      
       tp%t  = TB0 / tpRef0%t
-      call tp%Refresh_thermal_properties_from_T()
+      call tp%Refresh_thermal_properties_from_T(is_dim)
       dhmin1 = tp%dh
 
       tp%t  = TM0 / tpRef0%t
-      call tp%Refresh_thermal_properties_from_T()
+      call tp%Refresh_thermal_properties_from_T(is_dim)
       dhmax1 = tp%dh
       
       dhmin = dmin1( dhmin1, dhmax1) + TRUNCERR
@@ -771,7 +780,7 @@ contains
 !>  fluid material.
 !>
 !> This subroutine is called once in setting up thermal relations.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -780,9 +789,11 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Initialize_thermo_parameters
-    use input_general_mod, only: ifluid, t0Ref, tiRef
+    use input_general_mod, only : ifluid, t0Ref, tiRef
+    use mpi_mod
     implicit none
 
+    if(nrank == 0) call Print_debug_start_msg("Initializing thermal parameters ...")
     select case (ifluid)
     case (ISCP_WATER)
       ipropertyState = IPROPERTY_TABLE
@@ -859,6 +870,7 @@ contains
     call tpIni0%Get_initialized_thermal_properties()
     tpIni0%t = tiRef
 
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Initialize_thermo_parameters
 
@@ -867,7 +879,7 @@ contains
 !> \brief The main code for thermal property initialisation.
 !>
 !> This subroutine is called once in \ref Initialize_chapsim.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -883,8 +895,6 @@ contains
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
-    call Compute_gravity_coefficient
-
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return

@@ -25,8 +25,8 @@
 !>
 !===============================================================================
 module input_general_mod
-  use precision_mod
-  use parameters_constant_mod, only: ZERO
+  use precision_mod, only : WP
+  use parameters_constant_mod, only : ZERO
   implicit none
 
   character(len = 9), parameter :: INPUT_FILE = 'input.ini'
@@ -34,8 +34,9 @@ module input_general_mod
   integer, parameter :: ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
-                        ICASE_TGV     = 4, &
-                        ICASE_SINETEST= 5
+                        ICASE_TGV3D   = 4, &
+                        ICASE_TGV2D   = 5, &
+                        ICASE_SINETEST= 6
 
   integer, parameter :: ICARTESIAN   = 1, &
                         ICYLINDRICAL = 2
@@ -50,12 +51,15 @@ module input_general_mod
                         ITIME_RK3_CN = 2, &
                         ITIME_AB2    = 1
 
-  integer, parameter :: IBC_INTERIOR    = 0, &
+  integer, parameter :: IBC_INTERIOR    = 9, &
                         IBC_PERIODIC    = 1, &
                         IBC_UDIRICHLET  = 2, &
                         IBC_SYMMETRIC   = 3, &
-                        IBC_ASYMMETRIC  = 4
-
+                        IBC_ASYMMETRIC  = 4, &
+                        IBC_NEUMANN     = 5, &
+                        IBC_CONVECTIVE  = 6, &
+                        IBC_TURBGEN     = 7, &
+                        IBC_DATABASE    = 8
 !                        IBC_INLET_MEAN  = 4, &
 !                        IBC_INLET_TG    = 5, &
 !                        IBC_INLET_MAP   = 6, &
@@ -71,9 +75,9 @@ module input_general_mod
 
   integer, parameter :: NDIM = 3
 
-  integer, parameter :: INITIAL_RANDOM  = 1, &
-                        INITIAL_RESTART = 2, &
-                        INITIAL_INTERPL = 3
+  integer, parameter :: INITIAL_RANDOM  = 0, &
+                        INITIAL_RESTART = 1, &
+                        INITIAL_INTERPL = 2
 
   integer, parameter :: IVIS_EXPLICIT   = 1, &
                         IVIS_SEMIMPLT   = 2
@@ -83,87 +87,101 @@ module input_general_mod
                         IDRVF_SKINFRIC  = 2, &
                         IDRVF_PRESLOSS  = 3
 
-
-  ! flow type
+  integer, parameter :: THERMAL_BC_CONST_T  = 0, &
+                        THERMAL_BC_CONST_H  = 1
+!-------------------------------------------------------------------------------
+! flow type
+!-------------------------------------------------------------------------------
   integer :: icase
   integer :: ithermo
   integer :: icht
-
-  ! domain decomposition
-  integer :: p_row
-  integer :: p_col
-
-  ! domain geometry
-  real(WP) :: lxx, lzz, lyt, lyb
-
-  ! domain mesh
-  integer :: ncx, ncy, ncz
-  integer :: istret
-  real(WP) :: rstret
-
-  ! flow parameter
-  real(WP) :: ren
-
-  ! time stepping
-  real(WP) :: dt
-  integer :: nIterFlowStart
-  integer :: nIterFlowEnd
-
-  ! boundary condition
-  integer :: ifbcx(1:2)
-  integer :: ifbcy(1:2)
-  integer :: ifbcz(1:2)
+!-------------------------------------------------------------------------------
+! boundary condition
+!-------------------------------------------------------------------------------
+  integer  :: ifbcx(1:2)
+  integer  :: ifbcy(1:2)
+  integer  :: ifbcz(1:2)
   real(WP) :: uxinf(2)
   real(WP) :: uyinf(2)
   real(WP) :: uzinf(2)
-
-
-  ! InOutParam
+!-------------------------------------------------------------------------------
+! flow parameter
+!-------------------------------------------------------------------------------
+  real(WP) :: ren
+  integer  :: idriven
+  real(WP) :: drvf
+!-------------------------------------------------------------------------------
+! domain geometry
+!-------------------------------------------------------------------------------
+  real(WP) :: lxx, lzz, lyt, lyb
+!-------------------------------------------------------------------------------
+! domain mesh
+!-------------------------------------------------------------------------------
+  integer  :: ncx, ncy, ncz
+  integer  :: istret
+  real(WP) :: rstret
+!-------------------------------------------------------------------------------
+! initialization
+!-------------------------------------------------------------------------------
   integer :: irestart
-  integer :: ncheckpoint
-  integer :: nvisu
-  integer :: iterStatsFirst
-  integer :: nstats
-
-  ! NumOption
-  integer :: iAccuracy
-  integer :: iTimeScheme
-  integer :: iviscous
-  integer :: ipressure
-
-  ! initial fields
+  integer :: nrsttckpt
   real(WP) :: renIni
   integer  :: nIterIniRen
   real(WP) :: initNoise
-
-  ! PeriodicDrv
-  integer :: idriven
-  real(WP) :: drvf
-  
-  ! ThermoParam
-  integer :: ifluid
-  integer :: igravity
+!-------------------------------------------------------------------------------
+! time stepping
+!-------------------------------------------------------------------------------
+  real(WP) :: dt
+!-------------------------------------------------------------------------------
+! schemes
+!-------------------------------------------------------------------------------
+  integer :: iAccuracy
+  integer :: iTimeScheme
+  integer :: iviscous
+!-------------------------------------------------------------------------------
+! simulation control
+!-------------------------------------------------------------------------------
+  integer  :: nIterFlowStart
+  integer  :: nIterFlowEnd
+  integer  :: nIterThermoStart
+  integer  :: nIterThermoEnd
+!-------------------------------------------------------------------------------
+! InOutParam
+!-------------------------------------------------------------------------------
+  integer :: nfreqckpt
+  integer :: nvisu
+  integer :: nIterStatsStart
+  integer :: nfreqStats
+!-------------------------------------------------------------------------------
+! ThermoParam
+!-------------------------------------------------------------------------------
+  integer  :: ifluid
+  integer  :: igravity
   real(WP) :: lenRef
   real(WP) :: t0Ref
   real(WP) :: tiRef
-  integer :: itbcy(1:2)
+  integer  :: itbcy(1:2)
   real(WP) :: tbcy(1:2)
-  integer :: nIterThermoStart
-  integer :: nIterThermoEnd
 
+!-------------------------------------------------------------------------------
+! ThermoParam
+!-------------------------------------------------------------------------------
   ! parameters from restart
-  integer :: iterchkpt = 0       ! iteration number from restart/checkpoint
   real(WP) :: tThermo  = ZERO
   real(WP) :: tFlow    = ZERO
+  integer  :: niter
 
   ! derived parameters
   logical :: is_periodic(3)
   integer :: icoordinate
 
-  integer :: nsubitr
+  integer  :: nsubitr
   real(WP) :: tGamma(0 : 3)
   real(WP) :: tZeta (0 : 3)
   real(WP) :: tAlpha(0 : 3)
+
+  real(WP) :: sigma1p
+  real(WP) :: sigma2p
 
   ! procedure
   public  :: Initialize_general_input
@@ -178,7 +196,7 @@ contains
 !> be changed in the above module.     
 !>
 !> This subroutine is called at beginning of solver.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -191,9 +209,9 @@ contains
 !===============================================================================
 ! Module files
 !===============================================================================
-    use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
-    use parameters_constant_mod, only: ZERO, ONE, TWO, PI
-    use mpi_mod, only: ncol, nrow
+    use iso_fortran_env,         only : ERROR_UNIT, IOSTAT_END
+    use parameters_constant_mod, only : ZERO, ONE, TWO, PI
+    use mpi_mod
     implicit none
 !===============================================================================
 ! Local arguments
@@ -204,8 +222,17 @@ contains
 
     character(len = 80) :: section_name
     character(len = 80) :: variableName
+    character(len = 20) :: formati='(2X, A32, I20.1)'
+    character(len = 20) :: format2i='(2X, A32, 2I10.1)'
+    character(len = 20) :: formatr='(2X, A32, F20.4)'
+    character(len = 20) :: formate='(2X, A32, E20.4)'
+    character(len = 20) :: format2r='(2X, A32, 2F10.2)'
+    character(len = 20) :: formats='(2X, A32, A20)'
     integer :: slen
 !===============================================================================
+    if(nrank == 0) call Print_debug_start_msg("CHAPSim2.0 Starts ...")
+
+
     open ( newunit = inputUnit, &
            file    = INPUT_FILE, &
            status  = 'old', &
@@ -217,58 +244,53 @@ contains
       write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
       stop 1
     end if
+
+    if(nrank == 0) call Print_debug_start_msg("Reading General Parameters from "//INPUT_FILE//" ...")
     
     do 
       read(inputUnit, '(a)', iostat = ioerr) section_name
       slen = len_trim(section_name)
       if (ioerr /=0 ) exit
       if ( (section_name(1:1) == ';') .or. &
-          (section_name(1:1) == '#') .or. &
-          (section_name(1:1) == ' ') .or. &
-          (slen == 0) ) then
+           (section_name(1:1) == '#') .or. &
+           (section_name(1:1) == ' ') .or. &
+           (slen == 0) ) then
         cycle
       end if
+      if(nrank == 0) call Print_debug_start_msg("Reading "//section_name(1:slen))
 
-      block_section: if ( section_name(1:slen) == '[mpi]' ) then
-
-        read(inputUnit, *, iostat = ioerr) variableName, nrow
-        read(inputUnit, *, iostat = ioerr) variableName, ncol
-
-      else if ( section_name(1:slen) == '[flowtype]' ) then
+      block_section: if ( section_name(1:slen) == '[flowtype]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, icase
         read(inputUnit, *, iostat = ioerr) variableName, ithermo
         read(inputUnit, *, iostat = ioerr) variableName, icht
 
-      else if ( section_name(1:slen) == '[decomposition]' ) then
+        if (icase == ICASE_CHANNEL) then
+          icoordinate = ICARTESIAN
+        else if (icase == ICASE_PIPE) then
+          icoordinate = ICYLINDRICAL
+          ifbcy(1) = IBC_INTERIOR
+        else if (icase == ICASE_ANNUAL) then
+          icoordinate = ICYLINDRICAL
+        else if (icase == ICASE_TGV2D) then
+          icoordinate = ICARTESIAN
+        else if (icase == ICASE_TGV3D) then
+          icoordinate = ICARTESIAN
+        else 
+          icoordinate = ICARTESIAN
+        end if
 
-        read(inputUnit, *, iostat = ioerr) variableName, p_row
-        read(inputUnit, *, iostat = ioerr) variableName, p_col
-
-      else if ( section_name(1:slen) == '[geometry]' )  then 
-
-        read(inputUnit, *, iostat = ioerr) variableName, lxx
-        read(inputUnit, *, iostat = ioerr) variableName, lyt
-        read(inputUnit, *, iostat = ioerr) variableName, lyb
-        read(inputUnit, *, iostat = ioerr) variableName, lzz
-
-      else if ( section_name(1:slen) == '[mesh]' ) then
-
-        read(inputUnit, *, iostat = ioerr) variableName, ncx
-        read(inputUnit, *, iostat = ioerr) variableName, ncy
-        read(inputUnit, *, iostat = ioerr) variableName, ncz
-        read(inputUnit, *, iostat = ioerr) variableName, istret
-        read(inputUnit, *, iostat = ioerr) variableName, rstret
-
-      else if ( section_name(1:slen) == '[flowparams]' ) then
-
-        read(inputUnit, *, iostat = ioerr) variableName, ren
-
-      else if ( section_name(1:slen) == '[timestepping]' ) then
-
-        read(inputUnit, *, iostat = ioerr) variableName, dt
-        read(inputUnit, *, iostat = ioerr) variableName, nIterFlowStart
-        read(inputUnit, *, iostat = ioerr) variableName, nIterFlowEnd
+        if(nrank == 0) then
+          if(icase == ICASE_CHANNEL) write(*, formats) ' Case : ', "Channel flow" 
+          if(icase == ICASE_PIPE)    write(*, formats) ' Case : ', "Pipe flow"
+          if(icase == ICASE_ANNUAL)  write(*, formats) ' Case : ', "Annual flow"
+          if(icase == ICASE_TGV2D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (2D)"
+          if(icase == ICASE_TGV3D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (3D)"
+          if(ithermo == 0)           write(*, formats) ' Thermal field : ', 'No' 
+          if(ithermo == 1)           write(*, formats) ' Thermal field : ', 'Yes' 
+          if(icht    == 0)           write(*, formats) ' Conjugate Heat Transfer : ', 'No' 
+          if(icht    == 1)           write(*, formats) ' Conjugate Heat Transfer : ', 'Yes'
+        end if
 
       else if ( section_name(1:slen) == '[boundary]' ) then
 
@@ -279,31 +301,194 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, &
             ifbcz(1), ifbcz(2), uzinf(1), uzinf(2)
 
-      else if ( section_name(1:slen) == '[ioparams]' ) then
+        ! to set up periodic boundary conditions
+        is_periodic(:) = .false.
+        call Set_periodic_bc ( ifbcx, is_periodic(1) )
+        call Set_periodic_bc ( ifbcy, is_periodic(2) )
+        call Set_periodic_bc ( ifbcz, is_periodic(3) )
 
-        read(inputUnit, *, iostat = ioerr) variableName, irestart
-        read(inputUnit, *, iostat = ioerr) variableName, ncheckpoint
-        read(inputUnit, *, iostat = ioerr) variableName, nvisu
-        read(inputUnit, *, iostat = ioerr) variableName, iterStatsFirst
-        read(inputUnit, *, iostat = ioerr) variableName, nstats
+        if(nrank == 0) then
+          if(is_periodic(1)) then
+            write(*, formats) ' BC in x : ', "Periodic" 
+          else
+            write(*, format2i) ' BC in x : ', ifbcx(1:2)
+            write(*, format2r) ' xBC input : ', uxinf(1:2)
+          end if
 
-      else if ( section_name(1:slen) == '[schemes]' ) then
-        read(inputUnit, *, iostat = ioerr) variableName, iAccuracy
-        read(inputUnit, *, iostat = ioerr) variableName, iTimeScheme
-        read(inputUnit, *, iostat = ioerr) variableName, iviscous
-        read(inputUnit, *, iostat = ioerr) variableName, ipressure
+          if(is_periodic(2)) then
+            write(*, formats) ' BC in y : ', "Periodic" 
+          else
+            write(*, format2i) ' BC in y : ', ifbcy(1:2)
+            write(*, format2r) ' yBC input : ', uyinf(1:2)
+          end if
 
+          if(is_periodic(3)) then
+            write(*, formats) ' BC in z : ', "Periodic" 
+          else
+            write(*, format2i) ' BC in z : ', ifbcz(1:2)
+            write(*, format2r) ' zBC input : ', uzinf(1:2)
+          end if
+        end if
+
+      else if ( section_name(1:slen) == '[flowparams]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, ren
+        read(inputUnit, *, iostat = ioerr) variableName, idriven
+        read(inputUnit, *, iostat = ioerr) variableName, drvf
+
+        if(nrank == 0) then
+          write(*, formatr) ' Reynolds number : ', ren
+          if(is_periodic(1)) then
+            if(idriven == IDRVF_MASSFLUX) write(*, formats) ' Flow driven by : ', "Constant Mass Flux" 
+            if(idriven == IDRVF_SKINFRIC) then
+              write(*, formats) ' Flow driven by : ', "Provided Skin Friction" 
+              write(*, formatr) ' Skin Friction : ', drvf
+            end if
+          end if
+      end if
+
+      else if ( section_name(1:slen) == '[decomposition]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, nrow
+        read(inputUnit, *, iostat = ioerr) variableName, ncol
+
+        if(nrank == 0) then
+          write(*, formati) ' Processor in Row :',     nrow
+          write(*, formati) ' Processor in Column :',  ncol
+        end if
+
+      else if ( section_name(1:slen) == '[geometry]' )  then 
+
+        read(inputUnit, *, iostat = ioerr) variableName, lxx
+        read(inputUnit, *, iostat = ioerr) variableName, lyt
+        read(inputUnit, *, iostat = ioerr) variableName, lyb
+        read(inputUnit, *, iostat = ioerr) variableName, lzz
+
+        if (icase == ICASE_CHANNEL) then
+          if(istret /= ISTRET_2SIDES .and. nrank == 0) &
+          call Print_warning_msg ("Grids are not two-side clustered.")
+          lyb = - ONE
+          lyt = ONE
+        else if (icase == ICASE_PIPE) then
+          if(istret /= ISTRET_TOP .and. nrank == 0) &
+          call Print_warning_msg ("Grids are not near-wall clustered.")
+          lyb = ZERO
+          lyt = ONE
+        else if (icase == ICASE_ANNUAL) then
+          if(istret /= ISTRET_2SIDES .and. nrank == 0 ) &
+          call Print_warning_msg ("Grids are not two-side clustered.")
+          lyt = ONE
+        else if (icase == ICASE_TGV2D) then
+          if(istret /= ISTRET_NO .and. nrank == 0) &
+          call Print_warning_msg ("Grids are clustered.")
+          lxx = TWO * PI
+          lzz = TWO * PI
+          lyt =   PI
+          lyb = - PI
+        else if (icase == ICASE_TGV3D) then
+          if(istret /= ISTRET_NO .and. nrank == 0) &
+          call Print_warning_msg ("Grids are clustered.")
+          lxx = TWO * PI
+          lzz = TWO * PI
+          lyt =   PI
+          lyb = - PI
+        else if (icase == ICASE_SINETEST) then
+          if(istret /= ISTRET_NO .and. nrank == 0) &
+          call Print_warning_msg ("Grids are clustered.")
+          lxx = TWO * PI
+          lzz = TWO * PI
+          lyt =   PI
+          lyb = - PI
+        else 
+          ! do nothing...
+        end if
+        if(nrank == 0) then
+          write(*, formatr) ' length in x : ', lxx
+          write(*, formatr) ' length in z : ', lzz
+          write(*, formatr) ' length in y : ', lyt - lyb
+          write(*, formatr) ' bottom in y : ', lyb
+          write(*, formatr) '    top in y : ', lyt
+        end if
+
+      else if ( section_name(1:slen) == '[mesh]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, ncx
+        read(inputUnit, *, iostat = ioerr) variableName, ncy
+        read(inputUnit, *, iostat = ioerr) variableName, ncz
+        read(inputUnit, *, iostat = ioerr) variableName, istret
+        read(inputUnit, *, iostat = ioerr) variableName, rstret
+
+        if(nrank == 0) then
+          write(*, formati) ' Mesh Cell Number in x : ', ncx
+          write(*, formati) ' Mesh Cell Number in y : ', ncy
+          write(*, formati) ' Mesh Cell Number in z : ', ncz
+          if(istret == ISTRET_NO) write(*, formats) ' Y mesh stretching : ', 'No' 
+          if(istret /= ISTRET_NO) then
+            write(*, formats) ' Y mesh stretching : ', 'Yes' 
+            write(*, formatr) ' Stretching factor beta : ', rstret
+          end if
+       end if
+
+      else if ( section_name(1:slen) == '[timestepping]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, dt
+        if(nrank == 0) write(*, formate) ' Physical Time Step : ', dt
+      
       else if ( section_name(1:slen) == '[initialization]' ) then
 
+        read(inputUnit, *, iostat = ioerr) variableName, irestart
+        read(inputUnit, *, iostat = ioerr) variableName, nrsttckpt
         read(inputUnit, *, iostat = ioerr) variableName, renIni
         read(inputUnit, *, iostat = ioerr) variableName, nIterIniRen
         read(inputUnit, *, iostat = ioerr) variableName, initNoise
 
-      else if ( section_name(1:slen) == '[periodicdriven]' ) then
+        if(irestart == 0) then
+          nrsttckpt = 0
+          if(nrank == 0) write(*, formats) ' Start from : ', 'Scratch'
+          if(nrank == 0) write(*, formatr) ' Initial Reynolds No : ', renIni
+          if(nrank == 0) write(*, formati) ' Initial Re lasts until : ', nIterIniRen
+          if(nrank == 0) write(*, formatr) ' Initial velocity perturbation : ', initNoise
+        else 
+          if(nrank == 0) write(*, formats) ' Start from : ', 'Restart' 
+          if(nrank == 0) write(*, formati) ' Restart iteration : ', nrsttckpt
+        end if
 
-        read(inputUnit, *, iostat = ioerr) variableName, idriven
-        read(inputUnit, *, iostat = ioerr) variableName, drvf
+      else if ( section_name(1:slen) == '[simcontrol]' ) then
 
+        read(inputUnit, *, iostat = ioerr) variableName, nIterFlowStart
+        read(inputUnit, *, iostat = ioerr) variableName, nIterFlowEnd
+        read(inputUnit, *, iostat = ioerr) variableName, nIterThermoStart
+        read(inputUnit, *, iostat = ioerr) variableName, nIterThermoEnd
+
+        if(nrank == 0) then
+          write(*, format2i) ' Flow simulation lasts between : ', nIterFlowStart, nIterFlowEnd
+          if(ithermo == 1) write(*, format2i) ' Heat simulation lasts between : ', nIterThermoStart, nIterThermoEnd
+        end if
+
+      else if ( section_name(1:slen) == '[ioparams]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, nfreqckpt
+        read(inputUnit, *, iostat = ioerr) variableName, nvisu
+        read(inputUnit, *, iostat = ioerr) variableName, nIterStatsStart
+        read(inputUnit, *, iostat = ioerr) variableName, nfreqStats
+        if(nrank == 0) then
+          write(*, formati) ' Raw  data written at every : ', nfreqckpt
+          write(*, formati) ' Vis  data written at every : ', nvisu
+          write(*, formati) ' Stat data written from : ', nIterStatsStart
+          write(*, formati) ' Stat data written at every : ', nfreqStats
+        end if
+      else if ( section_name(1:slen) == '[schemes]' ) then
+
+        read(inputUnit, *, iostat = ioerr) variableName, iAccuracy
+        read(inputUnit, *, iostat = ioerr) variableName, iTimeScheme
+        read(inputUnit, *, iostat = ioerr) variableName, iviscous
+
+        if(nrank == 0) then
+          write(*, formati) ' Spatial Accuracy Order: ', iAccuracy
+          if(iviscous == IVIS_EXPLICIT) write(*, formats) ' Viscous Term : ', 'Explicit Scheme'
+          if(iviscous == IVIS_SEMIMPLT) write(*, formats) ' Viscous Term : ', 'Semi-implicit Scheme'
+        end if
+       
       else if ( section_name(1:slen) == '[thermohydraulics]' ) then
 
         read(inputUnit, *, iostat = ioerr) variableName, ifluid
@@ -313,8 +498,15 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, tiRef
         read(inputUnit, *, iostat = ioerr) variableName, itbcy(1), itbcy(2)
         read(inputUnit, *, iostat = ioerr) variableName, tbcy(1), tbcy(2)
-        read(inputUnit, *, iostat = ioerr) variableName, nIterThermoStart
-        read(inputUnit, *, iostat = ioerr) variableName, nIterThermoEnd
+        if(nrank == 0 .and. ithermo /= 0) then
+          write(*, formati) ' Fluid type : ', ifluid
+          write(*, formati) ' Gravity force direction : ', igravity
+          write(*, formatr) ' Reference length for normalisation : ', lenRef
+          write(*, formatr) ' Reference temperature for normalisation : ', t0Ref
+          write(*, formatr) ' Initialisation temperature : ', tiRef
+          write(*, format2i) ' Thermal BC type: ', itbcy(1), itbcy(2)
+          write(*, format2r) ' Thermal BC value: ', tbcy(1), tbcy(2)
+        end if
 
       else
         exit
@@ -327,61 +519,9 @@ contains
 
     close(inputUnit)
 
-    ! set up some default values to overcome wrong input
-    if (icase == ICASE_CHANNEL) then
-      if(istret /= ISTRET_2SIDES) &
-      call Print_warning_msg ("Grids are not two-side clustered.")
-      lyb = - ONE
-      lyt = ONE
-    else if (icase == ICASE_PIPE) then
-      if(istret /= ISTRET_TOP)    &
-      call Print_warning_msg ("Grids are not near-wall clustered.")
-      lyb = ZERO
-      lyt = ONE
-    else if (icase == ICASE_ANNUAL) then
-      if(istret /= ISTRET_2SIDES) &
-      call Print_warning_msg ("Grids are not two-side clustered.")
-      lyt = ONE
-    else if (icase == ICASE_TGV) then
-      if(istret /= ISTRET_NO) &
-      call Print_warning_msg ("Grids are clustered.")
-      lxx = TWO * PI
-      lzz = TWO * PI
-      lyt = PI
-      lyb = -PI
-    else if (icase == ICASE_SINETEST) then
-      if(istret /= ISTRET_NO) &
-      call Print_warning_msg ("Grids are clustered.")
-      lxx = TWO * PI
-      lzz = TWO * PI
-      lyt = PI
-      lyb = -PI
-    else 
-      ! do nothing...
-    end if
-
-    ! to set up cooridnates
-    if (icase == ICASE_CHANNEL) then
-      icoordinate = ICARTESIAN
-    else if (icase == ICASE_PIPE) then
-      icoordinate = ICYLINDRICAL
-      ifbcy(1) = IBC_INTERIOR
-    else if (icase == ICASE_ANNUAL) then
-      icoordinate = ICYLINDRICAL
-    else if (icase == ICASE_TGV) then
-      icoordinate = ICARTESIAN
-    else 
-      icoordinate = ICARTESIAN
-    end if
-
-    ! to set up periodic boundary conditions
-    is_periodic(:) = .false.
-    call Set_periodic_bc ( ifbcx, is_periodic(1) )
-    call Set_periodic_bc ( ifbcy, is_periodic(2) )
-    call Set_periodic_bc ( ifbcz, is_periodic(3) )
-
-    ! to set up parameters for time stepping
     call Set_timestepping_coefficients ( )
+
+    if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine Initialize_general_input
@@ -401,7 +541,7 @@ contains
 !_______________________________________________________________________________
   subroutine Set_periodic_bc( bc, flg )
     integer, intent(inout) :: bc(1:2)
-    logical, intent(out) :: flg
+    logical, intent(out  ) :: flg
 
     if ( (bc(1) == IBC_PERIODIC) .or. (bc(2) == IBC_PERIODIC) ) then
       bc(1) = IBC_PERIODIC
@@ -410,14 +550,14 @@ contains
     else 
       flg = .false.
     end if
-
+    return
   end subroutine Set_periodic_bc
 !===============================================================================
 !===============================================================================
 !> \brief Define parameters for time stepping.     
 !>
 !> This subroutine is locally called once by \ref Initialize_general_input.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -430,7 +570,15 @@ contains
     use parameters_constant_mod
     implicit none
 
-    if(iTimeScheme == ITIME_RK3 .or. &
+    !option 1: to set up pressure treatment, for O(dt^2)
+    sigma1p = ONE
+    sigma2p = HALF
+
+    !option 2: to set up pressure treatment, for O(dt)
+    !sigma1p = ONE
+    !sigma2p = ONE
+
+    if(iTimeScheme == ITIME_RK3     .or. &
        iTimeScheme == ITIME_RK3_CN) then
       
       nsubitr = 3
@@ -469,7 +617,4 @@ contains
 
   end subroutine Set_timestepping_coefficients
 
-end module 
-
-
-
+end module

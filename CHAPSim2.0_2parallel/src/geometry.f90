@@ -25,7 +25,7 @@
 !>
 !===============================================================================
 module geometry_mod
-  use save_vars_mod, only: domain
+  use type_vars_mod, only : domain
   implicit none
 
   !private
@@ -209,13 +209,13 @@ contains
     end do
 
     if(is_peri) then
-      nbr(1, 1) = n-1  ! -1
-      nbr(1, 2) = n    ! 0
-      nbr(2, 1) = n    ! 0
+      nbr(1, 1)   = n-1  ! -2, i = 1
+      nbr(1, 2)   = n    ! -2, i = 2
+      nbr(2, 1)   = n    ! -1, i = 1
       
-      nbr(3, n) = 1 ! n + 1
-      nbr(4, n) = 2 ! n + 2
-      nbr(4, n-1) = 1  ! n + 1
+      nbr(3, n)   = 1    ! +1, i = n
+      nbr(4, n)   = 2    ! +2, i = n
+      nbr(4, n-1) = 1    ! +2, i = n-1
     end if
 
     return
@@ -227,7 +227,7 @@ contains
 !> This subroutine is used once in \ref Initialize_chapsim. It builds up the udf
 !> domain. Currently only one domain is defined, and it could extend to multiple
 !> domain simulations.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -252,6 +252,7 @@ contains
 !===============================================================================
 ! Code
 !===============================================================================
+    if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric information ...")
     ! Build up domain info
     domain%case   = icase
 
@@ -265,15 +266,14 @@ contains
 
     domain%is_periodic(:) = is_periodic(:)
 
-    ! cell number
     domain%nc(1) = ncx
     domain%nc(2) = ncy
     domain%nc(3) = ncz
-    ! node number in geometry
+
     domain%np_geo(1) = ncx + 1 
     domain%np_geo(2) = ncy + 1
     domain%np_geo(3) = ncz + 1
-    ! calculation node number
+
     do i = 1, 3
       if ( domain%is_periodic(i) ) then
         domain%np(i) = domain%nc(i)
@@ -320,6 +320,8 @@ contains
         write(*, '(I5, 1F8.4)') i, domain%yp(i)
       end do
     end if
+
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine  Initialize_geometry_variables
 end module geometry_mod

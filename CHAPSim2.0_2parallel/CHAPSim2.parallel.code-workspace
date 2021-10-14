@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "src"
+		},
+		{
+			"path": "lib/2decomp_fft"
+		}
+	]
+}

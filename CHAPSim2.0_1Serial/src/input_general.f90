@@ -202,7 +202,7 @@ contains
 !> be changed in the above module.     
 !>
 !> This subroutine is called at beginning of solver.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -548,7 +548,7 @@ contains
 !> \brief Define parameters for time stepping.     
 !>
 !> This subroutine is locally called once by \ref Initialize_general_input.
-!>
+!> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
