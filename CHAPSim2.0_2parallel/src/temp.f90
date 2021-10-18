@@ -99,7 +99,7 @@
       call Get_z_midp_C2P_3dArray ( gx_zpencil, d, gx_zpcp_zpencil )
       call Get_z_midp_C2P_3dArray ( gy_zpencil, d, gy_zcpp_zpencil )
       call Get_z_midp_P2C_3dArray ( gz_zpencil, d, gz_zccc_zpencil )
-      call Get_z_midp_C2P_3dArray (  m_zpencil, d,  m_zccp_zpencil )
+      c
 
       call transpose_z_to_y(gx_zpcp_zpencil, gx_zpcp_ypencil, d%dpcp)
       call transpose_z_to_y(gx_zpcp_ypencil, gx_zpcp,         d%dpcp)

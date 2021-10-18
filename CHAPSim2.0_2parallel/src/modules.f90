@@ -210,6 +210,8 @@ module udf_type_mod
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)
     real(WP), allocatable :: tTemp(:, :, :)
+    real(WP), allocatable :: ene_rhs(:, :, :)  ! current step rhs
+    real(WP), allocatable :: ene_rhs0(:, :, :) ! last step rhs
   end type t_thermo
 
 end module
