@@ -292,50 +292,67 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg &
          ("Assigning coefficient matrix for the compact FD ...")
-!_____________________________________________________________________________!
-!1st derivative on collocated grids
-!_______________________________________________________________________________!
-    ! C2C/P2P coefficients
+
+!===============================================================================
+! 1st derivative on collocated grids, C2C/P2P coefficients : Periodic or Symmetric B.C.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+!===============================================================================
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
+          a = ONE
+          b = ZERO
+          c = ZERO ! not used
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-      a = FOUR / THREE
-      b = -ONE / THREE
-      c = ZERO ! not used
+          a = FOUR / THREE
+          b = - ONE / THREE
+          c = ZERO ! not used
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / FOUR
-      a = THREE / TWO
-      b = ZERO
-      c = ZERO ! not used
+          a = THREE / TWO
+          b = ZERO
+          c = ZERO ! not used
     else if (iaccu == IACCU_CP6) then
       alpha = ONE / THREE
-      a = FOURTEEN / NINE
-      b = ONE / NINE
-      c = ZERO ! not used
+          a = FOURTEEN / NINE
+          b = ONE / NINE
+          c = ZERO ! not used
     else ! default 2nd CD
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
+          a = ONE
+          b = ZERO
+          c = ZERO ! not used
     end if
-
-    !C2C for periodic b.c.
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2C : periodic b.c.
+! d1fC2C : "d1"=first deriviative, "f"=f'  side, "C2C"= center 2 centre 
+! d1rC2C : "d1"=first deriviative, "r"=rhs side, "C2C"= center 2 centre 
+! [ 1    alpha                   alpha][f'_1]=[a/2 * (f_{2}   - f_{n})/h   + b/4 * (f_{3}   - f_{n-1})/h]
+! [      alpha 1     alpha            ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{n})/h  ]
+! [            alpha 1     alpha      ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                  alpha 1     alpha][f'_4] [a/2 * (f_{n}   - f_{n-2})/h + b/4 * (f_{1}   - f_{n-3})/h]
+! [alpha                   alpha 1    ][f'_5] [a/2 * (f_{1}   - f_{n-1})/h + b/4 * (f_{2}   - f_{n-2})/h]
+!-------------------------------------------------------------------------------
     d1fC2C(1:5, 1, IBC_PERIODIC) = alpha
     d1fC2C(1:5, 2, IBC_PERIODIC) = ONE
     d1fC2C(1:5, 3, IBC_PERIODIC) = alpha
-    d1rC2C(1:5, 1, IBC_PERIODIC) = a / TWO ! a/2
+    d1rC2C(1:5, 1, IBC_PERIODIC) = a / TWO  ! a/2
     d1rC2C(1:5, 2, IBC_PERIODIC) = b / FOUR ! b/4
-    d1rC2C(1:5, 3, IBC_PERIODIC) = c ! not used
-
-    !P2P for periodic b.c.
+    d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
+!-------------------------------------------------------------------------------
+! 1st-derivative : P2P : periodic b.c.  Same as C2C
+!-------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_PERIODIC) = d1fC2C(:, :, IBC_PERIODIC)
     d1rP2P(:, :, IBC_PERIODIC) = d1rC2C(:, :, IBC_PERIODIC)
-
-    !C2C for symmetric b.c.
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2C : symmetric b.c.
+! [ 1-alpha  alpha                          ][f'_1]=[a/2 * (f_{2}   - f_{1})/h   + b/4 * (f_{3}   - f_{2})/h  ]
+! [          alpha 1     alpha              ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{1})/h  ]
+! [                alpha 1     alpha        ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                      alpha 1     alpha  ][f'_4] [a/2 * (f_{n}   - f_{n-2})/h + b/4 * (f_{n}   - f_{n-3})/h]
+! [                            alpha 1-alpha][f'_5] [a/2 * (f_{n}   - f_{n-1})/h + b/4 * (f_{n-1} - f_{n-2})/h]
+!-------------------------------------------------------------------------------
     d1fC2C(1, 1, IBC_SYMMETRIC) = ZERO ! not used
     d1fC2C(1, 2, IBC_SYMMETRIC) = ONE - alpha
     d1fC2C(1, 3, IBC_SYMMETRIC) = alpha
@@ -346,13 +363,19 @@ contains
 
     d1fC2C(5, 1, IBC_SYMMETRIC) = alpha
     d1fC2C(5, 2, IBC_SYMMETRIC) = ONE - alpha
-    d1fC2C(5, 3, IBC_SYMMETRIC) = ZERO ! not used
+    d1fC2C(5, 3, IBC_SYMMETRIC) = ZERO       ! not used
 
-    d1rC2C(1:5, 1, IBC_SYMMETRIC) = a / TWO ! a/2
+    d1rC2C(1:5, 1, IBC_SYMMETRIC) = a / TWO  ! a/2
     d1rC2C(1:5, 2, IBC_SYMMETRIC) = b / FOUR ! b/4
-    d1rC2C(1:5, 3, IBC_SYMMETRIC) = c ! not used
-
-    !P2P for symmetric b.c.
+    d1rC2C(1:5, 3, IBC_SYMMETRIC) = c        ! not used
+!-------------------------------------------------------------------------------
+! 1st-derivative : P2P : symmetric b.c.
+! [ 1  0                              ][f'_1]=[a/2 * (f_{2}   - f_{2})/h   + b/4 * (f_{3}   - f_{3})/h  ]
+! [    alpha 1     alpha              ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{2})/h  ]
+! [          alpha 1     alpha        ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                alpha 1     alpha  ][f'_4] [a/2 * (f_{n}   - f_{n-2})/h + b/4 * (f_{n-1} - f_{n-3})/h]
+! [                      0     1      ][f'_5] [a/2 * (f_{n-1} - f_{n-1})/h + b/4 * (f_{n-2} - f_{n-2})/h]
+!-------------------------------------------------------------------------------
     d1fP2P(1, 1, IBC_SYMMETRIC) = ZERO ! not used
     d1fP2P(1, 2, IBC_SYMMETRIC) = ONE
     d1fP2P(1, 3, IBC_SYMMETRIC) = ZERO
@@ -365,76 +388,48 @@ contains
 
     d1rP2P(:, :, IBC_SYMMETRIC) = d1rC2C(:, :, IBC_SYMMETRIC)
 
-    !C2C for asymmetric b.c.
-    d1fC2C(:, :, IBC_ASYMMETRIC) = d1fC2C(:, :, IBC_SYMMETRIC)
-    d1rC2C(:, :, IBC_ASYMMETRIC) = d1rC2C(:, :, IBC_SYMMETRIC)
-    !P2P for asymmetric b.c.
-    d1fP2P(:, :, IBC_ASYMMETRIC) = d1fP2P(:, :, IBC_SYMMETRIC)
-    d1rP2P(:, :, IBC_ASYMMETRIC) = d1rP2P(:, :, IBC_SYMMETRIC)
-
-    !C2C/P2P for Dirichlet B.C.
-    if (iaccu == IACCU_CD2) then
-
+!===============================================================================
+! 1st derivative on collocated grids, C2C/P2P coefficients : Dirichlet B.C.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+!===============================================================================
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
       alpha1 = ZERO
-      a1 = -THREE / TWO
-      b1 = TWO
-      c1 = -ONE / TWO
-
+          a1 = -THREE / TWO
+          b1 = TWO
+          c1 = -ONE / TWO
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
-      alpha1 = ZERO
-      a1 = -THREE / TWO
-      b1 = TWO
-      c1 = -ONE / TWO
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
-
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
       alpha1 = TWO
-      a1 = -FIVE / TWO
-      b1 = TWO
-      c1 = ONE / TWO
-
+          a1 = -FIVE / TWO
+          b1 = TWO
+          c1 = ONE / TWO
       alpha2 = ONE / FOUR
-      a2 = THREE / TWO
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
-
-      alpha1 = TWO
-      a1 = -FIVE / TWO
-      b1 = TWO
-      c1 = ONE / TWO
-
-      alpha2 = ONE / FOUR
-      a2 = THREE / TWO
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-      
+          a2 = THREE / TWO
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
     else ! default 2nd CD
       alpha1 = ZERO
-      a1 = -THREE / TWO
-      b1 = TWO
-      c1 = -ONE / TWO
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-      
+          a1 = -THREE / TWO
+          b1 = TWO
+          c1 = -ONE / TWO
+     alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
     end if
-
-    d1fC2C(1, 1, IBC_UDIRICHLET) = alpha1 ! not used
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2C or P2P : Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2/2 * (f_{3} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i] [ a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
+!-------------------------------------------------------------------------------
+    d1fC2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
     d1fC2C(1, 2, IBC_UDIRICHLET) = ONE
     d1fC2C(1, 3, IBC_UDIRICHLET) = alpha1
     d1rC2C(1, 1, IBC_UDIRICHLET) = a1
@@ -446,74 +441,95 @@ contains
     d1fC2C(2, 3, IBC_UDIRICHLET) = alpha2
     d1rC2C(2, 1, IBC_UDIRICHLET) = a2 / TWO
     d1rC2C(2, 2, IBC_UDIRICHLET) = b2 / FOUR ! not used
-    d1rC2C(2, 3, IBC_UDIRICHLET) = c2 ! not used
+    d1rC2C(2, 3, IBC_UDIRICHLET) = c2        ! not used
 
     d1fC2C(3, 1, IBC_UDIRICHLET) = alpha
     d1fC2C(3, 2, IBC_UDIRICHLET) = ONE
     d1fC2C(3, 3, IBC_UDIRICHLET) = alpha
-    d1rC2C(3, 1, IBC_UDIRICHLET) = a / TWO ! a/2
+    d1rC2C(3, 1, IBC_UDIRICHLET) = a / TWO  ! a/2
     d1rC2C(3, 2, IBC_UDIRICHLET) = b / FOUR ! b/4
-    d1rC2C(3, 3, IBC_UDIRICHLET) = c ! not used
+    d1rC2C(3, 3, IBC_UDIRICHLET) = c        ! not used
 
     d1fC2C(4, 1, IBC_UDIRICHLET) = alpha2
     d1fC2C(4, 2, IBC_UDIRICHLET) = ONE
     d1fC2C(4, 3, IBC_UDIRICHLET) = alpha2
     d1rC2C(4, 1, IBC_UDIRICHLET) = a2 / TWO
     d1rC2C(4, 2, IBC_UDIRICHLET) = b2 / FOUR ! not used
-    d1rC2C(4, 3, IBC_UDIRICHLET) = c2 ! not used
+    d1rC2C(4, 3, IBC_UDIRICHLET) = c2       ! not used
 
     d1fC2C(5, 1, IBC_UDIRICHLET) = alpha1
     d1fC2C(5, 2, IBC_UDIRICHLET) = ONE
-    d1fC2C(5, 3, IBC_UDIRICHLET) = alpha1 ! not used
+    d1fC2C(5, 3, IBC_UDIRICHLET) = ZERO ! not used
     d1rC2C(5, 1, IBC_UDIRICHLET) = -a1
     d1rC2C(5, 2, IBC_UDIRICHLET) = -b1
     d1rC2C(5, 3, IBC_UDIRICHLET) = -c1
-
+!-------------------------------------------------------------------------------
+! 1st-derivative : P2P : Dirichlet B.C. Same as C2C
+!-------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_UDIRICHLET) = d1fC2C(:, :, IBC_UDIRICHLET)
     d1rP2P(:, :, IBC_UDIRICHLET) = d1rC2C(:, :, IBC_UDIRICHLET)
-!______________________________________________________________________________!
-!1st derivative on staggered grids P2C and C2P
-!______________________________________________________________________________!
+!===============================================================================
+! 1st derivative on staggered grids P2C and C2P : Periodic or Symmetric B.C.
+! P2C ==>
+! alpha * f'_{i-1} +  f'_i +  alpha * f'_{i+1}  = a/(h ) * ( f_{i'+1} - f_{i'} ) + &
+!                                                 b/(3h) * ( f_{i'+2} - f_{i'-1} )
+! C2P ==>
+! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
+!                                                 b/(3h) * ( f_{i+1} - f_{i-2} )
+!===============================================================================
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
+          a = ONE
+          b = ZERO
+          c = ZERO ! not used
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-      a = NINE / EIGHT
-      b = -ONE / EIGHT
-      c = ZERO ! not used
+          a = NINE / EIGHT
+          b = -ONE / EIGHT
+          c = ZERO ! not used
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / TWENTYTWO
-      a = TWELVE / ELEVEN
-      b = ZERO
-      c = ZERO ! not used
+          a = TWELVE / ELEVEN
+          b = ZERO
+          c = ZERO ! not used
     else if (iaccu == IACCU_CP6) then
       alpha = NINE / SIXTYTWO
-      a = SIXTYTHREE / SIXTYTWO
-      b = SEVENTEEN / SIXTYTWO
-      c = ZERO ! not used
+          a = SIXTYTHREE / SIXTYTWO
+          b = SEVENTEEN / SIXTYTWO
+          c = ZERO ! not used
     else  ! default 2nd CD
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
-      
+          a = ONE
+          b = ZERO
+          c = ZERO ! not used
     end if
-
-    !C2P for periodic b.c.
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2P : periodic b.c. : staggered 
+! [ 1    alpha                   alpha][f'_1']=[a * (f_{1}   - f_{n})/h   + b/3 * (f_{2}   - f_{n-1})/h]
+! [      alpha 1     alpha            ][f'_2'] [a * (f_{1}   - f_{1})/h   + b/3 * (f_{3}   - f_{n})/h  ]
+! [            alpha 1     alpha      ][f'_i'] [a * (f_{i}   - f_{i-1})/h + b/3 * (f_{i+1} - f_{i-2})/h]
+! [                  alpha 1     alpha][f'_4'] [a * (f_{n-1} - f_{n-2})/h + b/3 * (f_{n}   - f_{n-3})/h]
+! [alpha                   alpha 1    ][f'_5'] [a * (f_{n}   - f_{n-1})/h + b/3 * (f_{1}   - f_{n-2})/h]
+!-------------------------------------------------------------------------------
     d1fC2P(1:5, 1, IBC_PERIODIC) = alpha
     d1fC2P(1:5, 2, IBC_PERIODIC) = ONE
     d1fC2P(1:5, 3, IBC_PERIODIC) = alpha
-    d1rC2P(1:5, 1, IBC_PERIODIC) = a ! a
+    d1rC2P(1:5, 1, IBC_PERIODIC) = a         ! a
     d1rC2P(1:5, 2, IBC_PERIODIC) = b / THREE ! b/3
-    d1rC2P(1:5, 3, IBC_PERIODIC) = c ! not used
-
-    !P2C for periodic b.c.
+    d1rC2P(1:5, 3, IBC_PERIODIC) = c         ! not used
+!-------------------------------------------------------------------------------
+! 1st-derivative : P2C : periodic b.c.  Same as C2P
+!-------------------------------------------------------------------------------
     d1fP2C(:, :, IBC_PERIODIC) = d1fC2P(:, :, IBC_PERIODIC)
     d1rP2C(:, :, IBC_PERIODIC) = d1rC2P(:, :, IBC_PERIODIC)
-
+!-------------------------------------------------------------------------------
+! 1st-derivative : P2C : symmetric b.c.
+! [ 1-alpha  alpha                          ][f'_1]=[a * (f_{2'}   - f_{1'})/h   + b/3 * (f_{3'}   - f_{2'})/h    ]
+! [          alpha 1     alpha              ][f'_2] [a * (f_{3'}   - f_{2'})/h   + b/3 * (f_{4'}   - f_{1'})/h    ]
+! [                alpha 1     alpha        ][f'_i] [a * (f_{i+1}  - f_{i-1})/h  + b/3 * (f_{i+2}  - f_{i-2})/h   ]
+! [                      alpha 1     alpha  ][f'_4] [a * (f_{n'}   - f_{n'-1})/h + b/3 * (f_{n'+1} - f_{n'-2})/h  ]
+! [                            alpha 1-alpha][f'_5] [a * (f_{n'+1} - f_{n'})/h   + b/3 * (f_{n'}   - f_{n'-1'})/h ]
+!-------------------------------------------------------------------------------
     !C2P for symmetric 
     d1fC2P(:, :, IBC_SYMMETRIC) = d1fP2P(:, :, IBC_SYMMETRIC)
     d1rC2P(:, :, IBC_SYMMETRIC) = d1rC2P(:, :, IBC_PERIODIC)
@@ -522,75 +538,50 @@ contains
     d1fP2C(:, :, IBC_SYMMETRIC) = d1fC2C(:, :, IBC_SYMMETRIC)
     d1rP2C(:, :, IBC_SYMMETRIC) = d1rC2P(:, :, IBC_SYMMETRIC)
 
-    !C2P for asymmetric 
-    d1fC2P(:, :, IBC_ASYMMETRIC) = d1fC2P(:, :, IBC_SYMMETRIC)
-    d1rC2P(:, :, IBC_ASYMMETRIC) = d1rC2P(:, :, IBC_SYMMETRIC)
-
-    !P2C for asymmetric 
-    d1fP2C(:, :, IBC_ASYMMETRIC) = d1fP2C(:, :, IBC_SYMMETRIC)
-    d1rP2C(:, :, IBC_ASYMMETRIC) = d1rP2C(:, :, IBC_SYMMETRIC)
-
-    !P2C for Dirichlet B.C.
-    if (iaccu == IACCU_CD2) then
+!-------------------------------------------------------------------------------
+! 1st-derivative : P2C : Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1'}/h  + b1 * f_{2'}/h + c1 * f_{3'}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2 * (f_{3'} - f_{2'})/h  ]
+! [       alpha  1      alpha               ][f'_i] [a *  (f_{i'+1} - f_{i'})/h + b/3 * (f_{i'+2} - f_{i'-1})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2 * (f_{n'} - f_{n'-1})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n'+1}/h  - b1 * f_{n'}/h - c1 * f_{n'-1}/h]
+!-------------------------------------------------------------------------------
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then
       alpha1 = ZERO
-      a1 = -ONE
-      b1 = ONE
-      c1 = ZERO
+          a1 = -ONE
+          b1 = ONE
+          c1 = ZERO
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
-      alpha1 = ZERO
-      a1 = -ONE
-      b1 = ONE
-      c1 = ZERO
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
       alpha1 = -ONE
-      a1 = -ONE
-      b1 = TWO
-      c1 = -ONE
+          a1 = -ONE
+          b1 = TWO
+          c1 = -ONE
 
       alpha2 = ONE / TWENTYTWO
-      a2 = TWELVE / ELEVEN
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
-
-      alpha1 = -ONE
-      a1 = -ONE
-      b1 = TWO
-      c1 = -ONE
-
-      alpha2 = ONE / TWENTYTWO
-      a2 = TWELVE / ELEVEN
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = TWELVE / ELEVEN
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
       
     else  ! default 2nd CD
       alpha1 = ZERO
-      a1 = -ONE
-      b1 = ONE
-      c1 = ZERO
+          a1 = -ONE
+          b1 = ONE
+          c1 = ZERO
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
     end if
 
-    d1fP2C(1, 1, IBC_UDIRICHLET) = alpha1 ! not used
+    d1fP2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
     d1fP2C(1, 2, IBC_UDIRICHLET) = ONE
     d1fP2C(1, 3, IBC_UDIRICHLET) = alpha1
     d1rP2C(1, 1, IBC_UDIRICHLET) = a1
@@ -620,74 +611,57 @@ contains
 
     d1fP2C(5, 1, IBC_UDIRICHLET) = alpha1
     d1fP2C(5, 2, IBC_UDIRICHLET) = ONE
-    d1fP2C(5, 3, IBC_UDIRICHLET) = alpha1 ! not used
+    d1fP2C(5, 3, IBC_UDIRICHLET) = ZERO ! not used
     d1rP2C(5, 1, IBC_UDIRICHLET) = -a1
     d1rP2C(5, 2, IBC_UDIRICHLET) = -b1
     d1rP2C(5, 3, IBC_UDIRICHLET) = -c1
 
-    !C2P for Dirichlet B.C.
-    if (iaccu == IACCU_CD2) then
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2P : Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1']=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2'] [a2 * (f_{2} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i'] [a *  (f_{i} - f_{i-1})/h + b/3 * (f_{i+1} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4'] [a2 * (f_{n-1} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5'] [-a1 * f_{n-1}/h  - b1 * f_{n-2}/h - c1 * f_{n-3}/h]
+!-------------------------------------------------------------------------------
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
-      a1 = -TWO
-      b1 = THREE
-      c1 = -ONE
+          a1 = -TWO
+          b1 = THREE
+          c1 = -ONE
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
-      alpha1 = ZERO
-      a1 = -TWO
-      b1 = THREE
-      c1 = -ONE
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
       alpha1 = TWENTYTHREE
-      a1 = -TWENTYFIVE
-      b1 = TWENTYSIX
-      c1 = -ONE
+          a1 = -TWENTYFIVE
+          b1 = TWENTYSIX
+          c1 = -ONE
 
       alpha2 = ONE / TWENTYTWO
-      a2 = TWELVE / ELEVEN
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
-
-      alpha1 = TWENTYTHREE
-      a1 = -TWENTYFIVE
-      b1 = TWENTYSIX
-      c1 = -ONE
-
-      alpha2 = ONE / TWENTYTWO
-      a2 = TWELVE / ELEVEN
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = TWELVE / ELEVEN
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
       
     else  ! default 2nd CD
-      alpha1 = ZERO
-      a1 = -TWO
-      b1 = THREE
-      c1 = -ONE
+     alpha1 = ZERO
+          a1 = -TWO
+          b1 = THREE
+          c1 = -ONE
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
     end if
 
-    d1fC2P(1, 1, IBC_UDIRICHLET) = alpha1 ! not used
+    d1fC2P(1, 1, IBC_UDIRICHLET) = ZERO ! not used
     d1fC2P(1, 2, IBC_UDIRICHLET) = ONE
     d1fC2P(1, 3, IBC_UDIRICHLET) = alpha1
     d1rC2P(1, 1, IBC_UDIRICHLET) = a1
@@ -717,47 +691,57 @@ contains
 
     d1fC2P(5, 1, IBC_UDIRICHLET) = alpha1
     d1fC2P(5, 2, IBC_UDIRICHLET) = ONE
-    d1fC2P(5, 3, IBC_UDIRICHLET) = alpha1 ! not used
+    d1fC2P(5, 3, IBC_UDIRICHLET) = ZERO ! not used
     d1rC2P(5, 1, IBC_UDIRICHLET) = -a1
     d1rC2P(5, 2, IBC_UDIRICHLET) = -b1
     d1rC2P(5, 3, IBC_UDIRICHLET) = -c1
 
-!______________________________________________________________________________!
-!interpolation. P2C and C2P
-!______________________________________________________________________________!
+!===============================================================================
+!interpolation. P2C and C2P Periodic or Symmetric B.C.
+! P2C : i_max = nc
+! alpha * f_{i-1} + f_i + alpha * f_{i+1} =    a/2 * ( f_{i'}   + f_{i'+1} ) + &
+!                                              b/2 * ( f_{i'+2} + f_{i'-1} )
+! C2P : i'_max = np
+! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
+!                                              b/2 * ( f_{i+1} + f_{i-2} )
+!===============================================================================
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
+          a = ONE
+          b = ZERO
+          c = ZERO ! not used
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-      a = NINE / EIGHT
-      b = -ONE / EIGHT
-      c = ZERO ! not used
+          a = NINE / EIGHT
+          b = -ONE / EIGHT
+          c = ZERO ! not used
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / SIX
-      a = FOUR / THREE
-      b = ZERO
-      c = ZERO ! not used
+          a = FOUR / THREE
+          b = ZERO
+          c = ZERO ! not used
     else if (iaccu == IACCU_CP6) then
       alpha = THREE / TEN
-      a = THREE / TWO
-      b = ONE / TEN
-      c = ZERO ! not used
+          a = THREE / TWO
+          b = ONE / TEN
+          c = ZERO ! not used
     else  ! default 2nd CD
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
+          a = ONE
+          b = ZERO
+          c = ZERO ! not used
     end if
-
-    !C2P: i'_max = np
-    !     alpha * f_{i'-1} + f_{i'} + f_{i'+1} = b/2 * (f_{i+1} + f_{i-2}) + a/2 * (f_{i} + f_{i-1})
-    !P2C: i_max = nc
-    !     alpha * f_{i-1} + f_{i} + f_{i+1} = b/2 * (f_{i'+2} + f_{i'-1}) + a/2 * (f_{i'} + f_{i'+1})
-
-    !C2P for periodic b.c.
+!-------------------------------------------------------------------------------
+! interpolation. C2P: periodic & symmetric 
+! [ 1    alpha                   alpha][f_1']=[a/2 * (f_{1}   + f_{n})   + b/2 * (f_{2}   + f_{n-1})]
+! [      alpha 1     alpha            ][f_2'] [a/2 * (f_{3}   + f_{n})   + b/2 * (f_{2}   + f_{1})  ]
+! [            alpha 1     alpha      ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
+! [                  alpha 1     alpha][f_4'] [a/2 * (f_{n}   + f_{n-3}) + b/2 * (f_{n-1} + f_{n-2})]
+! [alpha                   alpha 1    ][f_5'] [a/2 * (f_{1}   + f_{n-2}) + b/2 * (f_{n}   + f_{n-1})]
+!-----------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+!interpolation. C2P for periodic b.c.
+!-------------------------------------------------------------------------------
     m1fC2P(1:5, 1, IBC_PERIODIC) = alpha
     m1fC2P(1:5, 2, IBC_PERIODIC) = ONE
     m1fC2P(1:5, 3, IBC_PERIODIC) = alpha
@@ -765,11 +749,14 @@ contains
     m1rC2P(1:5, 2, IBC_PERIODIC) = b / TWO
     m1rC2P(1:5, 3, IBC_PERIODIC) = c ! not used
 
-    !P2C for periodic b.c.
+!-------------------------------------------------------------------------------
+!interpolation. P2C for periodic b.c.
+!-------------------------------------------------------------------------------
     m1fP2C(:, :, IBC_PERIODIC) = m1fC2P(:, :, IBC_PERIODIC)
     m1rP2C(:, :, IBC_PERIODIC) = m1rC2P(:, :, IBC_PERIODIC)
-
-    !C2P for symmetric, orthogonal, eg. u in y direction.
+!-------------------------------------------------------------------------------
+!interpolation. C2P. symmetric, orthogonal, eg. u in y direction.
+!-------------------------------------------------------------------------------
     m1fC2P(1, 1, IBC_SYMMETRIC) = ZERO ! not used
     m1fC2P(1, 2, IBC_SYMMETRIC) = ONE
     m1fC2P(1, 3, IBC_SYMMETRIC) = alpha + alpha
@@ -785,25 +772,9 @@ contains
     m1rC2P(1:5, 1, IBC_SYMMETRIC) = a / TWO
     m1rC2P(1:5, 2, IBC_SYMMETRIC) = b / TWO
     m1rC2P(1:5, 3, IBC_SYMMETRIC) = ZERO ! not used. 
-
-    !C2P for symmetric, parallel, eg. v in y direction.
-    m1fC2P(1, 1, IBC_ASYMMETRIC) = ZERO ! not used
-    m1fC2P(1, 2, IBC_ASYMMETRIC) = ONE
-    m1fC2P(1, 3, IBC_ASYMMETRIC) = alpha - alpha
-
-    m1fC2P(2:4, 1, IBC_ASYMMETRIC) = alpha
-    m1fC2P(2:4, 2, IBC_ASYMMETRIC) = ONE
-    m1fC2P(2:4, 3, IBC_ASYMMETRIC) = alpha
-
-    m1fC2P(5, 1, IBC_ASYMMETRIC) = alpha - alpha
-    m1fC2P(5, 2, IBC_ASYMMETRIC) = ONE
-    m1fC2P(5, 3, IBC_ASYMMETRIC) = ZERO ! not used.
-
-    m1rC2P(1:5, 1, IBC_ASYMMETRIC) = a / TWO
-    m1rC2P(1:5, 2, IBC_ASYMMETRIC) = b / TWO
-    m1rC2P(1:5, 3, IBC_ASYMMETRIC) = ZERO ! not used. 
-
-    !P2C for symmetric, orthogonal, eg. u in y direction.
+!-------------------------------------------------------------------------------
+!interpolation. P2C. symmetric, orthogonal, eg. u in y direction.
+!-------------------------------------------------------------------------------
     m1fP2C(1, 1, IBC_SYMMETRIC) = ZERO ! not used
     m1fP2C(1, 2, IBC_SYMMETRIC) = ONE + alpha
     m1fP2C(1, 3, IBC_SYMMETRIC) = alpha
@@ -820,82 +791,42 @@ contains
     m1rP2C(1:5, 2, IBC_SYMMETRIC) = b / TWO
     m1rP2C(1:5, 3, IBC_SYMMETRIC) = ZERO ! not used. 
 
-    !P2C for symmetric, parallel, eg. v in y direction.
-    m1fP2C(1, 1, IBC_ASYMMETRIC) = ZERO ! not used
-    m1fP2C(1, 2, IBC_ASYMMETRIC) = ONE - alpha
-    m1fP2C(1, 3, IBC_ASYMMETRIC) = alpha
-
-    m1fP2C(2:4, 1, IBC_ASYMMETRIC) = alpha
-    m1fP2C(2:4, 2, IBC_ASYMMETRIC) = ONE
-    m1fP2C(2:4, 3, IBC_ASYMMETRIC) = alpha
-
-    m1fP2C(5, 1, IBC_ASYMMETRIC) = alpha
-    m1fP2C(5, 2, IBC_ASYMMETRIC) = ONE - alpha
-    m1fP2C(5, 3, IBC_ASYMMETRIC) = ZERO ! not used.
-
-    m1rP2C(1:5, 1, IBC_ASYMMETRIC) = a / TWO
-    m1rP2C(1:5, 2, IBC_ASYMMETRIC) = b / TWO
-    m1rP2C(1:5, 3, IBC_ASYMMETRIC) = ZERO ! not used. 
-
-    !P2C for Dirichlet B.C.
-    if (iaccu == IACCU_CD2) then
+!-------------------------------------------------------------------------------
+!interpolation. P2C. Dirichlet B.C.
+!-------------------------------------------------------------------------------
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
       alpha1 = ZERO
-      a1 = THREE / EIGHT
-      b1 = THREE / FOUR
-      c1 = -ONE / EIGHT
+          a1 = THREE / EIGHT
+          b1 = THREE / FOUR
+          c1 = -ONE / EIGHT
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
-      alpha1 = ZERO
-      a1 = THREE / EIGHT
-      b1 = THREE / FOUR
-      c1 = -ONE / EIGHT
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
       alpha1 = ONE
-      a1 = ONE / FOUR
-      b1 = THREE / TWO
-      c1 = ONE / FOUR
+          a1 = ONE / FOUR
+          b1 = THREE / TWO
+          c1 = ONE / FOUR
 
       alpha2 = ONE / SIX
-      a2 = FOUR / THREE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = FOUR / THREE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
-
-      alpha1 = ONE
-      a1 = ONE / FOUR
-      b1 = THREE / TWO
-      c1 = ONE / FOUR
-
-      alpha2 = ONE / SIX
-      a2 = FOUR / THREE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-      
     else  ! default 2nd CD
       alpha1 = ZERO
-      a1 = THREE / EIGHT
-      b1 = THREE / FOUR
-      c1 = -ONE / EIGHT
+          a1 = THREE / EIGHT
+          b1 = THREE / FOUR
+          c1 = -ONE / EIGHT
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-      
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
     end if
     !P2C
     m1fP2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
@@ -933,66 +864,49 @@ contains
     m1rP2C(5, 2, IBC_UDIRICHLET) = b1
     m1rP2C(5, 3, IBC_UDIRICHLET) = c1
 
-    !C2P for Dirichlet B.C.
-    if (iaccu == IACCU_CD2) then
+!-------------------------------------------------------------------------------
+! interpolation. C2P: Dirichlet
+! [ 1    alpha1                          ][f_1']=[a1 * f_{1} + b1 * f_{2} + c1 * f_{3}  ]
+! [      alpha2 1     alpha2             ][f_2'] [a2/2 * (f_{2}   + f_{1})]
+! [             alpha 1      alpha       ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
+! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n-1}   + f_{n-2})]
+! [                          alpha1 1    ][f_5'] [a1 * f_{n-1} + b1 * f_{n-2} + c1 * f_{n-3}]
+!-----------------------------------------------------------------------------
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
-      a1 = FIFTEEN / EIGHT
-      b1 = - FIVE / FOUR
-      c1 = THREE / EIGHT
+          a1 = FIFTEEN / EIGHT
+          b1 = - FIVE / FOUR
+          c1 = THREE / EIGHT
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
-      alpha1 = ZERO
-      a1 = FIFTEEN / EIGHT
-      b1 = - FIVE / FOUR
-      c1 = THREE / EIGHT
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
       alpha1 = FIVE
-      a1 = FIFTEEN / FOUR
-      b1 = FIVE / TWO
-      c1 = -ONE / FOUR
+          a1 = FIFTEEN / FOUR
+          b1 = FIVE / TWO
+          c1 = -ONE / FOUR
 
       alpha2 = ONE / SIX 
-      a2 = FOUR / THREE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = FOUR / THREE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
-
-      alpha1 = FIVE
-      a1 = FIFTEEN / FOUR
-      b1 = FIVE / TWO
-      c1 = -ONE / FOUR
-
-      alpha2 = ONE / SIX
-      a2 = FOUR / THREE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
-      
     else  ! default 2nd CD
 
       alpha1 = ZERO
-      a1 = FIFTEEN / EIGHT
-      b1 = - FIVE / FOUR
-      c1 = THREE / EIGHT
+          a1 = FIFTEEN / EIGHT
+          b1 = - FIVE / FOUR
+          c1 = THREE / EIGHT
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO ! not used
-      c2 = ZERO ! not used
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
      
     end if
 
