@@ -31,7 +31,7 @@ module geometry_mod
   !private
   private :: Buildup_grid_mapping_1D
   private :: Buildup_neibour_index
-  public  :: Initialize_geometry_variables
+  public  :: Buildup_geometry_mesh_info
   
 contains
 !===============================================================================
@@ -187,9 +187,10 @@ contains
 ! Local arguments
 !===============================================================================
     integer(4) :: i
-!===============================================================================
-! Code
-!===============================================================================
+!-------------------------------------------------------------------------------
+! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
+!  i -2       i - 1     i    i + 1      i + 2
+!-------------------------------------------------------------------------------
     nbr(:, :) = huge(i)
 
     do i = 3, n
@@ -222,107 +223,77 @@ contains
   end subroutine
 !===============================================================================
 !===============================================================================
-!> \brief The main code for initializing the geometry, mesh and index.
-!>
-!> This subroutine is used once in \ref Initialize_chapsim. It builds up the udf
-!> domain. Currently only one domain is defined, and it could extend to multiple
-!> domain simulations.
-!> [mpi] all ranks
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Initialize_geometry_variables ()
-!===============================================================================
-! Module files
-!===============================================================================
+  subroutine Buildup_geometry_mesh_info (dm)
     use mpi_mod
     use input_general_mod
     use math_mod
     use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR
     implicit none
-!===============================================================================
-! Local arguments
-!===============================================================================
+    type(t_domain), intent(inout) :: dm
     integer(4) :: i
     logical    :: dbg = .false.
-!===============================================================================
-! Code
-!===============================================================================
+
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric information ...")
     ! Build up domain info
-    domain%case   = icase
 
-    domain%bc(:, 1) = ifbcx(:)
-    domain%bc(:, 2) = ifbcy(:)
-    domain%bc(:, 3) = ifbcz(:)
+    dm%is_periodic(:) == .false.
+    if(dm%ibcx(1, 1) == IBC_PERIODIC) dm%is_periodic(1) = .true.
+    if(dm%ibcy(1, 1) == IBC_PERIODIC) dm%is_periodic(2) = .true.
+    if(dm%ibcz(1, 1) == IBC_PERIODIC) dm%is_periodic(3) = .true.
 
-    domain%ubc(:, 1) = uxinf(:)
-    domain%ubc(:, 2) = uyinf(:)
-    domain%ubc(:, 3) = uzinf(:)
-
-    domain%is_periodic(:) = is_periodic(:)
-
-    domain%nc(1) = ncx
-    domain%nc(2) = ncy
-    domain%nc(3) = ncz
-
-    domain%np_geo(1) = ncx + 1 
-    domain%np_geo(2) = ncy + 1
-    domain%np_geo(3) = ncz + 1
+    dm%np_geo(1) = dm%nc(1) + 1 
+    dm%np_geo(2) = dm%nc(2) + 1
+    dm%np_geo(3) = dm%nc(3) + 1
 
     do i = 1, 3
-      if ( domain%is_periodic(i) ) then
-        domain%np(i) = domain%nc(i)
+      if ( dm%is_periodic(i) ) then
+        dm%np(i) = dm%nc(i)
       else 
-        domain%np(i) = domain%np_geo(i)
+        dm%np(i) = dm%np_geo(i)
       end if
     end do
 
-    domain%is_stretching(:) = .false.
-    if (istret /= ISTRET_NO) domain%is_stretching(2) = .true.
+    dm%is_stretching(:) = .false.
+    if (dm%istret /= ISTRET_NO) dm%is_stretching(2) = .true.
     
-    if(domain%is_stretching(2)) then
-      domain%h(2) = ONE / real(domain%nc(2), WP)
+    if(dm%is_stretching(2)) then
+      dm%h(2) = ONE / real(dm%nc(2), WP)
     else 
-      domain%h(2) = (lyt - lyb) / real(domain%nc(2), WP) ! mean dy
+      dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) ! mean dy
     end if
-    domain%h(1) = lxx / real(domain%nc(1), WP)
-    domain%h(3) = lzz / real(domain%nc(3), WP)
-    domain%h2r(:) = ONE / domain%h(:) / domain%h(:)
-    domain%h1r(:) = ONE / domain%h(:)
+    dm%h(1) = dm%lxx / real(dm%nc(1), WP)
+    dm%h(3) = dm%lzz / real(dm%nc(3), WP)
+    dm%h2r(:) = ONE / dm%h(:) / dm%h(:)
+    dm%h1r(:) = ONE / dm%h(:)
 
     !build up index sequence for bulk part (no b.c. except periodic)
-    allocate ( domain%iNeighb( 4, domain%np(1) ) ); domain%iNeighb =  0
-    allocate ( domain%jNeighb( 4, domain%np(2) ) ); domain%jNeighb =  0
-    allocate ( domain%kNeighb( 4, domain%np(3) ) ); domain%kNeighb =  0
+    allocate ( dm%iNeighb( 4, dm%np(1) ) ); dm%iNeighb =  0
+    allocate ( dm%jNeighb( 4, dm%np(2) ) ); dm%jNeighb =  0
+    allocate ( dm%kNeighb( 4, dm%np(3) ) ); dm%kNeighb =  0
 
-    call Buildup_neibour_index (domain%np(1), domain%is_periodic(1), domain%iNeighb(:, :) )
-    call Buildup_neibour_index (domain%np(2), domain%is_periodic(2), domain%jNeighb(:, :) )
-    call Buildup_neibour_index (domain%np(3), domain%is_periodic(3), domain%kNeighb(:, :) )
+    call Buildup_neibour_index (dm%np(1), dm%is_periodic(1), dm%iNeighb(:, :) )
+    call Buildup_neibour_index (dm%np(2), dm%is_periodic(2), dm%jNeighb(:, :) )
+    call Buildup_neibour_index (dm%np(3), dm%is_periodic(3), dm%kNeighb(:, :) )
 
     ! allocate  variables for mapping physical domain to computational domain
-    allocate ( domain%yp( domain%np_geo(2) ) ); domain%yp(:) = ZERO
-    allocate ( domain%yc( domain%nc(2) ) ); domain%yc(:) = ZERO
+    allocate ( dm%yp( dm%np_geo(2) ) ); dm%yp(:) = ZERO
+    allocate ( dm%yc( dm%nc(2) ) ); dm%yc(:) = ZERO
 
-    allocate ( domain%yMappingpt( domain%np_geo(2), 3 ) ); domain%yMappingpt(:, :) = ONE
-    allocate ( domain%yMappingcc( domain%nc(2),     3 ) ); domain%yMappingcc(:, :) = ONE
+    allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) ); dm%yMappingpt(:, :) = ONE
+    allocate ( dm%yMappingcc( dm%nc(2),     3 ) ); dm%yMappingcc(:, :) = ONE
 
-    call Buildup_grid_mapping_1D ('nd', domain%np_geo(2), domain%yp(:), domain%yMappingPt(:, :))
-    call Buildup_grid_mapping_1D ('cl', domain%nc(2),     domain%yc(:), domain%yMappingcc(:, :))
+    call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm%yp(:), dm%yMappingPt(:, :))
+    call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm%yc(:), dm%yMappingcc(:, :))
 
     ! print out for debugging
     if(dbg) then
-      do i = 1, domain%np_geo(2)
-        write(*, '(I5, 1F8.4)') i, domain%yp(i)
+      do i = 1, dm%np_geo(2)
+        write(*, '(I5, 1F8.4)') i, dm%yp(i)
       end do
     end if
 
     if(nrank == 0) call Print_debug_end_msg
     return
-  end subroutine  Initialize_geometry_variables
+  end subroutine  Buildup_geometry_mesh_info
 end module geometry_mod
 

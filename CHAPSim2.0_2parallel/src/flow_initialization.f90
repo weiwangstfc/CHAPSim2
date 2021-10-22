@@ -21,7 +21,7 @@
 !> \brief Define and initialise flow and thermal variables.
 !>
 !===============================================================================
-module flow_variables_mod
+module flow_thermo_initialiasation
   use type_vars_mod
   implicit none
 
@@ -33,12 +33,15 @@ module flow_variables_mod
   private :: Initialize_thermal_variables
   private :: Generate_random_field
 
+  private  :: Allocate_thermoflow_variables
+  private  :: Initialize_flow_variables
+
   public  :: Calculate_xz_mean
   public  :: Check_maximum_velocity
-  public  :: Allocate_thermoflow_variables
-  public  :: Initialize_flow_variables
+  
   public  :: Calculate_RePrGr
   public  :: Validate_TGV2D_error
+  public  :: Initialize_flow_thermal_fields
 
 contains
 !===============================================================================
@@ -97,7 +100,7 @@ contains
     call alloc_x(f%my_rhs0, d%dcpc) ; f%my_rhs0 = ZERO
     call alloc_x(f%mz_rhs0, d%dccp) ; f%mz_rhs0 = ZERO
 
-    if(ithermo == 1) then
+    if(d%ithermo == 1) then
       call alloc_x(t%dh,    d%dccc) ; f%dh    = ZERO
       call alloc_x(t%hEnth, d%dccc) ; f%hEnth = ZERO
       call alloc_x(t%kCond, d%dccc) ; f%kCond = ONE
@@ -124,25 +127,31 @@ contains
 !> \param[inout]  f             flow type
 !> \param[inout]  t             thermo type
 !_______________________________________________________________________________
-  subroutine Initialize_thermal_variables (f, t)
-    use input_general_mod, only : tiRef, t0Ref
-    use input_thermo_mod, only : tpIni
+  subroutine Initialize_thermal_variables (f, t, d)
+    use parameters_constant_mod
+    use input_thermo_mod
     implicit none
     type(t_flow),   intent(inout) :: f
     type(t_thermo), intent(inout) :: t
-    logical :: is_dim
-  
-    tpIni%t = tiRef / t0Ref
-    is_dim = .false.
-    call tpIni%Refresh_thermal_properties_from_T(is_dim)
+    type(t_domain), intent(in)    :: d
+    
+    type(thermoProperty_t) :: tp_ini
+    integer :: i
+!-------------------------------------------------------------------------------
+!   initialize thermo fields
+!-------------------------------------------------------------------------------
+    tp_ini = t%tpIni
+    tp_ini%t = t%tiRef / t%t0Ref
 
-    f%dDens(:, :, :)  = tpIni%d
-    f%mVisc(:, :, :)  = tpIni%m
+    call tp_ini%Refresh_thermal_properties_from_T_undim
 
-    t%dh    = tpIni%dh
-    t%hEnth = tpIni%h
-    t%kCond = tpIni%k
-    t%tTemp = tpIni%t
+    f%dDens(:, :, :) = tp_ini%d
+    f%mVisc(:, :, :) = tp_ini%m
+
+    t%dh   (:, :, :) = tp_ini%dh
+    t%hEnth(:, :, :) = tp_ini%h
+    t%kCond(:, :, :) = tp_ini%k
+    t%tTemp(:, :, :) = tp_ini%t
 
     return
   end subroutine Initialize_thermal_variables
@@ -399,15 +408,15 @@ contains
 
     ymax = d%yp( d%np_geo(2) )
     ymin = d%yp( 1 )
-    if (d%case == ICASE_CHANNEL) then
+    if (d%icase == ICASE_CHANNEL) then
       a = (ymax - ymin) / TWO
       b = ZERO
       c = ONEPFIVE
-    else if (d%case == ICASE_PIPE) then
+    else if (d%icase == ICASE_PIPE) then
       a = (ymax - ymin)
       b = ZERO
       c = TWO
-    else if (d%case == ICASE_ANNUAL) then
+    else if (d%icase == ICASE_ANNUAL) then
       a = (ymax - ymin) / TWO
       b = (ymax + ymin) / TWO
       c = TWO
@@ -426,7 +435,7 @@ contains
   end subroutine Generate_poiseuille_flow_profile
 !===============================================================================
 !===============================================================================
-  subroutine Generate_random_field(ux, uy, uz, d)
+  subroutine Generate_random_field(ux, uy, uz, lnoise, d)
     use random_number_generation_mod
     use parameters_constant_mod, only : ZERO, ONE
     use input_general_mod
@@ -436,6 +445,7 @@ contains
     real(WP),    intent(inout) :: ux(:, :, :)
     real(WP),    intent(inout) :: uy(:, :, :)
     real(WP),    intent(inout) :: uz(:, :, :)
+    real(WP),    intent(in)    :: lnoise
     integer(4) :: seed, i, j, k, ii, jj, kk
 !-------------------------------------------------------------------------------
 !   Ensure it is in x-pencil
@@ -462,7 +472,7 @@ contains
               seed = ii + jj + kk
               call Initialize_random_number ( seed )
               call Generate_r_random( -ONE, ONE, rd)
-              ux(i, j, k) = initNoise * rd
+              ux(i, j, k) = lnoise * rd
             end if
           end do
         end if
@@ -483,7 +493,7 @@ contains
               seed = seed + ii + jj + kk
               call Initialize_random_number ( seed )
               call Generate_r_random( -ONE, ONE, rd)
-              uy(i, j, k) = initNoise * rd
+              uy(i, j, k) = lnoise * rd
             end if
           end do
         end if
@@ -504,7 +514,7 @@ contains
               seed = seed + ii + jj + kk
               call Initialize_random_number ( seed )
               call Generate_r_random( -ONE, ONE, rd)
-              uz(i, j, k) = initNoise * rd
+              uz(i, j, k) = lnoise * rd
             end if
           end do
         end if
@@ -527,7 +537,7 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine Initialize_poiseuille_flow(ux, uy, uz, p, d)
+  subroutine Initialize_poiseuille_flow(ux, uy, uz, p, lnoise, d)
     use input_general_mod
     use udf_type_mod
     use boundary_conditions_mod
@@ -536,7 +546,8 @@ contains
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
-                                     p (:, :, :)            
+                                     p (:, :, :)    
+    real(WP), intent(in) :: lnoise        
     real(WP) :: ufyc(d%nc(2))
     integer :: seed
     real(WP) :: rd
@@ -562,7 +573,7 @@ contains
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
     seed = 0
-    call Generate_random_field(ux, uy, uz, d)
+    call Generate_random_field(ux, uy, uz, lnoise, d)
 !-------------------------------------------------------------------------------
 !   x-pencil : build up boundary
 !-------------------------------------------------------------------------------
@@ -1055,12 +1066,12 @@ contains
     end interface
 
     if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
-    call Calculate_RePrGr(f, t, 0)
+
 !-------------------------------------------------------------------------------
 ! to initialize thermal variables 
 !-------------------------------------------------------------------------------
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
-    if (ithermo == 1) then
+    if (d%ithermo == 1) then
       call Initialize_thermal_variables (f, t)
     else
       f%dDens(:, :, :) = ONE
@@ -1070,10 +1081,10 @@ contains
 ! to initialize flow velocity and pressure
 !-------------------------------------------------------------------------------
     if(nrank == 0) call Print_debug_mid_msg("Initializing flow field ...")
-    if ( (icase == ICASE_CHANNEL) .or. &
-         (icase == ICASE_PIPE) .or. &
-         (icase == ICASE_ANNUAL) ) then
-      call Initialize_poiseuille_flow    (f%qx, f%qy, f%qz, f%pres, d)
+    if ( (d%icase == ICASE_CHANNEL) .or. &
+         (d%icase == ICASE_PIPE) .or. &
+         (d%icase == ICASE_ANNUAL) ) then
+      call Initialize_poiseuille_flow    (f%qx, f%qy, f%qz, f%pres, f%initNoise, d)
     else if (icase == ICASE_TGV2D) then
       call Initialize_vortexgreen_2dflow (f%qx, f%qy, f%qz, f%pres, d)
     else if (icase == ICASE_TGV3D) then
@@ -1094,7 +1105,7 @@ contains
 !-------------------------------------------------------------------------------
 ! to update mass flux terms 
 !-------------------------------------------------------------------------------
-    if (ithermo == 1) then
+    if (d%ithermo == 1) then
       call Calculate_massflux_from_velocity (f, d)
     else
       f%gx(:, :, :) = f%qx(:, :, :)
@@ -1141,38 +1152,39 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  
 !_______________________________________________________________________________
-  subroutine Calculate_RePrGr(f, t, iter)
+  subroutine Calculate_RePrGr(f, t, d, iter)
     use input_general_mod
     use input_thermo_mod, only : tpRef0
     use parameters_constant_mod, only : GRAVITY, ONE
     use udf_type_mod, only : t_flow, t_thermo
     implicit none
+    type(t_domain), intent(in   ) :: d
     type(t_flow),   intent(inout) :: f
     type(t_thermo), intent(inout) :: t
     integer(4),     intent(in   ) :: iter  
   
     real(WP) :: u0
   
-    if(iter < nIterIniRen) then
-      f%rre = ONE / renIni
+    if(iter < f%nIterIniRen) then
+      f%rre = ONE / f%renIni
     else
-      f%rre = ONE / ren
+      f%rre = ONE / f%ren
     end if
   
-    if(ithermo == 1) then
+    if(d%ithermo == 1) then
   
       t%rPrRen = f%rre * tpRef0%k / tpRef0%m / tpRef0%cp
   
-      u0 = ONE / f%rre * tpRef0%m / tpRef0%d / lenRef
-      if (igravity == 0) then
+      u0 = ONE / f%rre * tpRef0%m / tpRef0%d / t%lenRef
+      if (t%igravity == 0) then
         ! no gravity
         f%fgravity = ZERO
-      else if (igravity == 1 .or. igravity == 2 .or. igravity == 3 ) then 
+      else if (t%igravity == 1 .or. t%igravity == 2 .or. t%igravity == 3 ) then 
         ! flow/gravity same dirction
-        f%fgravity =  lenRef / u0 / u0 * GRAVITY
-      else if (igravity == -1 .or. igravity == -2 .or. igravity == -3 ) then 
+        f%fgravity =  t%lenRef / u0 / u0 * GRAVITY
+      else if (t%igravity == -1 .or. t%igravity == -2 .or. t%igravity == -3 ) then 
         ! flow/gravity opposite dirction
-        f%fgravity = -lenRef / u0 / u0 * GRAVITY
+        f%fgravity = -t%lenRef / u0 / u0 * GRAVITY
       else
         ! no gravity
         f%fgravity = ZERO
@@ -1183,4 +1195,49 @@ contains
     return
   end subroutine Calculate_RePrGr
 
-end module flow_variables_mod
+  !===============================================================================
+!===============================================================================
+!> \brief Initialisation and preprocessing of the flow field
+!>
+!> This subroutine is called at beginning of the main program
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
+  subroutine Initialize_flow_thermal_fields ()
+    use input_general_mod
+    implicit none
+
+    logical :: itest = .false.
+    integer :: i
+
+    do i = 1, ndomain
+      call Allocate_thermoflow_variables (domain(i), flow(i), thermo(i))
+      call Calculate_RePrGr(flow(i), thermo(i), 0)
+      if (irestart == INITIAL_RANDOM) then
+        call Initialize_flow_variables ( domain(i), flow(i), thermo(i) )
+        flow(i)%time = ZERO
+        thermo(i)%time = ZERO 
+      else if (irestart == INITIAL_RESTART) then
+
+      else if (irestart == INITIAL_INTERPL) then
+
+      else
+        call Print_error_msg("Error in flow initialisation flag.")
+      end if
+    end do
+
+  !-------------------------------------------------------------------------------
+  ! to test algorithms based on given values.
+  !-------------------------------------------------------------------------------
+    if(itest) call Test_schemes()
+    
+    return
+  end subroutine Initialize_flow_thermal_fields
+
+end module flow_thermo_initialiasation

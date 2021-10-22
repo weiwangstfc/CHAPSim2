@@ -1,9 +1,32 @@
 module boundary_conditions_mod
 
-
+  public :: Apply_BC_thermo
   public :: Apply_BC_velocity
 
 contains
+
+  subroutine Apply_BC_thermo(t, d)
+    use input
+!-------------------------------------------------------------------------------
+!   Build up B.C. info, undimensional, constant temperature
+!-------------------------------------------------------------------------------
+    do i = 1, 2
+      if( d%ibcx(5, i) = IBC_DIRICHLET ) then
+        tpbcx(i)%t = d%fbcx(5, i) / t%t0Ref
+        call tpbcx(i)%Refresh_thermal_properties_from_T_undim
+      end if
+      if( d%ibcy(5, i) = IBC_DIRICHLET ) then
+        tpbcy(i)%t = d%fbcy(5, i) / t%t0Ref
+        call tpbcy(i)%Refresh_thermal_properties_from_T_undim
+      end if
+      if( d%ibcz(5, i) = IBC_DIRICHLET ) then
+        tpbcz(i)%t = d%fbcz(5, i) / t%t0Ref
+        call tpbcz(i)%Refresh_thermal_properties_from_T_undim
+      end if
+    end do
+
+    return
+  end subroutine
 
   subroutine Apply_BC_velocity (ux, uy, uz, d)
     use precision_mod

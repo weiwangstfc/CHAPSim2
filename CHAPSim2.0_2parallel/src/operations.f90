@@ -217,7 +217,7 @@ module operations
 !-------------------------------------------------------------------------------
 ! processures
 !-------------------------------------------------------------------------------
-  private :: Assign_TDMA_coeffs
+  private :: Prepare_compact_coefficients
   private :: Buildup_TDMA_LHS_array
   private :: Prepare_TDMA_interp_RHS_array
   private :: Prepare_TDMA_1deri_RHS_array
@@ -278,7 +278,7 @@ contains
 !______________________________________________________________________________!
 !> \param[in]     iaccu         the accuracy given by user
 !_______________________________________________________________________________
-  subroutine Assign_TDMA_coeffs(iaccu)
+  subroutine Prepare_compact_coefficients(iaccu)
     use parameters_constant_mod
     use input_general_mod
     use mpi_mod
@@ -1119,7 +1119,7 @@ contains
     d2rP2P(:, :, :) = d2rC2C(:, :, :)
     if(nrank == 0) call Print_debug_end_msg
     return
-  end subroutine Assign_TDMA_coeffs
+  end subroutine Prepare_compact_coefficients
 !===============================================================================
 !===============================================================================
 !> \brief Assigning the sparse matrix in the LHS of the compact scheme, and
@@ -1457,7 +1457,8 @@ contains
     use geometry_mod,      only : domain
     implicit none
 
-    call Assign_TDMA_coeffs (iAccuracy)
+    
+    call Prepare_compact_coefficients (iAccuracy)
     call Prepare_TDMA_LHS_matrix (domain)
     return
   end subroutine Prepare_coeffs_for_operations

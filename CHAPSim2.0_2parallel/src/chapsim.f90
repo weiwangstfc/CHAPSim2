@@ -25,10 +25,11 @@
 !>
 !===============================================================================
 program chapsim
+  use flow_thermo_initialiasation, only : Initialize_flow_thermal_fields
   implicit none
 
   call Initialize_chapsim ()
-  call Initialize_flow    ()
+  call Initialize_flow_thermal_fields()
   call Solve_eqs_iteration()
   call Finalise_chapsim   ()
   
@@ -48,74 +49,52 @@ end program
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Initialize_chapsim()
-  use domain_decomposition_mod
-  use input_general_mod, only : Initialize_general_input
-  use input_thermo_mod,  only : Initialize_thermo_input
-  use geometry_mod,      only : Initialize_geometry_variables
-  use operations,        only : Prepare_coeffs_for_operations
-  use type_vars_mod,     only : domain
   use code_performance_mod
-  use poisson_mod
   use mpi_mod
+  use input_general_mod
+  use geometry_mod
+  use input_thermo_mod
+  use operations
+  use domain_decomposition_mod
+  use poisson_mod
   implicit none
+
+  character(len = 11) :: INPUT_FILE = 'input0.ini'
+  integer :: i
 
   call Call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi ()
-  call Initialize_general_input ()
-  call Initialize_thermo_input ()
-  call Initialize_geometry_variables ()
+!-------------------------------------------------------------------------------
+! common input
+!-------------------------------------------------------------------------------
+  call Read_general_input_common (INPUT_FILE)
+!-------------------------------------------------------------------------------
+! x-subdomain input, this is for turbulence generator and developping flow
+!-------------------------------------------------------------------------------
+  do i = 1, ndomain
+    INPUT_FILE = 'input'//int2str(i)//'x.ini'
+    call Read_general_input_subdomain (INPUT_FILE, domain(i))
+    call Buildup_geometry_mesh_info (domain(i))
+  end do
+!-------------------------------------------------------------------------------
+! build up thermo_mapping_relations, independent of any domains
+!-------------------------------------------------------------------------------
+  if(is_any_energyeq) call Build_up_thermo_mapping_relations()
+!-------------------------------------------------------------------------------
+! build up operation coefficients
+!-------------------------------------------------------------------------------
   call Prepare_coeffs_for_operations ()
-  call Initialize_domain_decompsition (domain)
-  call Initialize_decomp_poisson (domain)
+
+  do i = 1, ndomain
+    call Initialize_domain_decomposition ( domain(i) )
+    call Initialize_decomp_poisson ( domain(i) )
+  end do
 
   !call Test_poisson_solver
 
   return
 end subroutine Initialize_chapsim
-!===============================================================================
-!===============================================================================
-!> \brief Initialisation and preprocessing of the flow field
-!>
-!> This subroutine is called at beginning of the main program
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     none          NA
-!> \param[out]    none          NA
-!_______________________________________________________________________________
-subroutine Initialize_flow ()
-  use flow_variables_mod, only : Allocate_thermoflow_variables
-  use flow_variables_mod, only : Initialize_flow_variables
-  use input_general_mod,  only : irestart, &
-      INITIAL_RANDOM, INITIAL_RESTART, INITIAL_INTERPL
-  use type_vars_mod,      only : domain, flow, thermo
-  use flow_variables_mod, only : Calculate_RePrGr
-  implicit none
 
-  logical :: itest = .false.
-
-  call Allocate_thermoflow_variables (domain, flow, thermo)
-  call Calculate_RePrGr(flow, thermo, 0)
-  if (irestart == INITIAL_RANDOM) then
-    call Initialize_flow_variables ( domain, flow, thermo )
-  else if (irestart == INITIAL_RESTART) then
-
-  else if (irestart == INITIAL_INTERPL) then
-
-  else
-    call Print_error_msg("Error in flow initialisation flag.")
-  end if
-
-!-------------------------------------------------------------------------------
-! to test algorithms based on given values.
-!-------------------------------------------------------------------------------
-  if(itest) call Test_schemes()
-  
-  return
-end subroutine Initialize_flow
 !===============================================================================
 !===============================================================================
 !> \brief solve the governing equations in iteration
@@ -161,13 +140,13 @@ subroutine Solve_eqs_iteration
   end subroutine Display_vtk_slice
 end interface
   
-  if(ithermo == 1) then
-    niter = MAX(nIterFlowEnd, nIterThermoEnd)
-    thermo%time = tThermo
-  else
-    niter = nIterFlowEnd
-    flow%time = tFlow 
-  end if
+  do i = 1, ndomain
+    if(d%ithermo == 1) then
+      niter = MAX(flow(i)%nIterFlowEnd, thermo(i)%nIterThermoEnd)
+    else
+      niter = nIterFlowEnd
+    end if
+  end do
 
   do iter = nrsttckpt + 1, niter
     call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)

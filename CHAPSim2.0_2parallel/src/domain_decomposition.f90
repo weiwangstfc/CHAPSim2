@@ -1,19 +1,20 @@
 !##############################################################################
 module domain_decomposition_mod
   use decomp_2d
+  use input_general_mod
   implicit none
 
   integer :: ierror
-  type(DECOMP_INFO) :: decomp_pcc ! eg, ux
-  type(DECOMP_INFO) :: decomp_cpc ! eg, uy
-  type(DECOMP_INFO) :: decomp_ccp ! eg, uz
-  type(DECOMP_INFO) :: decomp_ccc ! eg, p
+  type(DECOMP_INFO) :: decomp_pcc(ndomain) ! eg, ux
+  type(DECOMP_INFO) :: decomp_cpc(ndomain) ! eg, uy
+  type(DECOMP_INFO) :: decomp_ccp(ndomain) ! eg, uz
+  type(DECOMP_INFO) :: decomp_ccc(ndomain) ! eg, p
+
+  type(DECOMP_INFO) :: decomp_ppc(ndomain) ! eg, <ux>^y, <uy>^x
+  type(DECOMP_INFO) :: decomp_pcp(ndomain) ! eg, <ux>^z, <uz>^x
+  type(DECOMP_INFO) :: decomp_cpp(ndomain) ! eg, <uy>^z, <uz>^y
   
-  type(DECOMP_INFO) :: decomp_ppc ! eg, <ux>^y, <uy>^x
-  type(DECOMP_INFO) :: decomp_pcp ! eg, <ux>^z, <uz>^x
-  type(DECOMP_INFO) :: decomp_cpp ! eg, <uy>^z, <uz>^y
-  
-  public :: Initialize_domain_decompsition
+  public :: Initialize_domain_decomposition
 
 contains
 !===============================================================================
@@ -27,7 +28,7 @@ contains
 !______________________________________________________________________________!
 !> \param[in]     d          domain type
 !===============================================================================
-  subroutine Initialize_domain_decompsition (d)
+  subroutine Initialize_domain_decomposition (d)
     use mpi_mod
     use udf_type_mod,      only : t_domain
     implicit none
@@ -51,78 +52,63 @@ contains
 !   (for example when extracting a 2D plane from a 3D domain, it is easier to know which 
 !   process owns the plane if global index is used).
 !_______________________________________________________________________________
-    call decomp_2d_init  (d%nc(1), d%nc(2), d%nc(3), nrow, ncol)
-!_______________________________________________________________________________
-    call decomp_info_init(d%np(1), d%nc(2), d%nc(3), decomp_pcc)
-    call decomp_info_init(d%nc(1), d%np(2), d%nc(3), decomp_cpc)
-    call decomp_info_init(d%nc(1), d%nc(2), d%np(3), decomp_ccp)
-    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3), decomp_ccc)
 
-    call decomp_info_init(d%np(1), d%np(2), d%nc(3), decomp_ppc)
-    call decomp_info_init(d%nc(1), d%np(2), d%np(3), decomp_cpp)
-    call decomp_info_init(d%np(1), d%nc(2), d%np(3), decomp_pcp)
+    call decomp_info_init(d%np(1), d%nc(2), d%nc(3), decomp_pcc(d%idom))
+    call decomp_info_init(d%nc(1), d%np(2), d%nc(3), decomp_cpc(d%idom))
+    call decomp_info_init(d%nc(1), d%nc(2), d%np(3), decomp_ccp(d%idom))
+    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3), decomp_ccc(d%idom))
 
-    d%ux_xst(1:3) = decomp_pcc%xst(1:3)
-    d%ux_xen(1:3) = decomp_pcc%xen(1:3)
-    d%ux_xsz(1:3) = decomp_pcc%xsz(1:3)
-    d%uy_xst(1:3) = decomp_cpc%xst(1:3)
-    d%uy_xen(1:3) = decomp_cpc%xen(1:3)
-    d%uy_xsz(1:3) = decomp_cpc%xsz(1:3)
-    d%uz_xst(1:3) = decomp_ccp%xst(1:3)
-    d%uz_xen(1:3) = decomp_ccp%xen(1:3)
-    d%uz_xsz(1:3) = decomp_ccp%xsz(1:3)
-    d%ps_xst(1:3) = decomp_ccc%xst(1:3)
-    d%ps_xen(1:3) = decomp_ccc%xen(1:3)
-    d%ps_xsz(1:3) = decomp_ccc%xsz(1:3)
+    call decomp_info_init(d%np(1), d%np(2), d%nc(3), decomp_ppc(d%idom))
+    call decomp_info_init(d%nc(1), d%np(2), d%np(3), decomp_cpp(d%idom))
+    call decomp_info_init(d%np(1), d%nc(2), d%np(3), decomp_pcp(d%idom))
 
-    d%ux_yst(1:3) = decomp_pcc%yst(1:3)
-    d%ux_yen(1:3) = decomp_pcc%yen(1:3)
-    d%ux_ysz(1:3) = decomp_pcc%ysz(1:3)
-    d%uy_yst(1:3) = decomp_cpc%yst(1:3)
-    d%uy_yen(1:3) = decomp_cpc%yen(1:3)
-    d%uy_ysz(1:3) = decomp_cpc%ysz(1:3)
-    d%uz_yst(1:3) = decomp_ccp%yst(1:3)
-    d%uz_yen(1:3) = decomp_ccp%yen(1:3)
-    d%uz_ysz(1:3) = decomp_ccp%ysz(1:3)
-    d%ps_yst(1:3) = decomp_ccc%yst(1:3)
-    d%ps_yen(1:3) = decomp_ccc%yen(1:3)
-    d%ps_ysz(1:3) = decomp_ccc%ysz(1:3)
+    d%ux_xst(1:3) = decomp_pcc(d%idom)%xst(1:3)
+    d%ux_xen(1:3) = decomp_pcc(d%idom)%xen(1:3)
+    d%ux_xsz(1:3) = decomp_pcc(d%idom)%xsz(1:3)
+    d%uy_xst(1:3) = decomp_cpc(d%idom)%xst(1:3)
+    d%uy_xen(1:3) = decomp_cpc(d%idom)%xen(1:3)
+    d%uy_xsz(1:3) = decomp_cpc(d%idom)%xsz(1:3)
+    d%uz_xst(1:3) = decomp_ccp(d%idom)%xst(1:3)
+    d%uz_xen(1:3) = decomp_ccp(d%idom)%xen(1:3)
+    d%uz_xsz(1:3) = decomp_ccp(d%idom)%xsz(1:3)
+    d%ps_xst(1:3) = decomp_ccc(d%idom)%xst(1:3)
+    d%ps_xen(1:3) = decomp_ccc(d%idom)%xen(1:3)
+    d%ps_xsz(1:3) = decomp_ccc(d%idom)%xsz(1:3)
 
-    d%ux_zst(1:3) = decomp_pcc%zst(1:3)
-    d%ux_zen(1:3) = decomp_pcc%zen(1:3)
-    d%ux_zsz(1:3) = decomp_pcc%zsz(1:3)
-    d%uy_zst(1:3) = decomp_cpc%zst(1:3)
-    d%uy_zen(1:3) = decomp_cpc%zen(1:3)
-    d%uy_zsz(1:3) = decomp_cpc%zsz(1:3)
-    d%uz_zst(1:3) = decomp_ccp%zst(1:3)
-    d%uz_zen(1:3) = decomp_ccp%zen(1:3)
-    d%uz_zsz(1:3) = decomp_ccp%zsz(1:3)
-    d%ps_zst(1:3) = decomp_ccc%zst(1:3)
-    d%ps_zen(1:3) = decomp_ccc%zen(1:3)
-    d%ps_zsz(1:3) = decomp_ccc%zsz(1:3)
+    d%ux_yst(1:3) = decomp_pcc(d%idom)%yst(1:3)
+    d%ux_yen(1:3) = decomp_pcc(d%idom)%yen(1:3)
+    d%ux_ysz(1:3) = decomp_pcc(d%idom)%ysz(1:3)
+    d%uy_yst(1:3) = decomp_cpc(d%idom)%yst(1:3)
+    d%uy_yen(1:3) = decomp_cpc(d%idom)%yen(1:3)
+    d%uy_ysz(1:3) = decomp_cpc(d%idom)%ysz(1:3)
+    d%uz_yst(1:3) = decomp_ccp(d%idom)%yst(1:3)
+    d%uz_yen(1:3) = decomp_ccp(d%idom)%yen(1:3)
+    d%uz_ysz(1:3) = decomp_ccp(d%idom)%ysz(1:3)
+    d%ps_yst(1:3) = decomp_ccc(d%idom)%yst(1:3)
+    d%ps_yen(1:3) = decomp_ccc(d%idom)%yen(1:3)
+    d%ps_ysz(1:3) = decomp_ccc(d%idom)%ysz(1:3)
 
-    d%dpcc = decomp_pcc
-    d%dcpc = decomp_cpc
-    d%dccp = decomp_ccp
-    d%dccc = decomp_ccc
+    d%ux_zst(1:3) = decomp_pcc(d%idom)%zst(1:3)
+    d%ux_zen(1:3) = decomp_pcc(d%idom)%zen(1:3)
+    d%ux_zsz(1:3) = decomp_pcc(d%idom)%zsz(1:3)
+    d%uy_zst(1:3) = decomp_cpc(d%idom)%zst(1:3)
+    d%uy_zen(1:3) = decomp_cpc(d%idom)%zen(1:3)
+    d%uy_zsz(1:3) = decomp_cpc(d%idom)%zsz(1:3)
+    d%uz_zst(1:3) = decomp_ccp(d%idom)%zst(1:3)
+    d%uz_zen(1:3) = decomp_ccp(d%idom)%zen(1:3)
+    d%uz_zsz(1:3) = decomp_ccp(d%idom)%zsz(1:3)
+    d%ps_zst(1:3) = decomp_ccc(d%idom)%zst(1:3)
+    d%ps_zen(1:3) = decomp_ccc(d%idom)%zen(1:3)
+    d%ps_zsz(1:3) = decomp_ccc(d%idom)%zsz(1:3)
 
-    d%dppc = decomp_ppc
-    d%dcpp = decomp_cpp
-    d%dpcp = decomp_pcp
+    d%dpcc = decomp_pcc(d%(idom))
+    d%dcpc = decomp_cpc(d%(idom))
+    d%dccp = decomp_ccp(d%(idom))
+    d%dccc = decomp_ccc(d%(idom))
 
-#ifdef DEBUG
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    if(nrank == 0) write(*, *) 'Basic/Default 2D decompisiton : '
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in x-dir = ', xsize(1), ' x id from ', xstart(1), xend(1)
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in y-dir = ', xsize(2), ' y id from ', xstart(2), xend(2)
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in z-dir = ', xsize(3), ' z id from ', xstart(3), xend(3)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in x-dir = ', ysize(1), ' x id from ', ystart(1), yend(1)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in y-dir = ', ysize(2), ' y id from ', ystart(2), yend(2)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in z-dir = ', ysize(3), ' z id from ', ystart(3), yend(3)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in x-dir = ', zsize(1), ' x id from ', zstart(1), zend(1)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in y-dir = ', zsize(2), ' y id from ', zstart(2), zend(2)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in z-dir = ', zsize(3), ' z id from ', zstart(3), zend(3)
-#endif
+    d%dppc = decomp_ppc(d%(idom))
+    d%dcpp = decomp_cpp(d%(idom))
+    d%dpcp = decomp_pcp(d%(idom))
 
 #ifdef DEBUG
     call mpi_barrier(MPI_COMM_WORLD, ierror)
@@ -167,6 +153,6 @@ contains
 #endif
 
     return
-  end subroutine Initialize_domain_decompsition
+  end subroutine Initialize_domain_decomposition
 
 end module domain_decomposition_mod

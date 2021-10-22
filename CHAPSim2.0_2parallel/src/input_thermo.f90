@@ -26,89 +26,15 @@
 !>
 !===============================================================================
 module input_thermo_mod
-  use precision_mod
+  use parameters_constant_mod
   implicit none
 
-  integer, parameter :: ISCP_WATER      = 1, &
-                        ISCP_CO2        = 2, &
-                        ILIQUID_SODIUM  = 3, &
-                        ILIQUID_LEAD    = 4, &
-                        ILIQUID_BISMUTH = 5, &
-                        ILIQUID_LBE     = 6
-
-  integer, parameter :: IPROPERTY_TABLE = 1, &
-                        IPROPERTY_FUNCS = 2
-
-  character(len = 64), parameter :: INPUT_SCP_WATER = 'NIST_WATER_23.5MP.DAT'
-  character(len = 64), parameter :: INPUT_SCP_CO2   = 'NIST_CO2_8MP.DAT'
-  character(len = 64) :: inputProperty
-
-  integer :: ipropertyState
-  real(WP) :: fgravity
-  real(WP) :: u0dim
-
-  real(WP), parameter :: TM0_Na = 371.0 ! unit: K, melting temperature at 1 atm for Na
-  real(WP), parameter :: TM0_Pb = 600.6 ! unit: K, melting temperature at 1 atm for Lead
-  real(WP), parameter :: TM0_BI = 544.6 ! unit: K, melting temperature at 1 atm for Bismuth
-  real(WP), parameter :: TM0_LBE = 398.0 ! unit: K, melting temperature at 1 atm for LBE
-  real(WP) :: TM0
-
-  real(WP), parameter :: TB0_Na = 1155.0 ! unit: K, boling temperature at 1 atm for Na
-  real(WP), parameter :: TB0_Pb = 2021.0 ! unit: K, boling temperature at 1 atm for Lead
-  real(WP), parameter :: TB0_BI = 1831.0 ! unit: K, boling temperature at 1 atm for Bismuth
-  real(WP), parameter :: TB0_LBE = 1927.0 ! unit: K, boling temperature at 1 atm for LBE
-  real(WP) :: TB0
-
-  real(WP), parameter :: HM0_Na = 113.0e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP), parameter :: HM0_Pb = 23.07e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP), parameter :: HM0_BI = 53.3e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP), parameter :: HM0_LBE = 38.6e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP) :: HM0
-  ! D = CoD(0) + CoD(1) * T
-  real(WP), parameter :: CoD_Na(0:1) = (/1014.0, -0.235/)
-  real(WP), parameter :: CoD_Pb(0:1) = (/11441.0, -1.2795/)
-  real(WP), parameter :: CoD_Bi(0:1) = (/10725.0, -1.22 /)
-  real(WP), parameter :: CoD_LBE(0:1) = (/11065.0, 1.293 /)
-  real(WP) :: CoD(0:1)
-  ! K = CoK(0) + CoK(1) * T + CoK(2) * T^2
-  real(WP), parameter :: CoK_Na(0:2) = (/104.0, -0.047, 0.0/)
-  real(WP), parameter :: CoK_Pb(0:2) = (/9.2, 0.011, 0.0/)
-  real(WP), parameter :: CoK_Bi(0:2) = (/7.34, 9.5E-3, 0.0/)
-  real(WP), parameter :: CoK_LBE(0:2) = (/ 3.284, 1.617E-2, -2.305E-6/)
-  real(WP) :: CoK(0:2)
-  ! B = 1 / (CoB - T)
-  real(WP), parameter :: CoB_Na = 4316.0
-  real(WP), parameter :: CoB_Pb = 8942.0
-  real(WP), parameter :: CoB_BI = 8791.0
-  real(WP), parameter :: CoB_LBE = 8558.0
-  real(WP) :: CoB
-  ! Cp = CoCp(-2) * T^(-2) + CoCp(-1) * T^(-1) + CoCp(0) + CoCp(1) * T + CoCp(2) * T^2
-  real(WP), parameter :: CoCp_Na(-2:2) = (/- 3.001e6, 0.0, 1658.0, -0.8479, 4.454E-4/)
-  real(WP), parameter :: CoCp_Pb(-2:2) = (/- 1.524e6, 0.0, 176.2, -4.923E-2, 1.544E-5/)
-  real(WP), parameter :: CoCp_Bi(-2:2) = (/7.183e6, 0.0, 118.2, 5.934E-3, 0.0/)
-  real(WP), parameter :: CoCp_LBE(-2:2) = (/-4.56e5, 0.0, 164.8, - 3.94E-2, 1.25E-5/)
-  real(WP) :: CoCp(-2:2)
-  ! H = HM0 + CoH(-1) * (1 / T - 1 / Tm0) + CoH(0) + CoH(1) * (T - Tm0) +  CoH(2) * (T^2 - Tm0^2) +  CoH(3) * (T^3- Tm0^3)
-  real(WP), parameter :: CoH_Na(-1:3) = (/4.56e5, 0.0, 164.8, -1.97E-2, 4.167E-4/)
-  real(WP), parameter :: CoH_Pb(-1:3) = (/1.524e6, 0.0, 176.2, -2.4615E-2, 5.147E-6/)
-  real(WP), parameter :: CoH_Bi(-1:3) = (/-7.183e6, 0.0, 118.2, 2.967E-3, 0.0/)
-  real(WP), parameter :: CoH_LBE(-1:3) = (/4.56e5, 0.0, 164.8, -1.97E-2, 4.167E-4/)! check, WRong from literature.
-  real(WP) :: CoH(-1:3)
-  ! M = vARies
-  real(WP), parameter :: CoM_Na(-1:1) = (/556.835, -6.4406, -0.3958/) ! M = exp ( CoM(-1) / T + CoM(0) + CoM(1) * ln(T) )
-  real(WP), parameter :: CoM_Pb(-1:1) = (/1069.0, 4.55E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
-  real(WP), parameter :: CoM_Bi(-1:1) = (/780.0, 4.456E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
-  real(WP), parameter :: CoM_LBE(-1:1) = (/754.1, 4.94E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
-  real(WP) :: CoM(-1:1)
-
-  integer :: nlist
-
   type thermoProperty_t
-    real(WP) :: t  !temperature
-    real(WP) :: d  !density
-    real(WP) :: m  !dynviscosity
-    real(WP) :: k  !thermconductivity
-    real(WP) :: h  !enthalpy
+    real(WP) :: t  ! temperature
+    real(WP) :: d  ! density
+    real(WP) :: m  ! dynviscosity
+    real(WP) :: k  ! thermconductivity
+    real(WP) :: h  ! enthalpy
     real(WP) :: dh ! mass enthalpy
     real(WP) :: cp ! specific heat capacity 
     real(WP) :: b  ! thermal expansion
@@ -116,7 +42,8 @@ module input_thermo_mod
     private
     procedure, public :: Get_initialized_thermal_properties
     procedure, public :: is_T_in_scope
-    procedure, public :: Refresh_thermal_properties_from_T
+    procedure, public :: Refresh_thermal_properties_from_T_dimensional
+    procedure, public :: Refresh_thermal_properties_from_T_undim
     procedure, public :: Refresh_thermal_properties_from_H
     procedure, public :: Refresh_thermal_properties_from_DH
     procedure :: Print_debug
@@ -125,14 +52,28 @@ module input_thermo_mod
   end type thermoProperty_t
 
   type(thermoProperty_t), save, allocatable, dimension(:) :: listTP
-  type(thermoProperty_t) :: tpRef0 ! dim
-  type(thermoProperty_t) :: tpIni0 ! dim
-  type(thermoProperty_t) :: tpIni ! undim
+  type(thermoProperty_t) :: tpRef0 ! dim, reference state
+
+  private
+  character(len = 64) :: inputProperty
+  integer :: ipropertyState
+  real(WP) :: u0dim
+  real(WP) :: TM0
+  real(WP) :: TB0
+  real(WP) :: HM0
+  real(WP) :: CoD(0:1)
+  real(WP) :: CoK(0:2)
+  real(WP) :: CoB
+  real(WP) :: CoCp(-2:2)
+  real(WP) :: CoH(-1:3)
+  real(WP) :: CoM(-1:1)
+
+  integer :: nlist
 
   private :: Buildup_property_relations_from_table
   private :: Buildup_property_relations_from_function
   private :: Check_monotonicity_DH_of_HT_list
-  public  :: Initialize_thermo_input
+  public  :: Build_up_thermo_mapping_relations
   private :: Initialize_thermo_parameters
   private :: Sort_listTP_Tsmall2big
   private :: Write_thermo_property
@@ -154,7 +95,6 @@ contains
 !> \param[inout]  this          a cell element with udf property
 !_______________________________________________________________________________
   subroutine Get_initialized_thermal_properties ( this )
-    use parameters_constant_mod, only : ZERO, ONE
     implicit none
 
     class(thermoProperty_t), intent(inout) :: this
@@ -227,12 +167,11 @@ contains
 !>                              /dimensionless T. Exsiting of \ref dim indicates
 !>                              the known/given T is dimensional. Otherwise, not.
 !_______________________________________________________________________________
-  subroutine Refresh_thermal_properties_from_T ( this, is_dim )
+  subroutine Refresh_thermal_properties_from_T_dimensional ( this )
     use parameters_constant_mod, only : MINP, ONE, ZERO
     use input_general_mod, only : ifluid
     implicit none
     class(thermoProperty_t), intent(inout) :: this
-    logical, intent(in) :: is_dim 
     
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -266,57 +205,27 @@ contains
 
     else if(ipropertyState == IPROPERTY_FUNCS) then 
       
-      if (is_dim) then 
-        t1 = this%t
-      else 
-        ! convert undim to dim 
-        t1 = this%t * tpRef0%t
-      end if
+      t1 = this%t
   
       ! D = density = f(T)
-      dummy = CoD(0) + CoD(1) * t1
-      if (is_dim) then 
-        this%d = dummy
-      else 
-        this%d = dummy / tpRef0%d
-      end if
+      this%d = CoD(0) + CoD(1) * t1
   
       ! K = thermal conductivity = f(T)
-      dummy = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
-      if (is_dim) then 
-        this%k = dummy
-      else 
-        this%k = dummy / tpRef0%k
-      end if
+      this%k = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
   
       ! Cp = f(T)
-      dummy = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
-      if (is_dim) then 
-        this%cp = dummy
-      else 
-        this%cp = dummy / tpRef0%cp
-      end if
+      this%cp = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
   
       ! H = entropy = f(T)
-      dummy = Hm0 + &
+      this%h = Hm0 + &
         CoH(-1) * (ONE / t1 - ONE / Tm0) + &
         CoH(0) + &
         CoH(1) * (t1 - Tm0) + &
         CoH(2) * (t1**2 - Tm0**2) + &
         CoH(3) * (t1**3 - Tm0**3)
-      if (is_dim) then 
-        this%h = dummy
-      else 
-        this%h = (dummy - tpRef0%h) / (tpRef0%cp * tpRef0%t)
-      end if
   
       ! B = f(T)
-      dummy = ONE / (CoB - t1)
-      if (is_dim) then 
-        this%b = dummy
-      else 
-        this%b = dummy / tpRef0%b
-      end if
+      this%b = ONE / (CoB - t1)
   
       ! dynamic viscosity = f(T)
       select case (ifluid)
@@ -332,11 +241,7 @@ contains
         case default
           dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
       end select
-      if (is_dim) then 
-        this%m = dummy
-      else 
-        this%m = dummy / tpRef0%m
-      end if
+      this%m = dummy
       this%dh = this%d * this%h
     else
       this%t  = ONE
@@ -349,7 +254,103 @@ contains
       this%dh = ZERO
     end if
     return
-  end subroutine Refresh_thermal_properties_from_T
+  end subroutine Refresh_thermal_properties_from_T_dimensional
+!===============================================================================
+!===============================================================================
+  subroutine Refresh_thermal_properties_from_T_undim ( this)
+    use parameters_constant_mod, only : MINP, ONE, ZERO
+    use input_general_mod, only : ifluid
+    implicit none
+    class(thermoProperty_t), intent(inout) :: this
+    
+    integer :: i1, i2, im
+    real(WP) :: d1, dm
+    real(WP) :: w1, w2
+    real(WP) :: t1, dummy
+
+    if(ipropertyState == IPROPERTY_TABLE) then 
+      i1 = 1
+      i2 = nlist
+      do while ( (i2 - i1) > 1)
+        im = i1 + (i2 - i1) / 2
+        d1 = listTP(i1)%t - this%t
+        dm = listTP(im)%t - this%t
+        if ( (d1 * dm) > MINP ) then
+          i1 = im
+        else
+          i2 = im
+        end if
+      end do
+
+      w1 = (listTP(i2)%t - this%t) / (listTP(i2)%t - listTP(i1)%t) 
+      w2 = ONE - w1
+
+      this%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
+      this%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
+      this%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
+      this%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
+      this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
+      this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
+      this%dh = this%d * this%h
+
+    else if(ipropertyState == IPROPERTY_FUNCS) then 
+      
+      ! convert undim to dim 
+      t1 = this%t * tpRef0%t
+
+      ! D = density = f(T)
+      dummy = CoD(0) + CoD(1) * t1
+      this%d = dummy / tpRef0%d
+  
+      ! K = thermal conductivity = f(T)
+      dummy = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
+      this%k = dummy / tpRef0%k
+  
+      ! Cp = f(T)
+      dummy = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
+      this%cp = dummy / tpRef0%cp
+  
+      ! H = entropy = f(T)
+      dummy = Hm0 + &
+        CoH(-1) * (ONE / t1 - ONE / Tm0) + &
+        CoH(0) + &
+        CoH(1) * (t1 - Tm0) + &
+        CoH(2) * (t1**2 - Tm0**2) + &
+        CoH(3) * (t1**3 - Tm0**3)
+      this%h = (dummy - tpRef0%h) / (tpRef0%cp * tpRef0%t)
+  
+      ! B = f(T)
+      dummy = ONE / (CoB - t1)
+      this%b = dummy / tpRef0%b
+  
+      ! dynamic viscosity = f(T)
+      select case (ifluid)
+        ! unit: T(Kelvin), M(Pa S)
+        case (ILIQUID_SODIUM)
+          dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
+        case (ILIQUID_LEAD)
+          dummy = CoM_Pb(0) * EXP (CoM_Pb(-1) / t1)
+        case (ILIQUID_BISMUTH)
+          dummy = CoM_Bi(0) * EXP (CoM_Bi(-1) / t1)
+        case (ILIQUID_LBE)
+          dummy = CoM_LBE(0) * EXP (CoM_LBE(-1) / t1)
+        case default
+          dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
+      end select
+      this%m = dummy / tpRef0%m
+      this%dh = this%d * this%h
+    else
+      this%t  = ONE
+      this%d  = ONE
+      this%m  = ONE
+      this%k  = ONE
+      this%cp = ONE
+      this%b  = ONE
+      this%h  = ZERO
+      this%dh = ZERO
+    end if
+    return
+  end subroutine Refresh_thermal_properties_from_T_undim
 !===============================================================================
 !===============================================================================
 !> \brief Defination of a procedure in the type thermoProperty_t.
@@ -445,8 +446,7 @@ contains
       call this%Refresh_thermal_properties_from_H
     else if (ipropertyState == IPROPERTY_FUNCS) then 
       this%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
-      is_dim =  .false.
-      call this%Refresh_thermal_properties_from_T(is_dim)
+      call this%Refresh_thermal_properties_from_T_undim
     else  
       STOP 'Error. No such option of ipropertyState.'
     end if
@@ -666,9 +666,8 @@ contains
     call Sort_listTP_Tsmall2big ( listTP(:) )
 
     ! to update reference of thermal properties
-    is_dim = .true.
-    call tpRef0%Refresh_thermal_properties_from_T(is_dim)
-    call tpIni0%Refresh_thermal_properties_from_T(is_dim)
+    tpRef0%t = t0Ref
+    call tpRef0%Refresh_thermal_properties_from_T_dimensional
 
     ! to unify/undimensionalize the table of thermal property
     listTP(:)%t = listTP(:)%t / tpRef0%t
@@ -696,20 +695,18 @@ contains
 !_______________________________________________________________________________
   subroutine Buildup_property_relations_from_function ( )
     integer :: i
-    logical :: is_dim
 
     ! to update reference of thermal properties
-    is_dim = .true.
-    call tpRef0%Refresh_thermal_properties_from_T(is_dim)
-    call tpIni0%Refresh_thermal_properties_from_T(is_dim)
+    tpRef0%t = t0Ref
+    call tpRef0%Refresh_thermal_properties_from_T_dimensional
+
     
     nlist = 1024
     allocate ( listTP (nlist) )
-    is_dim = .false.
     do i = 1, nlist
       call listTP(i)%Get_initialized_thermal_properties()
       listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
-      call listTP(i)%Refresh_thermal_properties_from_T(is_dim)
+      call listTP(i)%Refresh_thermal_properties_from_T_undim
     end do
     return
   end subroutine Buildup_property_relations_from_function
@@ -753,11 +750,11 @@ contains
       is_dim = .false.
       
       tp%t  = TB0 / tpRef0%t
-      call tp%Refresh_thermal_properties_from_T(is_dim)
+      call tp%Refresh_thermal_properties_from_T_undim
       dhmin1 = tp%dh
 
       tp%t  = TM0 / tpRef0%t
-      call tp%Refresh_thermal_properties_from_T(is_dim)
+      call tp%Refresh_thermal_properties_from_T_undim
       dhmax1 = tp%dh
       
       dhmin = dmin1( dhmin1, dhmax1) + TRUNCERR
@@ -864,11 +861,6 @@ contains
 
     end select
 
-    call tpRef0%Get_initialized_thermal_properties()
-    tpRef0%t = t0Ref
-
-    call tpIni0%Get_initialized_thermal_properties()
-    tpIni0%t = tiRef
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -887,18 +879,18 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
-  subroutine Initialize_thermo_input
-    use input_general_mod, only : ithermo
+  subroutine Build_up_thermo_mapping_relations
+    use input_general_mod, only : is_any_energyeq
     implicit none
     
-    if (ithermo /= 1) return
+    if ( .not. is_any_energyeq) return
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return
-  end subroutine Initialize_thermo_input
+  end subroutine Build_up_thermo_mapping_relations
   
 end module input_thermo_mod
 
