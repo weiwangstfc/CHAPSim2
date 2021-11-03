@@ -370,7 +370,7 @@ contains
 
              !Print result in spectal space after Poisson
              !     if (abs(out(i,j,k)) > 1.0e-4) then
-             !        write(*,*) 'AFTER',i,j,k,out(i,j,k),xyzk
+             !        write (OUTPUT_UNIT,*) 'AFTER',i,j,k,out(i,j,k),xyzk
              !     end if
 
              ! post-processing backward
@@ -459,7 +459,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'START',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -478,7 +478,7 @@ contains
 !                   tmp2*bz(k)-tmp1*az(k), kind=mytype)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'after z',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -495,7 +495,7 @@ contains
 !              if (j.gt.(ny/2+1)) cw1(i,j,k)=-cw1(i,j,k)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'after y',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'after y',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -528,7 +528,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1b(i,j,k)) > 1.0e-4) then
-                write(*,100) 'after x',i,j,k,cw1b(i,j,k)
+                write (OUTPUT_UNIT,100) 'after x',i,j,k,cw1b(i,j,k)
              end if
           end do
        end do
@@ -563,7 +563,7 @@ contains
              end if
 #ifdef DEBUG
              if (abs(cw1b(i,j,k)) > 1.0e-4) &
-                  write(*,100) 'AFTER',i,j,k,cw1b(i,j,k)
+                  write (OUTPUT_UNIT,100) 'AFTER',i,j,k,cw1b(i,j,k)
 #endif
           end do
        end do
@@ -598,7 +598,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -616,7 +616,7 @@ contains
 !              if (j.gt.(ny/2+1)) cw1(i,j,k)=-cw1(i,j,k)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'AFTER Y',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -632,7 +632,7 @@ contains
 !                   tmp2*bz(k)+tmp1*az(k), kind=mytype)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'END',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'END',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -713,7 +713,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'START',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -732,7 +732,7 @@ contains
 !                   tmp2*bz(k)-tmp1*az(k), kind=mytype)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'after z',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -749,7 +749,7 @@ contains
 !              if (i.gt.(nx/2+1)) cw1(i,j,k)=-cw1(i,j,k)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'after x',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'after x',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -785,7 +785,7 @@ contains
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
              if (abs(cw2b(i,j,k)) > 1.0e-4) then
-                write(*,100) 'after y',i,j,k,cw2b(i,j,k)
+                write (OUTPUT_UNIT,100) 'after y',i,j,k,cw2b(i,j,k)
                 print *,kxyz(i,j,k)
              end if
           end do
@@ -855,7 +855,7 @@ contains
           !      do j = 1,ny/2
           !         do i = sp%yst(1), sp%yen(1)
           !            if (abs(cw2(i,j,k)) > 1.0e-4) then
-          !               write(*,*) 'before IN',i,j,k,cw2(i,j,k)!*2.
+          !               write (OUTPUT_UNIT,*) 'before IN',i,j,k,cw2(i,j,k)!*2.
           !!            end if
           !        end do
           !     end do
@@ -871,7 +871,7 @@ contains
           !       do j = 1,ny/2
           !          do i = sp%yst(1), sp%yen(1)
           !             if (abs(cw2c(i,j,k)) > 1.0e-4) then
-          !                write(*,*) 'after IN',i,j,k,cw2c(i,j,k)!*2.
+          !                write (OUTPUT_UNIT,*) 'after IN',i,j,k,cw2c(i,j,k)!*2.
           !             end if
           !          end do
           !       end do
@@ -933,7 +933,7 @@ contains
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
              if (abs(cw2b(i,j,k)) > 1.0e-4) then
-                write(*,100) 'AFTER',i,j,k,cw2b(i,j,k)
+                write (OUTPUT_UNIT,100) 'AFTER',i,j,k,cw2b(i,j,k)
                 print *,kxyz(i,j,k)
              end if
           end do
@@ -973,7 +973,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'AFTER Y',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -991,7 +991,7 @@ contains
 !              if (i.gt.(nx/2+1)) cw1(i,j,k)=-cw1(i,j,k)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'AFTER X',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -1007,7 +1007,7 @@ contains
 !                   tmp2*bz(k)+tmp1*az(k), kind=mytype)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'END',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'END',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -1125,7 +1125,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'START',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -1144,7 +1144,7 @@ contains
 !                   tmp2*bz(k)-tmp1*az(k), kind=mytype)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'after z',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do
@@ -1182,7 +1182,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'after y',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'after y',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -1217,7 +1217,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1b(i,j,k)) > 1.0e-4) then
-                write(*,*) 'BEFORE',i,j,k,cw1b(i,j,k)
+                write (OUTPUT_UNIT,*) 'BEFORE',i,j,k,cw1b(i,j,k)
              end if
           end do
        end do
@@ -1317,7 +1317,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1b(i,j,k)) > 1.0e-6) then
-                write(*,*) 'AFTER',i,j,k,cw1b(i,j,k)
+                write (OUTPUT_UNIT,*) 'AFTER',i,j,k,cw1b(i,j,k)
              end if
           end do
        end do
@@ -1352,7 +1352,7 @@ contains
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
              if (abs(cw1(i,j,k)) > 1.0e-4) then
-                write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
+                write (OUTPUT_UNIT,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
@@ -1388,7 +1388,7 @@ contains
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
              if (abs(cw2b(i,j,k)) > 1.0e-4) then
-                write(*,100) 'AFTER Y',i,j,k,cw2b(i,j,k)
+                write (OUTPUT_UNIT,100) 'AFTER Y',i,j,k,cw2b(i,j,k)
              end if
           end do
        end do
@@ -1407,7 +1407,7 @@ contains
 !                   tmp2*bz(k)+tmp1*az(k), kind=mytype)
 ! #ifdef DEBUG
 !              if (abs(cw1(i,j,k)) > 1.0e-4) &
-!                   write(*,100) 'END',i,j,k,cw1(i,j,k)
+!                   write (OUTPUT_UNIT,100) 'END',i,j,k,cw1(i,j,k)
 ! #endif
 !           end do
 !        end do

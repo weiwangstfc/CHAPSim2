@@ -181,7 +181,7 @@ contains
 
     if(nrank == 0) then
       call Print_debug_mid_msg("  The maximum value of mass conservation and loc are:")
-      write(*, "(12X, 3I8.1, 1ES13.5)") loc3d, divmax
+      write (OUTPUT_UNIT, "(12X, 3I8.1, 1ES13.5)") loc3d, divmax
     end if
 
     deallocate (div)

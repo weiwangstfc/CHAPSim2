@@ -6,6 +6,7 @@ module mpi_mod
   integer :: nrow
   integer :: ncol
   integer :: ierror
+  integer :: nxdomain
 
   public :: Initialize_mpi, Finalise_mpi
 
@@ -34,7 +35,8 @@ contains
     call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierror)
     return
   end subroutine Initialize_mpi
-
+!===============================================================================
+!===============================================================================
   subroutine Finalise_mpi()  
 
     CALL MPI_FINALIZE(IERROR)

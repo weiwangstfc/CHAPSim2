@@ -506,7 +506,6 @@ contains
     return
   end subroutine Print_debug
 !===============================================================================
-!===============================================================================
 !> \brief Sort out the user given thermal property table based on the temperature
 !>  from small to big.
 !>
@@ -514,11 +513,11 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[inout]  list         the thermal table element array
-!_______________________________________________________________________________
+!===============================================================================
   subroutine Sort_listTP_Tsmall2big(list)
     type(thermoProperty_t),intent(inout) :: list(:)
     integer :: i, n, k
@@ -605,22 +604,22 @@ contains
     return
   end subroutine Check_monotonicity_DH_of_HT_list
 !===============================================================================
-!===============================================================================
 !> \brief Building up the thermal property relations from the given table.
 !>
 !> This subroutine is called once after reading the table.
 !> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Buildup_property_relations_from_table ( )
+!===============================================================================
+  subroutine Buildup_property_relations_from_table(t0Ref)
     use mpi_mod
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
     use parameters_constant_mod, only : ZERO
+    real(WP), intent(in) :: t0Ref
 
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
@@ -629,8 +628,9 @@ contains
     real(WP) :: rtmp
     integer :: i
     logical :: is_dim
-
-    ! to read given table of thermal properties
+!-------------------------------------------------------------------------------
+! to read given table of thermal properties
+!-------------------------------------------------------------------------------
     open ( newunit = inputUnit,     &
            file    = inputProperty, &
            status  = 'old',         &
@@ -652,17 +652,22 @@ contains
       nlist = nlist + 1
     end do
     rewind(inputUnit)
-
+!-------------------------------------------------------------------------------
+! to read given table of thermal properties
+!-------------------------------------------------------------------------------
     allocate ( listTP (nlist) )
 
     read(inputUnit, *, iostat = ioerr) str
     block_tablereading: do i = 1, nlist
-     call listTP(i)%Get_initialized_thermal_properties()
+      call listTP(i)%Get_initialized_thermal_properties()
       read(inputUnit, *, iostat = ioerr) rtmp, listTP(i)%h, listTP(i)%t, listTP(i)%d, &
       listTP(i)%m, listTP(i)%k, listTP(i)%cp, listTP(i)%b
       listTP(i)%dh = listTP(i)%d * listTP(i)%h
     end do block_tablereading
-
+    close(inputUnit)
+!-------------------------------------------------------------------------------
+! to sort input date based on Temperature (small to big)
+!-------------------------------------------------------------------------------
     call Sort_listTP_Tsmall2big ( listTP(:) )
 
     ! to update reference of thermal properties
@@ -681,23 +686,25 @@ contains
     return
   end subroutine Buildup_property_relations_from_table
 !===============================================================================
-!===============================================================================
+
 !> \brief Building up the thermal property relations from defined relations.
 !>
 !> This subroutine is called once after defining the relations.
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Buildup_property_relations_from_function ( )
+!===============================================================================
+  subroutine Buildup_property_relations_from_function (T0Ref)
+    implicit none
+    real(WP), intent(in) :: T0Ref
     integer :: i
 
     ! to update reference of thermal properties
-    tpRef0%t = t0Ref
+    tpRef0%t = T0Ref
     call tpRef0%Refresh_thermal_properties_from_T_dimensional
 
     
@@ -772,7 +779,6 @@ contains
     return
   end subroutine Write_thermo_property
 !===============================================================================
-!===============================================================================
 !> \brief Identify table or equations for thermal properties based on input
 !>  fluid material.
 !>
@@ -780,14 +786,14 @@ contains
 !> [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Initialize_thermo_parameters
-    use input_general_mod, only : ifluid, t0Ref, tiRef
+!===============================================================================
+  subroutine Initialize_thermo_parameters(ifluid)
     use mpi_mod
+    integer, intent(in) :: ifluid
     implicit none
 
     if(nrank == 0) call Print_debug_start_msg("Initializing thermal parameters ...")
@@ -881,12 +887,14 @@ contains
 !_______________________________________________________________________________
   subroutine Build_up_thermo_mapping_relations
     use input_general_mod, only : is_any_energyeq
+    use var_dft_mod, only : thermo
     implicit none
     
     if ( .not. is_any_energyeq) return
-    call Initialize_thermo_parameters
-    if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table
-    if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function
+
+    call Initialize_thermo_parameters(thermo(1)%ifluid)
+    if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table(thermo(1)%T0Ref)
+    if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function(thermo(1)%T0Ref)
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return

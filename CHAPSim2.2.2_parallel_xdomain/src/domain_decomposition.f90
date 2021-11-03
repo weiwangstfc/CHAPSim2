@@ -5,14 +5,14 @@ module domain_decomposition_mod
   implicit none
 
   integer :: ierror
-  type(DECOMP_INFO) :: decomp_pcc(ndomain) ! eg, ux
-  type(DECOMP_INFO) :: decomp_cpc(ndomain) ! eg, uy
-  type(DECOMP_INFO) :: decomp_ccp(ndomain) ! eg, uz
-  type(DECOMP_INFO) :: decomp_ccc(ndomain) ! eg, p
+  type(DECOMP_INFO) :: decomp_pcc(nxdomain) ! eg, ux
+  type(DECOMP_INFO) :: decomp_cpc(nxdomain) ! eg, uy
+  type(DECOMP_INFO) :: decomp_ccp(nxdomain) ! eg, uz
+  type(DECOMP_INFO) :: decomp_ccc(nxdomain) ! eg, p
 
-  type(DECOMP_INFO) :: decomp_ppc(ndomain) ! eg, <ux>^y, <uy>^x
-  type(DECOMP_INFO) :: decomp_pcp(ndomain) ! eg, <ux>^z, <uz>^x
-  type(DECOMP_INFO) :: decomp_cpp(ndomain) ! eg, <uy>^z, <uz>^y
+  type(DECOMP_INFO) :: decomp_ppc(nxdomain) ! eg, <ux>^y, <uy>^x
+  type(DECOMP_INFO) :: decomp_pcp(nxdomain) ! eg, <ux>^z, <uz>^x
+  type(DECOMP_INFO) :: decomp_cpp(nxdomain) ! eg, <uy>^z, <uz>^y
   
   public :: Initialize_domain_decomposition
 
@@ -112,44 +112,44 @@ contains
 
 #ifdef DEBUG
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    write(*, *) 'Ux in x-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_xsz(1), ' x id = ', d%ux_xst(1), ' to ', d%ux_xen(1)
-    write(*, *) 'Ux in x-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_xsz(2), ' y id = ', d%ux_xst(2), ' to ', d%ux_xen(2)
-    write(*, *) 'Ux in x-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_xsz(3), ' z id = ', d%ux_xst(3), ' to ', d%ux_xen(3)
-    write(*, *) 'Uy in x-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_xsz(1), ' x id = ', d%uy_xst(1), ' to ', d%uy_xen(1)
-    write(*, *) 'Uy in x-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_xsz(2), ' y id = ', d%uy_xst(2), ' to ', d%uy_xen(2)
-    write(*, *) 'Uy in x-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_xsz(3), ' z id = ', d%uy_xst(3), ' to ', d%uy_xen(3)
-    write(*, *) 'Uz in x-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_xsz(1), ' x id = ', d%uz_xst(1), ' to ', d%uz_xen(1)
-    write(*, *) 'Uz in x-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_xsz(2), ' y id = ', d%uz_xst(2), ' to ', d%uz_xen(2)
-    write(*, *) 'Uz in x-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_xsz(3), ' z id = ', d%uz_xst(3), ' to ', d%uz_xen(3)
-    write(*, *) 'p  in x-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_xsz(1), ' x id = ', d%ps_xst(1), ' to ', d%ps_xen(1)
-    write(*, *) 'p  in x-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_xsz(2), ' y id = ', d%ps_xst(2), ' to ', d%ps_xen(2)
-    write(*, *) 'p  in x-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_xsz(3), ' z id = ', d%ps_xst(3), ' to ', d%ps_xen(3)
+    write (OUTPUT_UNIT, *) 'Ux in x-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_xsz(1), ' x id = ', d%ux_xst(1), ' to ', d%ux_xen(1)
+    write (OUTPUT_UNIT, *) 'Ux in x-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_xsz(2), ' y id = ', d%ux_xst(2), ' to ', d%ux_xen(2)
+    write (OUTPUT_UNIT, *) 'Ux in x-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_xsz(3), ' z id = ', d%ux_xst(3), ' to ', d%ux_xen(3)
+    write (OUTPUT_UNIT, *) 'Uy in x-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_xsz(1), ' x id = ', d%uy_xst(1), ' to ', d%uy_xen(1)
+    write (OUTPUT_UNIT, *) 'Uy in x-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_xsz(2), ' y id = ', d%uy_xst(2), ' to ', d%uy_xen(2)
+    write (OUTPUT_UNIT, *) 'Uy in x-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_xsz(3), ' z id = ', d%uy_xst(3), ' to ', d%uy_xen(3)
+    write (OUTPUT_UNIT, *) 'Uz in x-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_xsz(1), ' x id = ', d%uz_xst(1), ' to ', d%uz_xen(1)
+    write (OUTPUT_UNIT, *) 'Uz in x-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_xsz(2), ' y id = ', d%uz_xst(2), ' to ', d%uz_xen(2)
+    write (OUTPUT_UNIT, *) 'Uz in x-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_xsz(3), ' z id = ', d%uz_xst(3), ' to ', d%uz_xen(3)
+    write (OUTPUT_UNIT, *) 'p  in x-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_xsz(1), ' x id = ', d%ps_xst(1), ' to ', d%ps_xen(1)
+    write (OUTPUT_UNIT, *) 'p  in x-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_xsz(2), ' y id = ', d%ps_xst(2), ' to ', d%ps_xen(2)
+    write (OUTPUT_UNIT, *) 'p  in x-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_xsz(3), ' z id = ', d%ps_xst(3), ' to ', d%ps_xen(3)
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    write(*, *) 'Ux in y-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_ysz(1), ' x id = ', d%ux_yst(1), ' to ', d%ux_yen(1)
-    write(*, *) 'Ux in y-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_ysz(2), ' y id = ', d%ux_yst(2), ' to ', d%ux_yen(2)
-    write(*, *) 'Ux in y-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_ysz(3), ' z id = ', d%ux_yst(3), ' to ', d%ux_yen(3)
-    write(*, *) 'Uy in y-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_ysz(1), ' x id = ', d%uy_yst(1), ' to ', d%uy_yen(1)
-    write(*, *) 'Uy in y-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_ysz(2), ' y id = ', d%uy_yst(2), ' to ', d%uy_yen(2)
-    write(*, *) 'Uy in y-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_ysz(3), ' z id = ', d%uy_yst(3), ' to ', d%uy_yen(3)
-    write(*, *) 'Uz in y-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_ysz(1), ' x id = ', d%uz_yst(1), ' to ', d%uz_yen(1)
-    write(*, *) 'Uz in y-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_ysz(2), ' y id = ', d%uz_yst(2), ' to ', d%uz_yen(2)
-    write(*, *) 'Uz in y-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_ysz(3), ' z id = ', d%uz_yst(3), ' to ', d%uz_yen(3)
-    write(*, *) 'p  in y-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_ysz(1), ' x id = ', d%ps_yst(1), ' to ', d%ps_yen(1)
-    write(*, *) 'p  in y-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_ysz(2), ' y id = ', d%ps_yst(2), ' to ', d%ps_yen(2)
-    write(*, *) 'p  in y-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_ysz(3), ' z id = ', d%ps_yst(3), ' to ', d%ps_yen(3)
+    write (OUTPUT_UNIT, *) 'Ux in y-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_ysz(1), ' x id = ', d%ux_yst(1), ' to ', d%ux_yen(1)
+    write (OUTPUT_UNIT, *) 'Ux in y-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_ysz(2), ' y id = ', d%ux_yst(2), ' to ', d%ux_yen(2)
+    write (OUTPUT_UNIT, *) 'Ux in y-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_ysz(3), ' z id = ', d%ux_yst(3), ' to ', d%ux_yen(3)
+    write (OUTPUT_UNIT, *) 'Uy in y-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_ysz(1), ' x id = ', d%uy_yst(1), ' to ', d%uy_yen(1)
+    write (OUTPUT_UNIT, *) 'Uy in y-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_ysz(2), ' y id = ', d%uy_yst(2), ' to ', d%uy_yen(2)
+    write (OUTPUT_UNIT, *) 'Uy in y-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_ysz(3), ' z id = ', d%uy_yst(3), ' to ', d%uy_yen(3)
+    write (OUTPUT_UNIT, *) 'Uz in y-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_ysz(1), ' x id = ', d%uz_yst(1), ' to ', d%uz_yen(1)
+    write (OUTPUT_UNIT, *) 'Uz in y-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_ysz(2), ' y id = ', d%uz_yst(2), ' to ', d%uz_yen(2)
+    write (OUTPUT_UNIT, *) 'Uz in y-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_ysz(3), ' z id = ', d%uz_yst(3), ' to ', d%uz_yen(3)
+    write (OUTPUT_UNIT, *) 'p  in y-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_ysz(1), ' x id = ', d%ps_yst(1), ' to ', d%ps_yen(1)
+    write (OUTPUT_UNIT, *) 'p  in y-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_ysz(2), ' y id = ', d%ps_yst(2), ' to ', d%ps_yen(2)
+    write (OUTPUT_UNIT, *) 'p  in y-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_ysz(3), ' z id = ', d%ps_yst(3), ' to ', d%ps_yen(3)
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    write(*, *) 'Ux in z-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_zsz(1), ' x id = ', d%ux_zst(1), ' to ', d%ux_zen(1)
-    write(*, *) 'Ux in z-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_zsz(2), ' y id = ', d%ux_zst(2), ' to ', d%ux_zen(2)
-    write(*, *) 'Ux in z-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_zsz(3), ' z id = ', d%ux_zst(3), ' to ', d%ux_zen(3)
-    write(*, *) 'Uy in z-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_zsz(1), ' x id = ', d%uy_zst(1), ' to ', d%uy_zen(1)
-    write(*, *) 'Uy in z-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_zsz(2), ' y id = ', d%uy_zst(2), ' to ', d%uy_zen(2)
-    write(*, *) 'Uy in z-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_zsz(3), ' z id = ', d%uy_zst(3), ' to ', d%uy_zen(3)
-    write(*, *) 'Uz in z-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_zsz(1), ' x id = ', d%uz_zst(1), ' to ', d%uz_zen(1)
-    write(*, *) 'Uz in z-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_zsz(2), ' y id = ', d%uz_zst(2), ' to ', d%uz_zen(2)
-    write(*, *) 'Uz in z-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_zsz(3), ' z id = ', d%uz_zst(3), ' to ', d%uz_zen(3)
-    write(*, *) 'p  in z-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_zsz(1), ' x id = ', d%ps_zst(1), ' to ', d%ps_zen(1)
-    write(*, *) 'p  in z-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_zsz(2), ' y id = ', d%ps_zst(2), ' to ', d%ps_zen(2)
-    write(*, *) 'p  in z-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_zsz(3), ' z id = ', d%ps_zst(3), ' to ', d%ps_zen(3)
+    write (OUTPUT_UNIT, *) 'Ux in z-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_zsz(1), ' x id = ', d%ux_zst(1), ' to ', d%ux_zen(1)
+    write (OUTPUT_UNIT, *) 'Ux in z-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_zsz(2), ' y id = ', d%ux_zst(2), ' to ', d%ux_zen(2)
+    write (OUTPUT_UNIT, *) 'Ux in z-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_zsz(3), ' z id = ', d%ux_zst(3), ' to ', d%ux_zen(3)
+    write (OUTPUT_UNIT, *) 'Uy in z-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_zsz(1), ' x id = ', d%uy_zst(1), ' to ', d%uy_zen(1)
+    write (OUTPUT_UNIT, *) 'Uy in z-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_zsz(2), ' y id = ', d%uy_zst(2), ' to ', d%uy_zen(2)
+    write (OUTPUT_UNIT, *) 'Uy in z-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_zsz(3), ' z id = ', d%uy_zst(3), ' to ', d%uy_zen(3)
+    write (OUTPUT_UNIT, *) 'Uz in z-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_zsz(1), ' x id = ', d%uz_zst(1), ' to ', d%uz_zen(1)
+    write (OUTPUT_UNIT, *) 'Uz in z-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_zsz(2), ' y id = ', d%uz_zst(2), ' to ', d%uz_zen(2)
+    write (OUTPUT_UNIT, *) 'Uz in z-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_zsz(3), ' z id = ', d%uz_zst(3), ' to ', d%uz_zen(3)
+    write (OUTPUT_UNIT, *) 'p  in z-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_zsz(1), ' x id = ', d%ps_zst(1), ' to ', d%ps_zen(1)
+    write (OUTPUT_UNIT, *) 'p  in z-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_zsz(2), ' y id = ', d%ps_zst(2), ' to ', d%ps_zen(2)
+    write (OUTPUT_UNIT, *) 'p  in z-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_zsz(3), ' z id = ', d%ps_zst(3), ' to ', d%ps_zen(3)
 #endif
 
     return

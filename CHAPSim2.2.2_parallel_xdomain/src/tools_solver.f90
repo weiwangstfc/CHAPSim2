@@ -118,8 +118,8 @@ contains
     cfl_diff = sum(x2r) * TWO * dt * rre
 
     if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-    write(*,*) "  Diffusion number :"
-    write(*,"(12X, F13.8)") cfl_diff
+    write (OUTPUT_UNIT,*) "  Diffusion number :"
+    write (OUTPUT_UNIT,"(12X, F13.8)") cfl_diff
     
     return
   end subroutine
@@ -220,8 +220,8 @@ contains
 
     if(nrank == 0) then
       if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
-      write(*,*) "  CFL (convection) :"
-      write(*,"(12X, F13.8)") cfl_convection_work
+      write (OUTPUT_UNIT,*) "  CFL (convection) :"
+      write (OUTPUT_UNIT,"(12X, F13.8)") cfl_convection_work
     end if
     
     return

@@ -22,7 +22,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Test_schemes()
-  use type_vars_mod, only : flow, domain
+  use var_dft_mod, only : flow, domain
   implicit none
 
   !call Test_TDMA_cyclic
@@ -74,8 +74,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# ave(u)_x : P2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# ave(u)_x : P2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -89,7 +89,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
           do i = 1, 3
@@ -98,7 +98,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
           do i = d%nc(1)-2, d%nc(1)
@@ -107,14 +107,14 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(uiy_c2p) then
@@ -125,8 +125,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# ave(u)_y : C2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# ave(u)_y : C2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
@@ -139,7 +139,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yp = d%yp(j)
@@ -147,7 +147,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%np(2)-2, d%np(2)
             yp = d%yp(j)
@@ -155,13 +155,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(vix_c2p) then
@@ -172,8 +172,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# ave(v)_x : C2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# ave(v)_x : C2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -186,7 +186,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
           do i = 1, 3
@@ -195,7 +195,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
           do i = d%np(1)-2, d%np(1)
@@ -204,14 +204,14 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(viy_p2c) then
@@ -222,8 +222,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# ave(v)_y : P2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# ave(v)_y : P2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
@@ -236,7 +236,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yc = d%yc(j)
@@ -244,7 +244,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%nc(2)-2, d%nc(2)
             yc = d%yc(j)
@@ -252,13 +252,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) &
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     return 
@@ -310,8 +310,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# du/dx : P2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# du/dx : P2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -324,7 +324,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -332,7 +332,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = d%nc(1)-2, d%nc(1)
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -340,13 +340,13 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(dudx_P2P) then
@@ -357,8 +357,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# du/dx : P2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# du/dx : P2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -371,7 +371,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
             xp = d%h(1) * real(i - 1, WP)
@@ -379,7 +379,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = d%np(1)-2, d%np(1)
             xp = d%h(1) * real(i - 1, WP)
@@ -387,13 +387,13 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(dudy_C2P) then
@@ -404,8 +404,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# du/dy : C2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# du/dy : C2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
@@ -418,7 +418,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yp = d%yp(j)
@@ -426,7 +426,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%np(2)-2, d%np(2)
             yp = d%yp(j)
@@ -434,13 +434,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)   
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)   
     end if
 
     if(dudy_C2C) then
@@ -451,8 +451,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# du/dy : C2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# du/dy : C2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
@@ -465,7 +465,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yc = d%yc(j)
@@ -473,7 +473,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%nc(2)-2, d%nc(2)
             yc = d%yc(j)
@@ -481,13 +481,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(dvdy_P2C) then
@@ -498,8 +498,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# dv/dy : P2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# dv/dy : P2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
@@ -512,7 +512,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yc = d%yc(j)
@@ -520,7 +520,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%nc(2)-2, d%nc(2)
             yc = d%yc(j)
@@ -528,13 +528,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3) 
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3) 
     end if 
     
     if(dvdy_P2P) then
@@ -545,8 +545,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# dv/dy : P2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# dv/dy : P2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
@@ -559,7 +559,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yp = d%yp(j)
@@ -567,7 +567,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%np(2)-2, d%np(2)
             yp = d%yp(j)
@@ -575,13 +575,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3) 
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3) 
     end if
 
     if(dvdx_C2C) then
@@ -592,8 +592,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# du/dx : P2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# du/dx : P2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -606,7 +606,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -614,7 +614,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = d%nc(1)-2, d%nc(1)
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -622,13 +622,13 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(dvdx_C2P) then
@@ -639,8 +639,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# du/dx : P2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# du/dx : P2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -653,7 +653,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
             xp = d%h(1) * real(i - 1, WP)
@@ -661,7 +661,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = d%np(1)-2, d%np(1)
             xp = d%h(1) * real(i - 1, WP)
@@ -669,13 +669,13 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
     
     
@@ -727,8 +727,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# d2u/dx2 : P2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# d2u/dx2 : P2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -741,7 +741,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
             xp = d%h(1) * real(i - 1, WP)
@@ -749,7 +749,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = d%np(1)-2, d%np(1)
             xp = d%h(1) * real(i - 1, WP)
@@ -757,13 +757,13 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     if(d2udy2_C2C) then
@@ -774,8 +774,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '# d2u/dy2 : C2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '# d2u/dy2 : C2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%np(1)
@@ -788,7 +788,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yc = d%yc(j)
@@ -796,7 +796,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%nc(2)-2, d%nc(2)
             yc = d%yc(j)
@@ -804,13 +804,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
     
     if(d2vdy2_P2P) then
@@ -821,8 +821,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '#  d2v/dy2 : P2P'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '#  d2v/dy2 : P2P'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do i = 1, d%nc(1)
@@ -835,7 +835,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
             yp = d%yp(j)
@@ -843,7 +843,7 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = d%np(2)-2, d%np(2)
             yp = d%yp(j)
@@ -851,13 +851,13 @@ end subroutine
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3) 
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3) 
     end if
 
     if(d2vdx2_C2C) then
@@ -868,8 +868,8 @@ end subroutine
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
-      write(*,'(A)') '  '
-      write(*,'(A)') '#  d2v/dx2 : C2C'
+      write (OUTPUT_UNIT,'(A)') '  '
+      write (OUTPUT_UNIT,'(A)') '#  d2v/dx2 : C2C'
       do k = 1, d%nc(3)
         zc = d%h(3) * (real(k - 1, WP) + HALF)
         do j = 1, d%nc(2)
@@ -882,7 +882,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -890,7 +890,7 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = d%nc(1)-2, d%nc(1)
             xc = d%h(1) * (real(i - 1, WP) + HALF)
@@ -898,13 +898,13 @@ end subroutine
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
             if(dbg .and. errmax>0.1_WP) & 
-            write(*,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+            write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
         end do
       end do
       deallocate (fi)
       deallocate (fo)
-      write(*, '(3ES15.7)') err(1:3)
+      write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
     end if
 
     return 

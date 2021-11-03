@@ -25,16 +25,13 @@
 !>
 !===============================================================================
 program chapsim
-  use flow_thermo_initialiasation, only : Initialize_flow_thermal_fields
   implicit none
 
   call Initialize_chapsim ()
-  call Initialize_flow_thermal_fields()
   call Solve_eqs_iteration()
   call Finalise_chapsim   ()
   
 end program
-!===============================================================================
 !===============================================================================
 !> \brief Initialisation and preprocessing of geometry, mesh and tools
 !>
@@ -42,55 +39,52 @@ end program
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[in]     none          NA
 !> \param[out]    none          NA
-!_______________________________________________________________________________
+!===============================================================================
 subroutine Initialize_chapsim()
   use code_performance_mod
-  use mpi_mod
   use input_general_mod
+  
   use geometry_mod
   use input_thermo_mod
   use operations
   use domain_decomposition_mod
   use poisson_mod
+  use flow_thermo_initialiasation
   implicit none
 
-  character(len = 11) :: INPUT_FILE = 'input0.ini'
-  integer :: i
 
+
+!-------------------------------------------------------------------------------
+! initialisation of mpi, nrank, nproc
+!-------------------------------------------------------------------------------
+  call Initialize_mpi
   call Call_cpu_time(CPU_TIME_CODE_START, 0, 0)
-  call Initialize_mpi ()
 !-------------------------------------------------------------------------------
-! common input
+! reading input parameters
 !-------------------------------------------------------------------------------
-  call Read_general_input_common (INPUT_FILE)
-!-------------------------------------------------------------------------------
-! x-subdomain input, this is for turbulence generator and developping flow
-!-------------------------------------------------------------------------------
-  do i = 1, ndomain
-    INPUT_FILE = 'input'//int2str(i)//'x.ini'
-    call Read_general_input_subdomain (INPUT_FILE, domain(i))
-    call Buildup_geometry_mesh_info (domain(i))
-  end do
+  call Read_input_parameters
 !-------------------------------------------------------------------------------
 ! build up thermo_mapping_relations, independent of any domains
 !-------------------------------------------------------------------------------
-  if(is_any_energyeq) call Build_up_thermo_mapping_relations()
+  if(is_any_energyeq) call Build_up_thermo_mapping_relations
 !-------------------------------------------------------------------------------
 ! build up operation coefficients
 !-------------------------------------------------------------------------------
-  call Prepare_coeffs_for_operations ()
+  call Prepare_coeffs_for_operations
 
-  do i = 1, ndomain
+  do i = 1, nxdomain
     call Initialize_domain_decomposition ( domain(i) )
     call Initialize_decomp_poisson ( domain(i) )
   end do
 
   !call Test_poisson_solver
+
+  call Initialize_flow_thermal_fields()
 
   return
 end subroutine Initialize_chapsim
@@ -114,7 +108,7 @@ subroutine Solve_eqs_iteration
                                   !nIterFlowStart, nIterThermoStart, &
                                   !tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
                                   !dt, nsubitr, niter
-  use type_vars_mod!,      only : flow, thermo, domain
+  use var_dft_mod!,      only : flow, thermo, domain
   use flow_variables_mod!, only : Calculate_RePrGr, Check_maximum_velocity
   use eq_momentum_mod!,    only : Solve_momentum_eq
   use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
@@ -140,7 +134,7 @@ subroutine Solve_eqs_iteration
   end subroutine Display_vtk_slice
 end interface
   
-  do i = 1, ndomain
+  do i = 1, nxdomain
     if(d%ithermo == 1) then
       niter = MAX(flow(i)%nIterFlowEnd, thermo(i)%nIterThermoEnd)
     else
@@ -177,7 +171,7 @@ end interface
       !if(is_thermo) call Solve_energy_eq  (flow, thermo, domain, isub)
       if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
 #ifdef DEBUG
-      write(*, '(A, I1)') "  Sub-iteration in RK = ", isub
+      write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
       call Check_mass_conservation(flow, domain) 
       call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)
       call Get_volumetric_average_3d(flow%qx, 'ux', domain, rtmp)   

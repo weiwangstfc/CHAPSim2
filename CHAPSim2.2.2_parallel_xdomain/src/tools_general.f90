@@ -3,9 +3,9 @@
     implicit none
     character(len=*), intent(IN) :: msg
     
-    write(*,*) 'ERROR: ' // msg
+    write (OUTPUT_UNIT,*) 'ERROR: ' // msg
 
-    write(*,*) 'Code is terminated in processor = '
+    write (OUTPUT_UNIT,*) 'Code is terminated in processor = '
     STOP
 
     return
@@ -15,7 +15,7 @@
     implicit none
     character(len=*), intent(IN) :: msg
     
-    write(*,*) 'WARNNING: ' // msg
+    write (OUTPUT_UNIT,*) 'WARNNING: ' // msg
 
     return
   end subroutine Print_warning_msg
@@ -24,8 +24,8 @@
     implicit none
     character(len=*), intent(IN) :: msg
 
-    write(*,*) "==============================================================================="
-    write(*,*) msg
+    write (OUTPUT_UNIT,*) "==============================================================================="
+    write (OUTPUT_UNIT,*) msg
 
     return
   end subroutine Print_debug_start_msg
@@ -34,14 +34,14 @@
     implicit none
     character(len=*), intent(IN) :: msg
 
-    write(*,*) msg
+    write (OUTPUT_UNIT,*) msg
     return
   end subroutine Print_debug_mid_msg
 !===============================================================================
   subroutine Print_debug_end_msg
     implicit none
 
-    write(*,*) "... done."
+    write (OUTPUT_UNIT,*) "... done."
     return
   end subroutine Print_debug_end_msg
 
@@ -56,11 +56,11 @@
 
     integer(4) :: i, j, k
 
-    write(*, *) str
+    write (OUTPUT_UNIT, *) str
     do k = 1, nz
       do j = 1, ny
         do i = 1, nx
-          write(*, *) k, j, i, var(i, j, k)
+          write (OUTPUT_UNIT, *) k, j, i, var(i, j, k)
         end do
       end do
     end do

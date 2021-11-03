@@ -21,11 +21,11 @@
 !===============================================================================
 !> \file geometry.f90
 !>
-!> \brief Building up the geometry and mesh information.
+!> \brief Building up the geometry and mesh inwrtfmt1ion.
 !>
 !===============================================================================
 module geometry_mod
-  use type_vars_mod, only : domain
+  use var_dft_mod, only : domain
   implicit none
 
   !private
@@ -233,7 +233,7 @@ contains
     integer(4) :: i
     logical    :: dbg = .false.
 
-    if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric information ...")
+    if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric inwrtfmt1ion ...")
     ! Build up domain info
 
     dm%is_periodic(:) == .false.
@@ -288,7 +288,7 @@ contains
     ! print out for debugging
     if(dbg) then
       do i = 1, dm%np_geo(2)
-        write(*, '(I5, 1F8.4)') i, dm%yp(i)
+        write (OUTPUT_UNIT, '(I5, 1F8.4)') i, dm%yp(i)
       end do
     end if
 

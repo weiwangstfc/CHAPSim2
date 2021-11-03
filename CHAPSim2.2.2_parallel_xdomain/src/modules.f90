@@ -1,4 +1,4 @@
-!##############################################################################
+!===============================================================================
 module precision_mod
   use decomp_2d, only : mytype
   implicit none
@@ -14,8 +14,7 @@ module precision_mod
   !integer, parameter :: WP = mytype ! inherit from decomp_2d, flag of -DDOUBLE_PREC is required.
 
 end module precision_mod
-
-!##############################################################################
+!===============================================================================
 module parameters_constant_mod
   use precision_mod
   implicit none
@@ -215,64 +214,63 @@ module parameters_constant_mod
   real(WP), parameter :: CoM_Pb(-1:1) = (/1069.0, 4.55E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
   real(WP), parameter :: CoM_Bi(-1:1) = (/780.0, 4.456E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
   real(WP), parameter :: CoM_LBE(-1:1) = (/754.1, 4.94E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
-  
-  
-
 end module parameters_constant_mod
+!===============================================================================
+module wtformat_mod
+  use iso_fortran_env
+  implicit none
+
+  character(len = 17) :: wrtfmt1i   = '(2X, A32, 1I20.1)'
+  character(len = 17) :: wrtfmt2i   = '(2X, A32, 2I10.1)'
+  character(len = 17) :: wrtfmt1r   = '(2X, A32, 1F20.4)'
+  character(len = 17) :: wrtfmt2r   = '(2X, A32, 2F10.2)'
+  character(len = 17) :: wrtfmt1e   = '(2X, A32, 1E20.4)'
+  character(len = 25) :: wrtfmt1i1r = '(2X, A32, 1I10.1, 1F10.2)'
+  character(len = 25) :: wrtfmt2i2r = '(2X, A32, 2I10.1, 2F10.2)'
+  character(len = 14) :: wrtfmt1s   = '(2X, A32, A20)'
+
+end module wtformat_mod
+!===============================================================================
 module udf_type_mod
   use precision_mod
   use mpi_mod
   use input_thermo_mod
   implicit none
-
 !-------------------------------------------------------------------------------
 !  domain info
 !------------------------------------------------------------------------------- 
   type t_domain
-
-    integer  :: ndom
-    integer  :: idom
-    integer  :: icase
-    integer  :: icoordinate
-    integer  :: ithermo
-    integer  :: icht
-
-    integer  :: irestart
-    integer  :: nrsttckpt
-    integer  :: nIterIniRen
-    real(wp) :: renIni
-    real(wp) :: initNoise
-
-    integer :: iAccuracy
+    logical :: is_periodic(3)
+    logical :: is_stretching(3)
+    integer :: idom
+    integer :: icase
+    integer :: icoordinate
+    integer :: ithermo
+    integer :: icht
+    integer :: iTimeScheme
     integer :: iviscous
-
+    integer :: iAccuracy
     integer :: nfreqckpt
     integer :: nvisu
     integer :: nIterStatsStart
     integer :: nfreqStats
- 
-    logical  :: is_periodic(3)
-    logical  :: is_stretching(3)
- 
+    integer :: istret
+    integer :: nc(3) ! geometric cell number
+    integer :: np_geo(3) ! geometric points
+    integer :: np(3) ! calculated points
     integer  :: ibcx(5, 2) ! bc type, (5 variables, 2 sides)
     integer  :: ibcy(5, 2) ! bc type, (5 variables, 2 sides)
     integer  :: ibcz(5, 2) ! bc type, (5 variables, 2 sides)
     real(wp) :: fbcx(5, 2) ! bc values, (5 variables, 2 sides)
     real(wp) :: fbcy(5, 2) ! bc values, (5 variables, 2 sides)
     real(wp) :: fbcz(5, 2) ! bc values, (5 variables, 2 sides)
-
     real(wp) :: lxx
     real(wp) :: lyt
     real(wp) :: lyb
     real(wp) :: lzz
+    real(WP) :: rstret
+    real(wp) :: dt
 
-    integer :: istret
-    integer :: rstret
-    integer :: nc(3) ! geometric cell number
-    
-    integer :: np_geo(3) ! geometric points
-    integer :: np(3) ! calculated points
-    
     real(wp) :: h(3) ! uniform dx
     real(wp) :: h1r(3) ! uniform (dx)^(-1)
     real(wp) :: h2r(3) ! uniform (dx)^(-2)
@@ -324,7 +322,6 @@ module udf_type_mod
     type(DECOMP_INFO) :: dpcp ! eg, <ux>^z, <uz>^x
     type(DECOMP_INFO) :: dcpp ! eg, <uy>^z, <uz>^y
 
-
     integer(4), allocatable :: iNeighb(:, :) ! global index
     integer(4), allocatable :: jNeighb(:, :)
     integer(4), allocatable :: kNeighb(:, :)
@@ -343,16 +340,23 @@ module udf_type_mod
 !  flow info
 !------------------------------------------------------------------------------- 
   type t_flow
-    real(WP) :: dt
+
+    integer  :: idriven
+    integer  :: igravity
+    integer  :: irestart
+    integer  :: nrsttckpt
+    integer  :: nIterIniRen
+    integer :: nIterFlowStart
+    integer :: nIterFlowEnd
+
     real(WP) :: time
     real(WP) :: ren
     real(WP) :: rre
-    integer  :: idriven
-    real(WP) :: drvf
+    real(WP) :: drvfc
     real(WP) :: fgravity
-    integer :: nIterFlowStart
-    integer :: nIterFlowEnd
-                
+    real(wp) :: renIni
+    real(wp) :: initNoise
+   
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)
     real(WP), allocatable :: qz(:, :, :)
@@ -381,19 +385,22 @@ module udf_type_mod
 !  thermo info
 !------------------------------------------------------------------------------- 
   type t_thermo
+
     integer :: ifluid
-    integer :: lenRef
-    integer :: T0Ref
-    real(WP) :: time
-    real(WP) :: rPrRen
     integer  :: igravity
-    real(WP) :: TiRef
     integer :: nIterThermoStart
     integer :: nIterThermoEnd
-    type(thermoProperty_t) :: tpIni  ! undim, initial state
+    real(WP) :: lenRef
+    real(WP) :: T0Ref
+    real(WP) :: Tini0
+    real(WP) :: time
+    real(WP) :: rPrRen
+    
+    type(thermoProperty_t) :: tpIni     ! undim, initial state
     type(thermoProperty_t) :: tpbcx(2)  ! undim, xbc state
     type(thermoProperty_t) :: tpbcy(2)  ! undim, ybc state
     type(thermoProperty_t) :: tpbcz(2)  ! undim, zbc state
+
     real(WP), allocatable :: dh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)
@@ -405,7 +412,7 @@ module udf_type_mod
 end module
 !===============================================================================
 !===============================================================================
-module type_vars_mod
+module var_dft_mod
   use udf_type_mod
   implicit none
 
@@ -413,8 +420,8 @@ module type_vars_mod
   type(t_flow),   allocatable, save :: flow(:)
   type(t_thermo), allocatable, save :: thermo(:)
 end module
-
-!##############################################################################
+!===============================================================================
+!===============================================================================
 module math_mod
   use precision_mod
   use parameters_constant_mod, only : ONE, ZERO, MINP
@@ -556,7 +563,8 @@ contains
     if (r > MINP) d = ONE
   end function
 end module math_mod
-
+!===============================================================================
+!===============================================================================
 module typeconvert_mod
 contains
   character(len=20) function int2str(k)

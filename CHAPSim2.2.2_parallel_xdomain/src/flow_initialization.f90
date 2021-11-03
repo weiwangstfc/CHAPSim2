@@ -22,7 +22,7 @@
 !>
 !===============================================================================
 module flow_thermo_initialiasation
-  use type_vars_mod
+  use var_dft_mod
   implicit none
 
   
@@ -1019,9 +1019,9 @@ contains
 
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The maximum velocities are:")
-      write(*, '(5X, A, 1ES13.5)') 'Umax : ', u_work(1)
-      write(*, '(5X, A, 1ES13.5)') 'Umax : ', u_work(2)
-      write(*, '(5X, A, 1ES13.5)') 'Umax : ', u_work(3)
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(1)
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(2)
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(3)
     end if
 
     return
@@ -1216,7 +1216,7 @@ contains
     logical :: itest = .false.
     integer :: i
 
-    do i = 1, ndomain
+    do i = 1, nxdomain
       call Allocate_thermoflow_variables (domain(i), flow(i), thermo(i))
       call Calculate_RePrGr(flow(i), thermo(i), 0)
       if (irestart == INITIAL_RANDOM) then

@@ -27,7 +27,7 @@ module poisson_mod
   TYPE(DECOMP_INFO), save :: ph
   TYPE(DECOMP_INFO), save :: sp
 !_______________________________________________________________________________
-! Transformation Matrix from \hat{f} to \hat{f''}
+! Transwrtfmt1ion Matrix from \hat{f} to \hat{f''}
 !_______________________________________________________________________________
   real(wp),       allocatable, dimension(:)       :: t2x, t2y, t2z
   real(wp), save, allocatable, dimension(:, :, :) :: t2xyz
@@ -164,17 +164,17 @@ contains
     call decomp_2d_fft_get_size(fft_st, fft_en, fft_sz)
 
 #ifdef DEBUG
-    write(*,*) 'physical domain index, i = ', ph%xst(1), ph%xen(1)
-    write(*,*) 'physical domain index, j = ', ph%xst(2), ph%xen(2)
-    write(*,*) 'physical domain index, k = ', ph%xst(3), ph%xen(3)
+    write (OUTPUT_UNIT,*) 'physical domain index, i = ', ph%xst(1), ph%xen(1)
+    write (OUTPUT_UNIT,*) 'physical domain index, j = ', ph%xst(2), ph%xen(2)
+    write (OUTPUT_UNIT,*) 'physical domain index, k = ', ph%xst(3), ph%xen(3)
 
-    write(*,*) 'spectral domain index, l = ', sp%xst(1), sp%xen(1)
-    write(*,*) 'spectral domain index, m = ', sp%xst(2), sp%xen(2)
-    write(*,*) 'spectral domain index, n = ', sp%xst(3), sp%xen(3)
+    write (OUTPUT_UNIT,*) 'spectral domain index, l = ', sp%xst(1), sp%xen(1)
+    write (OUTPUT_UNIT,*) 'spectral domain index, m = ', sp%xst(2), sp%xen(2)
+    write (OUTPUT_UNIT,*) 'spectral domain index, n = ', sp%xst(3), sp%xen(3)
 
-    write(*,*) 'Fourier Domain index,  l = ', fft_st(1), fft_en(1)
-    write(*,*) 'Fourier Domain index,  m = ', fft_st(2), fft_en(2)
-    write(*,*) 'Fourier Domain index,  n = ', fft_st(3), fft_en(3)
+    write (OUTPUT_UNIT,*) 'Fourier Domain index,  l = ', fft_st(1), fft_en(1)
+    write (OUTPUT_UNIT,*) 'Fourier Domain index,  m = ', fft_st(2), fft_en(2)
+    write (OUTPUT_UNIT,*) 'Fourier Domain index,  n = ', fft_st(3), fft_en(3)
 #endif
 !_______________________________________________________________________________
 ! preparing sine and cosine factors
@@ -206,7 +206,7 @@ contains
       allocate ( rhsx(d%nc(1), d%nc(2), d%nc(3)) )
     end if
 !_______________________________________________________________________________
-! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
+! prepare the transwrtfmt1ion \hat{f"}_l = \hat{f}_l * t2x
 !_______________________________________________________________________________
     allocate ( t2x(sp%xst(1) : sp%xen(1)) ) ;  t2x = ZERO
     allocate ( t2y(sp%xst(2) : sp%xen(2)) ) ;  t2y = ZERO
@@ -335,7 +335,7 @@ contains
         t2(i) = t2(i) / (ONE + TWO * alpha * cos_wp(w))
         t2(i) = t2(i) / dd
         t2(i) = - t2(i) * t2(i)
-        write(*,*) i, t2(i)
+        write (OUTPUT_UNIT,*) i, t2(i)
       end do
 
     else if(ifft2deri == 2) then
@@ -349,7 +349,7 @@ contains
         cosw = cos_wp(w)
         t2(i) = b * cosw * cosw + TWO * a * cosw - TWO * a - b
         t2(i) = t2(i) / (ONE + TWO * alpha * cosw) / dd / dd
-        write(*,*) i, t2(i)
+        write (OUTPUT_UNIT,*) i, t2(i)
       end do
 
     else
@@ -391,7 +391,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
       do j = sp%xst(2), sp%xen(2)
         do i = sp%xst(1), sp%xen(1)
-          write(*,'(A, 3I5.1, 1ES13.5)') 'After F-FFT', k, j, i, cw1(i,j,k)
+          write (OUTPUT_UNIT,'(A, 3I5.1, 1ES13.5)') 'After F-FFT', k, j, i, cw1(i,j,k)
         end do
       end do
     end do
@@ -409,7 +409,7 @@ contains
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
         do i = ph%xst(1), ph%xen(1)
-          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+          write (OUTPUT_UNIT,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
         end do
       end do
     end do
@@ -546,7 +546,7 @@ contains
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
         do i = ph%xst(1), ph%xen(1)
-          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+          write (OUTPUT_UNIT,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
         end do
       end do
     end do
@@ -604,7 +604,7 @@ contains
                      !FOUR * dcos( TWO * domain%h(2)*(real(j, WP)-HALF) ) + &
                      !FOUR * dcos( TWO * domain%h(1)*(real(i, WP)-HALF) )
 
-          write(*, '(4I5.1, 3ES13.5)') i,j,k, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
+          write (OUTPUT_UNIT, '(4I5.1, 3ES13.5)') i,j,k, nn, solution, rhsphi(i,j,k), solution / rhsphi(i,j,k)
         end do
       end do
     end do

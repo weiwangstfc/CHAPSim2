@@ -44,7 +44,7 @@ module poisson_mod
   TYPE(DECOMP_INFO), save :: ph
   TYPE(DECOMP_INFO), save :: sp
 !_______________________________________________________________________________
-! Transformation Matrix from \hat{f} to \hat{f''}
+! Transwrtfmt1ion Matrix from \hat{f} to \hat{f''}
 !_______________________________________________________________________________
   complex(wp),       allocatable, dimension(:)       :: t2x, t2y, t2z
   complex(wp), save, allocatable, dimension(:, :, :) :: t2xyz
@@ -270,7 +270,7 @@ contains
 
 #ifdef DEBUG
     do l = 1, nc
-      write(*, *) 'modified wavenumber = ', l, t2(l)
+      write (OUTPUT_UNIT, *) 'modified wavenumber = ', l, t2(l)
     end do
 #endif 
 
@@ -377,29 +377,29 @@ contains
     call decomp_info_init(nw(1), nw(2), nw(3) / 2 + 1, sp)
 
 #ifdef DEBUG
-    if(nrank == 0) write(*, *) 'Physical Domain (Poisson), 2D decompisiton : '
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in x-dir = ', ph%xsz(1), ' x id from ', ph%xst(1), ph%xen(1)
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in y-dir = ', ph%xsz(2), ' y id from ', ph%xst(2), ph%xen(2)
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in z-dir = ', ph%xsz(3), ' z id from ', ph%xst(3), ph%xen(3)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in x-dir = ', ph%ysz(1), ' x id from ', ph%yst(1), ph%yen(1)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in y-dir = ', ph%ysz(2), ' y id from ', ph%yst(2), ph%yen(2)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in z-dir = ', ph%ysz(3), ' z id from ', ph%yst(3), ph%yen(3)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in x-dir = ', ph%zsz(1), ' x id from ', ph%zst(1), ph%zen(1)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in y-dir = ', ph%zsz(2), ' y id from ', ph%zst(2), ph%zen(2)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in z-dir = ', ph%zsz(3), ' z id from ', ph%zst(3), ph%zen(3)
+    if(nrank == 0) write (OUTPUT_UNIT, *) 'Physical Domain (Poisson), 2D decompisiton : '
+    write (OUTPUT_UNIT, *) 'In x-pencil, rank = ', nrank, ' size in x-dir = ', ph%xsz(1), ' x id from ', ph%xst(1), ph%xen(1)
+    write (OUTPUT_UNIT, *) 'In x-pencil, rank = ', nrank, ' size in y-dir = ', ph%xsz(2), ' y id from ', ph%xst(2), ph%xen(2)
+    write (OUTPUT_UNIT, *) 'In x-pencil, rank = ', nrank, ' size in z-dir = ', ph%xsz(3), ' z id from ', ph%xst(3), ph%xen(3)
+    write (OUTPUT_UNIT, *) 'In y-pencil, rank = ', nrank, ' size in x-dir = ', ph%ysz(1), ' x id from ', ph%yst(1), ph%yen(1)
+    write (OUTPUT_UNIT, *) 'In y-pencil, rank = ', nrank, ' size in y-dir = ', ph%ysz(2), ' y id from ', ph%yst(2), ph%yen(2)
+    write (OUTPUT_UNIT, *) 'In y-pencil, rank = ', nrank, ' size in z-dir = ', ph%ysz(3), ' z id from ', ph%yst(3), ph%yen(3)
+    write (OUTPUT_UNIT, *) 'In z-pencil, rank = ', nrank, ' size in x-dir = ', ph%zsz(1), ' x id from ', ph%zst(1), ph%zen(1)
+    write (OUTPUT_UNIT, *) 'In z-pencil, rank = ', nrank, ' size in y-dir = ', ph%zsz(2), ' y id from ', ph%zst(2), ph%zen(2)
+    write (OUTPUT_UNIT, *) 'In z-pencil, rank = ', nrank, ' size in z-dir = ', ph%zsz(3), ' z id from ', ph%zst(3), ph%zen(3)
 #endif
 
 #ifdef DEBUG
-    if(nrank == 0) write(*, *) 'Spectral domain (Poisson), 2D decompisiton : '
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in x-dir = ', sp%xsz(1), ' x id from ', sp%xst(1), sp%xen(1)
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in y-dir = ', sp%xsz(2), ' y id from ', sp%xst(2), sp%xen(2)
-    write(*, *) 'In x-pencil, rank = ', nrank, ' size in z-dir = ', sp%xsz(3), ' z id from ', sp%xst(3), sp%xen(3)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in x-dir = ', sp%ysz(1), ' x id from ', sp%yst(1), sp%yen(1)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in y-dir = ', sp%ysz(2), ' y id from ', sp%yst(2), sp%yen(2)
-    write(*, *) 'In y-pencil, rank = ', nrank, ' size in z-dir = ', sp%ysz(3), ' z id from ', sp%yst(3), sp%yen(3)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in x-dir = ', sp%zsz(1), ' x id from ', sp%zst(1), sp%zen(1)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in y-dir = ', sp%zsz(2), ' y id from ', sp%zst(2), sp%zen(2)
-    write(*, *) 'In z-pencil, rank = ', nrank, ' size in z-dir = ', sp%zsz(3), ' z id from ', sp%zst(3), sp%zen(3)
+    if(nrank == 0) write (OUTPUT_UNIT, *) 'Spectral domain (Poisson), 2D decompisiton : '
+    write (OUTPUT_UNIT, *) 'In x-pencil, rank = ', nrank, ' size in x-dir = ', sp%xsz(1), ' x id from ', sp%xst(1), sp%xen(1)
+    write (OUTPUT_UNIT, *) 'In x-pencil, rank = ', nrank, ' size in y-dir = ', sp%xsz(2), ' y id from ', sp%xst(2), sp%xen(2)
+    write (OUTPUT_UNIT, *) 'In x-pencil, rank = ', nrank, ' size in z-dir = ', sp%xsz(3), ' z id from ', sp%xst(3), sp%xen(3)
+    write (OUTPUT_UNIT, *) 'In y-pencil, rank = ', nrank, ' size in x-dir = ', sp%ysz(1), ' x id from ', sp%yst(1), sp%yen(1)
+    write (OUTPUT_UNIT, *) 'In y-pencil, rank = ', nrank, ' size in y-dir = ', sp%ysz(2), ' y id from ', sp%yst(2), sp%yen(2)
+    write (OUTPUT_UNIT, *) 'In y-pencil, rank = ', nrank, ' size in z-dir = ', sp%ysz(3), ' z id from ', sp%yst(3), sp%yen(3)
+    write (OUTPUT_UNIT, *) 'In z-pencil, rank = ', nrank, ' size in x-dir = ', sp%zsz(1), ' x id from ', sp%zst(1), sp%zen(1)
+    write (OUTPUT_UNIT, *) 'In z-pencil, rank = ', nrank, ' size in y-dir = ', sp%zsz(2), ' y id from ', sp%zst(2), sp%zen(2)
+    write (OUTPUT_UNIT, *) 'In z-pencil, rank = ', nrank, ' size in z-dir = ', sp%zsz(3), ' z id from ', sp%zst(3), sp%zen(3)
 #endif
 !_______________________________________________________________________________
 ! preparing sine and cosine factors
@@ -519,7 +519,7 @@ contains
       stop 'boundary condition not supported'
     end if
 !_______________________________________________________________________________
-! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
+! prepare the transwrtfmt1ion \hat{f"}_l = \hat{f}_l * t2x
 ! the operation of spetral data is in x-pencil (from PHYSICAL_IN_Z)
 !_______________________________________________________________________________
     allocate ( t2x( nw(1) ) ) ;  t2x = complex(ZERO, ZERO)
@@ -596,7 +596,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
       do j = sp%xst(2), sp%xen(2)
         do i = sp%xst(1), sp%xen(1)
-          write(*, '(A, 3I4.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
+          write (OUTPUT_UNIT, '(A, 3I4.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
         end do
       end do
     end do
@@ -626,7 +626,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
       do j = sp%xst(2), sp%xen(2)
         do i = sp%xst(1), sp%xen(1)
-          write(*, '(A, 3I5.1, 4ES13.5)') 'After F-FFT', k, j, i, & 
+          write (OUTPUT_UNIT, '(A, 3I5.1, 4ES13.5)') 'After F-FFT', k, j, i, & 
             cw_xpen(i,j,k), t2xyz(i,j,k)
         end do
       end do
@@ -653,7 +653,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
       do j = sp%xst(2), sp%xen(2)
         do i = sp%xst(1), sp%xen(1)
-          write(*, '(A, 3I4.1, 2ES13.5)') 'D/F in spectral', k, j, i, cw_xpen(i,j,k)
+          write (OUTPUT_UNIT, '(A, 3I4.1, 2ES13.5)') 'D/F in spectral', k, j, i, cw_xpen(i,j,k)
         end do
       end do
     end do
@@ -669,7 +669,7 @@ contains
     do k = ph%zst(3), ph%zen(3)
       do j = ph%zst(2), ph%zen(2)
         do i = ph%zst(1), ph%zen(1)
-          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+          write (OUTPUT_UNIT,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
         end do
       end do
     end do
@@ -702,7 +702,7 @@ contains
     ! do k = sp%xst(3), sp%xen(3)
     !   do j = sp%xst(2), sp%xen(2)
     !     do i = sp%xst(1), sp%xen(1)
-    !       write(*,'(A, 3I5.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
+    !       write (OUTPUT_UNIT,'(A, 3I5.1, 1ES13.5)') 'input', k, j, i, rhs(i,j,k)
     !     end do
     !   end do
     ! end do
@@ -759,7 +759,7 @@ contains
     ! do k = sp%xst(3), sp%xen(3)
     !   do j = sp%xst(2), sp%xen(2)
     !     do i = sp%xst(1), sp%xen(1)
-    !       write(*,'(A, 3I5.1, 2ES13.5)') 'After F-FFT', k, j, i, cw_xpen(i,j,k)
+    !       write (OUTPUT_UNIT,'(A, 3I5.1, 2ES13.5)') 'After F-FFT', k, j, i, cw_xpen(i,j,k)
     !     end do
     !   end do
     ! end do
@@ -839,7 +839,7 @@ contains
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
         do i = ph%xst(1), ph%xen(1)
-          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+          write (OUTPUT_UNIT,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
         end do
       end do
     end do
@@ -996,7 +996,7 @@ contains
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
         do i = ph%xst(1), ph%xen(1)
-          write(*,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
+          write (OUTPUT_UNIT,'(A, 3I4.1, 2ES13.5)') 'After B-FFT', k, j, i, rhs0(i, j, k), rhs(i, j,k)
         end do
       end do
     end do
@@ -1059,7 +1059,7 @@ contains
     real(WP) :: solution
     real(WP) :: x, y, z
     
-    write(*, *) ' Test Poisson Solver >>'
+    write (OUTPUT_UNIT, *) ' Test Poisson Solver >>'
 
     allocate(rhsphi(ph%zst(1):ph%zen(1),ph%zst(2):ph%zen(2),ph%zst(3):ph%zen(3))); rhsphi = ZERO
     
@@ -1088,7 +1088,7 @@ contains
 
           solution = dsin(TWO*x + TWO*y + TWO*z)
 
-          write(*, *) j, i, k, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)
+          write (OUTPUT_UNIT, *) j, i, k, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)
         end do
       end do
     end do
