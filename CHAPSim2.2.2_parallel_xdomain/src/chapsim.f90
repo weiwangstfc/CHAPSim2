@@ -27,9 +27,9 @@
 program chapsim
   implicit none
 
-  call Initialize_chapsim ()
-  call Solve_eqs_iteration()
-  call Finalise_chapsim   ()
+  call Initialize_chapsim
+  call Solve_eqs_iteration
+  call Finalise_chapsim
   
 end program
 !===============================================================================
@@ -45,10 +45,9 @@ end program
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !===============================================================================
-subroutine Initialize_chapsim()
+subroutine Initialize_chapsim
   use code_performance_mod
   use input_general_mod
-  
   use geometry_mod
   use input_thermo_mod
   use operations
@@ -56,8 +55,6 @@ subroutine Initialize_chapsim()
   use poisson_mod
   use flow_thermo_initialiasation
   implicit none
-
-
 
 !-------------------------------------------------------------------------------
 ! initialisation of mpi, nrank, nproc
@@ -71,20 +68,23 @@ subroutine Initialize_chapsim()
 !-------------------------------------------------------------------------------
 ! build up thermo_mapping_relations, independent of any domains
 !-------------------------------------------------------------------------------
-  if(is_any_energyeq) call Build_up_thermo_mapping_relations
+  if(is_any_energyeq) call Buildup_thermo_mapping_relations
 !-------------------------------------------------------------------------------
 ! build up operation coefficients
 !-------------------------------------------------------------------------------
   call Prepare_coeffs_for_operations
-
-  do i = 1, nxdomain
-    call Initialize_domain_decomposition ( domain(i) )
-    call Initialize_decomp_poisson ( domain(i) )
-  end do
-
-  !call Test_poisson_solver
-
-  call Initialize_flow_thermal_fields()
+!-------------------------------------------------------------------------------
+! build up domain decomposition
+!-------------------------------------------------------------------------------
+  call Buildup_mpi_domain_decomposition
+!-------------------------------------------------------------------------------
+! build up fft basic info
+!-------------------------------------------------------------------------------
+  call Prepare_poisson_fft
+!-------------------------------------------------------------------------------
+! Initialize flow and thermo fields
+!-------------------------------------------------------------------------------
+  call Initialize_flow_thermal_fields
 
   return
 end subroutine Initialize_chapsim
@@ -109,7 +109,7 @@ subroutine Solve_eqs_iteration
                                   !tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
                                   !dt, nsubitr, niter
   use var_dft_mod!,      only : flow, thermo, domain
-  use flow_variables_mod!, only : Calculate_RePrGr, Check_maximum_velocity
+  use flow_variables_mod!, only : Update_RePrGr, Check_maximum_velocity
   use eq_momentum_mod!,    only : Solve_momentum_eq
   use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
   use continuity_eq_mod
@@ -135,7 +135,7 @@ subroutine Solve_eqs_iteration
 end interface
   
   do i = 1, nxdomain
-    if(d%ithermo == 1) then
+    if(dm%ithermo == 1) then
       niter = MAX(flow(i)%nIterFlowEnd, thermo(i)%nIterThermoEnd)
     else
       niter = nIterFlowEnd
@@ -147,7 +147,7 @@ end interface
 !===============================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
 !===============================================================================
-    call Calculate_RePrGr(flow, thermo, iter)
+    call Update_RePrGr(flow, thermo, iter)
 !===============================================================================
 !      setting up flow solver
 !===============================================================================
@@ -216,7 +216,7 @@ end subroutine Solve_eqs_iteration
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !_______________________________________________________________________________
-subroutine Finalise_chapsim()
+subroutine Finalise_chapsim
   use input_general_mod
   use mpi_mod
   use code_performance_mod

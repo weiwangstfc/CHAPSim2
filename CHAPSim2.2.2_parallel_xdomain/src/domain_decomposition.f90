@@ -1,20 +1,10 @@
 !##############################################################################
 module domain_decomposition_mod
-  use decomp_2d
-  use input_general_mod
+  use mpi_mod
   implicit none
 
-  integer :: ierror
-  type(DECOMP_INFO) :: decomp_pcc(nxdomain) ! eg, ux
-  type(DECOMP_INFO) :: decomp_cpc(nxdomain) ! eg, uy
-  type(DECOMP_INFO) :: decomp_ccp(nxdomain) ! eg, uz
-  type(DECOMP_INFO) :: decomp_ccc(nxdomain) ! eg, p
-
-  type(DECOMP_INFO) :: decomp_ppc(nxdomain) ! eg, <ux>^y, <uy>^x
-  type(DECOMP_INFO) :: decomp_pcp(nxdomain) ! eg, <ux>^z, <uz>^x
-  type(DECOMP_INFO) :: decomp_cpp(nxdomain) ! eg, <uy>^z, <uz>^y
-  
-  public :: Initialize_domain_decomposition
+  private :: Initialize_domain_decomposition
+  public  :: Buildup_mpi_domain_decomposition
 
 contains
 !===============================================================================
@@ -23,17 +13,20 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[in]     d          domain type
 !===============================================================================
-  subroutine Initialize_domain_decomposition (d)
-    use mpi_mod
+  subroutine Initialize_domain_decomposition (dm)
     use udf_type_mod,      only : t_domain
+    use iso_fortran_env
     implicit none
-    type(t_domain), intent(in)   :: d
-!_______________________________________________________________________________
+    type(t_domain), intent(in)   :: dm
+
+    type(DECOMP_INFO) :: dtmp
+    integer :: i
+!-------------------------------------------------------------------------------
 ! basic 2D decompistion API
 ! limits: nrow <= min(nx, ny)
 !         ncol <= min(ny, nz)
@@ -51,108 +44,84 @@ contains
 !   It may be convenient for certain applications to use global coordinate 
 !   (for example when extracting a 2D plane from a 3D domain, it is easier to know which 
 !   process owns the plane if global index is used).
-!_______________________________________________________________________________
-
-    call decomp_info_init(d%np(1), d%nc(2), d%nc(3), decomp_pcc(d%idom))
-    call decomp_info_init(d%nc(1), d%np(2), d%nc(3), decomp_cpc(d%idom))
-    call decomp_info_init(d%nc(1), d%nc(2), d%np(3), decomp_ccp(d%idom))
-    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3), decomp_ccc(d%idom))
-
-    call decomp_info_init(d%np(1), d%np(2), d%nc(3), decomp_ppc(d%idom))
-    call decomp_info_init(d%nc(1), d%np(2), d%np(3), decomp_cpp(d%idom))
-    call decomp_info_init(d%np(1), d%nc(2), d%np(3), decomp_pcp(d%idom))
-
-    d%ux_xst(1:3) = decomp_pcc(d%idom)%xst(1:3)
-    d%ux_xen(1:3) = decomp_pcc(d%idom)%xen(1:3)
-    d%ux_xsz(1:3) = decomp_pcc(d%idom)%xsz(1:3)
-    d%uy_xst(1:3) = decomp_cpc(d%idom)%xst(1:3)
-    d%uy_xen(1:3) = decomp_cpc(d%idom)%xen(1:3)
-    d%uy_xsz(1:3) = decomp_cpc(d%idom)%xsz(1:3)
-    d%uz_xst(1:3) = decomp_ccp(d%idom)%xst(1:3)
-    d%uz_xen(1:3) = decomp_ccp(d%idom)%xen(1:3)
-    d%uz_xsz(1:3) = decomp_ccp(d%idom)%xsz(1:3)
-    d%ps_xst(1:3) = decomp_ccc(d%idom)%xst(1:3)
-    d%ps_xen(1:3) = decomp_ccc(d%idom)%xen(1:3)
-    d%ps_xsz(1:3) = decomp_ccc(d%idom)%xsz(1:3)
-
-    d%ux_yst(1:3) = decomp_pcc(d%idom)%yst(1:3)
-    d%ux_yen(1:3) = decomp_pcc(d%idom)%yen(1:3)
-    d%ux_ysz(1:3) = decomp_pcc(d%idom)%ysz(1:3)
-    d%uy_yst(1:3) = decomp_cpc(d%idom)%yst(1:3)
-    d%uy_yen(1:3) = decomp_cpc(d%idom)%yen(1:3)
-    d%uy_ysz(1:3) = decomp_cpc(d%idom)%ysz(1:3)
-    d%uz_yst(1:3) = decomp_ccp(d%idom)%yst(1:3)
-    d%uz_yen(1:3) = decomp_ccp(d%idom)%yen(1:3)
-    d%uz_ysz(1:3) = decomp_ccp(d%idom)%ysz(1:3)
-    d%ps_yst(1:3) = decomp_ccc(d%idom)%yst(1:3)
-    d%ps_yen(1:3) = decomp_ccc(d%idom)%yen(1:3)
-    d%ps_ysz(1:3) = decomp_ccc(d%idom)%ysz(1:3)
-
-    d%ux_zst(1:3) = decomp_pcc(d%idom)%zst(1:3)
-    d%ux_zen(1:3) = decomp_pcc(d%idom)%zen(1:3)
-    d%ux_zsz(1:3) = decomp_pcc(d%idom)%zsz(1:3)
-    d%uy_zst(1:3) = decomp_cpc(d%idom)%zst(1:3)
-    d%uy_zen(1:3) = decomp_cpc(d%idom)%zen(1:3)
-    d%uy_zsz(1:3) = decomp_cpc(d%idom)%zsz(1:3)
-    d%uz_zst(1:3) = decomp_ccp(d%idom)%zst(1:3)
-    d%uz_zen(1:3) = decomp_ccp(d%idom)%zen(1:3)
-    d%uz_zsz(1:3) = decomp_ccp(d%idom)%zsz(1:3)
-    d%ps_zst(1:3) = decomp_ccc(d%idom)%zst(1:3)
-    d%ps_zen(1:3) = decomp_ccc(d%idom)%zen(1:3)
-    d%ps_zsz(1:3) = decomp_ccc(d%idom)%zsz(1:3)
-
-    d%dpcc = decomp_pcc(d%(idom))
-    d%dcpc = decomp_cpc(d%(idom))
-    d%dccp = decomp_ccp(d%(idom))
-    d%dccc = decomp_ccc(d%(idom))
-
-    d%dppc = decomp_ppc(d%(idom))
-    d%dcpp = decomp_cpp(d%(idom))
-    d%dpcp = decomp_pcp(d%(idom))
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! initialize decomp 
+!-------------------------------------------------------------------------------
+    call decomp_info_init(dm%np(1), dm%nc(2), dm%nc(3), dm%dpcc)
+    call decomp_info_init(dm%nc(1), dm%np(2), dm%nc(3), dm%dcpc)
+    call decomp_info_init(dm%nc(1), dm%nc(2), dm%np(3), dm%dccp)
+    call decomp_info_init(dm%nc(1), dm%nc(2), dm%nc(3), dm%dccc)
+    call decomp_info_init(dm%np(1), dm%np(2), dm%nc(3), dm%dppc)
+    call decomp_info_init(dm%nc(1), dm%np(2), dm%np(3), dm%dcpp)
+    call decomp_info_init(dm%np(1), dm%nc(2), dm%np(3), dm%dpcp)
 
 #ifdef DEBUG
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    write (OUTPUT_UNIT, *) 'Ux in x-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_xsz(1), ' x id = ', d%ux_xst(1), ' to ', d%ux_xen(1)
-    write (OUTPUT_UNIT, *) 'Ux in x-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_xsz(2), ' y id = ', d%ux_xst(2), ' to ', d%ux_xen(2)
-    write (OUTPUT_UNIT, *) 'Ux in x-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_xsz(3), ' z id = ', d%ux_xst(3), ' to ', d%ux_xen(3)
-    write (OUTPUT_UNIT, *) 'Uy in x-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_xsz(1), ' x id = ', d%uy_xst(1), ' to ', d%uy_xen(1)
-    write (OUTPUT_UNIT, *) 'Uy in x-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_xsz(2), ' y id = ', d%uy_xst(2), ' to ', d%uy_xen(2)
-    write (OUTPUT_UNIT, *) 'Uy in x-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_xsz(3), ' z id = ', d%uy_xst(3), ' to ', d%uy_xen(3)
-    write (OUTPUT_UNIT, *) 'Uz in x-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_xsz(1), ' x id = ', d%uz_xst(1), ' to ', d%uz_xen(1)
-    write (OUTPUT_UNIT, *) 'Uz in x-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_xsz(2), ' y id = ', d%uz_xst(2), ' to ', d%uz_xen(2)
-    write (OUTPUT_UNIT, *) 'Uz in x-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_xsz(3), ' z id = ', d%uz_xst(3), ' to ', d%uz_xen(3)
-    write (OUTPUT_UNIT, *) 'p  in x-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_xsz(1), ' x id = ', d%ps_xst(1), ' to ', d%ps_xen(1)
-    write (OUTPUT_UNIT, *) 'p  in x-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_xsz(2), ' y id = ', d%ps_xst(2), ' to ', d%ps_xen(2)
-    write (OUTPUT_UNIT, *) 'p  in x-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_xsz(3), ' z id = ', d%ps_xst(3), ' to ', d%ps_xen(3)
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    write (OUTPUT_UNIT, *) 'Ux in y-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_ysz(1), ' x id = ', d%ux_yst(1), ' to ', d%ux_yen(1)
-    write (OUTPUT_UNIT, *) 'Ux in y-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_ysz(2), ' y id = ', d%ux_yst(2), ' to ', d%ux_yen(2)
-    write (OUTPUT_UNIT, *) 'Ux in y-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_ysz(3), ' z id = ', d%ux_yst(3), ' to ', d%ux_yen(3)
-    write (OUTPUT_UNIT, *) 'Uy in y-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_ysz(1), ' x id = ', d%uy_yst(1), ' to ', d%uy_yen(1)
-    write (OUTPUT_UNIT, *) 'Uy in y-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_ysz(2), ' y id = ', d%uy_yst(2), ' to ', d%uy_yen(2)
-    write (OUTPUT_UNIT, *) 'Uy in y-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_ysz(3), ' z id = ', d%uy_yst(3), ' to ', d%uy_yen(3)
-    write (OUTPUT_UNIT, *) 'Uz in y-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_ysz(1), ' x id = ', d%uz_yst(1), ' to ', d%uz_yen(1)
-    write (OUTPUT_UNIT, *) 'Uz in y-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_ysz(2), ' y id = ', d%uz_yst(2), ' to ', d%uz_yen(2)
-    write (OUTPUT_UNIT, *) 'Uz in y-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_ysz(3), ' z id = ', d%uz_yst(3), ' to ', d%uz_yen(3)
-    write (OUTPUT_UNIT, *) 'p  in y-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_ysz(1), ' x id = ', d%ps_yst(1), ' to ', d%ps_yen(1)
-    write (OUTPUT_UNIT, *) 'p  in y-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_ysz(2), ' y id = ', d%ps_yst(2), ' to ', d%ps_yen(2)
-    write (OUTPUT_UNIT, *) 'p  in y-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_ysz(3), ' z id = ', d%ps_yst(3), ' to ', d%ps_yen(3)
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    write (OUTPUT_UNIT, *) 'Ux in z-pencil, rank = ', nrank, ' size in x-dir = ', d%ux_zsz(1), ' x id = ', d%ux_zst(1), ' to ', d%ux_zen(1)
-    write (OUTPUT_UNIT, *) 'Ux in z-pencil, rank = ', nrank, ' size in y-dir = ', d%ux_zsz(2), ' y id = ', d%ux_zst(2), ' to ', d%ux_zen(2)
-    write (OUTPUT_UNIT, *) 'Ux in z-pencil, rank = ', nrank, ' size in z-dir = ', d%ux_zsz(3), ' z id = ', d%ux_zst(3), ' to ', d%ux_zen(3)
-    write (OUTPUT_UNIT, *) 'Uy in z-pencil, rank = ', nrank, ' size in x-dir = ', d%uy_zsz(1), ' x id = ', d%uy_zst(1), ' to ', d%uy_zen(1)
-    write (OUTPUT_UNIT, *) 'Uy in z-pencil, rank = ', nrank, ' size in y-dir = ', d%uy_zsz(2), ' y id = ', d%uy_zst(2), ' to ', d%uy_zen(2)
-    write (OUTPUT_UNIT, *) 'Uy in z-pencil, rank = ', nrank, ' size in z-dir = ', d%uy_zsz(3), ' z id = ', d%uy_zst(3), ' to ', d%uy_zen(3)
-    write (OUTPUT_UNIT, *) 'Uz in z-pencil, rank = ', nrank, ' size in x-dir = ', d%uz_zsz(1), ' x id = ', d%uz_zst(1), ' to ', d%uz_zen(1)
-    write (OUTPUT_UNIT, *) 'Uz in z-pencil, rank = ', nrank, ' size in y-dir = ', d%uz_zsz(2), ' y id = ', d%uz_zst(2), ' to ', d%uz_zen(2)
-    write (OUTPUT_UNIT, *) 'Uz in z-pencil, rank = ', nrank, ' size in z-dir = ', d%uz_zsz(3), ' z id = ', d%uz_zst(3), ' to ', d%uz_zen(3)
-    write (OUTPUT_UNIT, *) 'p  in z-pencil, rank = ', nrank, ' size in x-dir = ', d%ps_zsz(1), ' x id = ', d%ps_zst(1), ' to ', d%ps_zen(1)
-    write (OUTPUT_UNIT, *) 'p  in z-pencil, rank = ', nrank, ' size in y-dir = ', d%ps_zsz(2), ' y id = ', d%ps_zst(2), ' to ', d%ps_zen(2)
-    write (OUTPUT_UNIT, *) 'p  in z-pencil, rank = ', nrank, ' size in z-dir = ', d%ps_zsz(3), ' z id = ', d%ps_zst(3), ' to ', d%ps_zen(3)
+    do i = 1, 7
+      select case(i)
+      case(1)
+        dtmp = dm%dpcc
+        write (OUTPUT_UNIT, *) 'In the decomp - pcc grids (for ux, gx) :'
+      case(2)
+        dtmp = dm%dcpc
+        write (OUTPUT_UNIT, *) 'In the decomp - pcc grids (for uy, gy) :'
+      case(3)
+        dtmp = dm%dccp
+        write (OUTPUT_UNIT, *) 'In the decomp - cpp grids (for uz, gz) :'
+      case(4)
+        dtmp = dm%dccc
+        write (OUTPUT_UNIT, *) 'In the decomp - ccc grids (for rho, p) :'
+      case(5)
+      case(4)
+        dtmp = dm%dppc
+        write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dy, duy/dx) :'
+      case(6)
+        dtmp = dm%dcpp
+        write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for duy/dz, duz/dy) :'
+      case(7)
+        dtmp = dm%dpcp
+        write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dz, duz/dx) :'
+      case default
+      end select
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      write (OUTPUT_UNIT, *) 'x-pencil, x id in rank ', nrank, ' : ', dtmp%xst(1), dtmp%xen(1), dtmp%xsz(1)
+      write (OUTPUT_UNIT, *) 'x-pencil, y id in rank ', nrank, ' : ', dtmp%xst(2), dtmp%xen(2), dtmp%xsz(2)
+      write (OUTPUT_UNIT, *) 'x-pencil, z id in rank ', nrank, ' : ', dtmp%xst(3), dtmp%xen(3), dtmp%xsz(3)
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      write (OUTPUT_UNIT, *) 'y-pencil, x id in rank ', nrank, ' : ', dtmp%yst(1), dtmp%yen(1), dtmp%ysz(1)
+      write (OUTPUT_UNIT, *) 'y-pencil, y id in rank ', nrank, ' : ', dtmp%yst(2), dtmp%yen(2), dtmp%ysz(2)
+      write (OUTPUT_UNIT, *) 'y-pencil, z id in rank ', nrank, ' : ', dtmp%yst(3), dtmp%yen(3), dtmp%ysz(3)
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      write (OUTPUT_UNIT, *) 'z-pencil, x id in rank ', nrank, ' : ', dtmp%zst(1), dtmp%zen(1), dtmp%zsz(1)
+      write (OUTPUT_UNIT, *) 'z-pencil, y id in rank ', nrank, ' : ', dtmp%zst(2), dtmp%zen(2), dtmp%zsz(2)
+      write (OUTPUT_UNIT, *) 'z-pencil, z id in rank ', nrank, ' : ', dtmp%zst(3), dtmp%zen(3), dtmp%zsz(3)
+    end do
 #endif
 
     return
   end subroutine Initialize_domain_decomposition
+!===============================================================================
+!> \brief domain decompistion.   
+!>  input  : (common var) domain
+!>  output : (common var) domain, sub-domain info
+!-------------------------------------------------------------------------------
+! Arguments
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[in]     none          NA
+!===============================================================================
+  subroutine Buildup_mpi_domain_decomposition
+    use var_dft_mod, only : domain
+    implicit none
+    integer :: i
+
+    do i = 1, nxdomain
+      call Initialize_domain_decomposition(domain(i))
+    end do
+
+    return
+  end subroutine Buildup_mpi_domain_decomposition
 
 end module domain_decomposition_mod

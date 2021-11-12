@@ -69,22 +69,22 @@ end subroutine
     if(uix_p2c) then
       !test interpolation. u in x, P2C
       !(i', j, k) --> (i, j, k)
-      allocate ( fi( d%np(1) ) ); fi = ZERO
-      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      allocate ( fi( dm%np(1) ) ); fi = ZERO
+      allocate ( fo( dm%nc(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# ave(u)_x : P2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qx(:, j, k)
           call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
 
-          do i = 4, d%nc(1)-3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = 4, dm%nc(1)-3
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -93,7 +93,7 @@ end subroutine
           end do
 
           do i = 1, 3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
@@ -101,8 +101,8 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
-          do i = d%nc(1)-2, d%nc(1)
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = dm%nc(1)-2, dm%nc(1)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -120,21 +120,21 @@ end subroutine
     if(uiy_c2p) then
       ! test interpolation. u in y, C2P 
       ! (i', j, k) --> (i', j', k)
-      allocate ( fi( d%nc(2) ) ); fi = ZERO
-      allocate ( fo( d%np(2) ) ); fo = ZERO
+      allocate ( fi( dm%nc(2) ) ); fi = ZERO
+      allocate ( fo( dm%np(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# ave(u)_y : C2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%np(1)
+          xp = dm%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
           call Get_midp_interpolation_1D('y', 'C2P', d, fi(:), fo(:))
-          do j = 4, d%np(2)-3
-            yp = d%yp(j)
+          do j = 4, dm%np(2)-3
+            yp = dm%yp(j)
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -142,15 +142,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yp = d%yp(j)
+            yp = dm%yp(j)
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) &
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%np(2)-2, d%np(2)
-            yp = d%yp(j)
+          do j = dm%np(2)-2, dm%np(2)
+            yp = dm%yp(j)
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -167,21 +167,21 @@ end subroutine
     if(vix_c2p) then
       !test interpolation. v in x, C2P
       !(i', j, k) --> (i, j, k)
-      allocate ( fi( d%nc(1) ) ); fi = ZERO
-      allocate ( fo( d%np(1) ) ); fo = ZERO
+      allocate ( fi( dm%nc(1) ) ); fi = ZERO
+      allocate ( fo( dm%np(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# ave(v)_x : C2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yp = d%yp(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yp = dm%yp(j)
           fi(:) = f%qy(:, j, k)
           call Get_midp_interpolation_1D('x', 'C2P', d, fi(:), fo(:))
-          do i = 4, d%np(1)-3
-            xp = d%h(1) * (real(i - 1, WP))
+          do i = 4, dm%np(1)-3
+            xp = dm%h(1) * (real(i - 1, WP))
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -190,7 +190,7 @@ end subroutine
           end do
 
           do i = 1, 3
-            xp = d%h(1) * (real(i - 1, WP))
+            xp = dm%h(1) * (real(i - 1, WP))
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
@@ -198,8 +198,8 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
 
-          do i = d%np(1)-2, d%np(1)
-            xp = d%h(1) * (real(i - 1, WP))
+          do i = dm%np(1)-2, dm%np(1)
+            xp = dm%h(1) * (real(i - 1, WP))
             ref = sin_wp ( xp ) + sin_wp(yp) + sin_wp(zc)
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -217,21 +217,21 @@ end subroutine
     if(viy_p2c) then
       ! test interpolation. v in y, P2C 
       ! (i', j, k) --> (i', j', k)
-      allocate ( fi( d%np(2) ) ); fi = ZERO
-      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      allocate ( fi( dm%np(2) ) ); fi = ZERO
+      allocate ( fo( dm%nc(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# ave(v)_y : P2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%nc(1)
+          xc = dm%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
           call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
-          do j = 4, d%nc(2)-3
-            yc = d%yc(j)
+          do j = 4, dm%nc(2)-3
+            yc = dm%yc(j)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -239,15 +239,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yc = d%yc(j)
+            yc = dm%yc(j)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) &
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%nc(2)-2, d%nc(2)
-            yc = d%yc(j)
+          do j = dm%nc(2)-2, dm%nc(2)
+            yc = dm%yc(j)
             ref = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -305,21 +305,21 @@ end subroutine
     if(dudx_P2C) then
       ! du / dx, P2C
       ! (i', j, k) --> (i, j, k)
-      allocate ( fi( d%np(1) ) ); fi = ZERO
-      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      allocate ( fi( dm%np(1) ) ); fi = ZERO
+      allocate ( fo( dm%nc(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# du/dx : P2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qx(:, j, k)
           call Get_1st_derivative_1D('x', 'P2C', d, fi(:), fo(:))
-          do i = 4, d%nc(1)-3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = 4, dm%nc(1)-3
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -327,15 +327,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
-          do i = d%nc(1)-2, d%nc(1)
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = dm%nc(1)-2, dm%nc(1)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -352,21 +352,21 @@ end subroutine
     if(dudx_P2P) then
     ! du / dx, P2P
     ! (i', j, k) --> (i', j, k)
-      allocate ( fi( d%np(1) ) ); fi = ZERO
-      allocate ( fo( d%np(1) ) ); fo = ZERO
+      allocate ( fi( dm%np(1) ) ); fi = ZERO
+      allocate ( fo( dm%np(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# du/dx : P2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qx(:, j, k)
           call Get_1st_derivative_1D('x', 'P2P', d, fi(:), fo(:))
-          do i = 4, d%np(1)-3
-            xp = d%h(1) * real(i - 1, WP)
+          do i = 4, dm%np(1)-3
+            xp = dm%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -374,15 +374,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
-            xp = d%h(1) * real(i - 1, WP)
+            xp = dm%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
-          do i = d%np(1)-2, d%np(1)
-            xp = d%h(1) * real(i - 1, WP)
+          do i = dm%np(1)-2, dm%np(1)
+            xp = dm%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -399,21 +399,21 @@ end subroutine
     if(dudy_C2P) then
       ! du / dy, C2P
       ! (i', j, k) --> (i', j', k)
-      allocate ( fi( d%nc(2) ) ); fi = ZERO
-      allocate ( fo( d%np(2) ) ); fo = ZERO
+      allocate ( fi( dm%nc(2) ) ); fi = ZERO
+      allocate ( fo( dm%np(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# du/dy : C2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%np(1)
+          xp = dm%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
           call Get_1st_derivative_1D('y', 'C2P', d, fi(:), fo(:))
-          do j = 4, d%np(2)-3
-            yp = d%yp(j)
+          do j = 4, dm%np(2)-3
+            yp = dm%yp(j)
             ref = cos_wp(yp)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -421,15 +421,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yp = d%yp(j)
+            yp = dm%yp(j)
             ref = cos_wp(yp)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%np(2)-2, d%np(2)
-            yp = d%yp(j)
+          do j = dm%np(2)-2, dm%np(2)
+            yp = dm%yp(j)
             ref = cos_wp(yp)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -446,21 +446,21 @@ end subroutine
     if(dudy_C2C) then
       ! du / dy, C2C
       ! (i', j, k) --> (i, j, k)
-      allocate ( fi( d%nc(2) ) ); fi = ZERO
-      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      allocate ( fi( dm%nc(2) ) ); fi = ZERO
+      allocate ( fo( dm%nc(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# du/dy : C2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%np(1)
+          xp = dm%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
           call Get_1st_derivative_1D('y', 'C2C', d, fi(:), fo(:))
-          do j = 4, d%nc(2)-3
-            yc = d%yc(j)
+          do j = 4, dm%nc(2)-3
+            yc = dm%yc(j)
             ref = cos_wp(yc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -468,15 +468,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yc = d%yc(j)
+            yc = dm%yc(j)
             ref = cos_wp(yc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%nc(2)-2, d%nc(2)
-            yc = d%yc(j)
+          do j = dm%nc(2)-2, dm%nc(2)
+            yc = dm%yc(j)
             ref = cos_wp(yc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -493,21 +493,21 @@ end subroutine
     if(dvdy_P2C) then
       ! dv / dy, P2C
       ! (i, j', k) --> (i, j, k)
-      allocate ( fi( d%np(2) ) ); fi = ZERO
-      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      allocate ( fi( dm%np(2) ) ); fi = ZERO
+      allocate ( fo( dm%nc(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# dv/dy : P2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%nc(1)
+          xc = dm%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
           call Get_1st_derivative_1D('y', 'P2C', d, fi(:), fo(:))
-          do j = 4, d%nc(2)-3
-            yc = d%yc(j)
+          do j = 4, dm%nc(2)-3
+            yc = dm%yc(j)
             ref = cos_wp ( yc )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -515,15 +515,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yc = d%yc(j)
+            yc = dm%yc(j)
             ref = cos_wp ( yc )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%nc(2)-2, d%nc(2)
-            yc = d%yc(j)
+          do j = dm%nc(2)-2, dm%nc(2)
+            yc = dm%yc(j)
             ref = cos_wp ( yc )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -540,21 +540,21 @@ end subroutine
     if(dvdy_P2P) then
       ! dv / dy, P2P
       ! (i, j', k) --> (i, j', k)
-      allocate ( fi( d%np(2) ) ); fi = ZERO
-      allocate ( fo( d%np(2) ) ); fo = ZERO
+      allocate ( fi( dm%np(2) ) ); fi = ZERO
+      allocate ( fo( dm%np(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# dv/dy : P2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%nc(1)
+          xc = dm%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
           call Get_1st_derivative_1D('y', 'P2P', d, fi(:), fo(:))
-          do j = 4, d%np(2)-3
-            yp = d%yp(j)
+          do j = 4, dm%np(2)-3
+            yp = dm%yp(j)
             ref = cos_wp ( yp )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -562,15 +562,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yp = d%yp(j)
+            yp = dm%yp(j)
             ref = cos_wp ( yp )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%np(2)-2, d%np(2)
-            yp = d%yp(j)
+          do j = dm%np(2)-2, dm%np(2)
+            yp = dm%yp(j)
             ref = cos_wp ( yp )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -587,21 +587,21 @@ end subroutine
     if(dvdx_C2C) then
       ! du / dx, P2C
       ! (i', j, k) --> (i, j, k)
-      allocate ( fi( d%nc(1) ) ); fi = ZERO
-      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      allocate ( fi( dm%nc(1) ) ); fi = ZERO
+      allocate ( fo( dm%nc(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# du/dx : P2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qy(:, j, k)
           call Get_1st_derivative_1D('x', 'C2C', d, fi(:), fo(:))
-          do i = 4, d%nc(1)-3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = 4, dm%nc(1)-3
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -609,15 +609,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
-          do i = d%nc(1)-2, d%nc(1)
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = dm%nc(1)-2, dm%nc(1)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = cos_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -634,21 +634,21 @@ end subroutine
     if(dvdx_C2P) then
     ! du / dx, P2P
     ! (i', j, k) --> (i', j, k)
-      allocate ( fi( d%np(1) ) ); fi = ZERO
-      allocate ( fo( d%np(1) ) ); fo = ZERO
+      allocate ( fi( dm%np(1) ) ); fi = ZERO
+      allocate ( fo( dm%np(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# du/dx : P2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qx(:, j, k)
           call Get_1st_derivative_1D('x', 'P2P', d, fi(:), fo(:))
-          do i = 4, d%np(1)-3
-            xp = d%h(1) * real(i - 1, WP)
+          do i = 4, dm%np(1)-3
+            xp = dm%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -656,15 +656,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
-            xp = d%h(1) * real(i - 1, WP)
+            xp = dm%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
-          do i = d%np(1)-2, d%np(1)
-            xp = d%h(1) * real(i - 1, WP)
+          do i = dm%np(1)-2, dm%np(1)
+            xp = dm%h(1) * real(i - 1, WP)
             ref = cos_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -722,21 +722,21 @@ end subroutine
     if(d2udx2_P2P) then
     ! d2u / dx2, P2P
     ! (i', j, k) --> (i', j, k)
-      allocate ( fi( d%np(1) ) ); fi = ZERO
-      allocate ( fo( d%np(1) ) ); fo = ZERO
+      allocate ( fi( dm%np(1) ) ); fi = ZERO
+      allocate ( fo( dm%np(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# d2u/dx2 : P2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qx(:, j, k)
           call Get_2nd_derivative_1D('x', 'P2P', d, fi(:), fo(:))
-          do i = 4, d%np(1)-3
-            xp = d%h(1) * real(i - 1, WP)
+          do i = 4, dm%np(1)-3
+            xp = dm%h(1) * real(i - 1, WP)
             ref = -sin_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -744,15 +744,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
-            xp = d%h(1) * real(i - 1, WP)
+            xp = dm%h(1) * real(i - 1, WP)
             ref = -sin_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
-          do i = d%np(1)-2, d%np(1)
-            xp = d%h(1) * real(i - 1, WP)
+          do i = dm%np(1)-2, dm%np(1)
+            xp = dm%h(1) * real(i - 1, WP)
             ref = -sin_wp ( xp )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -769,21 +769,21 @@ end subroutine
     if(d2udy2_C2C) then
       ! C2C
       ! (i', j, k) --> (i, j, k)
-      allocate ( fi( d%nc(2) ) ); fi = ZERO
-      allocate ( fo( d%nc(2) ) ); fo = ZERO
+      allocate ( fi( dm%nc(2) ) ); fi = ZERO
+      allocate ( fo( dm%nc(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '# d2u/dy2 : C2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%np(1)
+          xp = dm%h(1) * real(i - 1, WP)
           fi(:) = f%qx(i, :, k)
           call Get_2nd_derivative_1D('y', 'C2C', d, fi(:), fo(:))
-          do j = 4, d%nc(2)-3
-            yc = d%yc(j)
+          do j = 4, dm%nc(2)-3
+            yc = dm%yc(j)
             ref = -sin_wp(yc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -791,15 +791,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yc = d%yc(j)
+            yc = dm%yc(j)
             ref = -sin_wp(yc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%nc(2)-2, d%nc(2)
-            yc = d%yc(j)
+          do j = dm%nc(2)-2, dm%nc(2)
+            yc = dm%yc(j)
             ref = -sin_wp(yc)
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -816,21 +816,21 @@ end subroutine
     if(d2vdy2_P2P) then
       ! dv / dy, P2P
       ! (i, j', k) --> (i, j', k)
-      allocate ( fi( d%np(2) ) ); fi = ZERO
-      allocate ( fo( d%np(2) ) ); fo = ZERO
+      allocate ( fi( dm%np(2) ) ); fi = ZERO
+      allocate ( fo( dm%np(2) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '#  d2v/dy2 : P2P'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do i = 1, d%nc(1)
-          xc = d%h(1) * (real(i - 1, WP) + HALF)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do i = 1, dm%nc(1)
+          xc = dm%h(1) * (real(i - 1, WP) + HALF)
           fi(:) = f%qy(i, :, k)
           call Get_2nd_derivative_1D('y', 'P2P', d, fi(:), fo(:))
-          do j = 4, d%np(2)-3
-            yp = d%yp(j)
+          do j = 4, dm%np(2)-3
+            yp = dm%yp(j)
             ref = -sin_wp ( yp )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -838,15 +838,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
           do j = 1, 3
-            yp = d%yp(j)
+            yp = dm%yp(j)
             ref = -sin_wp ( yp )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
           end do
-          do j = d%np(2)-2, d%np(2)
-            yp = d%yp(j)
+          do j = dm%np(2)-2, dm%np(2)
+            yp = dm%yp(j)
             ref = -sin_wp ( yp )
             errmax = dabs(fo(j)-ref)
             if (errmax > err(3)) err(3) = errmax
@@ -863,21 +863,21 @@ end subroutine
     if(d2vdx2_C2C) then
       ! du / dx, P2C
       ! (i', j, k) --> (i, j, k)
-      allocate ( fi( d%nc(1) ) ); fi = ZERO
-      allocate ( fo( d%nc(1) ) ); fo = ZERO
+      allocate ( fi( dm%nc(1) ) ); fi = ZERO
+      allocate ( fo( dm%nc(1) ) ); fo = ZERO
       xc = ZERO; yc = ZERO; zc = ZERO
       xp = ZERO; yp = ZERO; zp = ZERO
       err = ZERO
       write (OUTPUT_UNIT,'(A)') '  '
       write (OUTPUT_UNIT,'(A)') '#  d2v/dx2 : C2C'
-      do k = 1, d%nc(3)
-        zc = d%h(3) * (real(k - 1, WP) + HALF)
-        do j = 1, d%nc(2)
-          yc = d%yc(j)
+      do k = 1, dm%nc(3)
+        zc = dm%h(3) * (real(k - 1, WP) + HALF)
+        do j = 1, dm%nc(2)
+          yc = dm%yc(j)
           fi(:) = f%qy(:, j, k)
           call Get_2nd_derivative_1D('x', 'C2C', d, fi(:), fo(:))
-          do i = 4, d%nc(1)-3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = 4, dm%nc(1)-3
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = -sin_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(2)) err(2) = errmax
@@ -885,15 +885,15 @@ end subroutine
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
           do i = 1, 3
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = -sin_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(1)) err(1) = errmax
             if(dbg .and. errmax>0.1_WP) & 
             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
           end do
-          do i = d%nc(1)-2, d%nc(1)
-            xc = d%h(1) * (real(i - 1, WP) + HALF)
+          do i = dm%nc(1)-2, dm%nc(1)
+            xc = dm%h(1) * (real(i - 1, WP) + HALF)
             ref = -sin_wp ( xc )
             errmax = dabs(fo(i)-ref)
             if (errmax > err(3)) err(3) = errmax

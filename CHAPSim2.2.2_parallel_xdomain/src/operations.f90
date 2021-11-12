@@ -29,8 +29,8 @@ module operations
   implicit none
 
   private
-!----------------------------------------------------------------
-! coefficients for TDMA of 1st deriviative  
+!-------------------------------------------------------------------------------
+! basic coefficients for TDMA of 1st deriviative  
 ! to store coefficients for TDMA
 ! eg, d1fC2C(5, 3, 4)
 !     First column: 1:2 for one side b.c.
@@ -42,7 +42,10 @@ module operations
 !     Third column:  for b.c. flags
 !     Fourth Column (interpolation only): 1 for orthognal like u in y
 !                                         2 for parallel like v in y
-!----------------------------------------------------------------
+!     d1fC2C vs d1rC2C :
+!       f : coefficients in the LHS, unknown side.
+!       r : coefficients in the RHS, known side. 
+!-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! for 1st derivative
 !-------------------------------------------------------------------------------
@@ -82,10 +85,13 @@ module operations
   real(WP) :: m1fC2P(5, 3, 4)
   real(WP) :: m1rC2P(5, 3, 4)
 
-
+!-------------------------------------------------------------------------------
+! coefficients array for TDMA of 1st deriviative  
+! to store coefficients array for TDMA
+!-------------------------------------------------------------------------------
   type t_xtdma_lhs
 !-------------------------------------------------------------------------------
-! x : pre-processed TDMA LHS Matrix for 1st deriviative
+!   x : pre-processed TDMA LHS Matrix for 1st deriviative
 !-------------------------------------------------------------------------------
     real(WP), allocatable :: ad1x_P2P(:)
     real(WP), allocatable :: bd1x_P2P(:)
@@ -107,7 +113,7 @@ module operations
     real(WP), allocatable :: cd1x_C2P(:)
     real(WP), allocatable :: dd1x_C2P(:)
 !-------------------------------------------------------------------------------
-! x : pre-processed TDMA LHS Matrix for 2nd deriviative
+!   x : pre-processed TDMA LHS Matrix for 2nd deriviative
 !-------------------------------------------------------------------------------
     real(WP), allocatable :: ad2x_P2P(:)
     real(WP), allocatable :: bd2x_P2P(:)
@@ -119,7 +125,7 @@ module operations
     real(WP), allocatable :: cd2x_C2C(:)
     real(WP), allocatable :: dd2x_C2C(:)
 !-------------------------------------------------------------------------------
-! x : pre-processed TDMA LHS Matrix for mid-point interpolation
+!   x : pre-processed TDMA LHS Matrix for mid-point interpolation
 !-------------------------------------------------------------------------------
     real(WP), allocatable :: am1x_P2C(:)
     real(WP), allocatable :: bm1x_P2C(:)
@@ -131,6 +137,7 @@ module operations
     real(WP), allocatable :: cm1x_C2P(:)
     real(WP), allocatable :: dm1x_C2P(:)
   end type t_xtdma_lhs
+
   type(t_xtdma_lhs), allocatable :: xtdma_lhs(:) 
 
 !-------------------------------------------------------------------------------
@@ -275,7 +282,7 @@ module operations
   public  :: Get_z_2nd_derivative_C2C_3dArray
   public  :: Get_z_2nd_derivative_P2P_3dArray
 
-  public  :: Get_volumetric_average_3d
+  
 
 contains
 !===============================================================================
@@ -286,11 +293,11 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
+!-------------------------------------------------------------------------------
 !  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
 !> \param[in]     iaccu         the accuracy given by user
-!_______________________________________________________________________________
+!-------------------------------------------------------------------------------
   subroutine Prepare_compact_coefficients(iaccu)
     use parameters_constant_mod
     use input_general_mod
@@ -957,10 +964,9 @@ contains
     m1rC2P(5, 1, IBC_UDIRICHLET) = a1
     m1rC2P(5, 2, IBC_UDIRICHLET) = b1
     m1rC2P(5, 3, IBC_UDIRICHLET) = c1
-    
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
 ! 2nd diriviative P2P and C2C
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
       a = ONE
@@ -1142,9 +1148,9 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
+!-------------------------------------------------------------------------------
 !  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
 !> \param[in]     n             the number of unknown array
 !> \param[in]     bc            the boundary condition at two ends of the unknown
 !> \param[in]     coeff         the basic TDMA coefficients defined above.
@@ -1152,7 +1158,7 @@ contains
 !> \param[out]    b             a_i * x_(i-1) + b_i * x_(i) + c_i * x_(i+1)
 !> \param[out]    c             = RHS
 !> \param[out]    d             An assisting coeffients for the TDMA scheme.
-!_______________________________________________________________________________
+!-------------------------------------------------------------------------------
   subroutine Buildup_TDMA_LHS_array(n, is_periodic, coeff, a, b, c, d)
 !===============================================================================
 ! Module files
@@ -1223,14 +1229,14 @@ contains
     allocate (cd1y_C2C ( nsz ) ); cd1y_C2C(:) = ZERO
     allocate (dd1y_C2C ( nsz ) ); dd1y_C2C(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
-        ad1y_C2C, bd1y_C2C, cd1y_C2C, dd1y_C2C)
+          ad1y_C2C, bd1y_C2C, cd1y_C2C, dd1y_C2C)
 
     allocate (ad1y_P2C ( nsz ) ); ad1y_P2C(:) = ZERO
     allocate (bd1y_P2C ( nsz ) ); bd1y_P2C(:) = ZERO
     allocate (cd1y_P2C ( nsz ) ); cd1y_P2C(:) = ZERO
     allocate (dd1y_P2C ( nsz ) ); dd1y_P2C(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
-        ad1y_P2C, bd1y_P2C, cd1y_P2C, dd1y_P2C)
+          ad1y_P2C, bd1y_P2C, cd1y_P2C, dd1y_P2C)
 !-------------------------------------------------------------------------------
 !   mid-point interpolation in y direction with nc unknows
 !-------------------------------------------------------------------------------
@@ -1239,7 +1245,7 @@ contains
     allocate (cm1y_P2C ( nsz ) ); cm1y_P2C(:) = ZERO
     allocate (dm1y_P2C ( nsz ) ); dm1y_P2C(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fP2C, &
-        am1y_P2C, bm1y_P2C, cm1y_P2C, dm1y_P2C)
+          am1y_P2C, bm1y_P2C, cm1y_P2C, dm1y_P2C)
 !-------------------------------------------------------------------------------
 !   2nd order deriviative in y direction with nc unknows
 !-------------------------------------------------------------------------------
@@ -1248,7 +1254,7 @@ contains
     allocate (cd2y_C2C ( nsz ) ); cd2y_C2C(:) = ZERO
     allocate (dd2y_C2C ( nsz ) ); dd2y_C2C(:) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fC2C, &
-        ad2y_C2C, bd2y_C2C, cd2y_C2C, dd2y_C2C)
+          ad2y_C2C, bd2y_C2C, cd2y_C2C, dd2y_C2C)
 !===============================================================================
 ! y-direction, with np unknows
 !===============================================================================
@@ -1261,14 +1267,14 @@ contains
     allocate (cd1y_P2P ( nsz ) ); cd1y_P2P(:) = ZERO
     allocate (dd1y_P2P ( nsz ) ); dd1y_P2P(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
-        ad1y_P2P, bd1y_P2P, cd1y_P2P, dd1y_P2P)
+          ad1y_P2P, bd1y_P2P, cd1y_P2P, dd1y_P2P)
 
     allocate (ad1y_C2P ( nsz ) ); ad1y_C2P(:) = ZERO
     allocate (bd1y_C2P ( nsz ) ); bd1y_C2P(:) = ZERO
     allocate (cd1y_C2P ( nsz ) ); cd1y_C2P(:) = ZERO
     allocate (dd1y_C2P ( nsz ) ); dd1y_C2P(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
-        ad1y_C2P, bd1y_C2P, cd1y_C2P, dd1y_C2P) 
+          ad1y_C2P, bd1y_C2P, cd1y_C2P, dd1y_C2P) 
 !-------------------------------------------------------------------------------
 !   mid-point interpolation in y direction with np unknows
 !-------------------------------------------------------------------------------
@@ -1277,7 +1283,7 @@ contains
     allocate (cm1y_C2P ( nsz ) ); cm1y_C2P(:) = ZERO
     allocate (dm1y_C2P ( nsz ) ); dm1y_C2P(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fC2P, &
-        am1y_C2P, bm1y_C2P, cm1y_C2P, dm1y_C2P)
+          am1y_C2P, bm1y_C2P, cm1y_C2P, dm1y_C2P)
 !-------------------------------------------------------------------------------
 ! 2nd order deriviative in y direction with np unknows
 !-------------------------------------------------------------------------------
@@ -1286,7 +1292,7 @@ contains
     allocate (cd2y_P2P ( nsz ) ); cd2y_P2P(:) = ZERO
     allocate (dd2y_P2P ( nsz ) ); dd2y_P2P(:) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fP2P, &
-        ad2y_P2P, bd2y_P2P, cd2y_P2P, dd2y_P2P)
+          ad2y_P2P, bd2y_P2P, cd2y_P2P, dd2y_P2P)
 !===============================================================================
 ! z-direction, with nc unknows
 !===============================================================================
@@ -1300,14 +1306,14 @@ contains
     allocate (cd1z_C2C ( nsz ) ); cd1z_C2C(:) = ZERO
     allocate (dd1z_C2C ( nsz ) ); dd1z_C2C(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
-        ad1z_C2C, bd1z_C2C, cd1z_C2C, dd1z_C2C)
+          ad1z_C2C, bd1z_C2C, cd1z_C2C, dd1z_C2C)
 
     allocate (ad1z_P2C ( nsz ) ); ad1z_P2C(:) = ZERO
     allocate (bd1z_P2C ( nsz ) ); bd1z_P2C(:) = ZERO
     allocate (cd1z_P2C ( nsz ) ); cd1z_P2C(:) = ZERO
     allocate (dd1z_P2C ( nsz ) ); dd1z_P2C(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
-        ad1z_P2C, bd1z_P2C, cd1z_P2C, dd1z_P2C)
+          ad1z_P2C, bd1z_P2C, cd1z_P2C, dd1z_P2C)
 !-------------------------------------------------------------------------------
 !   mid-point interpolation in z direction with nc unknows
 !-------------------------------------------------------------------------------
@@ -1316,7 +1322,7 @@ contains
     allocate (cm1z_P2C ( nsz ) ); cm1z_P2C(:) = ZERO
     allocate (dm1z_P2C ( nsz ) ); dm1z_P2C(:) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fP2C, &
-        am1z_P2C, bm1z_P2C, cm1z_P2C, dm1z_P2C)
+          am1z_P2C, bm1z_P2C, cm1z_P2C, dm1z_P2C)
 !-------------------------------------------------------------------------------
 !   2nd order deriviative in z direction with nc unknows
 !-------------------------------------------------------------------------------
@@ -1325,7 +1331,7 @@ contains
     allocate (cd2z_C2C ( nsz ) ); cd2z_C2C(:) = ZERO
     allocate (dd2z_C2C ( nsz ) ); dd2z_C2C(:) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fC2C, &
-        ad2z_C2C, bd2z_C2C, cd2z_C2C, dd2z_C2C)
+          ad2z_C2C, bd2z_C2C, cd2z_C2C, dd2z_C2C)
 !===============================================================================
 ! z-direction, with np unknows
 !===============================================================================
@@ -1338,14 +1344,14 @@ contains
     allocate (cd1z_P2P ( nsz ) ); cd1z_P2P(:) = ZERO
     allocate (dd1z_P2P ( nsz ) ); dd1z_P2P(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
-        ad1z_P2P, bd1z_P2P, cd1z_P2P, dd1z_P2P)
+          ad1z_P2P, bd1z_P2P, cd1z_P2P, dd1z_P2P)
 
     allocate (ad1z_C2P ( nsz ) ); ad1z_C2P(:) = ZERO
     allocate (bd1z_C2P ( nsz ) ); bd1z_C2P(:) = ZERO
     allocate (cd1z_C2P ( nsz ) ); cd1z_C2P(:) = ZERO
     allocate (dd1z_C2P ( nsz ) ); dd1z_C2P(:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
-        ad1z_C2P, bd1z_C2P, cd1z_C2P, dd1z_C2P)
+          ad1z_C2P, bd1z_C2P, cd1z_C2P, dd1z_C2P)
 !-------------------------------------------------------------------------------
 ! mid-point interpolation in z direction with np unknows
 !-------------------------------------------------------------------------------
@@ -1354,7 +1360,7 @@ contains
     allocate (cm1z_C2P ( nsz ) ); cm1z_C2P(:) = ZERO
     allocate (dm1z_C2P ( nsz ) ); dm1z_C2P(:) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fC2P, &
-        am1z_C2P, bm1z_C2P, cm1z_C2P, dm1z_C2P)
+          am1z_C2P, bm1z_C2P, cm1z_C2P, dm1z_C2P)
 !-------------------------------------------------------------------------------
 ! 2nd order deriviative in z direction with np unknows
 !-------------------------------------------------------------------------------
@@ -2185,15 +2191,15 @@ contains
 !-------------------------------------------------------------------------------      
       if (str2 == 'P2C') then
       
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
+        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
             m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(i), fo(:), am1x_P2C(:), bm1x_P2C(:), cm1x_P2C(:), dm1x_P2C(:), nsz)
+        call Solve_TDMA(dm%is_periodic(i), fo(:), am1x_P2C(:), bm1x_P2C(:), cm1x_P2C(:), dm1x_P2C(:), nsz)
         
       else if (str2 == 'C2P') then
 
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
+        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
             m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(i), fo(:), am1x_C2P(:), bm1x_C2P(:), cm1x_C2P(:), dm1x_C2P(:), nsz)
+        call Solve_TDMA(dm%is_periodic(i), fo(:), am1x_C2P(:), bm1x_C2P(:), cm1x_C2P(:), dm1x_C2P(:), nsz)
 
       else
         call Print_error_msg("108: Error input in prepare_FD_TDMA_RHS.")
@@ -2203,15 +2209,15 @@ contains
       i = 2
 
       if (str2 == 'P2C') then
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
+        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
             m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(i), fo(:), am1y_P2C(:), bm1y_P2C(:), cm1y_P2C(:), dm1y_P2C(:), nsz)
+        call Solve_TDMA(dm%is_periodic(i), fo(:), am1y_P2C(:), bm1y_P2C(:), cm1y_P2C(:), dm1y_P2C(:), nsz)
 
       else if (str2 == 'C2P') then
 
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
+        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
             m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(i), fo(:), am1y_C2P(:), bm1y_C2P(:), cm1y_C2P(:), dm1y_C2P(:), nsz)
+        call Solve_TDMA(dm%is_periodic(i), fo(:), am1y_C2P(:), bm1y_C2P(:), cm1y_C2P(:), dm1y_C2P(:), nsz)
 
       else
         call Print_error_msg("109: Error input in prepare_FD_TDMA_RHS.")
@@ -2222,15 +2228,15 @@ contains
       i = 3
 
       if (str2 == 'P2C') then
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
+        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
             m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(i), fo(:), am1z_P2C(:), bm1z_P2C(:), cm1z_P2C(:), dm1z_P2C(:), nsz)
+        call Solve_TDMA(dm%is_periodic(i), fo(:), am1z_P2C(:), bm1z_P2C(:), cm1z_P2C(:), dm1z_P2C(:), nsz)
 
       else if (str2 == 'C2P') then
 
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
+        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
             m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(i), fo(:), am1z_C2P(:), bm1z_C2P(:), cm1z_C2P(:), dm1z_C2P(:), nsz)
+        call Solve_TDMA(dm%is_periodic(i), fo(:), am1z_C2P(:), bm1z_C2P(:), cm1z_C2P(:), dm1z_C2P(:), nsz)
 
       else
         call Print_error_msg("110: Error input in prepare_FD_TDMA_RHS.")
@@ -2289,31 +2295,31 @@ contains
   
         if (str2 == 'C2C') then
   
-          call Prepare_TDMA_1deri_RHS_array( str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
-                d%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( d%is_periodic(i), fo(:), ad1x_C2C(:), bd1x_C2C(:), cd1x_C2C(:), dd1x_C2C(:), nsz )
+          call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
+                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA( dm%is_periodic(i), fo(:), ad1x_C2C(:), bd1x_C2C(:), cd1x_C2C(:), dd1x_C2C(:), nsz )
   
         else if (str2 == 'P2C') then
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
-              d%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1x_P2C(:), bd1x_P2C(:), cd1x_P2C(:), dd1x_P2C(:), nsz)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
+              dm%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1x_P2C(:), bd1x_P2C(:), cd1x_P2C(:), dd1x_P2C(:), nsz)
   
         else if (str2 == 'P2P') then
           
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
-              d%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
+              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
               !write (OUTPUT_UNIT,'(A,7F8.4)') 'a', ad1x_P2P(:)
               !write (OUTPUT_UNIT,'(A,7F8.4)') 'b', bd1x_P2P(:)
               !write (OUTPUT_UNIT,'(A,7F8.4)') 'c', cd1x_P2P(:)
               !write (OUTPUT_UNIT,'(A,7F8.4)') 'd', dd1x_P2P(:)
               !write (OUTPUT_UNIT,'(A,7F8.4)') 'r', fo(:)
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1x_P2P(:), bd1x_P2P(:), cd1x_P2P(:), dd1x_P2P(:), nsz)
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1x_P2P(:), bd1x_P2P(:), cd1x_P2P(:), dd1x_P2P(:), nsz)
           !write (OUTPUT_UNIT,'(A,7F8.4)') 'o', fo(:)
         else if (str2 == 'C2P') then
   
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
-              d%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1x_C2P(:), bd1x_C2P(:), cd1x_C2P(:), dd1x_C2P(:), nsz)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
+              dm%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1x_C2P(:), bd1x_C2P(:), cd1x_C2P(:), dd1x_C2P(:), nsz)
   
         else
           call Print_error_msg("112: No such staggered scheme defined")
@@ -2324,30 +2330,30 @@ contains
   
         if (str2 == 'C2C') then
   
-          call Prepare_TDMA_1deri_RHS_array( str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-                d%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( d%is_periodic(i), fo(:), ad1y_C2C(:), bd1y_C2C(:), cd1y_C2C(:), dd1y_C2C(:), nsz )
-          if(d%is_stretching(2)) fo(:) = fo(:) * d%yMappingcc(:, 1)
+          call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA( dm%is_periodic(i), fo(:), ad1y_C2C(:), bd1y_C2C(:), cd1y_C2C(:), dd1y_C2C(:), nsz )
+          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
         
         else if (str2 == 'P2C') then
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-              d%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1y_P2C(:), bd1y_P2C(:), cd1y_P2C(:), dd1y_P2C(:), nsz)
-          if(d%is_stretching(2)) fo(:) = fo(:) * d%yMappingcc(:, 1)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+              dm%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1y_P2C(:), bd1y_P2C(:), cd1y_P2C(:), dd1y_P2C(:), nsz)
+          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
   
         else if (str2 == 'P2P') then
   
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-              d%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1y_P2P(:), bd1y_P2P(:), cd1y_P2P(:), dd1y_P2P(:), nsz)
-          if(d%is_stretching(2)) fo(:) = fo(:) * d%yMappingpt(1:nsz, 1)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1y_P2P(:), bd1y_P2P(:), cd1y_P2P(:), dd1y_P2P(:), nsz)
+          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(1:nsz, 1)
   
         else if (str2 == 'C2P') then
   
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-              d%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1y_C2P(:), bd1y_C2P(:), cd1y_C2P(:), dd1y_C2P(:), nsz)
-          if(d%is_stretching(2)) fo(:) = fo(:) * d%yMappingpt(1:nsz, 1)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+              dm%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1y_C2P(:), bd1y_C2P(:), cd1y_C2P(:), dd1y_C2P(:), nsz)
+          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(1:nsz, 1)
   
         else
           call Print_error_msg("113: No such staggered scheme defined")
@@ -2359,26 +2365,26 @@ contains
   
         if (str2 == 'C2C') then
   
-          call Prepare_TDMA_1deri_RHS_array( str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
-                d%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( d%is_periodic(i), fo(:), ad1z_C2C(:), bd1z_C2C(:), cd1z_C2C(:), dd1z_C2C(:), nsz )
+          call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
+                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA( dm%is_periodic(i), fo(:), ad1z_C2C(:), bd1z_C2C(:), cd1z_C2C(:), dd1z_C2C(:), nsz )
   
         else if (str2 == 'P2C') then
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
-              d%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1z_P2C(:), bd1z_P2C(:), cd1z_P2C(:), dd1z_P2C(:), nsz)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
+              dm%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1z_P2C(:), bd1z_P2C(:), cd1z_P2C(:), dd1z_P2C(:), nsz)
   
         else if (str2 == 'P2P') then
   
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
-              d%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1z_P2P(:), bd1z_P2P(:), cd1z_P2P(:), dd1z_P2P(:), nsz)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
+              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1z_P2P(:), bd1z_P2P(:), cd1z_P2P(:), dd1z_P2P(:), nsz)
   
         else if (str2 == 'C2P') then
   
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
-              d%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad1z_C2P(:), bd1z_C2P(:), cd1z_C2P(:), dd1z_C2P(:), nsz)
+          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
+              dm%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1z_C2P(:), bd1z_C2P(:), cd1z_C2P(:), dd1z_C2P(:), nsz)
   
         else
           call Print_error_msg("114: No such staggered scheme defined")
@@ -2440,15 +2446,15 @@ contains
   
         if (str2 == 'C2C') then
   
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
-                d%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad2x_C2C(:), bd2x_C2C(:), cd2x_C2C(:), dd2x_C2C(:), nsz )
+          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
+                dm%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2x_C2C(:), bd2x_C2C(:), cd2x_C2C(:), dd2x_C2C(:), nsz )
   
         else if (str2 == 'P2P') then
           
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, d%bc(:, i), d%iNeighb(:, :), &
-                d%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad2x_P2P(:), bd2x_P2P(:), cd2x_P2P(:), dd2x_P2P(:), nsz)
+          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
+                dm%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2x_P2P(:), bd2x_P2P(:), cd2x_P2P(:), dd2x_P2P(:), nsz)
 
         else
           call Print_error_msg("112: No such staggered scheme defined")
@@ -2460,31 +2466,31 @@ contains
         if (str2 == 'C2C') then
           allocate ( fo1(nsz) ); fo1(:) = ZERO
           ! 2nd, uniform
-          call Prepare_TDMA_2deri_RHS_array( str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-                d%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( d%is_periodic(i), fo(:), ad2y_C2C(:), bd2y_C2C(:), cd2y_C2C(:), dd2y_C2C(:), nsz )
+          call Prepare_TDMA_2deri_RHS_array( str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+                dm%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA( dm%is_periodic(i), fo(:), ad2y_C2C(:), bd2y_C2C(:), cd2y_C2C(:), dd2y_C2C(:), nsz )
           
-          if(d%is_stretching(2)) then
+          if(dm%is_stretching(2)) then
             ! 1st, uniform
-            call Prepare_TDMA_1deri_RHS_array( str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-                d%h1r(i), d1rC2C(:, :, :), fi(:), fo1(:) )
-            call Solve_TDMA( d%is_periodic(i), fo1(:), ad1y_C2C(:), bd1y_C2C(:), cd1y_C2C(:), dd1y_C2C(:), nsz )
-            fo(:) = fo(:) * d%yMappingcc(:, 2) + fo1(:) * d%yMappingcc(:, 3)
+            call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo1(:) )
+            call Solve_TDMA( dm%is_periodic(i), fo1(:), ad1y_C2C(:), bd1y_C2C(:), cd1y_C2C(:), dd1y_C2C(:), nsz )
+            fo(:) = fo(:) * dm%yMappingcc(:, 2) + fo1(:) * dm%yMappingcc(:, 3)
           end if
           deallocate(fo1)
 
         else if (str2 == 'P2P') then
   
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-              d%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad2y_P2P(:), bd2y_P2P(:), cd2y_P2P(:), dd2y_P2P(:), nsz )
+          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+              dm%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2y_P2P(:), bd2y_P2P(:), cd2y_P2P(:), dd2y_P2P(:), nsz )
 
-          if(d%is_stretching(2)) then
+          if(dm%is_stretching(2)) then
             allocate ( fo1(nsz) ); fo1(:) = ZERO
-            call Prepare_TDMA_1deri_RHS_array(str2, nsz, d%bc(:, i), d%jNeighb(:, :), &
-              d%h1r(i), d1rP2P(:, :, :), fi(:), fo1(:) )
-            call Solve_TDMA(d%is_periodic(i), fo1(:), ad1y_P2P(:), bd1y_P2P(:), cd1y_P2P(:), dd1y_P2P(:), nsz )
-            fo(:) = fo(:) * d%yMappingpt(1:nsz, 2) + fo1(:) * d%yMappingpt(1:nsz, 3)
+            call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
+              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo1(:) )
+            call Solve_TDMA(dm%is_periodic(i), fo1(:), ad1y_P2P(:), bd1y_P2P(:), cd1y_P2P(:), dd1y_P2P(:), nsz )
+            fo(:) = fo(:) * dm%yMappingpt(1:nsz, 2) + fo1(:) * dm%yMappingpt(1:nsz, 3)
             deallocate(fo1)
           end if
   
@@ -2498,15 +2504,15 @@ contains
   
         if (str2 == 'C2C') then
   
-          call Prepare_TDMA_2deri_RHS_array( str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
-                d%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( d%is_periodic(i), fo(:), ad2z_C2C(:), bd2z_C2C(:), cd2z_C2C(:), dd2z_C2C(:), nsz )
+          call Prepare_TDMA_2deri_RHS_array( str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
+                dm%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA( dm%is_periodic(i), fo(:), ad2z_C2C(:), bd2z_C2C(:), cd2z_C2C(:), dd2z_C2C(:), nsz )
   
         else if (str2 == 'P2P') then
   
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, d%bc(:, i), d%kNeighb(:, :), &
-              d%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(d%is_periodic(i), fo(:), ad2z_P2P(:), bd2z_P2P(:), cd2z_P2P(:), dd2z_P2P(:), nsz )
+          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
+              dm%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
+          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2z_P2P(:), bd2z_P2P(:), cd2z_P2P(:), dd2z_P2P(:), nsz )
   
         else
           call Print_error_msg("114: No such staggered scheme defined")
@@ -2541,7 +2547,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2551,9 +2557,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_interp_RHS_array('C2P', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), am1x_C2P(:), bm1x_C2P(:), &
+        call Prepare_TDMA_interp_RHS_array('C2P', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1x_C2P(:), bm1x_C2P(:), &
                 cm1x_C2P(:), dm1x_C2P(:), nox)
         fo3d(:, j, k) = fo(:)
       end do
@@ -2579,7 +2585,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2589,9 +2595,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_interp_RHS_array('P2C', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), am1x_P2C(:), bm1x_P2C(:), &
+        call Prepare_TDMA_interp_RHS_array('P2C', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1x_P2C(:), bm1x_P2C(:), &
                 cm1x_P2C(:), dm1x_P2C(:), nox)
         fo3d(:, j, k) = fo(:)
       end do
@@ -2617,7 +2623,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input & output is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2627,9 +2633,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_interp_RHS_array('C2P', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), am1y_C2P(:), bm1y_C2P(:), &
+        call Prepare_TDMA_interp_RHS_array('C2P', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1y_C2P(:), bm1y_C2P(:), &
                 cm1y_C2P(:), dm1y_C2P(:), noy)
         fo3d(i, :, k) = fo(:)
       end do
@@ -2655,7 +2661,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2666,9 +2672,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_interp_RHS_array('P2C', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), am1y_P2C(:), bm1y_P2C(:), &
+        call Prepare_TDMA_interp_RHS_array('P2C', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1y_P2C(:), bm1y_P2C(:), &
                 cm1y_P2C(:), dm1y_P2C(:), noy)
         fo3d(i, :, k) = fo(:)
       end do
@@ -2694,7 +2700,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2705,9 +2711,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_interp_RHS_array('C2P', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), am1z_C2P(:), bm1z_C2P(:), &
+        call Prepare_TDMA_interp_RHS_array('C2P', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1z_C2P(:), bm1z_C2P(:), &
                 cm1z_C2P(:), dm1z_C2P(:), noz)
         fo3d(i, j, :) = fo(:)
       end do
@@ -2733,7 +2739,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2744,9 +2750,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_interp_RHS_array('P2C', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), am1z_P2C(:), bm1z_P2C(:), &
+        call Prepare_TDMA_interp_RHS_array('P2C', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1z_P2C(:), bm1z_P2C(:), &
                 cm1z_P2C(:), dm1z_P2C(:), noz)
         fo3d(i, j, :) = fo(:)
       end do
@@ -2776,7 +2782,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2786,9 +2792,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2C', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), d%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1x_C2C(:), bd1x_C2C(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'C2C', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), dm%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_C2C(:), bd1x_C2C(:), &
                 cd1x_C2C(:), dd1x_C2C(:), nox )
         fo3d(:, j, k) = fo(:)
       end do
@@ -2815,7 +2821,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2825,9 +2831,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2P', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), d%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1x_P2P(:), bd1x_P2P(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'P2P', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), dm%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_P2P(:), bd1x_P2P(:), &
                 cd1x_P2P(:), dd1x_P2P(:), nox )
         fo3d(:, j, k) = fo(:)
       end do
@@ -2854,7 +2860,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2864,9 +2870,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2P', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), d%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1x_C2P(:), bd1x_C2P(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'C2P', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), dm%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_C2P(:), bd1x_C2P(:), &
                 cd1x_C2P(:), dd1x_C2P(:), nox )
         fo3d(:, j, k) = fo(:)
       end do
@@ -2893,7 +2899,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2907,9 +2913,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2C', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), d%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1x_P2C(:), bd1x_P2C(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'P2C', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), dm%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_P2C(:), bd1x_P2C(:), &
                 cd1x_P2C(:), dd1x_P2C(:), nox )
         fo3d(:, j, k) = fo(:)
         !write (OUTPUT_UNIT,*) 'input', fi3d(:, j, k)
@@ -2942,9 +2948,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2C', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), d%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1y_C2C(:), bd1y_C2C(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'C2C', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), dm%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_C2C(:), bd1y_C2C(:), &
                 cd1y_C2C(:), dd1y_C2C(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -2971,7 +2977,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -2981,9 +2987,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2P', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), d%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1y_P2P(:), bd1y_P2P(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'P2P', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), dm%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_P2P(:), bd1y_P2P(:), &
                 cd1y_P2P(:), dd1y_P2P(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -3010,7 +3016,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3020,9 +3026,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2P', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), d%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1y_C2P(:), bd1y_C2P(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'C2P', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), dm%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_C2P(:), bd1y_C2P(:), &
                 cd1y_C2P(:), dd1y_C2P(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -3049,7 +3055,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3059,9 +3065,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2C', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), d%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1y_P2C(:), bd1y_P2C(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'P2C', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), dm%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_P2C(:), bd1y_P2C(:), &
                 cd1y_P2C(:), dd1y_P2C(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -3088,7 +3094,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3099,9 +3105,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'C2C', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), d%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1z_C2C(:), bd1z_C2C(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'C2C', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), dm%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_C2C(:), bd1z_C2C(:), &
                 cd1z_C2C(:), dd1z_C2C(:), noz )
         fo3d(i, j, :) = fo(:)
       end do
@@ -3128,7 +3134,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3139,9 +3145,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'P2P', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), d%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1z_P2P(:), bd1z_P2P(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'P2P', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), dm%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_P2P(:), bd1z_P2P(:), &
                 cd1z_P2P(:), dd1z_P2P(:), noz )
         fo3d(i, j, :) = fo(:)
       end do
@@ -3168,7 +3174,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3179,9 +3185,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'C2P', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), d%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1z_C2P(:), bd1z_C2P(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'C2P', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), dm%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_C2P(:), bd1z_C2P(:), &
                 cd1z_C2P(:), dd1z_C2P(:), noz )
         fo3d(i, j, :) = fo(:)
       end do
@@ -3208,7 +3214,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3219,9 +3225,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'P2C', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), d%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( d%is_periodic(dim), fo(:), ad1z_P2C(:), bd1z_P2C(:), &
+        call Prepare_TDMA_1deri_RHS_array( 'P2C', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), dm%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_P2C(:), bd1z_P2C(:), &
                 cd1z_P2C(:), dd1z_P2C(:), noz )
         fo3d(i, j, :) = fo(:)
       end do
@@ -3251,7 +3257,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3261,9 +3267,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_2deri_RHS_array( 'C2C', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), d%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2x_C2C(:), bd2x_C2C(:), &
+        call Prepare_TDMA_2deri_RHS_array( 'C2C', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), dm%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2x_C2C(:), bd2x_C2C(:), &
                 cd2x_C2C(:), dd2x_C2C(:), nox )
         fo3d(:, j, k) = fo(:)
       end do
@@ -3290,7 +3296,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in x-pencil.
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not x-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3300,9 +3306,9 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_2deri_RHS_array( 'P2P', nox, d%bc(:, dim), &
-                d%iNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2x_P2P(:), bd2x_P2P(:), &
+        call Prepare_TDMA_2deri_RHS_array( 'P2P', nox, dm%bc(:, dim), &
+                dm%iNeighb(:, :), dm%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2x_P2P(:), bd2x_P2P(:), &
                 cd2x_P2P(:), dd2x_P2P(:), nox )
         fo3d(:, j, k) = fo(:)
       end do
@@ -3328,7 +3334,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3338,9 +3344,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_2deri_RHS_array( 'C2C', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), d%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2y_C2C(:), bd2y_C2C(:), &
+        call Prepare_TDMA_2deri_RHS_array( 'C2C', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), dm%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2y_C2C(:), bd2y_C2C(:), &
                 cd2y_C2C(:), dd2y_C2C(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -3367,7 +3373,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in y-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uy_ysz(2) /= d%np(2)) call Print_error_msg("Error, not Y-pencil")
+    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3377,9 +3383,9 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_2deri_RHS_array( 'P2P', noy, d%bc(:, dim), &
-                d%jNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2y_P2P(:), bd2y_P2P(:), &
+        call Prepare_TDMA_2deri_RHS_array( 'P2P', noy, dm%bc(:, dim), &
+                dm%jNeighb(:, :), dm%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2y_P2P(:), bd2y_P2P(:), &
                 cd2y_P2P(:), dd2y_P2P(:), noy )
         fo3d(i, :, k) = fo(:)
       end do
@@ -3405,7 +3411,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3415,9 +3421,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_2deri_RHS_array( 'C2C', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), d%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2z_C2C(:), bd2z_C2C(:), &
+        call Prepare_TDMA_2deri_RHS_array( 'C2C', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), dm%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2z_C2C(:), bd2z_C2C(:), &
                 cd2z_C2C(:), dd2z_C2C(:), noz )
         fo3d(i, j, :) = fo(:)
       end do
@@ -3444,7 +3450,7 @@ contains
 !-------------------------------------------------------------------------------
 !  Default input is in z-pencil.
 !-------------------------------------------------------------------------------
-    if(d%uz_zsz(3) /= d%np(3)) call Print_error_msg("Error, not Z-pencil")
+    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3454,9 +3460,9 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_2deri_RHS_array( 'P2P', noz, d%bc(:, dim), &
-                d%kNeighb(:, :), d%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(d%is_periodic(dim), fo(:), ad2z_P2P(:), bd2z_P2P(:), &
+        call Prepare_TDMA_2deri_RHS_array( 'P2P', noz, dm%bc(:, dim), &
+                dm%kNeighb(:, :), dm%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
+        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2z_P2P(:), bd2z_P2P(:), &
                 cd2z_P2P(:), dd2z_P2P(:), noz )
         fo3d(i, j, :) = fo(:)
       end do
@@ -3464,135 +3470,5 @@ contains
 
     return
   end subroutine Get_z_2nd_derivative_P2P_3dArray
-
-!===============================================================================
-!>\brief : to calculate:
-!>         fo = \int_1^nx \int_
-!> This is based only y-direction stretching.
-!> Here is 2nd order Trapezoid Method. Need to improve! Check!
-!===============================================================================
-  subroutine Get_volumetric_average_3d(fi3d, str, d, fo_work)
-    ! how to get a high order bulk value?
-    use parameters_constant_mod, only : ZERO, HALF
-    use udf_type_mod,            only : t_domain
-    implicit none
-  
-    type(t_domain), intent(in) :: d
-    real(WP),       intent(in) :: fi3d(:, :, :)
-    real(WP),      intent(out) :: fo_work
-    character(2),   intent(in) :: str
- 
-    type(DECOMP_INFO) :: decomp
-    real(WP), allocatable   :: fo3dy_ypencil(:, :, :)
-    real(WP), allocatable   :: fi3d_ypencil(:, :, :)
-    real(WP)   :: vol, fo
-    integer(4) :: i, j, k
-    integer(4) :: nix, niy, niz
-    integer(4) :: ncy
-!-------------------------------------------------------------------------------
-!   transpose to y pencil. Default is x-pencil.
-!-------------------------------------------------------------------------------
-    if(str=='ux') then
-      if(d%ux_xsz /= d%np(1)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = d%ux_ysz(1:3)
-      decomp = d%dpcc
-    else if(str=='uy') then
-      if(d%uy_xsz /= d%nc(2)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = d%uy_ysz(1:3)
-      decomp = d%dcpc
-    else if(str=='uz') then
-      if(d%uz_xsz /= d%nc(3)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = d%uz_ysz(1:3)
-      decomp = d%dccp
-    else if(str=='ps') then
-      if(d%ps_xsz /= d%nc(3)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = d%ps_ysz(1:3)
-      decomp = d%dccc
-    else
-      call Print_error_msg("No such variables defined.")
-    end if
-    allocate ( fi3d_ypencil(ysz(1), ysz(2), ysz(3)) )
-    fi3d_ypencil = ZERO
-
-    call transpose_x_to_y(fi3d, fi3d_ypencil, decomp)
-!-------------------------------------------------------------------------------
-!   In Y-pencil now
-!-------------------------------------------------------------------------------
-    if(str=='uy')then
-!-------------------------------------------------------------------------------
-!   if variable is stored in y-nodes, extend them to y-cell centres
-!   for example, uy
-!-------------------------------------------------------------------------------
-      if( d%is_periodic(2) ) then
-        noy = ysz(2)
-      else
-        noy = ysz(2) - 1
-      end if
-      allocate( fo3dy_ypencil(ysz(1), noy, ysz(3)) )
-      fo3dy = ZERO
-      call Get_y_midp_P2C_3dArray ( fi3d_ypencil, d, fo3dy_ypencil)
-      fo = ZERO
-      vol = ZERO
-      do k = 1, ysz(3)
-        do i = 1, ysz(1)
-          do j = 1, noy
-            ! fo = fo + &
-            !     ( d%yp(j + 1) - d%yp(j) ) / SIX * &
-            !     ( fi3d_ypencil(i, j, k) + &
-            !       FOUR * fo3dy(i, j, k) + &
-            !       fi3d_ypencil(i, d%jNeighb(3, j), k)) ! Simpson 2nd order 
-            fo = fo + &      
-                ( fi3d_ypencil(i, d%jNeighb(3, j), k) + fo3dy_ypencil(i, j, k) ) * &
-                ( d%yp(j + 1) - d%yc(j) ) * HALF + &
-                ( fi3d_ypencil(i, j,               k) + fo3dy_ypencil(i, j, k) ) * &
-                ( d%yc(j    ) - d%yp(j) ) * HALF
-            vol = vol + ( d%yp(j + 1) - d%yp(j) )
-          end do
-        end do
-      end do
-      deallocate(fo3dy)
-    else
-!-------------------------------------------------------------------------------
-!   if variable is not stored in y-nodes, extends them to y-nodes.
-!   for example, ux, density, etc.
-!-------------------------------------------------------------------------------
-      if( d%is_periodic(2) ) then
-        noy = ysz(2)
-      else
-        noy = ysz(2) + 1
-      end if
-      allocate( fo3dy_ypencil(ysz(1), noy, ysz(3)) )
-      fo3dy = ZERO
-      call Get_y_midp_C2P_3dArray ( fi3d_ypencil, d, fo3dy_ypencil)
-      fo = ZERO
-      vol = ZERO
-      do k = 1, ysz(3)
-        do i = 1, ysz(1)
-          do j = 1, ysz(2)
-            fo = fo + &
-                ( fo3dy_ypencil(i, d%jNeighb(3, j), k) + fi3d_ypencil(i, j, k) ) * &
-                ( d%yp(j + 1) - d%yc(j) ) * HALF + &
-                ( fo3dy_ypencil(i, j,               k) + fi3d_ypencil(i, j, k) ) * &
-                ( d%yc(j    ) - d%yp(j) ) * HALF
-            vol = vol + ( d%yp(j + 1) - d%yp(j) )
-          end do
-        end do
-      end do
-      deallocate(fo3dy_ypencil)
-    end if
-    deallocate(fi3d_ypencil)
-    
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce( fo,  fo_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(vol, vol_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    fo_work = fo_work / vol_work
-
-    if(nrank == 0) then
-      Call Print_debug_mid_msg("  The bulk value is:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Variable bulk : ', fo_work
-    end if
-
-    return 
-  end subroutine Get_volumetric_average_3d
 
 end module

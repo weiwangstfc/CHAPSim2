@@ -73,7 +73,7 @@ module input_thermo_mod
   private :: Buildup_property_relations_from_table
   private :: Buildup_property_relations_from_function
   private :: Check_monotonicity_DH_of_HT_list
-  public  :: Build_up_thermo_mapping_relations
+  public  :: Buildup_thermo_mapping_relations
   private :: Initialize_thermo_parameters
   private :: Sort_listTP_Tsmall2big
   private :: Write_thermo_property
@@ -885,7 +885,7 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
-  subroutine Build_up_thermo_mapping_relations
+  subroutine Buildup_thermo_mapping_relations
     use input_general_mod, only : is_any_energyeq
     use var_dft_mod, only : thermo
     implicit none
@@ -898,7 +898,7 @@ contains
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return
-  end subroutine Build_up_thermo_mapping_relations
+  end subroutine Buildup_thermo_mapping_relations
   
 end module input_thermo_mod
 

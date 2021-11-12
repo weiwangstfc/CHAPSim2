@@ -92,6 +92,17 @@ module poisson_mod
 contains
 !===============================================================================
 !===============================================================================
+  subroutine Prepare_poisson_fft
+    use var_dft_mod, only : domain
+    implicit none
+    integer :: i
+    do i = 1, nxdomain
+      call Initialize_decomp_poisson ( domain(i) )
+    end do
+    return
+  end subroutine Prepare_poisson_fft
+!===============================================================================
+!===============================================================================
 !> \brief To asign sine and cosine unit
 !>
 !>
@@ -276,6 +287,8 @@ contains
 
     return
   end subroutine Calculate_compact_coef_in_spectral
+
+
 !===============================================================================
 !===============================================================================
 !> \brief To calcuate all rhs of momentum eq.
@@ -291,7 +304,7 @@ contains
 !> \param[inout]  d             domain    
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine Initialize_decomp_poisson(d)
+  subroutine Initialize_decomp_poisson(dm)
     use mpi_mod
     use udf_type_mod,            only : t_domain
     use parameters_constant_mod!, only : ZERO, MAXP, TRUNCERR
@@ -304,8 +317,8 @@ contains
 !_______________________________________________________________________________
 ! set up boundary flags for periodic b.c.
 !_______________________________________________________________________________
-    is_periodic(:) = d%is_periodic(:)
-    nw(:) = d%nc(:)
+    is_periodic(:) = dm%is_periodic(:)
+    nw(:) = dm%nc(:)
 !_______________________________________________________________________________
 ! boundary conditions, periodic or not
 !   x    y     z
@@ -526,9 +539,9 @@ contains
     allocate ( t2y( nw(2) ) ) ;  t2y = complex(ZERO, ZERO)
     allocate ( t2z( nw(3) ) ) ;  t2z = complex(ZERO, ZERO)
 
-    call Calculate_compact_coef_in_spectral (is_periodic(1), d%h(1), nw(1), t2x)
-    call Calculate_compact_coef_in_spectral (is_periodic(2), d%h(2), nw(2), t2y)
-    call Calculate_compact_coef_in_spectral (is_periodic(3), d%h(3), nw(3), t2z)
+    call Calculate_compact_coef_in_spectral (is_periodic(1), dm%h(1), nw(1), t2x)
+    call Calculate_compact_coef_in_spectral (is_periodic(2), dm%h(2), nw(2), t2y)
+    call Calculate_compact_coef_in_spectral (is_periodic(3), dm%h(3), nw(3), t2z)
 
     if (       is_periodic(1)  .and. &
         (.not. is_periodic(2)) .and. &

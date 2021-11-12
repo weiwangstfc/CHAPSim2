@@ -101,17 +101,17 @@ contains
 
     integer :: nx, ny, nz, i
 
-    if (d%is_periodic(1)) then
+    if (dm%is_periodic(1)) then
        bcx=0
     else
        bcx=1
     endif
-    if (d%is_periodic(2)) then
+    if (dm%is_periodic(2)) then
        bcy=0
     else
        bcy=1
     endif
-    if (d%is_periodic(3)) then
+    if (dm%is_periodic(3)) then
        bcz=0
     else
        bcz=1
@@ -132,9 +132,9 @@ contains
        stop 'boundary condition not supported'
     end if
 
-    nx = d%nc(1)
-    ny = d%nc(2)
-    nz = d%nc(3)
+    nx = dm%nc(1)
+    ny = dm%nc(2)
+    nz = dm%nc(3)
 
     ! pressure-grid having 1 fewer point for non-periodic directions
    !  if (bcx==1) nx=nx-1
@@ -1556,7 +1556,7 @@ contains
     xkx(:)=0. ; xk2(:)=0. ; yky(:)=0. ; yk2(:)=0.
     zkz(:)=0. ; zk2(:)=0.
 
-      dx = 1.0/d%h(1)
+      dx = 1.0/dm%h(1)
       xlx = lxx
 
       acix6   = d1rC2C(3, 1, IBC_PERIODIC) * TWO / dx
@@ -1594,7 +1594,7 @@ contains
     endif
 
     !WAVE NUMBER IN Y
-      dy = 1.0/d%h(2)
+      dy = 1.0/dm%h(2)
       yly = lyy
 
       aciy6   = d1rC2C(3, 1, IBC_PERIODIC) * TWO / dy
@@ -1632,7 +1632,7 @@ contains
     endif
 
     !WAVE NUMBER IN Z
-      dz = 1.0/d%h(3)
+      dz = 1.0/dm%h(3)
       zlz = lzz
 
       aciz6   = d1rC2C(3, 1, IBC_PERIODIC) * TWO / dz

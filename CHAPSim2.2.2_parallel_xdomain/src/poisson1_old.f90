@@ -98,7 +98,7 @@ contains
 !_______________________________________________________________________________
 ! set up boundary flags for periodic b.c.
 !_______________________________________________________________________________
-    is_periodic(:) = d%is_periodic(:)
+    is_periodic(:) = dm%is_periodic(:)
 !_______________________________________________________________________________
 ! Top level wrapper
 ! Note: if periodic b.c. exsits, it should be z direction first. 
@@ -154,11 +154,11 @@ contains
 !      the complex uotput can be held in an array of size (nx, ny, nz / 2 + 1)
 !      for a x-pencil stored spectral data.
 !_______________________________________________________________________________
-    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3),         ph)
-    call decomp_info_init(d%nc(1), d%nc(2), d%nc(3) / 2 + 1, sp)
+    call decomp_info_init(dm%nc(1), dm%nc(2), dm%nc(3),         ph)
+    call decomp_info_init(dm%nc(1), dm%nc(2), dm%nc(3) / 2 + 1, sp)
 
     if (.not. fft_initialised) then
-      call decomp_2d_fft_init(PHYSICAL_IN_Z, d%nc(1), d%nc(2), d%nc(3))
+      call decomp_2d_fft_init(PHYSICAL_IN_Z, dm%nc(1), dm%nc(2), dm%nc(3))
       fft_initialised = .true.
     end if
     call decomp_2d_fft_get_size(fft_st, fft_en, fft_sz)
@@ -203,7 +203,7 @@ contains
                     sp%xst(3) : sp%xen(3)) )
 
     if((.not. is_periodic(1))) then
-      allocate ( rhsx(d%nc(1), d%nc(2), d%nc(3)) )
+      allocate ( rhsx(dm%nc(1), dm%nc(2), dm%nc(3)) )
     end if
 !_______________________________________________________________________________
 ! prepare the transwrtfmt1ion \hat{f"}_l = \hat{f}_l * t2x
@@ -215,9 +215,9 @@ contains
                       sp%xst(2) : sp%xen(2), &
                       sp%xst(3) : sp%xen(3))) ;  t2xyz = ZERO
 
-    call Calculate_compact_coef_in_spectral (is_periodic(1), d%h(1), ph%xsz(1), sp%xst(1), sp%xen(1), t2x)
-    call Calculate_compact_coef_in_spectral (is_periodic(2), d%h(2), ph%xsz(2), sp%xst(2), sp%xen(2), t2y)
-    call Calculate_compact_coef_in_spectral (is_periodic(3), d%h(3), ph%xsz(3), sp%xst(3), sp%xen(3), t2z)
+    call Calculate_compact_coef_in_spectral (is_periodic(1), dm%h(1), ph%xsz(1), sp%xst(1), sp%xen(1), t2x)
+    call Calculate_compact_coef_in_spectral (is_periodic(2), dm%h(2), ph%xsz(2), sp%xst(2), sp%xen(2), t2y)
+    call Calculate_compact_coef_in_spectral (is_periodic(3), dm%h(3), ph%xsz(3), sp%xst(3), sp%xen(3), t2z)
 
     do k = sp%xst(3) , sp%xen(3)
       do j = sp%xst(2) , sp%xen(2)

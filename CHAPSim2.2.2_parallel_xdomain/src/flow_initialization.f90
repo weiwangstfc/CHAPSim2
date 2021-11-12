@@ -36,15 +36,63 @@ module flow_thermo_initialiasation
   private  :: Allocate_thermoflow_variables
   private  :: Initialize_flow_variables
 
-  public  :: Calculate_xz_mean
-  public  :: Check_maximum_velocity
-  
-  public  :: Calculate_RePrGr
   public  :: Validate_TGV2D_error
   public  :: Initialize_flow_thermal_fields
 
 contains
 !===============================================================================
+!> \brief Initialisation and preprocessing of the flow field
+!>
+!> This subroutine is called at beginning of the main program
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!===============================================================================
+  subroutine Initialize_flow_thermal_fields
+    use mpi_mod
+    use var_dft_mod
+    use solver_tools_mod
+    implicit none
+
+    logical :: itest = .false.
+    integer :: i, iter
+
+    iter = 0
+    do i = 1, nxdomain
+
+      call Allocate_thermoflow_variables (domain(i), flow(i), thermo(i))
+
+      if (irestart == INITIAL_RANDOM) then
+        iter = 0
+        call Update_RePrGr(domain(i), iter, flow(i), thermo(i))
+        call Initialize_flow_variables ( domain(i), flow(i), thermo(i) )
+        flow(i)%time = ZERO
+        thermo(i)%time = ZERO 
+      else if (irestart == INITIAL_RESTART) then
+
+      else if (irestart == INITIAL_INTERPL) then
+
+      else
+        call Print_error_msg("Error in flow initialisation flag.")
+      end if
+    end do
+
+!-------------------------------------------------------------------------------
+! to test algorithms based on given values.
+!-------------------------------------------------------------------------------
+    if(itest) call Test_schemes()
+!-------------------------------------------------------------------------------
+! test
+!-------------------------------------------------------------------------------
+!call Test_poisson_solver
+    
+    return
+  end subroutine Initialize_flow_thermal_fields
 !===============================================================================
 !> \brief Allocate flow and thermal variables.     
 !>
@@ -52,68 +100,170 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                         
+!-------------------------------------------------------------------------------
 !> \param[in]     none          NA
 !> \param[out]    none          NA
-!_______________________________________________________________________________
-  subroutine Allocate_thermoflow_variables (d, f, t)
-    use domain_decomposition_mod
-    use input_general_mod,       only : ithermo
-    use parameters_constant_mod, only : ZERO, ONE
+!===============================================================================
+  subroutine Allocate_thermoflow_variables (dm, fl, tm)
+    use parameters_constant_mod
     use mpi_mod
     implicit none
 
-    type(t_domain), intent(in)    :: d
-    type(t_flow),   intent(inout) :: f
-    type(t_thermo), intent(inout) :: t
+    type(t_domain), intent(in)    :: dm
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
 
     if(nrank == 0) call Print_debug_start_msg("Allocating flow and thermal variables ...")
-
-!_______________________________________________________________________________
-! x pencil. 
+!-------------------------------------------------------------------------------
+! default : x pencil. 
 ! varaible index is LOCAL. means 1:xsize(1)
-!_______________________________________________________________________________
-    call alloc_x(f%qx,      d%dpcc) ; f%qx = ZERO
-    call alloc_x(f%qy,      d%dcpc) ; f%qy = ZERO
-    call alloc_x(f%qz,      d%dccp) ; f%qz = ZERO
+!-------------------------------------------------------------------------------
+    call alloc_x(fl%qx,      dm%dpcc) ; fl%qx = ZERO
+    call alloc_x(fl%qy,      dm%dcpc) ; fl%qy = ZERO
+    call alloc_x(fl%qz,      dm%dccp) ; fl%qz = ZERO
     
-    call alloc_x(f%gx,      d%dpcc) ; f%gx = ZERO
-    call alloc_x(f%gy,      d%dcpc) ; f%gy = ZERO
-    call alloc_x(f%gz,      d%dccp) ; f%gz = ZERO
+    call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO
+    call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO
+    call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO
 
-    call alloc_x(f%pres,    d%dccc) ; f%pres = ZERO
-    call alloc_x(f%pcor,    d%dccc) ; f%pcor = ZERO
+    call alloc_x(fl%pres,    dm%dccc) ; fl%pres = ZERO
+    call alloc_x(fl%pcor,    dm%dccc) ; fl%pcor = ZERO
 
-    call alloc_x(f%dDens,   d%dccc) ; f%dDens = ONE
-    call alloc_x(f%mVisc,   d%dccc) ; f%mVisc = ONE
+    call alloc_x(fl%dDens,   dm%dccc) ; fl%dDens = ONE
+    call alloc_x(fl%mVisc,   dm%dccc) ; fl%mVisc = ONE
 
-    call alloc_x(f%dDensm1, d%dccc) ; f%dDensm1 = ONE
-    call alloc_x(f%dDensm2, d%dccc) ; f%dDensm2 = ONE
+    call alloc_x(fl%dDensm1, dm%dccc) ; fl%dDensm1 = ONE
+    call alloc_x(fl%dDensm2, dm%dccc) ; fl%dDensm2 = ONE
 
-    call alloc_x(f%mx_rhs,  d%dpcc) ; f%mx_rhs = ZERO
-    call alloc_x(f%my_rhs,  d%dcpc) ; f%my_rhs = ZERO
-    call alloc_x(f%mz_rhs,  d%dccp) ; f%mz_rhs = ZERO
+    call alloc_x(fl%mx_rhs,  dm%dpcc) ; fl%mx_rhs = ZERO
+    call alloc_x(fl%my_rhs,  dm%dcpc) ; fl%my_rhs = ZERO
+    call alloc_x(fl%mz_rhs,  dm%dccp) ; fl%mz_rhs = ZERO
 
-    call alloc_x(f%mx_rhs0, d%dpcc) ; f%mx_rhs0 = ZERO
-    call alloc_x(f%my_rhs0, d%dcpc) ; f%my_rhs0 = ZERO
-    call alloc_x(f%mz_rhs0, d%dccp) ; f%mz_rhs0 = ZERO
+    call alloc_x(fl%mx_rhs0, dm%dpcc) ; fl%mx_rhs0 = ZERO
+    call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
+    call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
-    if(d%ithermo == 1) then
-      call alloc_x(t%dh,    d%dccc) ; f%dh    = ZERO
-      call alloc_x(t%hEnth, d%dccc) ; f%hEnth = ZERO
-      call alloc_x(t%kCond, d%dccc) ; f%kCond = ONE
-      call alloc_x(t%tTemp, d%dccc) ; f%tTemp = ONE
+    if(dm%ithermo == 1) then
+      call alloc_x(tm%dh,    dm%dccc) ; fl%dh    = ZERO
+      call alloc_x(tm%hEnth, dm%dccc) ; fl%hEnth = ZERO
+      call alloc_x(tm%kCond, dm%dccc) ; fl%kCond = ONE
+      call alloc_x(tm%tTemp, dm%dccc) ; fl%tTemp = ONE
     end if
-!_______________________________________________________________________________
-! x pencil. 
-!_______________________________________________________________________________
 
     if(nrank == 0) call Print_debug_end_msg
     return
+
   end subroutine Allocate_thermoflow_variables
 !===============================================================================
+!> \brief The main code for initializing flow variables
+!>
+!> This subroutine is called once in \ref Initialize_chapsim.
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[in]     dm
+!===============================================================================
+  subroutine Initialize_flow_variables( dm, fl, tm )
+    use udf_type_mod
+    use 
+    implicit none
+    type(t_domain), intent(in   ) :: dm
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
+
+    interface 
+       subroutine Display_vtk_slice(dm, str, varnm, vartp, var0, iter)
+        use udf_type_mod
+        type(t_domain), intent( in ) :: dm
+        integer(4) :: vartp
+        character( len = *), intent( in ) :: str
+        character( len = *), intent( in ) :: varnm
+        real(WP), intent( in ) :: var0(:, :, :)
+        integer(4), intent( in ) :: iter
+       end subroutine Display_vtk_slice
+    end interface
+
+    if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
+
+!-------------------------------------------------------------------------------
+! to initialize thermal variables 
+!-------------------------------------------------------------------------------
+    if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
+    if (dm%ithermo == 1) then
+      call Initialize_thermal_variables (fl, tm)
+    else
+      fl%dDens  (:, :, :) = ONE
+      fl%mVisc  (:, :, :) = ONE
+      fl%dDensm1(:, :, :) = ONE
+      fl%dDensm2(:, :, :) = ONE
+    end if
+!-------------------------------------------------------------------------------
+! to initialize flow velocity and pressure
+!-------------------------------------------------------------------------------
+    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field ...")
+    if ( (dm%icase == ICASE_CHANNEL) .or. &
+         (dm%icase == ICASE_PIPE) .or. &
+         (dm%icase == ICASE_ANNUAL) ) then
+      call Initialize_poiseuille_flow    (dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%initNoise)
+    else if (icase == ICASE_TGV2D) then
+      call Initialize_vortexgreen_2dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+    else if (icase == ICASE_TGV3D) then
+      call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+    else if (icase == ICASE_SINETEST) then
+      call Initialize_sinetest_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+    else 
+      if(nrank == 0) call Print_error_msg("No such case defined" )
+    end if
+!-------------------------------------------------------------------------------
+! to initialize pressure correction term
+!-------------------------------------------------------------------------------
+    fl%pcor(:, :, :) = ZERO
+!-------------------------------------------------------------------------------
+! to check maximum velocity
+!-------------------------------------------------------------------------------
+    call Check_maximum_velocity(fl%qx, fl%qy, fl%qz)
+!-------------------------------------------------------------------------------
+! to update mass flux terms 
+!-------------------------------------------------------------------------------
+    if (dm%ithermo == 1) then
+      call Calculate_massflux_from_velocity (f, d)
+    else
+      fl%gx(:, :, :) = fl%qx(:, :, :)
+      fl%gy(:, :, :) = fl%qy(:, :, :)
+      fl%gz(:, :, :) = fl%qz(:, :, :)
+    end if
+!-------------------------------------------------------------------------------
+! to set up old arrays 
+!-------------------------------------------------------------------------------
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+!-------------------------------------------------------------------------------
+! to write and display the initial fields
+!-------------------------------------------------------------------------------
+    !call Display_vtk_slice(d, 'xy', 'u', 1, qx)
+    !call Display_vtk_slice(d, 'xy', 'v', 2, qy)
+    !call Display_vtk_slice(d, 'xy', 'p', 0, pres)
+
+    !call Display_vtk_slice(d, 'yz', 'v', 2, qy)
+    !call Display_vtk_slice(d, 'yz', 'w', 3, qz)
+    !call Display_vtk_slice(d, 'yz', 'p', 0, pres)
+
+    !call Display_vtk_slice(d, 'zx', 'u', 1, qx)
+    !call Display_vtk_slice(d, 'zx', 'w', 3, qz)
+    !call Display_vtk_slice(d, 'zx', 'p', 0, pres)
+
+    call Display_vtk_slice(d, 'xy', 'u', 1, fl%qx, 0)
+    call Display_vtk_slice(d, 'xy', 'v', 2, fl%qy, 0)
+    call Display_vtk_slice(d, 'xy', 'w', 0, fl%pres, 0)
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine
 !===============================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     
 !>
@@ -121,262 +271,43 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[inout]  f             flow type
-!> \param[inout]  t             thermo type
-!_______________________________________________________________________________
-  subroutine Initialize_thermal_variables (f, t, d)
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[inout]  fl   flow type
+!> \param[inout]  tm   thermo type
+!===============================================================================
+  subroutine Initialize_thermal_variables (fl, tm)
     use parameters_constant_mod
     use input_thermo_mod
     implicit none
-    type(t_flow),   intent(inout) :: f
-    type(t_thermo), intent(inout) :: t
-    type(t_domain), intent(in)    :: d
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
     
     type(thermoProperty_t) :: tp_ini
-    integer :: i
-!-------------------------------------------------------------------------------
-!   initialize thermo fields
-!-------------------------------------------------------------------------------
-    tp_ini = t%tpIni
-    tp_ini%t = t%tiRef / t%t0Ref
 
+!-------------------------------------------------------------------------------
+!   given initialisation temperature
+!-------------------------------------------------------------------------------
+    tp_ini%t = tm%Tini0 / tm%t0Ref
+!-------------------------------------------------------------------------------
+!   update all initial properties based on given temperature
+!-------------------------------------------------------------------------------
     call tp_ini%Refresh_thermal_properties_from_T_undim
+!-------------------------------------------------------------------------------
+!   initialise thermal fields
+!-------------------------------------------------------------------------------
+    fl%dDens(:, :, :) = tp_ini%d
+    fl%mVisc(:, :, :) = tp_ini%m
 
-    f%dDens(:, :, :) = tp_ini%d
-    f%mVisc(:, :, :) = tp_ini%m
-
-    t%dh   (:, :, :) = tp_ini%dh
-    t%hEnth(:, :, :) = tp_ini%h
-    t%kCond(:, :, :) = tp_ini%k
-    t%tTemp(:, :, :) = tp_ini%t
+    tm%dh   (:, :, :) = tp_ini%dh
+    tm%hEnth(:, :, :) = tp_ini%h
+    tm%kCond(:, :, :) = tp_ini%k
+    tm%tTemp(:, :, :) = tp_ini%t
 
     return
   end subroutine Initialize_thermal_variables
-!===============================================================================
-!===============================================================================
-!> \brief The main code for initializing flow variables
-!>
-!> not changing storage position, exclude b.c. values, for example, developing
-!> flow.
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Calculate_xz_mean(u, uxz_work, str, d)
-    use mpi_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent(in) :: d
-    real(WP),       intent(in) :: u(:, :, :)
-    real(WP),    intent(inout) :: uxz_work(:)
-    character(2),   intent(in) :: str
 
-    real(wp) :: uxz( size(uxz_work) )
-    integer(4) :: jj, kk, ii, ny, i, j, k
-    integer(4) :: ist, ien, jst, jen, kst, ken
-    integer(4) :: xst(3), xen(3), xsz(3)
-!-------------------------------------------------------------------------------
-!   Default X-pencil
-!-------------------------------------------------------------------------------
-    if(str == 'ux') then
-      xst(:) = d%ux_xst(:)
-      xen(:) = d%ux_xen(:)
-      xsz(:) = d%ux_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      if(xst(1)==1 .and. d%bc(1, 1) == IBC_UDIRICHLET) then
-        ist = ist + 1
-      end if
-      if(xen(1)==d%np(1) .and. d%bc(2, 1) == IBC_UDIRICHLET)then
-        ien = ien - 1
-      end if
-      ny = d%nc(2)
-    else if (str == 'uy') then
-      xst(:) = d%uy_xst(:)
-      xen(:) = d%uy_xen(:)
-      xsz(:) = d%uy_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      if(xst(2)==1 .and. d%bc(1, 2) == IBC_UDIRICHLET) then
-        jst = jst + 1
-      end if
-      if(xen(2)==d%np(2) .and. d%bc(2, 2) == IBC_UDIRICHLET)then
-        jen = jen - 1
-      end if
-      ny = d%np(2)
-    else if (str == 'uz') then
-      xst(:) = d%uz_xst(:)
-      xen(:) = d%uz_xen(:)
-      xsz(:) = d%uz_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      if(xst(3)==1 .and. d%bc(1, 3) == IBC_UDIRICHLET) then
-        kst = kst + 1
-      end if
-      if(xen(3)==d%np(3) .and. d%bc(2, 3) == IBC_UDIRICHLET)then
-        ken = ken - 1
-      end if
-      ny = d%nc(2)
-    else if (str == 'ps') then
-      xst(:) = d%ps_xst(:)
-      xen(:) = d%ps_xen(:)
-      xsz(:) = d%ps_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      ny = d%nc(2)
-    else
-      call Print_error_msg("Error, input type is wrong.")
-    end if
-  
-    uxz(:) = ZERO
-    uxz_work(:) = ZERO
-    kk = 0
-    ii = 0
-    do j = jst, jen
-      jj = j - 1 + xst(2)
-      do k = kst, ken
-        kk = kk + 1
-        do i = ist, ien
-          ii = ii + 1
-          uxz(jj) = uxz(jj) + u(i, j, k)
-        end do
-      end do
-    end do
-    uxz(:) = uxz(:) / real(kk * ii, wp)
-
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(uxz, uxz_work, ny, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    uxz_work(:) = uxz_work(:) / real(ncol, wp)
-
-    return
-  end subroutine
-!===============================================================================
-!===============================================================================
-  subroutine Calculate_xzmean_perturbation(u, uxz, d, str, uprofile)
-    use mpi_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain),     intent(in) :: d
-    real(WP),        intent(inout) :: u(:, :, :)
-    real(WP),           intent(in) :: uxz(:)
-    character(2),       intent(in) :: str
-    real(WP), optional, intent(in) :: uprofile(:)
-
-    integer(4) :: jj, kk, ii, ny, i, j, k
-    integer(4) :: ist, ien, jst, jen, kst, ken
-    integer(4) :: xst(3), xen(3), xsz(3)
-!-------------------------------------------------------------------------------
-!   Default X-pencil
-!   excludes b.c. index for Dirichlet B.C.
-!-------------------------------------------------------------------------------
-    if(str == 'ux') then
-      xst(:) = d%ux_xst(:)
-      xen(:) = d%ux_xen(:)
-      xsz(:) = d%ux_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      if(xst(1)==1 .and. d%bc(1, 1) == IBC_UDIRICHLET) then
-        ist = ist + 1
-      end if
-      if(xen(1)==d%np(1) .and. d%bc(2, 1) == IBC_UDIRICHLET)then
-        ien = ien - 1
-      end if
-      ny = d%nc(2)
-    else if (str == 'uy') then
-      xst(:) = d%uy_xst(:)
-      xen(:) = d%uy_xen(:)
-      xsz(:) = d%uy_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      if(xst(2)==1 .and. d%bc(1, 2) == IBC_UDIRICHLET) then
-        jst = jst + 1
-      end if
-      if(xen(2)==d%np(2) .and. d%bc(2, 2) == IBC_UDIRICHLET)then
-        jen = jen - 1
-      end if
-      ny = d%np(2)
-    else if (str == 'uz') then
-      xst(:) = d%uz_xst(:)
-      xen(:) = d%uz_xen(:)
-      xsz(:) = d%uz_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      if(xst(3)==1 .and. d%bc(1, 3) == IBC_UDIRICHLET) then
-        kst = kst + 1
-      end if
-      if(xen(3)==d%np(3) .and. d%bc(2, 3) == IBC_UDIRICHLET)then
-        ken = ken - 1
-      end if
-      ny = d%nc(2)
-    else if (str == 'ps') then
-      xst(:) = d%ps_xst(:)
-      xen(:) = d%ps_xen(:)
-      xsz(:) = d%ps_xsz(:)
-      ist = 1
-      ien = xsz(1)
-      jst = 1
-      jen = xsz(2)
-      kst = 1
-      ken = xsz(3)
-      ny = d%nc(2)
-    else
-      call Print_error_msg("Error, input type is wrong.")
-    end if
-!-------------------------------------------------------------------------------
-!   X-pencil
-!   calculate perturbations
-!-------------------------------------------------------------------------------
-    do j = jst, jen
-      jj = j - 1 + xst(2)
-      do k = kst, ken
-        do i = ist, ien
-          if( present(uprofile) ) then
-            u(:, j, :) = u(:, j, :) - uxz(jj) + ufyc(jj)
-          else
-            u(:, j, :) = u(:, j, :) - uxz(jj)
-          end if
-        end do
-      end do
-    end do
-
-    return
-  end subroutine
-!===============================================================================
 !===============================================================================
 !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
 !>
@@ -384,39 +315,37 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[in]     d             domain
-!> \param[out]    ufyc          u(yc), velocity profile along wall-normal direction
-!_______________________________________________________________________________
-  subroutine Generate_poiseuille_flow_profile(ufyc, d)
-    use parameters_constant_mod, only : ZERO, ONE, ONEPFIVE, TWO, MAXP, TRUNCERR
-    use input_general_mod
+!> \param[out]    ux_1c1          u(yc), velocity profile along wall-normal direction
+!===============================================================================
+  subroutine Generate_poiseuille_flow_profile(dm, ux_1c1)
+    use parameters_constant_mod
     use udf_type_mod
     use math_mod
     implicit none
 
-    type(t_domain), intent(in)  :: d
-    real(WP),       intent(out) :: ufyc(:)
+    type(t_domain), intent(in)  :: dm
+    real(WP),       intent(out) :: ux_1c1(:)
     
     real(WP)   :: a, b, c, yy, ymax, ymin
     integer(4) :: j
     
+    ux_1c1 (:) = ZERO
 
-    ufyc (:) = ZERO
-
-    ymax = d%yp( d%np_geo(2) )
-    ymin = d%yp( 1 )
-    if (d%icase == ICASE_CHANNEL) then
+    ymax = dm%yp( dm%np_geo(2) )
+    ymin = dm%yp( 1 )
+    if (dm%icase == ICASE_CHANNEL) then
       a = (ymax - ymin) / TWO
       b = ZERO
       c = ONEPFIVE
-    else if (d%icase == ICASE_PIPE) then
+    else if (dm%icase == ICASE_PIPE) then
       a = (ymax - ymin)
       b = ZERO
       c = TWO
-    else if (d%icase == ICASE_ANNUAL) then
+    else if (dm%icase == ICASE_ANNUAL) then
       a = (ymax - ymin) / TWO
       b = (ymax + ymin) / TWO
       c = TWO
@@ -426,31 +355,42 @@ contains
       c = ONE
     end if
 
-    do j = 1, d%nc(2)
-      yy = d%yc(j)
-      ufyc(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
+    do j = 1, dm%nc(2)
+      yy = dm%yc(j)
+      ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
     return
   end subroutine Generate_poiseuille_flow_profile
 !===============================================================================
+!> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
+!>
+!> mpi : x-pencil, local
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[in]     
+!> \param[out]    
 !===============================================================================
-  subroutine Generate_random_field(ux, uy, uz, lnoise, d)
+  subroutine Generate_random_field(dm, ux, uy, uz, lnoise)
     use random_number_generation_mod
-    use parameters_constant_mod, only : ZERO, ONE
-    use input_general_mod
+    use parameters_constant_mod
     use mpi_mod
     implicit none
-    type(t_domain), intent(in) :: d
+    type(t_domain), intent(in) :: dm
     real(WP),    intent(inout) :: ux(:, :, :)
     real(WP),    intent(inout) :: uy(:, :, :)
     real(WP),    intent(inout) :: uz(:, :, :)
     real(WP),    intent(in)    :: lnoise
-    integer(4) :: seed, i, j, k, ii, jj, kk
-!-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
-!-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+    integer(4) :: seed
+    integer(4) :: i, j, k    ! local id
+    integer(4) :: ii, jj, kk ! global id
+    real(WP) :: rd(NVD)
+    type(DECOMP_INFO) :: dtmp
+
 !-------------------------------------------------------------------------------
 !   Initialisation
 !-------------------------------------------------------------------------------
@@ -458,72 +398,50 @@ contains
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
-!-------------------------------------------------------------------------------
-!   x-pencil : global index -->local index, ux
-!-------------------------------------------------------------------------------
-    do ii = 1, d%np(1)
-      i = ii
-      do jj = 1, d%nc(2)
-        if(jj >= d%ux_xst(2) .and. jj <= d%ux_xen(2) ) then
-          j = jj - d%ux_xst(2) + 1
-          do kk = 1, d%nc(3)
-            if(kk >= d%ux_xst(3) .and. kk <= d%ux_xen(3) ) then
-              k = kk - d%ux_xst(3) + 1
-              seed = ii + jj + kk
-              call Initialize_random_number ( seed )
-              call Generate_r_random( -ONE, ONE, rd)
-              ux(i, j, k) = lnoise * rd
-            end if
-          end do
-        end if
-      end do
-    end do
+  
+    do n = 1, NVD
+      if(n == 1) then
+        dtmp = dm%dpcc
+        nx = dm%np(1)
+        ny = dm%nc(2)
+        nz = dm%nc(3)
+      else if(n == 2) then
+        dtmp = dm%dcpc
+        nx = dm%nc(1)
+        ny = dm%np(2)
+        nz = dm%nc(3)
+      else if(n == 3) then
+        dtmp = dm%dccp
+        nx = dm%nc(1)
+        ny = dm%nc(2)
+        nz = dm%np(3)
+      else
+      end if
 
-!-------------------------------------------------------------------------------
-!   x-pencil : global index -->local index, uy
-!-------------------------------------------------------------------------------
-    do ii = 1, d%nc(1)
-      i = ii
-      do jj = 1, d%np(2)
-        if(jj >= d%uy_xst(2) .and. jj <= d%uy_xen(2) ) then
-          j = jj - d%uy_xst(2) + 1
-          do kk = 1, d%nc(3)
-            if(kk >= d%uy_xst(3) .and. kk <= d%uy_xen(3) ) then
-              k = kk - d%uy_xst(3) + 1
-              seed = seed + ii + jj + kk
-              call Initialize_random_number ( seed )
-              call Generate_r_random( -ONE, ONE, rd)
-              uy(i, j, k) = lnoise * rd
-            end if
-          end do
-        end if
+      do ii = 1, nx                       
+        i = ii                            
+        do jj = 1, ny                     
+          if(jj >= dtmp%xst(2) .and. jj <= dtmp%xen(2) ) then
+            j = jj - dtmp%xst(2) + 1      
+            do kk = 1, nz                 
+              if(kk >= dtmp%xst(3) .and. kk <= dtmp%xen(3) ) then
+                k = kk - dtmp%xst(3) + 1  
+                seed = ii + jj + kk + seed * (n - 1)
+                call Initialize_random_number ( seed )
+                call Generate_r_random( -ONE, ONE, rd)
+                if(n == 1) ux(i, j, k) = lnoise * rd
+                if(n == 2) uy(i, j, k) = lnoise * rd
+                if(n == 3) uz(i, j, k) = lnoise * rd
+              end if
+            end do
+          end if
+        end do
       end do
-    end do
 
-!-------------------------------------------------------------------------------
-!   x-pencil : global index -->local index, uz
-!-------------------------------------------------------------------------------
-    do ii = 1, d%nc(1)
-      i = ii
-      do jj = 1, d%nc(2)
-        if(jj >= d%uz_xst(2) .and. jj <= d%uz_xen(2) ) then
-          j = jj - d%uz_xst(2) + 1
-          do kk = 1, d%np(3)
-            if(kk >= d%uz_xst(3) .and. kk <= d%uz_xen(3) ) then
-              k = kk - d%uz_xst(3) + 1
-              seed = seed + ii + jj + kk
-              call Initialize_random_number ( seed )
-              call Generate_r_random( -ONE, ONE, rd)
-              uz(i, j, k) = lnoise * rd
-            end if
-          end do
-        end if
-      end do
     end do
 
     return
   end subroutine
-!===============================================================================
 !===============================================================================
 !> \brief Initialize Poiseuille flow in channel or pipe.     
 !>
@@ -531,77 +449,73 @@ contains
 !>
 !-------------------------------------------------------------------------------
 ! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
 !> \param[in]     d             domain
 !> \param[out]    f             flow
-!_______________________________________________________________________________
-  subroutine Initialize_poiseuille_flow(ux, uy, uz, p, lnoise, d)
+!===============================================================================
+  subroutine Initialize_poiseuille_flow(dm, ux, uy, uz, p, lnoise)
     use input_general_mod
     use udf_type_mod
     use boundary_conditions_mod
     implicit none
-    type(t_domain), intent(in   ) :: d
+    type(t_domain), intent(in   ) :: dm
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
                                      p (:, :, :)    
-    real(WP), intent(in) :: lnoise        
-    real(WP) :: ufyc(d%nc(2))
-    integer :: seed
+    real(WP), intent(in) :: lnoise    
+    integer :: pf_unit    
+    real(WP) :: ux_1c1(dm%nc(2))
     real(WP) :: rd
-    integer :: pf_unit
-    real(WP) :: uxxza(d%nc(2))
-    real(WP) :: uyxza(d%np(2))
-    real(WP) :: uzxza(d%nc(2))
-    real(WP) :: ux_ypencil(d%ux_ysz(1), d%ux_ysz(2), d%ux_ysz(3))
+    real(WP) :: uxxza(dm%nc(2))
+    real(WP) :: uyxza(dm%np(2))
+    real(WP) :: uzxza(dm%nc(2))
+    real(WP) :: ux_ypencil(dm%ux_ysz(1), dm%ux_ysz(2), dm%ux_ysz(3))
 !-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
-!-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
-!-------------------------------------------------------------------------------
-!   x-pencil : to get Poiseuille profile
-!-------------------------------------------------------------------------------
-    ufyc(:) = ZERO
-    call Generate_poiseuille_flow_profile ( ufyc, d )
-!-------------------------------------------------------------------------------
-!   x-pencil : to get random fields [-1,1] for ux, uy, uz
+!   x-pencil : initial
 !-------------------------------------------------------------------------------
     p (:, :, :) = ZERO
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
-    seed = 0
-    call Generate_random_field(ux, uy, uz, lnoise, d)
+!-------------------------------------------------------------------------------
+!   x-pencil : to get Poiseuille profile for all ranks
+!-------------------------------------------------------------------------------
+    ux_1c1(:) = ZERO
+    call Generate_poiseuille_flow_profile ( dm, ux_1c1)
+!-------------------------------------------------------------------------------
+!   x-pencil : to get random fields [-1,1] for ux, uy, uz
+!-------------------------------------------------------------------------------
+    call Generate_random_field(dm, ux, uy, uz, lnoise)
 !-------------------------------------------------------------------------------
 !   x-pencil : build up boundary
 !-------------------------------------------------------------------------------
-    call Apply_BC_velocity(ux, uy, uz, d)
+    call Apply_BC_velocity(dm, ux, uy, uz)
 !-------------------------------------------------------------------------------
 !   x-pencil : Get the u, v, w, averged in x and z directions
 !-------------------------------------------------------------------------------
-    call Calculate_xz_mean(ux, uxxza, 'ux', d)
-    call Calculate_xz_mean(uy, uyxza, 'uy', d)
-    call Calculate_xz_mean(uz, uzxza, 'uz', d)
+    call Calculate_xz_mean(ux, dm%dpcc, uxxza)
+    call Calculate_xz_mean(uy, dm%dcpc, uyxza)
+    call Calculate_xz_mean(uz, dm%dpcc, uzxza)
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Calculate_xzmean_perturbation(ux, uxxza, 'ux', d, ufyc)
-    call Calculate_xzmean_perturbation(uy, uyxza, 'uy', d)
-    call Calculate_xzmean_perturbation(uz, uzxza, 'uz', d)
-
+    call Calculate_xzmean_perturbation(ux, dm%dpcc, uxxza, ux_1c1)
+    call Calculate_xzmean_perturbation(uy, dm%dcpc, uyxza )
+    call Calculate_xzmean_perturbation(uz, dm%dccp, uzxza )
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Get_volumetric_average_3d(ux, 'ux', d, ubulk)
+    call Get_volumetric_average_3d(ux, 'ux', dm, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
-    call Apply_BC_velocity(ux, uy, uz, d)
-    call Get_volumetric_average_3d(ux, 'ux', d, ubulk)
+    call Apply_BC_velocity(dm, ux, uy, uz)
+    call Get_volumetric_average_3d(ux, 'ux', dm, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil
 !-------------------------------------------------------------------------------
-      call transpose_x_to_y(ux, ux_ypencil, d%dpcc)
+      call transpose_x_to_y(ux, ux_ypencil, dm%dpcc)
 !-------------------------------------------------------------------------------
 !   Y-pencil : write out velocity profile
 !-------------------------------------------------------------------------------
@@ -611,8 +525,8 @@ contains
               status  = 'replace',         &
               action  = 'write')
       write(pf_unit, '(A)') "# :yc, ux_laminar, ux, uy, uz"
-      do j = 1, d%nc(2)
-        write(pf_unit, '(5ES13.5)') d%yc(j), ufyc(j), ux_ypencil(d%ux_yen(1), j, d%ux_yen(3)) )
+      do j = 1, dm%nc(2)
+        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%ux_yen(1), j, dm%ux_yen(3)) )
       end do
       close(pf_unit)
     end if
@@ -649,28 +563,28 @@ contains
 !-------------------------------------------------------------------------------
 !   Ensure it is in x-pencil
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, d%ux_xsz(2)
-      jj = d%ux_xst(2) + j - 1
-      yc = d%yc(jj)
-      do i = 1, d%ux_xsz(1)
-        ii = d%ux_xst(1) + i - 1
-        xp = d%h(1) * real(ii - 1, WP)
+    do j = 1, dm%ux_xsz(2)
+      jj = dm%ux_xst(2) + j - 1
+      yc = dm%yc(jj)
+      do i = 1, dm%ux_xsz(1)
+        ii = dm%ux_xst(1) + i - 1
+        xp = dm%h(1) * real(ii - 1, WP)
         ux(i, j, :) =  sin_wp ( xp ) * cos_wp ( yc )
       end do
     end do
 !-------------------------------------------------------------------------------
 !   uy in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, d%uy_xsz(2)
-      jj = d%uy_xst(2) + j - 1
-      yp = d%yp(jj)
-      do i = 1, d%uy_xsz(1)
-        ii = d%uy_xst(1) + i - 1
-        xc = d%h(1) * (real(ii - 1, WP) + HALF)
+    do j = 1, dm%uy_xsz(2)
+      jj = dm%uy_xst(2) + j - 1
+      yp = dm%yp(jj)
+      do i = 1, dm%uy_xsz(1)
+        ii = dm%uy_xst(1) + i - 1
+        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
         uy(i, j, :) = -cos_wp ( xc ) * sin_wp ( yp )
       end do
     end do
@@ -681,12 +595,12 @@ contains
 !-------------------------------------------------------------------------------
 !   p in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, d%ps_xsz(2)
-      jj = d%ps_xst(2) + j - 1
-      yc = d%yc(jj)
-      do i = 1, d%ps_xsz(1)
-        ii = d%ps_xst(1) + i - 1
-        xc = d%h(1) * (real(ii - 1, WP) + HALF)
+    do j = 1, dm%ps_xsz(2)
+      jj = dm%ps_xst(2) + j - 1
+      yc = dm%yc(jj)
+      do i = 1, dm%ps_xsz(1)
+        ii = dm%ps_xst(1) + i - 1
+        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
         p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) / FOUR
       end do
     end do
@@ -718,19 +632,19 @@ contains
 !-------------------------------------------------------------------------------
 !   Ensure it is in x-pencil
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of ux
 !-------------------------------------------------------------------------------
     uerr = ZERO
     uerrmax = ZERO
-    do k = 1, d%ux_xsz(3)
-      do j = 1, d%ux_xsz(2)
-        jj = d%ux_xst(2) + j - 1
-        yc = d%yc(jj)
-        do i = 1, d%ux_xsz(1)
-          ii = d%ux_xst(1) + i - 1
-          xp = d%h(1) * real(ii - 1, WP)
+    do k = 1, dm%ux_xsz(3)
+      do j = 1, dm%ux_xsz(2)
+        jj = dm%ux_xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dm%ux_xsz(1)
+          ii = dm%ux_xst(1) + i - 1
+          xp = dm%h(1) * real(ii - 1, WP)
           uc = ux(i, j, k)
           ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * rre * tt)
           uerr = uerr + (uc - ue)**2
@@ -741,22 +655,22 @@ contains
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(uerr,    uerr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(uerrmax, uerrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
-    uerr_work = uerr_work / real(d%np(1), wp) / real(d%nc(2), wp) / real(d%nc(3), wp)
+    uerr_work = uerr_work / real(dm%np(1), wp) / real(dm%nc(2), wp) / real(dm%nc(3), wp)
     uerr_work = sqrt_wp(uerr_work)
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of uy
 !-------------------------------------------------------------------------------
     verr = ZERO
     verrmax = ZERO
-    do k = 1, d%uy_xsz(3)
-      do j = 1, d%uy_xsz(2)
-        jj = d%uy_xst(2) + j - 1
-        yp = d%yp(jj)
-        do i = 1, d%uy_xsz(1)
-          ii = d%uy_xst(1) + i - 1
-          xc = d%h(1) * (real(ii - 1, WP) + HALF)
+    do k = 1, dm%uy_xsz(3)
+      do j = 1, dm%uy_xsz(2)
+        jj = dm%uy_xst(2) + j - 1
+        yp = dm%yp(jj)
+        do i = 1, dm%uy_xsz(1)
+          ii = dm%uy_xst(1) + i - 1
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uc = uy(i, j, k)
-          ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * f%rre * f%time)
+          ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * fl%rre * fl%time)
           verr = verr + (uc - ue)**2
           if(dabs(uc - ue) > verrmax) verrmax = dabs(uc - ue)
         end do
@@ -765,22 +679,22 @@ contains
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(verr,    verr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(verrmax, verrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
-    verr_work = verr_work / real(d%nc(1), wp) / real(d%np(2), wp) / real(d%nc(3), wp)
+    verr_work = verr_work / real(dm%nc(1), wp) / real(dm%np(2), wp) / real(dm%nc(3), wp)
     verr_work = sqrt_wp(verr_work)
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of p
 !-------------------------------------------------------------------------------
     perr = ZERO
     perrmax = ZERO
-    do k = 1, d%ps_xsz(3)
-      do j = 1, d%ps_xsz(2)
-        jj = d%ps_xst(2) + j - 1
-        yc = d%yc(jj)
-        do i = 1, d%ps_xsz(1)
-          ii = d%ps_xst(1) + i - 1
-          xc = d%h(1) * (real(ii - 1, WP) + HALF)
+    do k = 1, dm%ps_xsz(3)
+      do j = 1, dm%ps_xsz(2)
+        jj = dm%ps_xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dm%ps_xsz(1)
+          ii = dm%ps_xst(1) + i - 1
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uc = p(i, j, k)
-          ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * f%rre * f%time))**2
+          ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * fl%rre * fl%time))**2
           perr = perr + (uc - ue)**2
           if(dabs(uc - ue) > perrmax) perrmax = dabs(uc - ue)
         end do
@@ -789,7 +703,7 @@ contains
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(perr,    perr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(perrmax, perrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
-    perr_work = perr_work / real(d%nc(1), wp) / real(d%nc(2), wp) / real(d%nc(3), wp)
+    perr_work = perr_work / real(dm%nc(1), wp) / real(dm%nc(2), wp) / real(dm%nc(3), wp)
     perr_work = sqrt_wp(perr_work)
 !-------------------------------------------------------------------------------
 !   X-pencil : write data in rank=0
@@ -840,19 +754,19 @@ contains
 !-------------------------------------------------------------------------------
 !   Ensure it is in x-pencil
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
 !------------------------------------------------------------------------------- 
-    do k = 1, d%ux_xsz(3)
-      kk = d%ux_xst(3) + k - 1
-      zc = d%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, d%ux_xsz(2)
-        jj = d%ux_xst(2) + j - 1
-        yc = d%yc(jj)
-        do i = 1, d%ux_xsz(1)
-          ii = d%ux_xst(1) + i - 1
-          xp = d%h(1) * real(ii - 1, WP)
+    do k = 1, dm%ux_xsz(3)
+      kk = dm%ux_xst(3) + k - 1
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      do j = 1, dm%ux_xsz(2)
+        jj = dm%ux_xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dm%ux_xsz(1)
+          ii = dm%ux_xst(1) + i - 1
+          xp = dm%h(1) * real(ii - 1, WP)
           ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
         end do
       end do
@@ -860,15 +774,15 @@ contains
 !-------------------------------------------------------------------------------
 !   uy in x-pencil
 !------------------------------------------------------------------------------- 
-    do k = 1, d%uy_xsz(3)
-      kk = d%uy_xst(3) + k - 1
-      zc = d%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, d%uy_xsz(2)
-        jj = d%uy_xst(2) + j - 1
-        yp = d%yp(jj)
-        do i = 1, d%uy_xsz(1)
-          ii = d%uy_xst(1) + i - 1
-          xc = d%h(1) * (real(ii - 1, WP) + HALF)
+    do k = 1, dm%uy_xsz(3)
+      kk = dm%uy_xst(3) + k - 1
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      do j = 1, dm%uy_xsz(2)
+        jj = dm%uy_xst(2) + j - 1
+        yp = dm%yp(jj)
+        do i = 1, dm%uy_xsz(1)
+          ii = dm%uy_xst(1) + i - 1
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
         end do
       end do
@@ -880,15 +794,15 @@ contains
 !-------------------------------------------------------------------------------
 !   p in x-pencil
 !------------------------------------------------------------------------------- 
-    do k = 1, d%ps_xsz(3)
-      kk = d%ps_xst(3) + k - 1
-      zc = d%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, d%ps_xsz(2)
-        jj = d%ps_xst(2) + j - 1
-        yc = d%yc(jj)
-        do i = 1, d%ps_xsz(1)
-          ii = d%ps_xst(1) + i - 1
-          xc = d%h(1) * (real(ii - 1, WP) + HALF)
+    do k = 1, dm%ps_xsz(3)
+      kk = dm%ps_xst(3) + k - 1
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      do j = 1, dm%ps_xsz(2)
+        jj = dm%ps_xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dm%ps_xsz(1)
+          ii = dm%ps_xst(1) + i - 1
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           p(i, j, k)= ( cos_wp( TWO * xc       ) + &
                         cos_wp( TWO * yc       ) ) * &
                       ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
@@ -930,19 +844,19 @@ contains
 !-------------------------------------------------------------------------------
 !   Ensure it is in x-pencil
 !-------------------------------------------------------------------------------
-    if(d%ux_xsz(1) /= d%np(1)) call Print_error_msg("Error, not X-pencil")
+    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
 !------------------------------------------------------------------------------- 
-    do k = 1, d%ux_xsz(3)
-      kk = d%ux_xst(3) + k - 1
-      zc = d%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, d%ux_xsz(2)
-        jj = d%ux_xst(2) + j - 1
-        yc = d%yc(jj)
-        do i = 1, d%ux_xsz(1)
-          ii = d%ux_xst(1) + i - 1
-          xp = d%h(1) * real(ii - 1, WP)
+    do k = 1, dm%ux_xsz(3)
+      kk = dm%ux_xst(3) + k - 1
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      do j = 1, dm%ux_xsz(2)
+        jj = dm%ux_xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dm%ux_xsz(1)
+          ii = dm%ux_xst(1) + i - 1
+          xp = dm%h(1) * real(ii - 1, WP)
           ux(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
         end do 
       end do
@@ -950,15 +864,15 @@ contains
 !-------------------------------------------------------------------------------
 !   uy in x-pencil
 !------------------------------------------------------------------------------- 
-    do k = 1, d%uy_xsz(3)
-      kk = d%uy_xst(3) + k - 1
-      zc = d%h(3) * (real(kk - 1, WP) + HALF)
-      do i = 1, d%uy_xsz(1)
-        ii = d%uy_xst(1) + i - 1
-        xc = d%h(1) * (real(ii - 1, WP) + HALF)
-        do j = 1, d%uy_xsz(2)
-          jj = d%uy_xst(2) + j - 1
-          yp = d%yp(jj)
+    do k = 1, dm%uy_xsz(3)
+      kk = dm%uy_xst(3) + k - 1
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      do i = 1, dm%uy_xsz(1)
+        ii = dm%uy_xst(1) + i - 1
+        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+        do j = 1, dm%uy_xsz(2)
+          jj = dm%uy_xst(2) + j - 1
+          yp = dm%yp(jj)
           uy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
         end do
       end do
@@ -966,15 +880,15 @@ contains
 !-------------------------------------------------------------------------------
 !   uz in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, d%uz_xsz(2)
-      jj = d%uz_xst(2) + j - 1
-      yc = d%yc(jj)
-      do i = 1, d%uz_xsz(1)
-        ii = d%uz_xst(1) + i - 1
-        xc = d%h(1) * (real(ii - 1, WP) + HALF)
-        do k = 1, d%uz_xsz(3)
-          kk = d%uz_xst(3) + k - 1
-          zp = d%h(3) * real(kk - 1, WP)
+    do j = 1, dm%uz_xsz(2)
+      jj = dm%uz_xst(2) + j - 1
+      yc = dm%yc(jj)
+      do i = 1, dm%uz_xsz(1)
+        ii = dm%uz_xst(1) + i - 1
+        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+        do k = 1, dm%uz_xsz(3)
+          kk = dm%uz_xst(3) + k - 1
+          zp = dm%h(3) * real(kk - 1, WP)
           uz(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
         end do
       end do
@@ -982,15 +896,15 @@ contains
 !-------------------------------------------------------------------------------
 !   p in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, d%ps_xsz(2)
-      jj = d%ps_xst(2) + j - 1
-      yc = d%yc(jj)
-      do i = 1, d%ps_xsz(1)
-        ii = d%ps_xst(1) + i - 1
-        xc = d%h(1) * (real(ii - 1, WP) + HALF)
-        do k = 1, d%ps_xsz(3)
-          kk = d%ps_xst(3) + k - 1
-          zc = d%h(3) * (real(kk - 1, WP) + HALF)
+    do j = 1, dm%ps_xsz(2)
+      jj = dm%ps_xst(2) + j - 1
+      yc = dm%yc(jj)
+      do i = 1, dm%ps_xsz(1)
+        ii = dm%ps_xst(1) + i - 1
+        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+        do k = 1, dm%ps_xsz(3)
+          kk = dm%ps_xst(3) + k - 1
+          zc = dm%h(3) * (real(kk - 1, WP) + HALF)
           p(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
         end do
       end do
@@ -1027,217 +941,6 @@ contains
     return
   end subroutine
 
-!===============================================================================
-!===============================================================================
-!> \brief The main code for initializing flow variables
-!>
-!> This subroutine is called once in \ref Initialize_chapsim.
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[inout]  none          NA
-!_______________________________________________________________________________
-  subroutine Initialize_flow_variables( d, f, t )
-    use input_general_mod
-    use parameters_constant_mod
-    use boundary_conditions_mod
-    use continuity_eq_mod
-    use test_algrithms_mod
-    use solver_tools_mod
-    use mpi_mod
-    implicit none
-    type(t_domain), intent(in   ) :: d
-    type(t_flow),   intent(inout) :: f
-    type(t_thermo), intent(inout) :: t
 
-    interface 
-       subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
-        use udf_type_mod
-        type(t_domain), intent( in ) :: d
-        integer(4) :: vartp
-        character( len = *), intent( in ) :: str
-        character( len = *), intent( in ) :: varnm
-        real(WP), intent( in ) :: var0(:, :, :)
-        integer(4), intent( in ) :: iter
-       end subroutine Display_vtk_slice
-    end interface
-
-    if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
-
-!-------------------------------------------------------------------------------
-! to initialize thermal variables 
-!-------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
-    if (d%ithermo == 1) then
-      call Initialize_thermal_variables (f, t)
-    else
-      f%dDens(:, :, :) = ONE
-      f%mVisc(:, :, :) = ONE
-    end if
-!-------------------------------------------------------------------------------
-! to initialize flow velocity and pressure
-!-------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field ...")
-    if ( (d%icase == ICASE_CHANNEL) .or. &
-         (d%icase == ICASE_PIPE) .or. &
-         (d%icase == ICASE_ANNUAL) ) then
-      call Initialize_poiseuille_flow    (f%qx, f%qy, f%qz, f%pres, f%initNoise, d)
-    else if (icase == ICASE_TGV2D) then
-      call Initialize_vortexgreen_2dflow (f%qx, f%qy, f%qz, f%pres, d)
-    else if (icase == ICASE_TGV3D) then
-      call Initialize_vortexgreen_3dflow (f%qx, f%qy, f%qz, f%pres, d)
-    else if (icase == ICASE_SINETEST) then
-      call Initialize_sinetest_flow      (f%qx, f%qy, f%qz, f%pres, d)
-    else 
-      if(nrank == 0) call Print_error_msg("No such case defined" )
-    end if
-!-------------------------------------------------------------------------------
-! to initialize pressure correction term
-!-------------------------------------------------------------------------------
-    f%pcor(:, :, :) = ZERO
-!-------------------------------------------------------------------------------
-! to check maximum velocity
-!-------------------------------------------------------------------------------
-    call Check_maximum_velocity(f%qx, f%qy, f%qz)
-!-------------------------------------------------------------------------------
-! to update mass flux terms 
-!-------------------------------------------------------------------------------
-    if (d%ithermo == 1) then
-      call Calculate_massflux_from_velocity (f, d)
-    else
-      f%gx(:, :, :) = f%qx(:, :, :)
-      f%gy(:, :, :) = f%qy(:, :, :)
-      f%gz(:, :, :) = f%qz(:, :, :)
-    end if
-!-------------------------------------------------------------------------------
-! to set up old arrays 
-!-------------------------------------------------------------------------------
-    f%dDensm1(:, :, :) = f%dDens(:, :, :)
-    f%dDensm2(:, :, :) = f%dDens(:, :, :)
-!-------------------------------------------------------------------------------
-! to write and display the initial fields
-!-------------------------------------------------------------------------------
-    !call Display_vtk_slice(d, 'xy', 'u', 1, qx)
-    !call Display_vtk_slice(d, 'xy', 'v', 2, qy)
-    !call Display_vtk_slice(d, 'xy', 'p', 0, pres)
-
-    !call Display_vtk_slice(d, 'yz', 'v', 2, qy)
-    !call Display_vtk_slice(d, 'yz', 'w', 3, qz)
-    !call Display_vtk_slice(d, 'yz', 'p', 0, pres)
-
-    !call Display_vtk_slice(d, 'zx', 'u', 1, qx)
-    !call Display_vtk_slice(d, 'zx', 'w', 3, qz)
-    !call Display_vtk_slice(d, 'zx', 'p', 0, pres)
-
-    call Display_vtk_slice(d, 'xy', 'u', 1, f%qx, 0)
-    call Display_vtk_slice(d, 'xy', 'v', 2, f%qy, 0)
-    call Display_vtk_slice(d, 'xy', 'w', 0, f%pres, 0)
-
-    if(nrank == 0) call Print_debug_end_msg
-    return
-  end subroutine
-!===============================================================================
-!===============================================================================
-!> \brief The main code for initializing flow variables
-!>
-!> This subroutine is called once in \ref Initialize_chapsim.
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[inout]  
-!_______________________________________________________________________________
-  subroutine Calculate_RePrGr(f, t, d, iter)
-    use input_general_mod
-    use input_thermo_mod, only : tpRef0
-    use parameters_constant_mod, only : GRAVITY, ONE
-    use udf_type_mod, only : t_flow, t_thermo
-    implicit none
-    type(t_domain), intent(in   ) :: d
-    type(t_flow),   intent(inout) :: f
-    type(t_thermo), intent(inout) :: t
-    integer(4),     intent(in   ) :: iter  
-  
-    real(WP) :: u0
-  
-    if(iter < f%nIterIniRen) then
-      f%rre = ONE / f%renIni
-    else
-      f%rre = ONE / f%ren
-    end if
-  
-    if(d%ithermo == 1) then
-  
-      t%rPrRen = f%rre * tpRef0%k / tpRef0%m / tpRef0%cp
-  
-      u0 = ONE / f%rre * tpRef0%m / tpRef0%d / t%lenRef
-      if (t%igravity == 0) then
-        ! no gravity
-        f%fgravity = ZERO
-      else if (t%igravity == 1 .or. t%igravity == 2 .or. t%igravity == 3 ) then 
-        ! flow/gravity same dirction
-        f%fgravity =  t%lenRef / u0 / u0 * GRAVITY
-      else if (t%igravity == -1 .or. t%igravity == -2 .or. t%igravity == -3 ) then 
-        ! flow/gravity opposite dirction
-        f%fgravity = -t%lenRef / u0 / u0 * GRAVITY
-      else
-        ! no gravity
-        f%fgravity = ZERO
-      end if
-  
-    end if
-  
-    return
-  end subroutine Calculate_RePrGr
-
-  !===============================================================================
-!===============================================================================
-!> \brief Initialisation and preprocessing of the flow field
-!>
-!> This subroutine is called at beginning of the main program
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     none          NA
-!> \param[out]    none          NA
-!_______________________________________________________________________________
-  subroutine Initialize_flow_thermal_fields ()
-    use input_general_mod
-    implicit none
-
-    logical :: itest = .false.
-    integer :: i
-
-    do i = 1, nxdomain
-      call Allocate_thermoflow_variables (domain(i), flow(i), thermo(i))
-      call Calculate_RePrGr(flow(i), thermo(i), 0)
-      if (irestart == INITIAL_RANDOM) then
-        call Initialize_flow_variables ( domain(i), flow(i), thermo(i) )
-        flow(i)%time = ZERO
-        thermo(i)%time = ZERO 
-      else if (irestart == INITIAL_RESTART) then
-
-      else if (irestart == INITIAL_INTERPL) then
-
-      else
-        call Print_error_msg("Error in flow initialisation flag.")
-      end if
-    end do
-
-  !-------------------------------------------------------------------------------
-  ! to test algorithms based on given values.
-  !-------------------------------------------------------------------------------
-    if(itest) call Test_schemes()
-    
-    return
-  end subroutine Initialize_flow_thermal_fields
 
 end module flow_thermo_initialiasation

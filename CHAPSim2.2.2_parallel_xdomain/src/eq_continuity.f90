@@ -90,9 +90,9 @@ contains
     real(WP), allocatable :: div0(:, :, :)
     integer(4) :: nx, ny, nz
 
-    nx = d%nc(1)
-    ny = d%nc(2)
-    nz = d%nc(3)
+    nx = dm%nc(1)
+    ny = dm%nc(2)
+    nz = dm%nc(3)
 
     allocate( div0(nx, ny, nz) )
 
@@ -207,9 +207,9 @@ contains
     real(WP), allocatable  :: div (:, :, :)
     integer(4) :: nx, ny, nz
 
-    nx = d%nc(1)
-    ny = d%nc(2)
-    nz = d%nc(3)
+    nx = dm%nc(1)
+    ny = dm%nc(2)
+    nz = dm%nc(3)
     allocate( div(nx, ny, nz) )
 
     f%pcor = ZERO

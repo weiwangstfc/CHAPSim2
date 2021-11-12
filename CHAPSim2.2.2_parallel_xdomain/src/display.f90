@@ -23,13 +23,13 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
   character( len = 128) :: filename
   logical :: file_exists = .FALSE.
 
-  nd1 = d%np_geo(1)
-  nd2 = d%np_geo(2)
-  nd3 = d%np_geo(3)
+  nd1 = dm%np_geo(1)
+  nd2 = dm%np_geo(2)
+  nd3 = dm%np_geo(3)
 
-  nc1 = d%nc(1)
-  nc2 = d%nc(2)
-  nc3 = d%nc(3)
+  nc1 = dm%nc(1)
+  nc2 = dm%nc(2)
+  nc3 = dm%nc(3)
 
   if ( trim( str ) == 'xy' ) then
     nd3 = 1
@@ -58,11 +58,11 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
     write(output_unit, '(A, 3I10.1)') 'DIMENSIONS', nd1, nd2, nd3
     write(output_unit, '(A, I10.1, 1X, A)') 'POINTS', nd1 * nd2 * nd3, 'float'
     do k = 1, nd3
-      z = d%h(3) * real(k - 1, WP)
+      z = dm%h(3) * real(k - 1, WP)
       do j = 1, nd2
-        y = d%yp(j)
+        y = dm%yp(j)
         do i = 1, nd1
-          x = d%h(1) * real(i - 1, WP)
+          x = dm%h(1) * real(i - 1, WP)
           write(output_unit, *) x, y, z
         end do
       end do
@@ -73,7 +73,7 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
   end if
     ! data convert to cell centre data...
 
-  allocate ( var1(d%nc(1), d%nc(2), d%nc(3)) ); var1 = ZERO
+  allocate ( var1(dm%nc(1), dm%nc(2), dm%nc(3)) ); var1 = ZERO
 
   if (vartp == 0) then
     ! do nothing

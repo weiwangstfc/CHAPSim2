@@ -38,4 +38,4 @@ test*/
 *.exe
 *.out
 *.app
-CHAPSim_workspace.code-workspace
+*.code-workspace

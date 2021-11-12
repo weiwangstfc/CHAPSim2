@@ -92,6 +92,8 @@ module parameters_constant_mod
 
   real(WP), parameter :: GRAVITY     = 9.80665_WP
 
+  integer, parameter :: nvd = 3
+
   integer, parameter :: ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
@@ -275,45 +277,6 @@ module udf_type_mod
     real(wp) :: h1r(3) ! uniform (dx)^(-1)
     real(wp) :: h2r(3) ! uniform (dx)^(-2)
 
-    integer(4) :: ux_xst(3) ! x-pencil, for variable ux and gx, starting index
-    integer(4) :: ux_xen(3) ! x-pencil, for variable ux and gx, ending index
-    integer(4) :: ux_xsz(3) ! x-pencil, for variable ux and gx, local size
-    integer(4) :: uy_xst(3) ! x-pencil, for variable uy and gy, starting index
-    integer(4) :: uy_xen(3) ! x-pencil, for variable uy and gy, ending index
-    integer(4) :: uy_xsz(3) ! x-pencil, for variable uy and gy, local size
-    integer(4) :: uz_xst(3) ! x-pencil, for variable uz and gz, starting index
-    integer(4) :: uz_xen(3) ! x-pencil, for variable uz and gz, ending index
-    integer(4) :: uz_xsz(3) ! x-pencil, for variable uz and gz, local size
-    integer(4) :: ps_xst(3) ! x-pencil, for variable p and p, starting index
-    integer(4) :: ps_xen(3) ! x-pencil, for variable p and p, ending index
-    integer(4) :: ps_xsz(3) ! x-pencil, for variable p and p, local size
-
-    integer(4) :: ux_yst(3) ! y-pencil, for variable ux and gx, starting index
-    integer(4) :: ux_yen(3) ! y-pencil, for variable ux and gx, ending index
-    integer(4) :: ux_ysz(3) ! y-pencil, for variable ux and gx, local size
-    integer(4) :: uy_yst(3) ! y-pencil, for variable uy and gy, starting index
-    integer(4) :: uy_yen(3) ! y-pencil, for variable uy and gy, ending index
-    integer(4) :: uy_ysz(3) ! y-pencil, for variable uy and gy, local size
-    integer(4) :: uz_yst(3) ! y-pencil, for variable uz and gz, starting index
-    integer(4) :: uz_yen(3) ! y-pencil, for variable uz and gz, ending index
-    integer(4) :: uz_ysz(3) ! y-pencil, for variable uz and gz, local size
-    integer(4) :: ps_yst(3) ! y-pencil, for variable p and p, starting index
-    integer(4) :: ps_yen(3) ! y-pencil, for variable p and p, ending index
-    integer(4) :: ps_ysz(3) ! y-pencil, for variable p and p, local size
-
-    integer(4) :: ux_zst(3) ! z-pencil, for variable ux and gx, starting index
-    integer(4) :: ux_zen(3) ! z-pencil, for variable ux and gx, ending index
-    integer(4) :: ux_zsz(3) ! z-pencil, for variable ux and gx, local size
-    integer(4) :: uy_zst(3) ! z-pencil, for variable uy and gy, starting index
-    integer(4) :: uy_zen(3) ! z-pencil, for variable uy and gy, ending index
-    integer(4) :: uy_zsz(3) ! z-pencil, for variable uy and gy, local size
-    integer(4) :: uz_zst(3) ! z-pencil, for variable uz and gz, starting index
-    integer(4) :: uz_zen(3) ! z-pencil, for variable uz and gz, ending index
-    integer(4) :: uz_zsz(3) ! z-pencil, for variable uz and gz, local size
-    integer(4) :: ps_zst(3) ! z-pencil, for variable p and p, starting index
-    integer(4) :: ps_zen(3) ! z-pencil, for variable p and p, ending index
-    integer(4) :: ps_zsz(3) ! z-pencil, for variable p and p, local size
-
     type(DECOMP_INFO) :: dpcc ! eg, ux
     type(DECOMP_INFO) :: dcpc ! eg, uy
     type(DECOMP_INFO) :: dccp ! eg, uz
@@ -346,14 +309,14 @@ module udf_type_mod
     integer  :: irestart
     integer  :: nrsttckpt
     integer  :: nIterIniRen
-    integer :: nIterFlowStart
-    integer :: nIterFlowEnd
+    integer  :: nIterFlowStart
+    integer  :: nIterFlowEnd
 
     real(WP) :: time
     real(WP) :: ren
     real(WP) :: rre
     real(WP) :: drvfc
-    real(WP) :: fgravity
+    real(WP) :: fgravity(3)
     real(wp) :: renIni
     real(wp) :: initNoise
    
@@ -386,10 +349,10 @@ module udf_type_mod
 !------------------------------------------------------------------------------- 
   type t_thermo
 
-    integer :: ifluid
+    integer  :: ifluid
     integer  :: igravity
-    integer :: nIterThermoStart
-    integer :: nIterThermoEnd
+    integer  :: nIterThermoStart
+    integer  :: nIterThermoEnd
     real(WP) :: lenRef
     real(WP) :: T0Ref
     real(WP) :: Tini0

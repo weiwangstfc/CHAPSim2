@@ -11,93 +11,106 @@ contains
 !   Build up B.C. info, undimensional, constant temperature
 !-------------------------------------------------------------------------------
     do i = 1, 2
-      if( d%ibcx(5, i) = IBC_DIRICHLET ) then
-        tpbcx(i)%t = d%fbcx(5, i) / t%t0Ref
+      if( dm%ibcx(5, i) = IBC_DIRICHLET ) then
+        tpbcx(i)%t = dm%fbcx(5, i) / t%t0Ref
         call tpbcx(i)%Refresh_thermal_properties_from_T_undim
       end if
-      if( d%ibcy(5, i) = IBC_DIRICHLET ) then
-        tpbcy(i)%t = d%fbcy(5, i) / t%t0Ref
+      if( dm%ibcy(5, i) = IBC_DIRICHLET ) then
+        tpbcy(i)%t = dm%fbcy(5, i) / t%t0Ref
         call tpbcy(i)%Refresh_thermal_properties_from_T_undim
       end if
-      if( d%ibcz(5, i) = IBC_DIRICHLET ) then
-        tpbcz(i)%t = d%fbcz(5, i) / t%t0Ref
+      if( dm%ibcz(5, i) = IBC_DIRICHLET ) then
+        tpbcz(i)%t = dm%fbcz(5, i) / t%t0Ref
         call tpbcz(i)%Refresh_thermal_properties_from_T_undim
       end if
     end do
 
     return
   end subroutine
-
-  subroutine Apply_BC_velocity (ux, uy, uz, d)
+!===============================================================================
+!> \brief Apply b.c. conditions 
+!>
+!> [mpi] : x-pencil
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!===============================================================================
+  subroutine Apply_BC_velocity (dm, ux, uy, uz)
     use precision_mod
     use parameters_constant_mod, only : ZERO
     use udf_type_mod, only : t_domain, t_flow
     use input_general_mod, only : IBC_UDIRICHLET
     implicit none
-    type(t_domain), intent(in )   :: d
+    type(t_domain), intent(in )   :: dm
     real(WP), intent(inout)       :: ux(:, :, :), &
                                      uy(:, :, :), &
                                      uz(:, :, :)
     integer :: m, n
+    type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
-! x-pencil : ux at i = 1 
+!   ux at x-pencil , x-id = 1
 !-------------------------------------------------------------------------------
+    dtmp = dm%dpcc
     m = 1
     n = 1
-    if(d%bc(m, n) == IBC_UDIRICHLET) then
-      if(d%ux_xst(1) == 1) then
-        ux(1, :, :) = d%ubc(m, n)
+    if(dm%ibcx(m, n) == IBC_UDIRICHLET) then
+      if(dtmp%xst(m) == 1) then
+        ux(dtmp%xst(m), :, :) = dm%fbcx(m, n)
       end if
     end if
 !-------------------------------------------------------------------------------
-! x-pencil : ux at i = np 
+!   ux at x-pencil , x-id = np
 !-------------------------------------------------------------------------------
-    m = 2
-    n = 1
-    if(d%bc(m, n) == IBC_UDIRICHLET) then
-      if(d%ux_xen(1) == d%np(1)) then
-        ux(d%ux_xsz(1), :, :) = d%ubc(m, n)
+    n = 2
+    if(dm%ibcx(m, n) == IBC_UDIRICHLET) then
+      if(dtmp%xen(m) == dm%np(m)) then
+        ux(dtmp%xen(m), :, :) = dm%fbcx(m, n)
       end if
     end if    
 !-------------------------------------------------------------------------------
-! x-pencil : uy at j = 1 
+!   uy at x-pencil , y-id = 1
 !-------------------------------------------------------------------------------
-    m = 1
-    n = 2
-    if(d%bc(m, n) == IBC_UDIRICHLET) then
-      if(d%uy_xst(2) == 1) then
-        uy(:, 1, :) = d%ubc(m, n)
-      end if
-    end if
-!-------------------------------------------------------------------------------
-! x-pencil : uy at j = np 
-!-------------------------------------------------------------------------------
+    dtmp = dm%dcpc
     m = 2
+    n = 1
+    if(dm%ibcy(m, n) == IBC_UDIRICHLET) then
+      if(dtmp%xst(m) == 1) then
+        uy(:, dtmp%xst(m), :) = dm%fbcy(m, n)
+      end if
+    end if
+!-------------------------------------------------------------------------------
+!   uy at x-pencil , y-id = np
+!-------------------------------------------------------------------------------
     n = 2
-    if(d%bc(m, n) == IBC_UDIRICHLET) then
-      if(d%uy_xen(2) == d%np(2)) then
-        uy(:, d%uy_xsz(2), :) = d%ubc(m, n)
+    if(dm%ibcy(m, n) == IBC_UDIRICHLET) then
+      if(dtmp%xen(m) == dm%np(m)) then
+        uy(:, dtmp%xsz(m), :) = dm%fbcy(m, n)
       end if
     end if
 !-------------------------------------------------------------------------------
-! x-pencil : uz at k = 1 
+!   uz at x-pencil , y-id = 1
 !-------------------------------------------------------------------------------
-    m = 1
-    n = 3
-    if(d%bc(m, n) == IBC_UDIRICHLET) then
-      if(d%uz_xst(3) == 1) then
-        uz(:, :, 1) = d%ubc(m, n)
+    dtmp = dm%dccp
+    m = 3
+    n = 1
+    if(dm%ibcz(m, n) == IBC_UDIRICHLET) then
+      if(dtmp%xst(m) == 1) then
+        uz(:, :, dtmp%xst(m)) = dm%fbcz(m, n)
       end if
     end if
 !-------------------------------------------------------------------------------
-! x-pencil : uz at k = np 
+!   uz at x-pencil , y-id = np
 !-------------------------------------------------------------------------------
-    m = 2
-    n = 3
-    if(d%bc(m, n) == IBC_UDIRICHLET) then
-      if(d%uz_xen(3) == d%np(3)) then
-        uz(:, :, d%uz_xsz(3)) = d%ubc(m, n)
+    n = 2
+    if(dm%ibcz(m, n) == IBC_UDIRICHLET) then
+      if(dtmp%xen(m) == dm%np(m)) then
+        uz(:, :, dtmp%xsz(m)) = dm%fbcz(m, n)
       end if
     end if
 
