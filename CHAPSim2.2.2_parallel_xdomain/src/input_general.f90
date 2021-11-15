@@ -115,36 +115,47 @@ contains
         end do
 
         if(nrank == 0) then
-          write (OUTPUT_UNIT, wrtfmt1i) ' x-direction domain number                  :', nxdomain
-          write (OUTPUT_UNIT, wrtfmt1i) ' y-direction domain number (default Row)    :', nrow
-          write (OUTPUT_UNIT, wrtfmt1i) ' z-direction domain number (default Column) :', ncol
+          write (OUTPUT_UNIT, wrtfmt1i) 'x-direction domain number:', nxdomain
+          write (OUTPUT_UNIT, wrtfmt1i) 'y-direction domain number (default Row)   :', nrow
+          write (OUTPUT_UNIT, wrtfmt1i) 'z-direction domain number (default Column):', ncol
         end if
 !-------------------------------------------------------------------------------
 ! [flow]
 !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[domain]' ) then
 
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icase
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%icase
+        domain(:)%icase = domain(1)%icase
+
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%lxx
+
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         domain(:)%lyt = rtmp
+
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         domain(:)%lyb = rtmp
+
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         domain(:)%lzz = rtmp
+
 !-------------------------------------------------------------------------------
 ! [boundary] 
 !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[boundary]' ) then
 
         do i = 1, nxdomain
-        read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:5, 1), domain(i)%fbcx(1:5, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:5, 2), domain(i)%fbcx(1:5, 2)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:5, 1), domain(i)%fbcx(1:5, 1)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:5, 2), domain(i)%fbcx(1:5, 2)
         end do
-        read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcy(1:5, 1), domain(i)%fbcy(1:5, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcy(1:5, 2), domain(i)%fbcy(1:5, 2)
-        read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcz(1:5, 1), domain(i)%fbcz(1:5, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcz(1:5, 2), domain(i)%fbcz(1:5, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:5, 1), domain(1)%fbcy(1:5, 1)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:5, 2), domain(1)%fbcy(1:5, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:5, 1), domain(1)%fbcz(1:5, 1)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:5, 2), domain(1)%fbcz(1:5, 2)
+
+        domain(:)%ibcy(:, :) = domain(1)%ibcy(:, :)
+        domain(:)%fbcy(:, :) = domain(1)%fbcy(:, :)
+        domain(:)%ibcz(:, :) = domain(1)%ibcz(:, :)
+        domain(:)%fbcz(:, :) = domain(1)%fbcz(:, :)
 !-------------------------------------------------------------------------------
 ! [mesh] 
 !-------------------------------------------------------------------------------
