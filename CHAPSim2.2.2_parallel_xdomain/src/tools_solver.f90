@@ -158,7 +158,7 @@ contains
     use mpi_mod
     use udf_type_mod
     implicit none
-    type(DECOMP_INFO),  intent(in) :: dtmp
+    type(DECOMP_INFO),  intent(in)    :: dtmp
     real(WP),           intent(inout) :: var(:, :, :)
     real(WP),           intent(in)    :: varxz(:)
     real(WP), optional, intent(in)    :: varxz_shift(:)
@@ -196,63 +196,79 @@ contains
     return
   end subroutine
 !===============================================================================
-!===============================================================================
 !> \brief Calculate the conservative variables from primary variable.     
-!>
 !> This subroutine is called to update $\rho u_i$ from $u_i$.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    needed         specified   pubic
+!-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     d             domain
-!> \param[in]     f             flow
-!_______________________________________________________________________________
-  subroutine Calculate_massflux_from_velocity(f, d)
+!> \param[in]     dm             domain
+!> \param[in]     fm             flow
+!===============================================================================
+  subroutine Calculate_massflux_from_velocity(dm, fl)
     use parameters_constant_mod, only : ZERO
     use udf_type_mod
     use operations
     implicit none
-    type(t_domain), intent(in )   :: d
-    type(t_flow  ), intent(inout) :: f
+    type(t_domain), intent(in )   :: dm
+    type(t_flow  ), intent(inout) :: fl
     real(WP), dimension( dm%nc(1) ) :: fix
     real(WP), dimension( dm%np(1) ) :: fox
     real(WP), dimension( dm%nc(2) ) :: fiy
     real(WP), dimension( dm%np(2) ) :: foy
     real(WP), dimension( dm%nc(3) ) :: fiz
     real(WP), dimension( dm%np(3) ) :: foz
-    real(WP), dimension( dm%uy_ysz(1), dm%uy_ysz(2), dm%uy_ysz(3)) ::  uy_ypencil
-    real(WP), dimension( dm%uy_ysz(1), dm%uy_ysz(2), dm%uy_ysz(3)) :: duy_ypencil
-    real(WP), dimension( dm%uz_ysz(1), dm%uz_ysz(2), dm%uz_ysz(3)) ::  uz_ypencil
-    real(WP), dimension( dm%uz_ysz(1), dm%uz_ysz(2), dm%uz_ysz(3)) :: duz_ypencil
-    real(WP), dimension( dm%ps_ysz(1), dm%ps_ysz(2), dm%ps_ysz(3)) ::   d_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) ::  uy_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: duy_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), &
+                         dm%dccp%ysz(2), &
+                         dm%dccp%ysz(3)) ::  uz_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), &
+                         dm%dccp%ysz(2), &
+                         dm%dccp%ysz(3)) :: duz_ypencil
+    real(WP), dimension( dm%dccc%ysz(1), &
+                         dm%dccc%ysz(2), &
+                         dm%dccc%ysz(3)) ::   d_ypencil
     
-    real(WP), dimension( dm%uz_zsz(1), dm%uz_zsz(2), dm%uz_zsz(3)) ::  uz_zpencil
-    real(WP), dimension( dm%uz_zsz(1), dm%uz_zsz(2), dm%uz_zsz(3)) :: duz_zpencil
-    real(WP), dimension( dm%ps_zsz(1), dm%ps_zsz(2), dm%ps_zsz(3)) ::   d_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) ::  uz_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: duz_zpencil
+    real(WP), dimension( dm%dccc%zsz(1), &
+                         dm%dccc%zsz(2), &
+                         dm%dccc%zsz(3)) ::   d_zpencil
     
     integer(4) :: i, j, k
-!-------------------------------------------------------------------------------
-! Default x-pencil
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
+    type(DECOMP_INFO) :: dtmp
+
 !-------------------------------------------------------------------------------
 ! x-pencil : u1 -> g1
 !-------------------------------------------------------------------------------
-    do k = 1, dm%ux_xsz(3)
-      do j = 1, dm%ux_xsz(2)
-        fix(:) = f%dDens(:, j, k)
-        call Get_midp_interpolation_1D( 'x', 'C2P', d, fix(:), fox(:) )
-        f%gx(:, j, k) = fox(:) * f%qx(:, j, k)
+    dtmp = dm%dpcc
+    do k = 1, dtmp%xsz(3)
+      do j = 1, dtmp%xsz(2)
+        fix(:) = fl%dDens(:, j, k)
+        call Get_midp_interpolation_1D( 'x', 'C2P', dm, fix(:), fox(:) )
+        fl%gx(:, j, k) = fox(:) * fl%qx(:, j, k)
       end do
     end do
 !-------------------------------------------------------------------------------
 ! x-pencil --> y-pencil
 !-------------------------------------------------------------------------------
-    call transpose_x_to_y(f%qy,    uy_ypencil, dm%dcpc)
-    call transpose_x_to_y(f%dDens,  d_ypencil, dm%dccc)
-    call transpose_x_to_y(f%qz,    uz_ypencil, dm%dccp)
+    call transpose_x_to_y(fl%qy,    uy_ypencil, dm%dcpc)
+    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
+    call transpose_x_to_y(fl%qz,    uz_ypencil, dm%dccp)
 !-------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
 !-------------------------------------------------------------------------------
@@ -285,8 +301,8 @@ contains
 !-------------------------------------------------------------------------------
 ! y-pencil --> x-pencil
 !-------------------------------------------------------------------------------
-    call transpose_y_to_x(duz_ypencil, f%gz, dm%dccp)
-    call transpose_y_to_x(duy_ypencil, f%gy, dm%dcpc)
+    call transpose_y_to_x(duz_ypencil, fl%gz, dm%dccp)
+    call transpose_y_to_x(duy_ypencil, fl%gy, dm%dcpc)
 
     return
   end subroutine Calculate_massflux_from_velocity
@@ -327,6 +343,7 @@ contains
 !>  (y) ^_____ _____ ______
 !>      |_____|_____|______|
 !>      |_____|_____|______|__> (z)
+!>
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -441,12 +458,20 @@ contains
 !>         fo = \int_1^nx \int_
 !> This is based only y-direction stretching.
 !> Here is 2nd order Trapezoid Method. Need to improve! Check!
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    needed         specified   pubic
+!-------------------------------------------------------------------------------
 !> MPI : 
 !>     default x-pencil
 !>     working in : y-pencil
 !>  (y) ^_____ _____ ______
 !>      |_____|_____|______|
 !>      |_____|_____|______|__> (z)
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -454,116 +479,103 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]         
 !===============================================================================
-  subroutine Get_volumetric_average_3d(fi3d, str, d, fo_work)
-    ! how to get a high order bulk value?
-    use parameters_constant_mod, only : ZERO, HALF
-    use udf_type_mod,            only : t_domain
+  subroutine Get_volumetric_average_3d(var, dtmp, dm, fo_work)
+    use mpi_mod
+    use udf_type_mod
     implicit none
-  
-    type(t_domain), intent(in) :: d
-    real(WP),       intent(in) :: fi3d(:, :, :)
-    real(WP),      intent(out) :: fo_work
-    character(2),   intent(in) :: str
+    type(t_domain),    intent(in) :: dm
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP),          intent(in) :: var(:, :, :)
+    real(WP),         intent(out) :: fo_work
  
-    type(DECOMP_INFO) :: decomp
-    real(WP), allocatable   :: fo3dy_ypencil(:, :, :)
-    real(WP), allocatable   :: fi3d_ypencil(:, :, :)
-    real(WP)   :: vol, fo
-    integer(4) :: i, j, k
-    integer(4) :: nix, niy, niz
-    integer(4) :: ncy
+    real(WP), allocatable   :: varcp_ypencil(:, :, :)
+    real(WP), allocatable   :: var_ypencil(:, :, :)
+    real(WP)   :: vol, fo, vol_work
+    integer(4) :: i, j, k, noy
+
 !-------------------------------------------------------------------------------
 !   transpose to y pencil. Default is x-pencil.
 !-------------------------------------------------------------------------------
-    if(str=='ux') then
-      if(dm%ux_xsz /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = dm%ux_ysz(1:3)
-      decomp = dm%dpcc
-    else if(str=='uy') then
-      if(dm%uy_xsz /= dm%nc(2)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = dm%uy_ysz(1:3)
-      decomp = dm%dcpc
-    else if(str=='uz') then
-      if(dm%uz_xsz /= dm%nc(3)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = dm%uz_ysz(1:3)
-      decomp = dm%dccp
-    else if(str=='ps') then
-      if(dm%ps_xsz /= dm%nc(3)) call Print_error_msg("Error, not X-pencil")
-      ysz(1:3) = dm%ps_ysz(1:3)
-      decomp = dm%dccc
-    else
-      call Print_error_msg("No such variables defined.")
-    end if
-    allocate ( fi3d_ypencil(ysz(1), ysz(2), ysz(3)) )
-    fi3d_ypencil = ZERO
+    allocate ( var_ypencil(dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3)) )
+    var_ypencil = ZERO
 
-    call transpose_x_to_y(fi3d, fi3d_ypencil, decomp)
+    call transpose_x_to_y(var, var_ypencil, dtmp)
 !-------------------------------------------------------------------------------
 !   In Y-pencil now
 !-------------------------------------------------------------------------------
-    if(str=='uy')then
+    if( dtmp%ysz(2) == dm%np(2) )then
 !-------------------------------------------------------------------------------
 !   if variable is stored in y-nodes, extend them to y-cell centres
 !   for example, uy
 !-------------------------------------------------------------------------------
       if( dm%is_periodic(2) ) then
-        noy = ysz(2)
+        noy = dtmp%ysz(2)
       else
-        noy = ysz(2) - 1
+        noy = dtmp%ysz(2) - 1
       end if
-      allocate( fo3dy_ypencil(ysz(1), noy, ysz(3)) )
-      fo3dy = ZERO
-      call Get_y_midp_P2C_3dArray ( fi3d_ypencil, d, fo3dy_ypencil)
+
+      allocate( varcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
+      varcp_ypencil = ZERO
+
+      call Get_y_midp_P2C_3dArray ( var_ypencil, dm, varcp_ypencil)
+
       fo = ZERO
       vol = ZERO
-      do k = 1, ysz(3)
-        do i = 1, ysz(1)
+      do k = 1, dtmp%ysz(3)
+        do i = 1, dtmp%ysz(1)
           do j = 1, noy
+!>       j'    j'+1
+!>      _|__.__|_
+!>         j     
             ! fo = fo + &
             !     ( dm%yp(j + 1) - dm%yp(j) ) / SIX * &
             !     ( fi3d_ypencil(i, j, k) + &
             !       FOUR * fo3dy(i, j, k) + &
             !       fi3d_ypencil(i, dm%jNeighb(3, j), k)) ! Simpson 2nd order 
             fo = fo + &      
-                ( fi3d_ypencil(i, dm%jNeighb(3, j), k) + fo3dy_ypencil(i, j, k) ) * &
+                ( var_ypencil(i, dm%jNeighb(3, j), k) + varcp_ypencil(i, j, k) ) * &
                 ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
-                ( fi3d_ypencil(i, j,               k) + fo3dy_ypencil(i, j, k) ) * &
+                ( var_ypencil(i, j,                k) + varcp_ypencil(i, j, k) ) * &
                 ( dm%yc(j    ) - dm%yp(j) ) * HALF
             vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
           end do
         end do
       end do
-      deallocate(fo3dy)
+      deallocate(fo3d)
     else
 !-------------------------------------------------------------------------------
 !   if variable is not stored in y-nodes, extends them to y-nodes.
 !   for example, ux, density, etc.
 !-------------------------------------------------------------------------------
       if( dm%is_periodic(2) ) then
-        noy = ysz(2)
+        noy = dtmp%ysz(2)
       else
-        noy = ysz(2) + 1
+        noy = dtmp%ysz(2) + 1
       end if
-      allocate( fo3dy_ypencil(ysz(1), noy, ysz(3)) )
-      fo3dy = ZERO
-      call Get_y_midp_C2P_3dArray ( fi3d_ypencil, d, fo3dy_ypencil)
+      allocate( varcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
+      varcp_ypencil = ZERO
+      call Get_y_midp_C2P_3dArray ( var_ypencil, dm, varcp_ypencil)
+
       fo = ZERO
       vol = ZERO
-      do k = 1, ysz(3)
-        do i = 1, ysz(1)
-          do j = 1, ysz(2)
+      do k = 1, dtmp%ysz(3)
+        do i = 1, dtmp%ysz(1)
+          do j = 1, dtmp%ysz(2)
+!>       j'    j'+1
+!>      _|__.__|_
+!>         j  
             fo = fo + &
-                ( fo3dy_ypencil(i, dm%jNeighb(3, j), k) + fi3d_ypencil(i, j, k) ) * &
+                ( varcp_ypencil(i, dm%jNeighb(3, j), k) + var_ypencil(i, j, k) ) * &
                 ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
-                ( fo3dy_ypencil(i, j,               k) + fi3d_ypencil(i, j, k) ) * &
+                ( varcp_ypencil(i, j,                k) + var_ypencil(i, j, k) ) * &
                 ( dm%yc(j    ) - dm%yp(j) ) * HALF
             vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
           end do
         end do
       end do
-      deallocate(fo3dy_ypencil)
+      deallocate(varcp_ypencil)
     end if
-    deallocate(fi3d_ypencil)
+    deallocate(var_ypencil)
     
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce( fo,  fo_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
@@ -577,5 +589,47 @@ contains
 
     return 
   end subroutine Get_volumetric_average_3d
+
+!===============================================================================
+!>\brief : to find the maximum values of velocity
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    needed         N/A         pubic
+!-------------------------------------------------------------------------------
+!> MPI : 
+!>     default x-pencil
+!-------------------------------------------------------------------------------
+! Arguments
+!-------------------------------------------------------------------------------
+!  mode           name          role                                           
+!-------------------------------------------------------------------------------
+!> \param[inout]         
+!===============================================================================
+  subroutine Check_maximum_velocity(ux, uy, uz)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    implicit none
+
+    real(WP), intent(in) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
+
+    real(WP)   :: u(3), u_work(3)
+
+    u(1) = MAXVAL( abs_wp( ux(:, :, :) ) )
+    u(2) = MAXVAL( abs_wp( uy(:, :, :) ) )
+    u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(u, u_work, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      Call Print_debug_mid_msg("  The maximum velocities are:")
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(1)
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(2)
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(3)
+    end if
+
+    return
+  end subroutine
 
 end module

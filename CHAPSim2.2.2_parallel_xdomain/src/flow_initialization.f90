@@ -15,12 +15,8 @@
 !
 ! You should have received a copy of the GNU General Public License along with
 ! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
-! Street, Fifth Floor, Boston, MA 0type t_domain=============================================
-!> \file flow_initialisation.f90
-!>
-!> \brief Define and initialise flow and thermal variables.
-!>
-!===============================================================================
+! Street, Fifth Floor, Boston, MA 02110-1301, USA.
+!-------------------------------------------------------------------------------
 module flow_thermo_initialiasation
   use var_dft_mod
   implicit none
@@ -42,9 +38,9 @@ module flow_thermo_initialiasation
 contains
 !===============================================================================
 !> \brief Initialisation and preprocessing of the flow field
-!>
-!> This subroutine is called at beginning of the main program
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain   module
+!>         all    once           all       public
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -95,9 +91,9 @@ contains
   end subroutine Initialize_flow_thermal_fields
 !===============================================================================
 !> \brief Allocate flow and thermal variables.     
-!>
-!> This subroutine is called once at beginning of solver.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -146,10 +142,10 @@ contains
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
     if(dm%ithermo == 1) then
-      call alloc_x(tm%dh,    dm%dccc) ; fl%dh    = ZERO
-      call alloc_x(tm%hEnth, dm%dccc) ; fl%hEnth = ZERO
-      call alloc_x(tm%kCond, dm%dccc) ; fl%kCond = ONE
-      call alloc_x(tm%tTemp, dm%dccc) ; fl%tTemp = ONE
+      call alloc_x(tm%dh,    dm%dccc) ; tm%dh    = ZERO
+      call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
+      call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
+      call alloc_x(tm%tTemp, dm%dccc) ; tm%tTemp = ONE
     end if
 
     if(nrank == 0) call Print_debug_end_msg
@@ -158,9 +154,9 @@ contains
   end subroutine Allocate_thermoflow_variables
 !===============================================================================
 !> \brief The main code for initializing flow variables
-!>
-!> This subroutine is called once in \ref Initialize_chapsim.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -170,7 +166,7 @@ contains
 !===============================================================================
   subroutine Initialize_flow_variables( dm, fl, tm )
     use udf_type_mod
-    use 
+    use solver_tools_mod
     implicit none
     type(t_domain), intent(in   ) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -231,7 +227,7 @@ contains
 ! to update mass flux terms 
 !-------------------------------------------------------------------------------
     if (dm%ithermo == 1) then
-      call Calculate_massflux_from_velocity (f, d)
+      call Calculate_massflux_from_velocity (dm, fl)
     else
       fl%gx(:, :, :) = fl%qx(:, :, :)
       fl%gy(:, :, :) = fl%qy(:, :, :)
@@ -266,9 +262,9 @@ contains
   end subroutine
 !===============================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     
-!>
-!> This subroutine is called once.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -310,9 +306,9 @@ contains
 
 !===============================================================================
 !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
-!>
-!> This subroutine is called locally once.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -364,9 +360,9 @@ contains
   end subroutine Generate_poiseuille_flow_profile
 !===============================================================================
 !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
-!>
-!> mpi : x-pencil, local
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -444,9 +440,9 @@ contains
   end subroutine
 !===============================================================================
 !> \brief Initialize Poiseuille flow in channel or pipe.     
-!>
-!> This subroutine is called locally once.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -461,18 +457,18 @@ contains
     use boundary_conditions_mod
     implicit none
     type(t_domain), intent(in   ) :: dm
+    real(WP),       intent(in   ) :: lnoise   
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
                                      p (:, :, :)    
-    real(WP), intent(in) :: lnoise    
     integer :: pf_unit    
     real(WP) :: ux_1c1(dm%nc(2))
     real(WP) :: rd
     real(WP) :: uxxza(dm%nc(2))
     real(WP) :: uyxza(dm%np(2))
     real(WP) :: uzxza(dm%nc(2))
-    real(WP) :: ux_ypencil(dm%ux_ysz(1), dm%ux_ysz(2), dm%ux_ysz(3))
+    real(WP) :: ux_ypencil(dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3))
 !-------------------------------------------------------------------------------
 !   x-pencil : initial
 !-------------------------------------------------------------------------------
@@ -508,10 +504,10 @@ contains
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Get_volumetric_average_3d(ux, 'ux', dm, ubulk)
+    call Get_volumetric_average_3d(ux, dm%dpcc, dm, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(ux, 'ux', dm, ubulk)
+    call Get_volumetric_average_3d(ux, dm%dpcc, dm, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil
 !-------------------------------------------------------------------------------
@@ -526,7 +522,7 @@ contains
               action  = 'write')
       write(pf_unit, '(A)') "# :yc, ux_laminar, ux, uy, uz"
       do j = 1, dm%nc(2)
-        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%ux_yen(1), j, dm%ux_yen(3)) )
+        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1), j, dm%dpcc%yen(3)) )
       end do
       close(pf_unit)
     end if
@@ -547,12 +543,12 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_2dflow(ux, uy, uz, p, d)
+  subroutine  Initialize_vortexgreen_2dflow(dm, ux, uy, uz, p)
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in   ) :: d
+    type(t_domain), intent(in   ) :: dm
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
@@ -560,18 +556,17 @@ contains
     real(WP) :: xc, yc
     real(WP) :: xp, yp
     integer(4) :: i, j, ii, jj
-!-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
+    type(DECOMP_INFO) :: dtmp
+
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
-!------------------------------------------------------------------------------- 
-    do j = 1, dm%ux_xsz(2)
-      jj = dm%ux_xst(2) + j - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dpcc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
       yc = dm%yc(jj)
-      do i = 1, dm%ux_xsz(1)
-        ii = dm%ux_xst(1) + i - 1
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
         xp = dm%h(1) * real(ii - 1, WP)
         ux(i, j, :) =  sin_wp ( xp ) * cos_wp ( yc )
       end do
@@ -579,11 +574,12 @@ contains
 !-------------------------------------------------------------------------------
 !   uy in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, dm%uy_xsz(2)
-      jj = dm%uy_xst(2) + j - 1
+    dtmp = dm%dcpc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
       yp = dm%yp(jj)
-      do i = 1, dm%uy_xsz(1)
-        ii = dm%uy_xst(1) + i - 1
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
         xc = dm%h(1) * (real(ii - 1, WP) + HALF)
         uy(i, j, :) = -cos_wp ( xc ) * sin_wp ( yp )
       end do
@@ -594,12 +590,13 @@ contains
     uz(:, :, :) =  ZERO
 !-------------------------------------------------------------------------------
 !   p in x-pencil
-!------------------------------------------------------------------------------- 
-    do j = 1, dm%ps_xsz(2)
-      jj = dm%ps_xst(2) + j - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dccc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
       yc = dm%yc(jj)
-      do i = 1, dm%ps_xsz(1)
-        ii = dm%ps_xst(1) + i - 1
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
         xc = dm%h(1) * (real(ii - 1, WP) + HALF)
         p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) / FOUR
       end do
@@ -738,12 +735,12 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_3dflow(ux, uy, uz, p, d)
+  subroutine  Initialize_vortexgreen_3dflow(dm, ux, uy, uz, p)
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in   ) :: d
+    type(t_domain), intent(in   ) :: dm
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
@@ -751,21 +748,20 @@ contains
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
-!-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
+    type(DECOMP_INFO) :: dtmp
+
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
 !------------------------------------------------------------------------------- 
-    do k = 1, dm%ux_xsz(3)
-      kk = dm%ux_xst(3) + k - 1
+    dtmp = dm%dpcc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, dm%ux_xsz(2)
-        jj = dm%ux_xst(2) + j - 1
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
-        do i = 1, dm%ux_xsz(1)
-          ii = dm%ux_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xp = dm%h(1) * real(ii - 1, WP)
           ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
         end do
@@ -773,15 +769,16 @@ contains
     end do
 !-------------------------------------------------------------------------------
 !   uy in x-pencil
-!------------------------------------------------------------------------------- 
-    do k = 1, dm%uy_xsz(3)
-      kk = dm%uy_xst(3) + k - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dcpc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, dm%uy_xsz(2)
-        jj = dm%uy_xst(2) + j - 1
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yp = dm%yp(jj)
-        do i = 1, dm%uy_xsz(1)
-          ii = dm%uy_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
         end do
@@ -793,15 +790,16 @@ contains
     uz(:, :, :) =  ZERO
 !-------------------------------------------------------------------------------
 !   p in x-pencil
-!------------------------------------------------------------------------------- 
-    do k = 1, dm%ps_xsz(3)
-      kk = dm%ps_xst(3) + k - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dccc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, dm%ps_xsz(2)
-        jj = dm%ps_xst(2) + j - 1
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
-        do i = 1, dm%ps_xsz(1)
-          ii = dm%ps_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           p(i, j, k)= ( cos_wp( TWO * xc       ) + &
                         cos_wp( TWO * yc       ) ) * &
@@ -826,13 +824,13 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_sinetest_flow(ux, uy, uz, p, d)
+  subroutine  Initialize_sinetest_flow(dm, ux, uy, uz, p)
     use udf_type_mod, only : t_domain, t_flow
     use math_mod, only : sin_wp
     use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
     
     implicit none
-    type(t_domain), intent(in )   :: d
+    type(t_domain), intent(in )   :: dm
     real(WP),       intent(inout) :: ux(:, :, :), &
                                      uy(:, :, :), &
                                      uz(:, :, :), &
@@ -841,21 +839,20 @@ contains
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
-!-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
+    type(DECOMP_INFO) :: dtmp
+
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
-!------------------------------------------------------------------------------- 
-    do k = 1, dm%ux_xsz(3)
-      kk = dm%ux_xst(3) + k - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dpcc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, dm%ux_xsz(2)
-        jj = dm%ux_xst(2) + j - 1
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
-        do i = 1, dm%ux_xsz(1)
-          ii = dm%ux_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xp = dm%h(1) * real(ii - 1, WP)
           ux(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
         end do 
@@ -863,15 +860,16 @@ contains
     end do
 !-------------------------------------------------------------------------------
 !   uy in x-pencil
-!------------------------------------------------------------------------------- 
-    do k = 1, dm%uy_xsz(3)
-      kk = dm%uy_xst(3) + k - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dcpc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do i = 1, dm%uy_xsz(1)
-        ii = dm%uy_xst(1) + i - 1
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
         xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        do j = 1, dm%uy_xsz(2)
-          jj = dm%uy_xst(2) + j - 1
+        do j = 1, dtmp%xsz(2)
+          jj = dtmp%xst(2) + j - 1
           yp = dm%yp(jj)
           uy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
         end do
@@ -879,15 +877,16 @@ contains
     end do
 !-------------------------------------------------------------------------------
 !   uz in x-pencil
-!------------------------------------------------------------------------------- 
-    do j = 1, dm%uz_xsz(2)
-      jj = dm%uz_xst(2) + j - 1
+!-------------------------------------------------------------------------------
+    dtmp = dm%dccp
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
       yc = dm%yc(jj)
-      do i = 1, dm%uz_xsz(1)
-        ii = dm%uz_xst(1) + i - 1
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
         xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        do k = 1, dm%uz_xsz(3)
-          kk = dm%uz_xst(3) + k - 1
+        do k = 1, dtmp%xsz(3)
+          kk = dtmp%xst(3) + k - 1
           zp = dm%h(3) * real(kk - 1, WP)
           uz(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
         end do
@@ -896,14 +895,15 @@ contains
 !-------------------------------------------------------------------------------
 !   p in x-pencil
 !------------------------------------------------------------------------------- 
-    do j = 1, dm%ps_xsz(2)
-      jj = dm%ps_xst(2) + j - 1
+    dtmp = dm%dccc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
       yc = dm%yc(jj)
-      do i = 1, dm%ps_xsz(1)
-        ii = dm%ps_xst(1) + i - 1
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
         xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        do k = 1, dm%ps_xsz(3)
-          kk = dm%ps_xst(3) + k - 1
+        do k = 1, dtmp%xsz(3)
+          kk = dtmp%xst(3) + k - 1
           zc = dm%h(3) * (real(kk - 1, WP) + HALF)
           p(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
         end do
@@ -913,33 +913,6 @@ contains
     return
   end subroutine Initialize_sinetest_flow
 !===============================================================================
-!===============================================================================
-  subroutine Check_maximum_velocity(ux, uy, uz)
-    use precision_mod
-    use math_mod
-    use mpi_mod
-    implicit none
-
-    real(WP), intent(in) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
-
-    real(WP)   :: u(3), u_work(3)
-
-    u(1) = MAXVAL( abs_wp( ux(:, :, :) ) )
-    u(2) = MAXVAL( abs_wp( uy(:, :, :) ) )
-    u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
-
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(u, u_work, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-
-    if(nrank == 0) then
-      Call Print_debug_mid_msg("  The maximum velocities are:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(1)
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(2)
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(3)
-    end if
-
-    return
-  end subroutine
 
 
 

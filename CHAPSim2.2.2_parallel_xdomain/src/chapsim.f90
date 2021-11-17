@@ -70,9 +70,9 @@ subroutine Initialize_chapsim
 !-------------------------------------------------------------------------------
   if(is_any_energyeq) call Buildup_thermo_mapping_relations
 !-------------------------------------------------------------------------------
-! build up operation coefficients
+! build up operation coefficients for all x-subdomains
 !-------------------------------------------------------------------------------
-  call Prepare_coeffs_for_operations
+  call Prepare_LHS_coeffs_for_operations
 !-------------------------------------------------------------------------------
 ! build up domain decomposition
 !-------------------------------------------------------------------------------

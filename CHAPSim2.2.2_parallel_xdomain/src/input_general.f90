@@ -35,9 +35,8 @@ module input_general_mod
 contains
 !===============================================================================
 !> \brief Reading the input parameters from the given file.     
-!>
-!> This subroutine is called at beginning of solver.
-!> [mpi] all ranks
+!> Scope:  mpi    called-freq    xdomain
+!>         all    once           all
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
