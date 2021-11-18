@@ -239,10 +239,12 @@ module operations
 !-------------------------------------------------------------------------------
   private :: Prepare_compact_coefficients
   private :: Buildup_TDMA_LHS_array
-  private :: Prepare_TDMA_interp_RHS_array
+
+  private :: Prepare_TDMA_interp_P2C_RHS_array
+  private :: Prepare_TDMA_interp_C2P_RHS_array
+
   private :: Prepare_TDMA_1deri_RHS_array
   private :: Prepare_TDMA_2deri_RHS_array
-
 
   public  :: Prepare_LHS_coeffs_for_operations
 
@@ -253,12 +255,12 @@ module operations
   public  :: Get_z_midp_C2P_1D
   public  :: Get_z_midp_P2C_1D
 
-  public  :: Get_x_midp_C2P_3dArray
-  public  :: Get_x_midp_P2C_3dArray
-  public  :: Get_y_midp_C2P_3dArray
-  public  :: Get_y_midp_P2C_3dArray
-  public  :: Get_z_midp_C2P_3dArray
-  public  :: Get_z_midp_P2C_3dArray
+  public  :: Get_x_midp_C2P_3D
+  public  :: Get_x_midp_P2C_3D
+  public  :: Get_y_midp_C2P_3D
+  public  :: Get_y_midp_P2C_3D
+  public  :: Get_z_midp_C2P_3D
+  public  :: Get_z_midp_P2C_3D
 
   public  :: Get_x_1st_derivative_C2C_1D
   public  :: Get_x_1st_derivative_C2P_1D
@@ -275,20 +277,20 @@ module operations
   public  :: Get_z_1st_derivative_P2C_1D
   public  :: Get_z_1st_derivative_P2P_1D
 
-  public  :: Get_x_1st_derivative_C2C_3dArray
-  public  :: Get_x_1st_derivative_P2P_3dArray
-  public  :: Get_x_1st_derivative_C2P_3dArray
-  public  :: Get_x_1st_derivative_P2C_3dArray
+  public  :: Get_x_1st_derivative_C2C_3D
+  public  :: Get_x_1st_derivative_P2P_3D
+  public  :: Get_x_1st_derivative_C2P_3D
+  public  :: Get_x_1st_derivative_P2C_3D
 
-  public  :: Get_y_1st_derivative_C2C_3dArray
-  public  :: Get_y_1st_derivative_P2P_3dArray
-  public  :: Get_y_1st_derivative_C2P_3dArray
-  public  :: Get_y_1st_derivative_P2C_3dArray
+  public  :: Get_y_1st_derivative_C2C_3D
+  public  :: Get_y_1st_derivative_P2P_3D
+  public  :: Get_y_1st_derivative_C2P_3D
+  public  :: Get_y_1st_derivative_P2C_3D
 
-  public  :: Get_z_1st_derivative_C2C_3dArray
-  public  :: Get_z_1st_derivative_P2P_3dArray
-  public  :: Get_z_1st_derivative_C2P_3dArray
-  public  :: Get_z_1st_derivative_P2C_3dArray
+  public  :: Get_z_1st_derivative_C2C_3D
+  public  :: Get_z_1st_derivative_P2P_3D
+  public  :: Get_z_1st_derivative_C2P_3D
+  public  :: Get_z_1st_derivative_P2C_3D
 
   public  :: Get_x_2nd_derivative_C2C_1D
   public  :: Get_x_2nd_derivative_P2P_1D
@@ -297,12 +299,12 @@ module operations
   public  :: Get_z_2nd_derivative_C2C_1D
   public  :: Get_z_2nd_derivative_P2P_1D
 
-  public  :: Get_x_2nd_derivative_C2C_3dArray
-  public  :: Get_x_2nd_derivative_P2P_3dArray
-  public  :: Get_y_2nd_derivative_C2C_3dArray
-  public  :: Get_y_2nd_derivative_P2P_3dArray
-  public  :: Get_z_2nd_derivative_C2C_3dArray
-  public  :: Get_z_2nd_derivative_P2P_3dArray
+  public  :: Get_x_2nd_derivative_C2C_3D
+  public  :: Get_x_2nd_derivative_P2P_3D
+  public  :: Get_y_2nd_derivative_C2C_3D
+  public  :: Get_y_2nd_derivative_P2P_3D
+  public  :: Get_z_2nd_derivative_C2C_3D
+  public  :: Get_z_2nd_derivative_P2P_3D
 
   
 
@@ -1506,11 +1508,13 @@ contains
   end subroutine Prepare_LHS_coeffs_for_operations
 !===============================================================================
 !> \brief Preparing the RHS array for the TDMA algorithm for interpolation.
-!>
 !> This subroutine is called repeatly to update the RHS of the TDMA algorithm
 !> for the interpolation.
-!>
-!> Y: index arrangment
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       given pencil     needed         specified   private
+!-------------------------------------------------------------------------------
+!>  index arrangment
 !>      j'-1   j'-1  j'    j'+1  j'+2
 !>      _|__.__|__.__|__.__|__.__|__.__
 !>         j-2   j-1   j     j+1    j+2
@@ -1521,22 +1525,21 @@ contains
 ! [              alpha  1      alpha       ] [f_i]   [a/2 * ( f_{i'}   + f_{i'+1} ) + b/2 * ( f_{i'+2} + f_{i'-1} ) ]
 ! [                     alpha  1      alpha] [f_4]   [a/2 * ( f_{n'-1} + f_{n'}   ) + b/2 * ( f_{1'}   + f_{n'-2} ) ]
 ! [alpha                       alpha  1    ] [f_5]   [a/2 * ( f_{n'}   + f_{1'}   ) + b/2 * ( f_{2'}   + f_{n'-1} ) ]
-!-----------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! interpolation. P2C: Dirichlet
-! [ 1     alpha1                              ] [f_1] = [a *  f_{1'}   + b * f_{2'} + c * f_{3'}                       ]
-! [alpha2 1      alpha2                       ] [f_2]   [a/2 * ( f_{2'}   + f_{3'}   )                                 ] 
+! [ 1     alpha1                              ] [f_1] = [a1 *  f_{1'}   + b1 * f_{2'} + c1 * f_{3'}                       ]
+! [alpha2 1      alpha2                       ] [f_2]   [a2/2 * ( f_{2'}   + f_{3'}   )                                 ] 
 ! [              alpha  1       alpha         ] [f_i]   [a/2 * ( f_{i'}   + f_{i'+1} ) + b/2 * ( f_{i'+2} + f_{i'-1} ) ]
-! [                     alpha2  1       alpha2] [f_4]   [a/2 * ( f_{n'-1} + f_{n'}   )                                 ]
-! [                             alpha1  1     ] [f_5]   [a *  f_{n'+1}   + b * f_{n'}  + c * f_{n'-1}                  ]
-!-------------------------------------------------------------------------------
+! [                     alpha2  1       alpha2] [f_4]   [a2/2 * ( f_{n'-1} + f_{n'}   )                                 ]
+! [                             alpha1  1     ] [f_5]   [a1 *  f_{n'+1}   + b1 * f_{n'}  + c1 * f_{n'-1}                  ]
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     n             the number of unknowns, nc
+!> \param[in]     n             the number of unknowns, here is nc
 !> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
 !> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     coeff         the defined TDMA coefficients
 !> \param[in]     fi            the input variable to build up the RHS array
@@ -1553,7 +1556,7 @@ contains
     real(WP),     intent(in) :: fi(:)
     real(WP),     intent(out):: fo(n)
 
-    integer(4) :: i
+    integer(4) :: i, m, l
     integer(4) :: im2, im1, ip1, ip2
     real(WP) :: fsign1, fsign2
 
@@ -1562,51 +1565,63 @@ contains
 !-------------------------------------------------------------------------------
 !   boundary at the side of i = 1, 2
 !-------------------------------------------------------------------------------
-    if(ibc(1) == IBC_PERIODIC .or. ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC ) then
+    m = 1
+    if(ibc(m) == IBC_PERIODIC  .or. &
+       ibc(m) == IBC_SYMMETRIC .or. &
+       ibc(m) == IBC_ASYMMETRIC ) then
+
       fsign1 = ONE
       fsign2 = ONE
       do i = 1, 2
         im1 = inbr(i, 2)
         ip1 = inbr(i, 3)
         ip2 = inbr(i, 4)
-        if(i == 1 .and. ibc(1) == IBC_ASYMMETRIC) fsign1 = - ONE
-        fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(ip1) + fi(i) ) + &
-                coeff( 3, 2, ibc(1) ) * ( fi(ip2) + fi(im1) * fsign1 )
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) + fi(i) ) + &
+                coeff( i, 2, ibc(m) ) * ( fi(ip2) + fi(im1) * fsign1 )
       end do
     else ! all other b.c.
-      fo(1) = coeff( 1, 1, ibc(1) ) * fi(1) + &
-              coeff( 1, 2, ibc(1) ) * fi(2)  + &
-              coeff( 1, 3, ibc(1) ) * fi(3) 
-      fo(2) = coeff( 2, 1, ibc(1) ) * ( fi(2) + fi(3) )
+      fo(1) = coeff( 1, 1, ibc(m) ) * fi(1) + &
+              coeff( 1, 2, ibc(m) ) * fi(2)  + &
+              coeff( 1, 3, ibc(m) ) * fi(3) 
+      fo(2) = coeff( 2, 1, ibc(m) ) * ( fi(2) + fi(3) )
     end if
 !-------------------------------------------------------------------------------
 !   boundary at the side of i = n, n-1
 !-------------------------------------------------------------------------------
-    if(ibc(2) == IBC_PERIODIC .or. ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC ) then
+    m = 2
+    if(ibc(m) == IBC_PERIODIC  .or. &
+       ibc(m) == IBC_SYMMETRIC .or. &
+       ibc(m) == IBC_ASYMMETRIC ) then
+
       fsign1 = ONE
       fsign2 = ONE
+      l = 0
       do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
         im1 = inbr(i, 2)
         ip1 = inbr(i, 3)
         ip2 = inbr(i, 4)
-        if(i == n .and. ibc(2) == IBC_ASYMMETRIC) then
-          fsign1 = - ONE
-          fsign2 = - ONE
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
         end if
-        if(i == n - 1 .and. ibc(2) == IBC_ASYMMETRIC) then
-          fsign2 = - ONE
-        end if
-        fo(i) = coeff( 3, 1, bc(2) ) * ( fsign1 * fi(ip1) + fi(i)   ) + &
-                coeff( 3, 2, bc(2) ) * ( fsign2 * fi(ip2) + fi(im1) )
+        fo(i) = coeff( l, 1, bc(m) ) * ( fsign1 * fi(ip1) + fi(i)   ) + &
+                coeff( l, 2, bc(m) ) * ( fsign2 * fi(ip2) + fi(im1) )
       end do
     else ! all other b.c.
-      fo(n) = coeff( 5, 1, bc(2) ) * fi(n + 1) + &
-              coeff( 5, 2, bc(2) ) * fi(n    ) + &
-              coeff( 5, 3, bc(2) ) * fi(n - 1) 
-      fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n) + fi(n - 1) )
+      fo(n) = coeff( 5, 1, bc(m) ) * fi(n + 1) + &
+              coeff( 5, 2, bc(m) ) * fi(n    ) + &
+              coeff( 5, 3, bc(m) ) * fi(n - 1) 
+      fo(n - 1) = coeff( 4, 1, bc(m) ) * ( fi(n) + fi(n - 1) )
     end if
 !-------------------------------------------------------------------------------
 !   bulk area
+!   coeff( 3, 1, ibc(1) ) = coeff( 3, 1, ibc(2) ) = coeff( 3, 1, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
     do i = 3, n - 2
       im2 = i - 2
@@ -1623,10 +1638,12 @@ contains
 
 !===============================================================================
 !> \brief Preparing the RHS array for the TDMA algorithm for interpolation.
-!>
 !> This subroutine is called repeatly to update the RHS of the TDMA algorithm
 !> for the interpolation.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
 !> Y: index arrangment
 !>      j'-1   j'-1  j'    j'+1  j'+2
 !>      _|__.__|__.__|__.__|__.__|__.__
@@ -1638,7 +1655,6 @@ contains
 ! [            alpha 1     alpha      ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
 ! [                  alpha 1     alpha][f_4'] [a/2 * (f_{n-1} + f_{n-2}) + b/2 * (f_{n}   + f_{n-3})]
 ! [alpha                   alpha 1    ][f_5'] [a/2 * (f_{1}   + f_{n-2}) + b/2 * (f_{n}   + f_{n-1})]
-!-----------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! interpolation. C2P: Dirichlet
 ! [ 1    alpha1                          ][f_1']=[a1 * f_{1} + b1 * f_{2} + c1 * f_{3}  ]
@@ -1647,13 +1663,13 @@ contains
 ! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n-1}   + f_{n-2})]
 ! [                          alpha1 1    ][f_5'] [a1 * f_{n-1} + b1 * f_{n-2} + c1 * f_{n-3}]
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     n             the number of unknowns, nc
+!> \param[in]     n             the number of unknowns, here is np
 !> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
 !> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     coeff         the defined TDMA coefficients
 !> \param[in]     fi            the input variable to build up the RHS array
@@ -1670,7 +1686,7 @@ contains
     real(WP),     intent(in) :: fi(:)
     real(WP),     intent(out):: fo(n)
 
-    integer(4) :: i
+    integer(4) :: i, l, m
     integer(4) :: im2, im1, ip1, ip2
     real(WP) :: fsign1, fsign2
 
@@ -1679,50 +1695,64 @@ contains
 !-------------------------------------------------------------------------------
 !   boundary at the side of i = 1, 2
 !-------------------------------------------------------------------------------
-    if(ibc(1) == IBC_PERIODIC .or. ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC ) then
+    m = 1
+    if(ibc(m) == IBC_PERIODIC  .or. &
+       ibc(m) == IBC_SYMMETRIC .or. &
+       ibc(m) == IBC_ASYMMETRIC ) then
       fsign1 = ONE
       fsign2 = ONE
       do i = 1, 2
         im2 = inbr(i, 1)
         im1 = inbr(i, 2)
         ip1 = inbr(i, 3)
-        if(i == 1 .and. ibc(1) == IBC_ASYMMETRIC) then 
-          fsign1 = - ONE
-          fsign2 = - ONE
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
         end if
-        if (i == 2 .and. ibc(1) == IBC_ASYMMETRIC) then 
-          fsign2 = - ONE
-        end if
-        fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(i  ) + fsign1 * fi(im1) ) + &
-                coeff( 3, 2, ibc(1) ) * ( fi(ip1) + fsign2 * fi(im2) )
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fi(i  ) + fsign1 * fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fi(ip1) + fsign2 * fi(im2) )
       end do
-    else ! all other b.c.
-      fo(1) = coeff( 1, 1, ibc(1) ) * fi(1) + &
-              coeff( 1, 2, ibc(1) ) * fi(2)  + &
-              coeff( 1, 3, ibc(1) ) * fi(3) 
-      fo(2) = coeff( 2, 1, ibc(1) ) * ( fi(2) + fi(1) )
+    else if (ibc(m) == IBC_DIRICHLET) then
+      fo(1) = fbc(m)
+      fo(2) = coeff( 2, 1, ibc(m) ) * ( fi(2) + fi(1) )
+    else! all other b.c.
+      fo(1) = coeff( 1, 1, ibc(m) ) * fi(1) + &
+              coeff( 1, 2, ibc(m) ) * fi(2) + &
+              coeff( 1, 3, ibc(m) ) * fi(3) 
+      fo(2) = coeff( 2, 1, ibc(m) ) * ( fi(2) + fi(1) )
     end if
 !-------------------------------------------------------------------------------
 !   boundary at the side of i = n, n-1
 !-------------------------------------------------------------------------------
-    if(ibc(2) == IBC_PERIODIC .or. ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC ) then
+    m = 2
+    if(ibc(2) == IBC_PERIODIC  .or. &
+       ibc(2) == IBC_SYMMETRIC .or. &
+       ibc(2) == IBC_ASYMMETRIC ) then
       fsign1 = ONE
       fsign2 = ONE
+      l = 0
       do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
+
         im2 = inbr(i, 1)
         im1 = inbr(i, 2)
         ip1 = inbr(i, 3)
-        if(i == n .and. ibc(1) == IBC_ASYMMETRIC) then 
-          fsign1 = - ONE
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
         end if
-        fo(i) = coeff( 3, 1, ibc(2) ) * (          fi(i  ) + fi(im1) ) + &
-                coeff( 3, 2, ibc(2) ) * ( fsign1 * fi(ip1) + fi(im2) )
+        fo(i) = coeff( l, 1, ibc(m) ) * (          fi(i  ) + fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fsign1 * fi(ip1) + fi(im2) )
       end do
-    else ! all other b.c.
-      fo(n)   = coeff( 4, 1, ibc(2) ) * fi(1) + &
-                coeff( 4, 2, ibc(2) ) * fi(2)  + &
-                coeff( 4, 3, ibc(2) ) * fi(3) 
-      fo(n-1) = coeff( 5, 1, ibc(2) ) * ( fi(2) + fi(1) )
+    else if(ibc(m) == IBC_DIRICHLET) then
+      fo(n)   = fbc(m)
+      fo(n-1) = coeff( 5, 1, ibc(m) ) * ( fi(2) + fi(1) )
+    else! all other b.5
+      fo(n)   = coeff( 5, 1, ibc(m) ) * fi(1) + &
+                coeff( 5, 2, ibc(m) ) * fi(2)  + &
+                coeff( 5, 3, ibc(m) ) * fi(3) 
+      fo(n-1) = coeff( 4, 1, ibc(m) ) * ( fi(2) + fi(1) )
     end if
 !-------------------------------------------------------------------------------
 !   bulk area
@@ -1733,467 +1763,869 @@ contains
       ip1 = i + 1
       ip2 = i + 2
 
-      fo(i) = coeff( 3, 1, ibc(2) ) * ( fi(i  ) + fi(im1) ) + &
-              coeff( 3, 2, ibc(2) ) * ( fi(ip1) + fi(im2) )
+      fo(i) = coeff( 3, 1, ibc(m) ) * ( fi(i  ) + fi(im1) ) + &
+              coeff( 3, 2, ibc(m) ) * ( fi(ip1) + fi(im2) )
     end do
 
     return
   end subroutine Prepare_TDMA_interp_C2P_RHS_array
 !===============================================================================
-!===============================================================================
 !> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
-!>
 !> This subroutine is called repeatly to update the RHS of the TDMA algorithm
 !> for the 1st derivative.
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! 1st derivative on collocated grids, C2C/P2P coefficients : Periodic or Symmetric B.C.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+!-------------------------------------------------------------------------------
+! 1st-derivative. C2C or P2P: periodic
+! [ 1    alpha                   alpha][f'_1]=[a/2 * (f_{2}   - f_{n})/h   + b/4 * (f_{3}   - f_{n-1})/h]
+! [      alpha 1     alpha            ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{n})/h  ]
+! [            alpha 1     alpha      ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                  alpha 1     alpha][f'_4] [a/2 * (f_{n}   - f_{n-2})/h + b/4 * (f_{1}   - f_{n-3})/h]
+! [alpha                   alpha 1    ][f'_5] [a/2 * (f_{1}   - f_{n-1})/h + b/4 * (f_{2}   - f_{n-2})/h]
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2C or P2P : Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2/2 * (f_{3} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i] [ a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     str           string to flag interpolation type
-!>                              C2C, P2P, C2P, P2C
-!> \param[in]     n             the number of unknowns
-!> \param[in]     bc            the b.c. at two ends of the unknown array
-!> \param[in]     inbr          the neibouring index of unknown index
+!> \param[in]     n             the number of unknowns, here is np
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     dd            1/spacing, ie. 1/dx, 1/dy, 1/dz
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
-!_______________________________________________________________________________
-  subroutine Prepare_TDMA_1deri_RHS_array(str, n, bc, inbr, dd, coeff, fi, fo)
 !===============================================================================
-! Module files
-!===============================================================================
+  subroutine Prepare_TDMA_1deri_C2C_RHS_array(n, ibc, fbc, inbr, coeff, dd, fi, fo)
     use parameters_constant_mod
-    use input_general_mod
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
-    character(3), intent(in) :: str
     integer(4),   intent(in) :: n ! unknow numbers
-    integer(4),   intent(in) :: bc(2)
-    integer(4),   intent(in) :: inbr(:, :)
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
     real(WP),     intent(in) :: dd
+    integer(4),   intent(in) :: inbr(4, 4)
     real(WP),     intent(in) :: coeff(5, 3, 4)
     real(WP),     intent(in) :: fi(:)
     real(WP),     intent(out):: fo(n)
-!===============================================================================
-! Local arguments
-!===============================================================================    
-    integer(4) :: i
-    integer(4) :: im2, im1, ip1, ip2
-    logical :: fbc = .false.
-    real(WP) :: fsign
-!===============================================================================
-! Code
-!===============================================================================
-    ! initilisation
+
     fo(:) = ZERO
 !-------------------------------------------------------------------------------
-! bulk body for i from 2 to n-1
-! bulk body and b.c. for periodic b.c.
+!   boundary at the side of i = 1, 2
 !-------------------------------------------------------------------------------
-    do i = 1, n
+    m = 1
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, bc(m) ) * ( fi(ip1) - fsign1 * fi(im1) ) + &
+                coeff( i, 2, bc(m) ) * ( fi(ip2) - fsign2 * fi(im2) )
+      end do
+    else! all other b.c.
+      i = 1
+      fo(i) = coeff( i, 1, ibc(m) ) * fi(1) + &
+              coeff( i, 2, ibc(m) ) * fi(2) + &
+              coeff( i, 3, ibc(m) ) * fi(3) 
+      i = 2
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    m = 2
+    if( ibc(2) == IBC_PERIODIC  .or. &
+        ibc(2) == IBC_SYMMETRIC .or. &
+        ibc(2) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      l = 0
+      do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
 
-      ! exclude non-periodic b.c. at both sides
-      fbc = (i == 1 .or. i == 2 .or. i == n-1 .or. i == n)
-      if( (.not. bc(1)==IBC_PERIODIC) .and. fbc) cycle
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fsign1 * fi(ip1) - fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fsign2 * fi(ip2) - fi(im2) )
+      end do
+    else! all other b.c.
+      fo(n)   = coeff( 5, 1, ibc(m) ) * fi(1) + &
+                coeff( 5, 2, ibc(m) ) * fi(2)  + &
+                coeff( 5, 3, ibc(m) ) * fi(3)
+      i = n - 1
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( 4, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
 
-      im2 = inbr(1, i)
-      im1 = inbr(2, i)
-      ip1 = inbr(3, i)
-      ip2 = inbr(4, i)
-
-      if (str == 'C2C' .or. str == 'P2P') then
-        fo(i) = coeff( 3, 1, bc(1) ) * ( fi(ip1) - fi(im1) ) + &
-                coeff( 3, 2, bc(1) ) * ( fi(ip2) - fi(im2) )
-      else if (str == 'P2C') then
-        fo(i) = coeff( 3, 1, bc(1) ) * ( fi(ip1) - fi(i  ) ) + &
-                coeff( 3, 2, bc(1) ) * ( fi(ip2) - fi(im1) )
-      else if (str == 'C2P') then
-        fo(i) = coeff( 3, 1, bc(1) ) * ( fi(i  ) - fi(im1) ) + &
-                coeff( 3, 2, bc(1) ) * ( fi(ip1) - fi(im2) )
-      else 
-        call Print_error_msg("101: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
+      fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(ip1) - fi(im1) ) + &
+              coeff( 3, 2, ibc(1) ) * ( fi(ip2) - fi(im2) )
     end do
-!-------------------------------------------------------------------------------
-! boundary at the side of i = 1
-!-------------------------------------------------------------------------------
-    if (bc(1) == IBC_PERIODIC) then
-      ! do nothing
-    else if (bc(1) == IBC_ASYMMETRIC .or. bc(1) == IBC_SYMMETRIC) then
-      if (bc(1) == IBC_ASYMMETRIC) then
-        fsign = - ONE
-      else 
-        fsign = ONE
-      end if
-
-      if (str == 'C2C') then
-
-        i = 1
-        im2 = 2 ! -1
-        im1 = 1 ! 0
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) - fsign * fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) - fsign * fi(im2) )
-
-        i = 2
-        im2 = 1 ! 0
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) -         fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) - fsign * fi(im2) )
-
-      else if (str == 'P2P') then
-
-        i = 1
-        im2 = 3 ! -1'
-        im1 = 2 ! 0'
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) - fsign * fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) - fsign * fi(im2) )
-
-        i = 2
-        im2 = 2 ! 0'
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) -         fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) - fsign * fi(im2) )
-
-      else if (str == 'P2C') then
-        i = 1
-        im2 = 3 ! -1'
-        im1 = 2 ! 0'
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) -         fi(i) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) - fsign * fi(im1) )
-
-        i = 2
-        im2 = 2 ! 0'
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) - fi(i) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) - fi(im1) )
-
-      else if (str == 'C2P') then
-
-        i = 1
-        im2 = 2 ! -1
-        im1 = 1 ! 0
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(i)   - fsign * fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip1) - fsign * fi(im2) )
-
-        i = 2
-        im2 = 1 ! 0
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(i) -           fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip1) - fsign * fi(im2) )
-
-      else 
-        call Print_error_msg("102: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else if (bc(1) == IBC_UDIRICHLET) then
-      
-      if (str == 'C2C' .or. str == 'P2P') then
-
-        fo(1) = coeff( 1, 1, bc(1) ) * fi(1) + &
-                coeff( 1, 2, bc(1) ) * fi(2) + &
-                coeff( 1, 3, bc(1) ) * fi(3) 
-        fo(2) = coeff( 2, 1, bc(1) ) * ( fi(3) - fi(1) )
-
-      else if (str == 'P2C') then
-
-        fo(1) = coeff( 1, 1, bc(1) ) * fi(1) + &
-                coeff( 1, 2, bc(1) ) * fi(2)  + &
-                coeff( 1, 3, bc(1) ) * fi(3) 
-        fo(2) = coeff( 2, 1, bc(1) ) * ( fi(3) - fi(2) )
-
-      else if (str == 'C2P') then
-
-        fo(1) = coeff( 1, 1, bc(1) ) * fi(1) + &
-                coeff( 1, 2, bc(1) ) * fi(2)  + &
-                coeff( 1, 3, bc(1) ) * fi(3) 
-        fo(2) = coeff( 2, 1, bc(1) ) * ( fi(2) - fi(1) )
-        
-      else 
-        call Print_error_msg("103: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else 
-      call Print_error_msg("104: No Such Boundary Defined.")
-    end if
-!-------------------------------------------------------------------------------
-! boundary at the side of i = n
-!-------------------------------------------------------------------------------
-    if (bc(2) == IBC_PERIODIC) then
-      ! do nothing
-    else if (bc(2) == IBC_ASYMMETRIC .or. bc(2) == IBC_SYMMETRIC) then
-      if (bc(2) == IBC_ASYMMETRIC) then
-        fsign = - ONE
-      else 
-        fsign = ONE
-      end if
-
-      if (str == 'C2C') then
-
-        i = n
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = n     ! n + 1
-        ip2 = n - 1 ! n + 2
-        fo(i) = coeff( i, 1, bc(2) ) * ( fsign * fi(ip1) - fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip2) - fi(im2) )
-
-        i = n - 1
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = n ! n + 1
-        fo(i) = coeff( i, 1, bc(2) ) * (         fi(ip1) - fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip2) - fi(im2) )
-
-      else if (str == 'P2P') then
-
-        i = n
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1 
-        ip2 = n     ! n' + 2
-        fo(i) = coeff( i, 1, bc(2) ) * (         fi(ip1) - fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip2) - fi(im2) )
-
-        i = n - 1
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(2) ) * ( fi(ip1) - fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fi(ip2) - fi(im2) )
-
-      else if (str == 'P2C') then
-        i = n
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1 
-        ip2 = n     ! n' + 2
-        fo(i) = coeff( i, 1, bc(2) ) * (         fi(ip1) - fi(i) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip2) - fi(im1) )
-
-        i = n - 1
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(2) ) * ( fi(ip1) - fi(i) ) + &
-                coeff( i, 2, bc(2) ) * ( fi(ip2) - fi(im1) )
-
-      else if (str == 'C2P') then
-
-        i = n
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = n     ! n + 1
-        ip2 = n - 1 ! n + 2
-        fo(i) = coeff( i, 1, bc(2) ) * (         fi(i)   - fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip1) - fi(im2) )
-
-        i = n - 1
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = n ! n + 1
-        fo(i) = coeff( i, 1, bc(2) ) * ( fi(i)   - fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fi(ip1) - fi(im2) )
-
-      else 
-        call Print_error_msg("105: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else if (bc(2) == IBC_UDIRICHLET) then
-      
-      if (str == 'C2C' .or. str == 'P2P') then
-
-        fo(n) = coeff( 5, 1, bc(2) ) * fi(n) + &
-                coeff( 5, 2, bc(2) ) * fi(n - 1) + &
-                coeff( 5, 3, bc(2) ) * fi(n - 2) 
-        fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n) - fi(n - 2) )
-
-      else if (str == 'P2C') then
-
-        fo(n) = coeff( 5, 1, bc(2) ) * fi(n + 1) + &
-                coeff( 5, 2, bc(2) ) * fi(n    ) + &
-                coeff( 5, 3, bc(2) ) * fi(n - 1) 
-        fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n) - fi(n - 1) )
-
-      else if (str == 'C2P') then
-
-        fo(n) = coeff( 5, 1, bc(2) ) * fi(n - 1) + &
-                coeff( 5, 2, bc(2) ) * fi(n - 2)  + &
-                coeff( 5, 3, bc(2) ) * fi(n - 3) 
-        fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n - 1) - fi(n - 2) )
-        
-      else 
-        call Print_error_msg("106: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else 
-      call Print_error_msg("107: Error input in prepare_FD_TDMA_RHS.")
-    end if
 
     fo(:) = fo(:) * dd
 
     return
-  end subroutine Prepare_TDMA_1deri_RHS_array
+  end subroutine Prepare_TDMA_1deri_C2C_RHS_array
 !===============================================================================
-!===============================================================================
-!> \brief Preparing the RHS array for the TDMA algorithm for 2nd derivative.
-!>
+!> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
 !> This subroutine is called repeatly to update the RHS of the TDMA algorithm
-!> for the 2nd derivative.
-!>
+!> for the 1st derivative.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! 1st derivative on collocated grids, C2C/P2P coefficients : Periodic or Symmetric B.C.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+!-------------------------------------------------------------------------------
+! 1st-derivative. C2C or P2P: periodic
+! [ 1    alpha                   alpha][f'_1]=[a/2 * (f_{2}   - f_{n})/h   + b/4 * (f_{3}   - f_{n-1})/h]
+! [      alpha 1     alpha            ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{n})/h  ]
+! [            alpha 1     alpha      ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                  alpha 1     alpha][f'_4] [a/2 * (f_{n}   - f_{n-2})/h + b/4 * (f_{1}   - f_{n-3})/h]
+! [alpha                   alpha 1    ][f'_5] [a/2 * (f_{1}   - f_{n-1})/h + b/4 * (f_{2}   - f_{n-2})/h]
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2C or P2P : Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2/2 * (f_{3} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i] [ a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     str           string to flag interpolation type
-!>                              C2C, P2P
-!> \param[in]     n             the number of unknowns
-!> \param[in]     bc            the b.c. at two ends of the unknown array
-!> \param[in]     inbr          the neibouring index of unknown index
+!> \param[in]     n             the number of unknowns, here is np
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     dd            1/spacing, ie. 1/dx, 1/dy, 1/dz
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
-!_______________________________________________________________________________
-  subroutine Prepare_TDMA_2deri_RHS_array(str, n, bc, inbr, dd, coeff, fi, fo)
 !===============================================================================
-! Module files
-!===============================================================================
+  subroutine Prepare_TDMA_1deri_P2P_RHS_array(n, ibc, fbc, inbr, coeff, dd, fi, fo)
     use parameters_constant_mod
-    use input_general_mod
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
-    character(3), intent(in) :: str
     integer(4),   intent(in) :: n ! unknow numbers
-    integer(4),   intent(in) :: bc(2)
-    integer(4),   intent(in) :: inbr(:, :)
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
     real(WP),     intent(in) :: dd
-    real(WP),     intent(in) :: coeff(5, 4, 4)
+    integer(4),   intent(in) :: inbr(4, 4)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
     real(WP),     intent(in) :: fi(:)
     real(WP),     intent(out):: fo(n)
-!===============================================================================
-! Local arguments
-!===============================================================================    
-    integer(4) :: i
-    integer(4) :: im2, im1, ip1, ip2
-    logical :: fbc = .false.
-!===============================================================================
-! Code
-!===============================================================================
-    ! initilisation
+
+    integer :: m, l , i
+    integer :: im1, im2, ip1, ip2
+    real(WP) :: fsign1, fsign2
+
     fo(:) = ZERO
+
 !-------------------------------------------------------------------------------
-! bulk body for i from 2 to n-1
-! bulk body and b.c. for periodic b.c.
+!   boundary at the side of i = 1, 2
 !-------------------------------------------------------------------------------
-    do i = 1, n
+    m = 1
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
 
-      ! exclude non-periodic b.c. at both sides
-      fbc = (i == 1 .or. i == 2 .or. i == n-1 .or. i == n)
-      if( (.not. bc(1)==IBC_PERIODIC) .and. fbc) cycle
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - fsign1 * fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fi(ip2) - fsign2 * fi(im2) )
+      end do
+    else 
+      i = 1
+      if (ibc(m) == IBC_NEUMANN) then
+        fo(i) = fbc(m)
+      else
+        fo(i) = coeff( i, 1, ibc(m) ) * fi(1) + &
+                coeff( i, 2, ibc(m) ) * fi(2) + &
+                coeff( i, 3, ibc(m) ) * fi(3) 
+      end if 
+      i = 2
+      im1 = i - 1
+      ip1 = i + 1
+      fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    m = 2
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
 
-      im2 = inbr(1, i)
-      im1 = inbr(2, i)
-      ip1 = inbr(3, i)
-      ip2 = inbr(4, i)
+      fsign1 = ONE
+      fsign2 = ONE
+      l = 0
+      do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
 
-      if (str == 'C2C' .or. str == 'P2P') then
-        fo(i) = coeff( 3, 1, bc(1) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
-                coeff( 3, 2, bc(1) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
-      else 
-        call Print_error_msg("101: Error input in prepare_FD_TDMA_RHS.")
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fsign1 * fi(ip1) - fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fsign2 * fi(ip2) - fi(im2) )
+      end do
+    else 
+      if (ibc(m) == IBC_NEUMANN) then
+        fo(n)   = fbc(m)
+      else
+        fo(n)   = coeff( 5, 1, ibc(m) ) * fi(1) + &
+                  coeff( 5, 2, ibc(m) ) * fi(2)  + &
+                  coeff( 5, 3, ibc(m) ) * fi(3)
       end if
+      i = n - 1
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( 4, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
 
+      fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(ip1) - fi(im1) ) + &
+              coeff( 3, 2, ibc(1) ) * ( fi(ip2) - fi(im2) )
     end do
-!-------------------------------------------------------------------------------
-! boundary at the side of i = 1
-!-------------------------------------------------------------------------------
-    if (bc(1) == IBC_PERIODIC) then
-      ! do nothing
-    else if (bc(1) == IBC_UDIRICHLET) then
-      
-      if (str == 'C2C' .or. str == 'P2P') then
-
-        fo(1) = coeff( 1, 1, bc(1) ) * fi(1) + &
-                coeff( 1, 2, bc(1) ) * fi(2) + &
-                coeff( 1, 3, bc(1) ) * fi(3) + &
-                coeff( 1, 4, bc(1) ) * fi(4)
-
-        fo(2) = coeff( 2, 1, bc(1) ) * ( fi(3) - TWO * fi(2) + fi(1) )
-      else 
-        call Print_error_msg("103: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else 
-      call Print_error_msg("104: No Such Boundary Defined.")
-    end if
-!-------------------------------------------------------------------------------
-! boundary at the side of i = n
-!-------------------------------------------------------------------------------
-    if (bc(2) == IBC_PERIODIC) then
-      ! do nothing
-    else if (bc(2) == IBC_UDIRICHLET) then
-      
-      if (str == 'C2C' .or. str == 'P2P') then
-
-        fo(n) = coeff( 5, 1, bc(2) ) * fi(n) + &
-                coeff( 5, 2, bc(2) ) * fi(n - 1) + &
-                coeff( 5, 3, bc(2) ) * fi(n - 2) + &
-                coeff( 5, 4, bc(2) ) * fi(n - 3) 
-        fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n) - TWO * fi(n - 1) + fi(n - 2) )
-
-      else 
-        call Print_error_msg("106: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else 
-      call Print_error_msg("107: Error input in prepare_FD_TDMA_RHS.")
-    end if
 
     fo(:) = fo(:) * dd
 
     return
-  end subroutine Prepare_TDMA_2deri_RHS_array
+  end subroutine Prepare_TDMA_1deri_P2P_RHS_array
 !===============================================================================
-!===============================================================================
-!> \brief To caculate the mid-point interpolation in 1D.
-!>
-!> This subroutine is called as required to get the mid-point interpolation.
-!>
+!> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the 1st derivative.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! 1st derivative on staggered grids C2P
+! C2P ==>
+! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
+!                                                 b/(3h) * ( f_{i+1} - f_{i-2} )
+!-------------------------------------------------------------------------------
+! 1st-derivative. C2P: periodic
+! [ 1    alpha                   alpha][f_1']=[a/2 * (f_{1}   + f_{n})   + b/2 * (f_{2}   + f_{n-1})]
+! [      alpha 1     alpha            ][f_2'] [a/2 * (f_{2}   + f_{1})   + b/2 * (f_{3}   + f_{n})  ]
+! [            alpha 1     alpha      ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
+! [                  alpha 1     alpha][f_4'] [a/2 * (f_{n-1} + f_{n-2}) + b/2 * (f_{n}   + f_{n-3})]
+! [alpha                   alpha 1    ][f_5'] [a/2 * (f_{1}   + f_{n-2}) + b/2 * (f_{n}   + f_{n-1})]
+!-------------------------------------------------------------------------------
+! 1st-derivative : C2P : Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1']=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2'] [a2 * (f_{2} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i'] [a *  (f_{i} - f_{i-1})/h + b/3 * (f_{i+1} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4'] [a2 * (f_{n-1} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5'] [-a1 * f_{n-1}/h  - b1 * f_{n-2}/h - c1 * f_{n-3}/h]
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     str1          string to flag which direction to impletment
-!> \param[in]     str2          string to flag C2P or P2C
-!> \param[in]     d             domain
+!> \param[in]     n             the number of unknowns, here is np
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     dd            1/spacing, ie. 1/dx, 1/dy, 1/dz
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!===============================================================================
+  subroutine Prepare_TDMA_1deri_C2P_RHS_array(n, ibc, fbc, inbr, coeff, dd, fi, fo)
+    use parameters_constant_mod
+    implicit none
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
+    integer(4),   intent(in) :: inbr(4, 4)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+
+    integer :: m, l , i
+    integer :: im1, im2, ip1, ip2
+    real(WP) :: fsign1, fsign2
+
+    fo(:) = ZERO
+
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = 1, 2
+!-------------------------------------------------------------------------------
+    m = 1
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(1) ) * ( fi(i)   - fsign1 * fi(im1) ) + &
+                coeff( i, 2, ibc(1) ) * ( fi(ip1) - fsign2 * fi(im2) )
+      end do
+    else 
+      i = 1
+      if (ibc(m) == IBC_NEUMANN) then
+        fo(i) = fbc(m)
+      else
+        fo(i) = coeff( i, 1, ibc(m) ) * fi(1) + &
+                coeff( i, 2, ibc(m) ) * fi(2) + &
+                coeff( i, 3, ibc(m) ) * fi(3) 
+      end if 
+      i = 2
+      im1 = i - 1
+      ip1 = i + 1
+      fo(i) = coeff( i, 1, ibc(m) ) * ( fi(i)   - fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    m = 2
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+
+      fsign1 = ONE
+      fsign2 = ONE
+      l = 0
+      do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
+
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(2) ) * (          fi(i)   - fi(im1) ) + &
+                coeff( i, 2, ibc(2) ) * ( fsign1 * fi(ip1) - fi(im2) )
+      end do
+    else 
+      if (ibc(m) == IBC_NEUMANN) then
+        fo(n)   = fbc(m)
+      else
+        fo(n)   = coeff( 5, 1, ibc(m) ) * fi(1) + &
+                  coeff( 5, 2, ibc(m) ) * fi(2)  + &
+                  coeff( 5, 3, ibc(m) ) * fi(3)
+      end if
+      i = n - 1
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( 4, 1, ibc(m) ) * ( fi(i) - fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+
+      fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(i)   - fi(im1) ) + &
+              coeff( 3, 2, ibc(1) ) * ( fi(ip1) - fi(im2) )
+    end do
+
+    fo(:) = fo(:) * dd
+
+    return
+  end subroutine Prepare_TDMA_1deri_C2P_RHS_array
+
+!===============================================================================
+!> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the 1st derivative.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+! 1st derivative on staggered grids P2C and C2P : Periodic or Symmetric B.C.
+! P2C ==>
+! alpha * f'_{i-1} +  f'_i +  alpha * f'_{i+1}  = a/(h ) * ( f_{i'+1} - f_{i'} ) + &
+!                                                 b/(3h) * ( f_{i'+2} - f_{i'-1} )
+!-------------------------------------------------------------------------------
+! 1st-derivative. P2C: Dirichlet
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1'}/h  + b1 * f_{2'}/h + c1 * f_{3'}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2 * (f_{3'} - f_{2'})/h  ]
+! [       alpha  1      alpha               ][f'_i] [a *  (f_{i'+1} - f_{i'})/h + b/3 * (f_{i'+2} - f_{i'-1})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2 * (f_{n'} - f_{n'-1})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n'+1}/h  - b1 * f_{n'}/h - c1 * f_{n'-1}/h]
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n             the number of unknowns, here is np
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     dd            1/spacing, ie. 1/dx, 1/dy, 1/dz
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!===============================================================================
+  subroutine Prepare_TDMA_1deri_P2C_RHS_array(n, ibc, fbc, inbr, coeff, dd, fi, fo)
+    use parameters_constant_mod
+    implicit none
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
+    real(WP),     intent(in) :: dd
+    integer(4),   intent(in) :: inbr(4, 4)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+
+    integer :: m, l , i
+    integer :: im1, im2, ip1, ip2
+    real(WP) :: fsign1, fsign2
+
+    fo(:) = ZERO
+
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = 1, 2
+!-------------------------------------------------------------------------------
+    m = 1
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(1) ) * ( fi(ip1) -          fi(i)   ) + &
+                coeff( i, 2, ibc(1) ) * ( fi(ip2) - fsign1 * fi(im1) )
+      end do
+    else 
+      i = 1
+      fo(i) = coeff( i, 1, ibc(m) ) * fi(1) + &
+              coeff( i, 2, ibc(m) ) * fi(2) + &
+              coeff( i, 3, ibc(m) ) * fi(3) 
+      i = 2
+      im1 = i - 1
+      ip1 = i + 1
+      fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1)   - fi(i) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    m = 2
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+
+      fsign1 = ONE
+      fsign2 = ONE
+      l = 0
+      do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
+
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( l, 1, ibc(1) ) * ( fsign1 * fi(ip1) - fi(i)   ) + &
+                coeff( l, 2, ibc(1) ) * ( fsign2 * fi(ip2) - fi(im1) )
+      end do
+    else 
+      fo(n) = coeff( 5, 1, ibc(m) ) * fi(1) + &
+              coeff( 5, 2, ibc(m) ) * fi(2)  + &
+              coeff( 5, 3, ibc(m) ) * fi(3)
+      i = n - 1
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( 4, 1, ibc(m) ) * ( fi(ip1) - fi(i) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+
+      fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(ip1) - fi(i)   ) + &
+              coeff( 3, 2, ibc(1) ) * ( fi(ip2) - fi(im1) )
+    end do
+
+    fo(:) = fo(:) * dd ! dd = (1/dx)
+
+    return
+  end subroutine Prepare_TDMA_1deri_P2C_RHS_array
+!===============================================================================
+!> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the 1st derivative.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! 2nd derivative on collocated grids, C2C/P2P coefficients : Periodic or Symmetric B.C.
+! alpha * f"_{i-1} + f"_i + alpha * f"_{i+1} = a/(2h) * ( f_{i+1} - 2f_{i} + f(i-1) ) + &
+!                                              b/(4h) * ( f_{i+2} - 2f_{i} + f_{i-2} )
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n             the number of unknowns, here is nc
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     dd            1/spacing, ie. 1/dx, 1/dy, 1/dz
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!===============================================================================
+  subroutine Prepare_TDMA_2deri_C2C_RHS_array(n, ibc, fbc, inbr, coeff, dd, fi, fo)
+    use parameters_constant_mod
+    implicit none
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
+    real(WP),     intent(in) :: dd
+    integer(4),   intent(in) :: inbr(4, 4)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+
+    fo(:) = ZERO
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = 1, 2
+!-------------------------------------------------------------------------------
+    m = 1
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fsign1 * fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fsign2 * fi(im2) )
+      end do
+    else! all other b.c.
+      i = 1
+      fo(i) = coeff( i, 1, ibc(m) ) * fi(1) + &
+              coeff( i, 2, ibc(m) ) * fi(2) + &
+              coeff( i, 3, ibc(m) ) * fi(3) + &
+              coeff( i, 4, ibc(m) ) * fi(4) 
+      i = 2
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    m = 2
+    if( ibc(2) == IBC_PERIODIC  .or. &
+        ibc(2) == IBC_SYMMETRIC .or. &
+        ibc(2) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      l = 0
+      do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
+
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fsign1 * fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fsign2 * fi(ip2) - TWO * fi(i) + fi(im2) )
+      end do
+    else! all other b.c.
+      fo(n)   = coeff( 5, 1, ibc(m) ) * fi(1) + &
+                coeff( 5, 2, ibc(m) ) * fi(2) + &
+                coeff( 5, 3, ibc(m) ) * fi(3) + &
+                coeff( 5, 4, ibc(m) ) * fi(4)
+      i = n - 1
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( 4, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+
+      fo(i) = coeff( 3, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+              coeff( 3, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
+    end do
+
+    fo(:) = fo(:) * dd ! dd = (1/dx)^2
+
+    return
+  end subroutine Prepare_TDMA_2deri_C2C_RHS_array
+!===============================================================================
+!> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the 1st derivative.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   private
+!-------------------------------------------------------------------------------
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! 2nd derivative on collocated grids, C2C/P2P coefficients : Periodic or Symmetric B.C.
+! alpha * f"_{i-1} + f"_i + alpha * f"_{i+1} = a/(2h) * ( f_{i+1} - 2f_{i} + f(i-1) ) + &
+!                                              b/(4h) * ( f_{i+2} - 2f_{i} + f_{i-2} )
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n             the number of unknowns, here is nc
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]    fbc            the b.c. values for the given ibc
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     dd            1/spacing, ie. 1/dx, 1/dy, 1/dz
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!===============================================================================
+  subroutine Prepare_TDMA_2deri_P2P_RHS_array(n, ibc, fbc, inbr, coeff, dd, fi, fo)
+    use parameters_constant_mod
+    implicit none
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
+    real(WP),     intent(in) :: dd
+    integer(4),   intent(in) :: inbr(4, 4)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+
+    fo(:) = ZERO
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = 1, 2
+!-------------------------------------------------------------------------------
+    m = 1
+    if( ibc(m) == IBC_PERIODIC  .or. &
+        ibc(m) == IBC_SYMMETRIC .or. &
+        ibc(m) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i - 1) < 1 ) fsign1 = - ONE
+          if ( (i - 2) < 1 ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fsign1 * fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fsign2 * fi(im2) )
+      end do
+    else! all other b.c.
+      i = 1
+      fo(i) = coeff( i, 1, ibc(m) ) * fi(1) + &
+              coeff( i, 2, ibc(m) ) * fi(2) + &
+              coeff( i, 3, ibc(m) ) * fi(3) + &
+              coeff( i, 4, ibc(m) ) * fi(4) 
+      i = 2
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    m = 2
+    if( ibc(2) == IBC_PERIODIC  .or. &
+        ibc(2) == IBC_SYMMETRIC .or. &
+        ibc(2) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      l = 0
+      do i = n-1, n
+        if (i == n-1) l = 4
+        if (i == n)   l = 5
+
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(ibc(m) == IBC_ASYMMETRIC) then 
+          if ( (i + 1 ) > n ) fsign1 = - ONE
+          if ( (i + 2 ) > n ) fsign2 = - ONE
+        end if
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fsign1 * fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fsign2 * fi(ip2) - TWO * fi(i) + fi(im2) )
+      end do
+    else! all other b.c.
+      fo(n)   = coeff( 5, 1, ibc(m) ) * fi(1) + &
+                coeff( 5, 2, ibc(m) ) * fi(2) + &
+                coeff( 5, 3, ibc(m) ) * fi(3) + &
+                coeff( 5, 4, ibc(m) ) * fi(4)
+      i = n - 1
+      ip1 = i + 1
+      im1 = i - 1
+      fo(i) = coeff( 4, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+
+      fo(i) = coeff( 3, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+              coeff( 3, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
+    end do
+
+    fo(:) = fo(:) * dd
+
+    return
+  end subroutine Prepare_TDMA_2deri_P2P_RHS_array
+!===============================================================================
+!> \brief To caculate the mid-point interpolation in 1D.
+!> This subroutine is called as required to get the mid-point interpolation.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   pubic
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     ixsub         x-subdomain index
+!> \param[in]     ibc           bc type
+!> \param[in]     fbc           bc value
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !_______________________________________________________________________________
@@ -2205,7 +2637,7 @@ contains
     integer,     intent(in) :: ixsub 
     integer,     intent(in) :: ibc(2)
     real(WP),    intent(in) :: fbc(2)
-    integer(WP), intent(in) :: inbr(4, :)
+    integer(WP), intent(in) :: inbr(4, 4)
     real(WP),    intent(in) :: fi(:)
     real(WP), intent(inout) :: fo(:)
 
@@ -2214,9 +2646,9 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-
-    call Prepare_TDMA_interp_RHS_array('C2P', nsz, ibc(:), fbc(:), inbr(:, :), &
-                                        m1rC2P(:, :, :), fi(:), fo(:) )
+    
+    call Prepare_TDMA_interp_C2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+         m1rC2P(:, :. :), fi(:), fo(:))
 
     if (ibc(1) == IBC_PERIODIC) then
       is_periodic = .true.
@@ -2232,455 +2664,994 @@ contains
           nsz)
 
     return
-  end subroutine 
-
-
-
-    if(str1=='x') then
-      i = 1
-!-------------------------------------------------------------------------------
-! Operation in x-pencil
-!-------------------------------------------------------------------------------      
-      if (str2 == 'P2C') then
-      
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-            m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1x_P2C(:), bm1x_P2C(:), cm1x_P2C(:), dm1x_P2C(:), nsz)
-        
-      else if (str2 == 'C2P') then
-
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-            m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1x_C2P(:), bm1x_C2P(:), cm1x_C2P(:), dm1x_C2P(:), nsz)
-
-      else
-        call Print_error_msg("108: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else if (str1 == 'y') then
-      i = 2
-
-      if (str2 == 'P2C') then
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-            m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1y_P2C(:), bm1y_P2C(:), cm1y_P2C(:), dm1y_P2C(:), nsz)
-
-      else if (str2 == 'C2P') then
-
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-            m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1y_C2P(:), bm1y_C2P(:), cm1y_C2P(:), dm1y_C2P(:), nsz)
-
-      else
-        call Print_error_msg("109: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else if (str1 == 'z') then
-
-      i = 3
-
-      if (str2 == 'P2C') then
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-            m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1z_P2C(:), bm1z_P2C(:), cm1z_P2C(:), dm1z_P2C(:), nsz)
-
-      else if (str2 == 'C2P') then
-
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-            m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1z_C2P(:), bm1z_C2P(:), cm1z_C2P(:), dm1z_C2P(:), nsz)
-
-      else
-        call Print_error_msg("110: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else
-      call Print_error_msg("111: No such direction.")
-    end if
-
-    return 
   end subroutine Get_x_midp_C2P_1D
-
-  subroutine Get_midp_interpolation_1D(str1, str2, dm, fi, fo)
+!===============================================================================
+  subroutine Get_x_midp_P2C_1D (ixsub, ibc, fbc, inbr, fi, fo)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    type(t_domain), intent(in) :: dm
-    character(1),   intent(in) :: str1
-    character(3),   intent(in) :: str2
-    real(WP),       intent(in) :: fi(:)
-    real(WP),       intent(out):: fo(:)
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
     integer(4) :: i, nsz
+    logical :: is_period
 
     nsz = size(fo)
+    fo = ZERO
+    
+    call Prepare_TDMA_interp_P2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+         m1rP2C(:, :. :), fi(:), fo(:))
 
-    if(str1=='x') then
-      i = 1
-!-------------------------------------------------------------------------------
-! Operation in x-pencil
-!-------------------------------------------------------------------------------      
-      if (str2 == 'P2C') then
-      
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-            m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1x_P2C(:), bm1x_P2C(:), cm1x_P2C(:), dm1x_P2C(:), nsz)
-        
-      else if (str2 == 'C2P') then
-
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-            m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1x_C2P(:), bm1x_C2P(:), cm1x_C2P(:), dm1x_C2P(:), nsz)
-
-      else
-        call Print_error_msg("108: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else if (str1 == 'y') then
-      i = 2
-
-      if (str2 == 'P2C') then
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-            m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1y_P2C(:), bm1y_P2C(:), cm1y_P2C(:), dm1y_P2C(:), nsz)
-
-      else if (str2 == 'C2P') then
-
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-            m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1y_C2P(:), bm1y_C2P(:), cm1y_C2P(:), dm1y_C2P(:), nsz)
-
-      else
-        call Print_error_msg("109: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
-    else if (str1 == 'z') then
-
-      i = 3
-
-      if (str2 == 'P2C') then
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-            m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1z_P2C(:), bm1z_P2C(:), cm1z_P2C(:), dm1z_P2C(:), nsz)
-
-      else if (str2 == 'C2P') then
-
-        call Prepare_TDMA_interp_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-            m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(i), fo(:), am1z_C2P(:), bm1z_C2P(:), cm1z_C2P(:), dm1z_C2P(:), nsz)
-
-      else
-        call Print_error_msg("110: Error input in prepare_FD_TDMA_RHS.")
-      end if
-
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
     else
-      call Print_error_msg("111: No such direction.")
+      is_periodic = .false.
     end if
 
-    return 
-  end subroutine Get_midp_interpolation_1D
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%am1x_P2C(:), &
+          xtdma_lhs(ixsub)%bm1x_P2C(:), &
+          xtdma_lhs(ixsub)%cm1x_P2C(:), &
+          xtdma_lhs(ixsub)%dm1x_P2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_midp_P2C_1D
 !===============================================================================
+  subroutine Get_y_midp_C2P_1D (ibc, fbc, inbr, fi, fo)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+    
+    call Prepare_TDMA_interp_C2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+         m1rC2P(:, :. :), fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          am1y_C2P(:), &
+          bm1y_C2P(:), &
+          cm1y_C2P(:), &
+          dm1y_C2P(:), &
+          nsz)
+! stretching? No stretching conversion
+    return
+  end subroutine Get_y_midp_C2P_1D
+!===============================================================================
+  subroutine Get_y_midp_P2C_1D (ibc, fbc, inbr, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+    
+    call Prepare_TDMA_interp_P2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+         m1rP2C(:, :. :), fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          am1y_P2C(:), &
+          bm1y_P2C(:), &
+          cm1y_P2C(:), &
+          dm1y_P2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_y_midp_P2C_1D
+!===============================================================================
+  subroutine Get_z_midp_C2P_1D (ibc, fbc, inbr, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+    
+    call Prepare_TDMA_interp_C2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+         m1rC2P(:, :. :), fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          am1z_C2P(:), &
+          bm1z_C2P(:), &
+          cm1z_C2P(:), &
+          dm1z_C2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_midp_C2P_1D
+!===============================================================================
+  subroutine Get_z_midp_P2C_1D (ibc, fbc, inbr, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+    
+    call Prepare_TDMA_interp_P2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+         m1rP2C(:, :. :), fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          am1z_P2C(:), &
+          bm1z_P2C(:), &
+          cm1z_P2C(:), &
+          dm1z_P2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_midp_P2C_1D
 !===============================================================================
 !> \brief To caculate the 1st derivative in 1D.
-!>
 !> This subroutine is called as required to get the 1st derivative
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   pubic
+!-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     str1          string to flag which direction to impletment
-!> \param[in]     str2          string to flag C2P or P2C or C2C or P2P
-!> \param[in]     d             domain
+!> \param[in]     ixsub         x-subdomain index
+!> \param[in]     ibc           bc type
+!> \param[in]     fbc           bc value
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
-!_______________________________________________________________________________
-  subroutine Get_1st_derivative_1D(str1, str2, d, fi, fo)
-  !===============================================================================
-  ! Module files
-  !===============================================================================
-      use parameters_constant_mod
-      use udf_type_mod, only : t_domain
-      use tridiagonal_matrix_algorithm
-      implicit none
-  !===============================================================================
-  ! Arguments
-  !===============================================================================
-      type(t_domain), intent(in) :: d
-      character(1), intent(in) :: str1
-      character(3), intent(in) :: str2
-      real(WP), intent(in) :: fi(:)
-      real(WP), intent(out) :: fo(:)
-  !===============================================================================
-  ! Local arguments
-  !===============================================================================
-      integer(4) :: i, nsz
-  !===============================================================================
-  ! Code
-  !===============================================================================
-      nsz = size(fo)
-  
-      if(str1=='x') then
-        i = 1
-  
-        if (str2 == 'C2C') then
-  
-          call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( dm%is_periodic(i), fo(:), ad1x_C2C(:), bd1x_C2C(:), cd1x_C2C(:), dd1x_C2C(:), nsz )
-  
-        else if (str2 == 'P2C') then
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-              dm%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1x_P2C(:), bd1x_P2C(:), cd1x_P2C(:), dd1x_P2C(:), nsz)
-  
-        else if (str2 == 'P2P') then
-          
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
-              !write (OUTPUT_UNIT,'(A,7F8.4)') 'a', ad1x_P2P(:)
-              !write (OUTPUT_UNIT,'(A,7F8.4)') 'b', bd1x_P2P(:)
-              !write (OUTPUT_UNIT,'(A,7F8.4)') 'c', cd1x_P2P(:)
-              !write (OUTPUT_UNIT,'(A,7F8.4)') 'd', dd1x_P2P(:)
-              !write (OUTPUT_UNIT,'(A,7F8.4)') 'r', fo(:)
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1x_P2P(:), bd1x_P2P(:), cd1x_P2P(:), dd1x_P2P(:), nsz)
-          !write (OUTPUT_UNIT,'(A,7F8.4)') 'o', fo(:)
-        else if (str2 == 'C2P') then
-  
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-              dm%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1x_C2P(:), bd1x_C2P(:), cd1x_C2P(:), dd1x_C2P(:), nsz)
-  
-        else
-          call Print_error_msg("112: No such staggered scheme defined")
-        end if
-  
-      else if (str1 == 'y') then
-        i = 2
-  
-        if (str2 == 'C2C') then
-  
-          call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( dm%is_periodic(i), fo(:), ad1y_C2C(:), bd1y_C2C(:), cd1y_C2C(:), dd1y_C2C(:), nsz )
-          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
-        
-        else if (str2 == 'P2C') then
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-              dm%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1y_P2C(:), bd1y_P2C(:), cd1y_P2C(:), dd1y_P2C(:), nsz)
-          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
-  
-        else if (str2 == 'P2P') then
-  
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1y_P2P(:), bd1y_P2P(:), cd1y_P2P(:), dd1y_P2P(:), nsz)
-          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(1:nsz, 1)
-  
-        else if (str2 == 'C2P') then
-  
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-              dm%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1y_C2P(:), bd1y_C2P(:), cd1y_C2P(:), dd1y_C2P(:), nsz)
-          if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(1:nsz, 1)
-  
-        else
-          call Print_error_msg("113: No such staggered scheme defined")
-        end if
-  
-      else if (str1 == 'z') then
-  
-        i = 3
-  
-        if (str2 == 'C2C') then
-  
-          call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( dm%is_periodic(i), fo(:), ad1z_C2C(:), bd1z_C2C(:), cd1z_C2C(:), dd1z_C2C(:), nsz )
-  
-        else if (str2 == 'P2C') then
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-              dm%h1r(i), d1rP2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1z_P2C(:), bd1z_P2C(:), cd1z_P2C(:), dd1z_P2C(:), nsz)
-  
-        else if (str2 == 'P2P') then
-  
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1z_P2P(:), bd1z_P2P(:), cd1z_P2P(:), dd1z_P2P(:), nsz)
-  
-        else if (str2 == 'C2P') then
-  
-          call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-              dm%h1r(i), d1rC2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad1z_C2P(:), bd1z_C2P(:), cd1z_C2P(:), dd1z_C2P(:), nsz)
-  
-        else
-          call Print_error_msg("114: No such staggered scheme defined")
-        end if
-  
-      else
-        call Print_error_msg("115: No such direction defined.")
-      end if
-  
-      return 
-    end subroutine Get_1st_derivative_1D
-
-
 !===============================================================================
+  subroutine Get_x_1st_derivative_C2C_1D (ixsub, ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rC2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%ad1x_C2C(:), &
+          xtdma_lhs(ixsub)%bd1x_C2C(:), &
+          xtdma_lhs(ixsub)%cd1x_C2C(:), &
+          xtdma_lhs(ixsub)%dd1x_C2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_1st_derivative_C2C_1D
+!===============================================================================
+  subroutine Get_x_1st_derivative_P2P_1D (ixsub, ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rP2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%ad1x_P2P(:), &
+          xtdma_lhs(ixsub)%bd1x_P2P(:), &
+          xtdma_lhs(ixsub)%cd1x_P2P(:), &
+          xtdma_lhs(ixsub)%dd1x_P2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_1st_derivative_P2P_1D
+!===============================================================================
+  subroutine Get_x_1st_derivative_C2P_1D (ixsub, ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_C2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rC2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%ad1x_C2P(:), &
+          xtdma_lhs(ixsub)%bd1x_C2P(:), &
+          xtdma_lhs(ixsub)%cd1x_C2P(:), &
+          xtdma_lhs(ixsub)%dd1x_C2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_1st_derivative_C2P_1D
+!===============================================================================
+  subroutine Get_x_1st_derivative_P2C_1D (ixsub, ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_P2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rP2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%ad1x_P2C(:), &
+          xtdma_lhs(ixsub)%bd1x_P2C(:), &
+          xtdma_lhs(ixsub)%cd1x_P2C(:), &
+          xtdma_lhs(ixsub)%dd1x_P2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_1st_derivative_P2C_1D
+!===============================================================================
+! y - Get_1st_derivative_1D
+!===============================================================================
+  subroutine Get_y_1st_derivative_C2C_1D (ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rC2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1y_C2C(:), &
+          bd1y_C2C(:), &
+          cd1y_C2C(:), &
+          dd1y_C2C(:), &
+          nsz)
+
+    if(is_stretching) fo(:) = fo(:) * ymapping(:)
+
+    return
+  end subroutine Get_y_1st_derivative_C2C_1D
+!===============================================================================
+  subroutine Get_y_1st_derivative_P2P_1D (ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rP2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1y_P2P(:), &
+          bd1y_P2P(:), &
+          cd1y_P2P(:), &
+          dd1y_P2P(:), &
+          nsz)
+    
+    if(is_stretching) fo(:) = fo(:) * ymapping(:)
+
+    return
+  end subroutine Get_y_1st_derivative_P2P_1D
+!===============================================================================
+  subroutine Get_y_1st_derivative_C2P_1D (ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_C2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rC2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1y_C2P(:), &
+          bd1y_C2P(:), &
+          cd1y_C2P(:), &
+          dd1y_C2P(:), &
+          nsz)
+  
+    if(is_stretching) fo(:) = fo(:) * ymapping(:)
+
+    return
+  end subroutine Get_y_1st_derivative_C2P_1D
+!===============================================================================
+  subroutine Get_y_1st_derivative_P2C_1D (ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_P2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rP2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1y_P2C(:), &
+          bd1y_P2C(:), &
+          cd1y_P2C(:), &
+          dd1y_P2C(:), &
+          nsz)
+
+    if(is_stretching) fo(:) = fo(:) * ymapping(:)
+
+    return
+  end subroutine Get_y_1st_derivative_P2C_1D
+!===============================================================================
+! z - Get_1st_derivative_1D
+!===============================================================================
+  subroutine Get_z_1st_derivative_C2C_1D (ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rC2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1z_C2C(:), &
+          bd1z_C2C(:), &
+          cd1z_C2C(:), &
+          dd1z_C2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_1st_derivative_C2C_1D
+!===============================================================================
+  subroutine Get_z_1st_derivative_P2P_1D (ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rP2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1z_P2P(:), &
+          bd1z_P2P(:), &
+          cd1z_P2P(:), &
+          dd1z_P2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_1st_derivative_P2P_1D
+!===============================================================================
+  subroutine Get_z_1st_derivative_C2P_1D (ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_C2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rC2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1z_C2P(:), &
+          bd1z_C2P(:), &
+          cd1z_C2P(:), &
+          dd1z_C2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_1st_derivative_C2P_1D
+!===============================================================================
+  subroutine Get_z_1st_derivative_P2C_1D (ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_1deri_P2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d1rP2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad1z_P2C(:), &
+          bd1z_P2C(:), &
+          cd1z_P2C(:), &
+          dd1z_P2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_1st_derivative_P2C_1D
 !===============================================================================
 !> \brief To caculate the 2nd derivative in 1D.
-!>
 !> This subroutine is called as required to get the 2nd derivative
-!>
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   pubic
+!-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     str1          string to flag which direction to impletment
-!> \param[in]     str2          string to flag C2P or P2C or C2C or P2P
-!> \param[in]     d             domain
+!> \param[in]     ixsub         x-subdomain index
+!> \param[in]     ibc           bc type
+!> \param[in]     fbc           bc value
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
-!_______________________________________________________________________________
-  subroutine Get_2nd_derivative_1D(str1, str2, d, fi, fo)
-  !===============================================================================
-  ! Module files
-  !===============================================================================
-      use parameters_constant_mod
-      use udf_type_mod
-      use tridiagonal_matrix_algorithm
-      implicit none
-  !===============================================================================
-  ! Arguments
-  !===============================================================================
-      type(t_domain), intent(in) :: d
-      character(1), intent(in) :: str1
-      character(3), intent(in) :: str2
-      real(WP), intent(in) :: fi(:)
-      real(WP), intent(out) :: fo(:)
-  !===============================================================================
-  ! Local arguments
-  !===============================================================================
-      integer(4) :: i, nsz
-      real(WP), allocatable :: fo1(:)
-  !===============================================================================
-  ! Code
-  !===============================================================================
-      nsz = size(fo)
-  
-      if(str1=='x') then
-        i = 1
-  
-        if (str2 == 'C2C') then
-  
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-                dm%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2x_C2C(:), bd2x_C2C(:), cd2x_C2C(:), dd2x_C2C(:), nsz )
-  
-        else if (str2 == 'P2P') then
-          
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%iNeighb(:, :), &
-                dm%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2x_P2P(:), bd2x_P2P(:), cd2x_P2P(:), dd2x_P2P(:), nsz)
-
-        else
-          call Print_error_msg("112: No such staggered scheme defined")
-        end if
-  
-      else if (str1 == 'y') then
-        i = 2
-  
-        if (str2 == 'C2C') then
-          allocate ( fo1(nsz) ); fo1(:) = ZERO
-          ! 2nd, uniform
-          call Prepare_TDMA_2deri_RHS_array( str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-                dm%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( dm%is_periodic(i), fo(:), ad2y_C2C(:), bd2y_C2C(:), cd2y_C2C(:), dd2y_C2C(:), nsz )
-          
-          if(dm%is_stretching(2)) then
-            ! 1st, uniform
-            call Prepare_TDMA_1deri_RHS_array( str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-                dm%h1r(i), d1rC2C(:, :, :), fi(:), fo1(:) )
-            call Solve_TDMA( dm%is_periodic(i), fo1(:), ad1y_C2C(:), bd1y_C2C(:), cd1y_C2C(:), dd1y_C2C(:), nsz )
-            fo(:) = fo(:) * dm%yMappingcc(:, 2) + fo1(:) * dm%yMappingcc(:, 3)
-          end if
-          deallocate(fo1)
-
-        else if (str2 == 'P2P') then
-  
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-              dm%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2y_P2P(:), bd2y_P2P(:), cd2y_P2P(:), dd2y_P2P(:), nsz )
-
-          if(dm%is_stretching(2)) then
-            allocate ( fo1(nsz) ); fo1(:) = ZERO
-            call Prepare_TDMA_1deri_RHS_array(str2, nsz, dm%bc(:, i), dm%jNeighb(:, :), &
-              dm%h1r(i), d1rP2P(:, :, :), fi(:), fo1(:) )
-            call Solve_TDMA(dm%is_periodic(i), fo1(:), ad1y_P2P(:), bd1y_P2P(:), cd1y_P2P(:), dd1y_P2P(:), nsz )
-            fo(:) = fo(:) * dm%yMappingpt(1:nsz, 2) + fo1(:) * dm%yMappingpt(1:nsz, 3)
-            deallocate(fo1)
-          end if
-  
-        else
-          call Print_error_msg("113: No such staggered scheme defined")
-        end if
-  
-      else if (str1 == 'z') then
-  
-        i = 3
-  
-        if (str2 == 'C2C') then
-  
-          call Prepare_TDMA_2deri_RHS_array( str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-                dm%h2r(i), d2rC2C(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA( dm%is_periodic(i), fo(:), ad2z_C2C(:), bd2z_C2C(:), cd2z_C2C(:), dd2z_C2C(:), nsz )
-  
-        else if (str2 == 'P2P') then
-  
-          call Prepare_TDMA_2deri_RHS_array(str2, nsz, dm%bc(:, i), dm%kNeighb(:, :), &
-              dm%h2r(i), d2rP2P(:, :, :), fi(:), fo(:) )
-          call Solve_TDMA(dm%is_periodic(i), fo(:), ad2z_P2P(:), bd2z_P2P(:), cd2z_P2P(:), dd2z_P2P(:), nsz )
-  
-        else
-          call Print_error_msg("114: No such staggered scheme defined")
-        end if
-  
-      else
-        call Print_error_msg("115: No such direction defined.")
-      end if
-  
-      return 
-  end subroutine Get_2nd_derivative_1D
 !===============================================================================
+  subroutine Get_x_2nd_derivative_C2C_1D (ixsub, ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_2deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d2rC2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%ad2x_C2C(:), &
+          xtdma_lhs(ixsub)%bd2x_C2C(:), &
+          xtdma_lhs(ixsub)%cd2x_C2C(:), &
+          xtdma_lhs(ixsub)%dd2x_C2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_2nd_derivative_C2C_1D
 !===============================================================================
-!> \brief To expend to 3D from 1D operation
-!>  for interpolation
+  subroutine Get_x_2nd_derivative_P2P_1D (ixsub, ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_2deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d2rP2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%ad2x_P2P(:), &
+          xtdma_lhs(ixsub)%bd2x_P2P(:), &
+          xtdma_lhs(ixsub)%cd2x_P2P(:), &
+          xtdma_lhs(ixsub)%dd2x_P2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_x_2nd_derivative_P2P_1D
+!===============================================================================
+! y - Get_2nd_derivative_1D
+!===============================================================================
+  subroutine Get_y_2nd_derivative_C2C_1D (ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:, 3)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+    real(WP), allocatable :: fo1(:)
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_2deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d2rC2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad2y_C2C(:), &
+          bd2y_C2C(:), &
+          cd2y_C2C(:), &
+          dd2y_C2C(:), &
+          nsz)
+
+    if(is_stretching) then 
+      allocate ( fo1(nsz) ); fo1(:) = ZERO
+      call Prepare_TDMA_1deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+           d1rC2C(:, :. :), dd, fi(:), fo1(:))
+      call Solve_TDMA(is_periodic, fo1(:), &
+           ad1y_C2C(:), &
+           bd1y_C2C(:), &
+           cd1y_C2C(:), &
+           dd1y_C2C(:), &
+           nsz)
+      fo(:) = fo(:) * ymapping(:, 2) + fo1(:) * ymapping(:, 3)
+      deallocate (fo1)
+    end if
+
+    return
+  end subroutine Get_y_2nd_derivative_C2C_1D
+!===============================================================================
+  subroutine Get_y_2nd_derivative_P2P_1D (ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:, 3)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+    real(WP), allocatable :: fo1(:)
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_2deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d2rP2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad2y_P2P(:), &
+          bd2y_P2P(:), &
+          cd2y_P2P(:), &
+          dd2y_P2P(:), &
+          nsz)
+
+    if(is_stretching) then 
+      allocate ( fo1(nsz) ); fo1(:) = ZERO
+      call Prepare_TDMA_1deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+           d1rP2P(:, :. :), dd, fi(:), fo1(:))
+      call Solve_TDMA(is_periodic, fo1(:), &
+           ad1y_P2P(:), &
+           bd1y_P2P(:), &
+           cd1y_P2P(:), &
+           dd1y_P2P(:), &
+           nsz)
+      fo(:) = fo(:) * ymapping(:, 2) + fo1(:) * ymapping(:, 3)
+      deallocate (fo1)
+    end if
+
+    return
+  end subroutine Get_y_2nd_derivative_P2P_1D
+!===============================================================================
+! z - Get_2nd_derivative_1D
+!===============================================================================
+  subroutine Get_z_2nd_derivative_C2C_1D (ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+    real(WP) :: fo1(:)
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_2deri_C2C_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d2rC2C(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad2z_C2C(:), &
+          bd2z_C2C(:), &
+          cd2z_C2C(:), &
+          dd2z_C2C(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_2nd_derivative_C2C_1D
+!===============================================================================
+  subroutine Get_z_2nd_derivative_P2P_1D (ibc, fbc, inbr, dd, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
+    integer(4) :: i, nsz
+    logical :: is_period
+
+    nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_2deri_P2P_RHS_array(nsz, ibc(:), fbc(:), inbr(:,:), &
+          d2rP2P(:, :. :), dd, fi(:), fo(:))
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          ad2z_P2P(:), &
+          bd2z_P2P(:), &
+          cd2z_P2P(:), &
+          dd2z_P2P(:), &
+          nsz)
+
+    return
+  end subroutine Get_z_2nd_derivative_P2P_1D
+!===============================================================================
+!> \brief To caculate the mid-point interpolation in 3D.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   pubic
 !-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     ixsub         x-subdomain index
+!> \param[in]     ibc           bc type
+!> \param[in]     fbc           bc value
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     fi            the input array of original variable
+!> \param[out]    fo            the output array of interpolated variable
 !===============================================================================
-  subroutine Get_x_midp_C2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_x_midp_C2P_3D(ixsub, ibc, fbc, inbr, fi3d, fo3d)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
     implicit none
 
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP),    intent(out):: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 !-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
-!-------------------------------------------------------------------------------
-!  x-pencil calculation
+!  default : x-pencil calculation
 !-------------------------------------------------------------------------------
     dim = 1
     nox = size(fo3d, 1)
@@ -2688,37 +3659,32 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_interp_RHS_array('C2P', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1x_C2P(:), bm1x_C2P(:), &
-                cm1x_C2P(:), dm1x_C2P(:), nox)
+        call Get_x_midp_C2P_1D (ixsub, ibc, fbc, inbr, fi, fo)
         fo3d(:, j, k) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_x_midp_C2P_3dArray
+  end subroutine Get_x_midp_C2P_3D
 !===============================================================================
-  subroutine Get_x_midp_P2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_x_midp_P2C_3D(ixsub, ibc, fbc, inbr, fi3d, fo3d)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
     implicit none
 
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP),    intent(out):: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
 !-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
-!-------------------------------------------------------------------------------
-!  x-pencil calculation
+!  default : x-pencil calculation
 !-------------------------------------------------------------------------------
     dim = 1
     nox = size(fo3d, 1)
@@ -2726,36 +3692,358 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_interp_RHS_array('P2C', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1x_P2C(:), bm1x_P2C(:), &
-                cm1x_P2C(:), dm1x_P2C(:), nox)
+        call Get_x_midp_P2C_1D (ixsub, ibc, fbc, inbr, fi, fo)
         fo3d(:, j, k) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_x_midp_P2C_3dArray
+  end subroutine Get_x_midp_P2C_3D
 !===============================================================================
-  subroutine Get_y_midp_C2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_y_midp_C2P_3D(ibc, fbc, inbr, fi3d, fo3d)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
     implicit none
 
-    type(t_domain),    intent(in) :: d
-    real(WP),          intent(in) :: fi3d(:, :, :)
-    real(WP),         intent(out) :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
     integer(4) :: dim, noy
     integer(4) :: k, i
 !-------------------------------------------------------------------------------
-!  Default input & output is in y-pencil.
+!  default : y-pencil calculation
 !-------------------------------------------------------------------------------
-    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
+    dim = 2
+    noy = size(fo3d, 2)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
+        fi(:) = fi3d(i, :, k)
+        call Get_y_midp_C2P_1D (ibc, fbc, inbr, fi, fo)
+        fo3d(i, :, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_y_midp_C2P_3D
+!===============================================================================
+  subroutine Get_y_midp_P2C_3D(ibc, fbc, inbr, fi3d, fo3d)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
+    integer(4) :: dim, noy
+    integer(4) :: k, i
 !-------------------------------------------------------------------------------
+!  y-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 2
+    noy = size(fo3d, 2)
+
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
+        fi(:) = fi3d(i, :, k)
+        call Get_y_midp_P2C_1D (ibc, fbc, inbr, fi, fo)
+        fo3d(i, :, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_y_midp_P2C_3D
+  !===============================================================================
+  subroutine Get_z_midp_C2P_3D(ibc, fbc, inbr, fi3d, fo3d)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
+    integer(4) :: dim, noz
+    integer(4) :: j, i
+!-------------------------------------------------------------------------------
+!  default : z-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 3
+    noz = size(fo3d, 3)
+
+    fo3d(:, :, :) = ZERO
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
+        fi(:) = fi3d(i, j, :)
+        call Get_z_midp_C2P_1D (ibc, fbc, inbr, fi, fo)
+        fo3d(i, j, :) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_z_midp_C2P_3D
+!===============================================================================
+  subroutine Get_z_midp_P2C_3D(ibc, fbc, inbr, fi3d, fo3d)
+    use parameters_constant_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
+    integer(4) :: dim, noz
+    integer(4) :: j, i
+!-------------------------------------------------------------------------------
+!  default : z-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 3
+    noz = size(fo3d, 3)
+
+    fo3d(:, :, :) = ZERO
+    do j = 1, size(fi3d, 2)
+      do i = 1, size(fi3d, 1)
+        fi(:) = fi3d(i, j, :)
+        call Get_z_midp_P2C_1D (ibc, fbc, inbr, fi, fo)
+        fo3d(i, j, :) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_z_midp_P2C_3D
+!===============================================================================
+!> \brief To caculate the 1st-deriviate in 3D.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   pubic
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     ixsub         x-subdomain index
+!> \param[in]     ibc           bc type
+!> \param[in]     fbc           bc value
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     fi            the input array of original variable
+!> \param[out]    fo            the output array of interpolated variable
+!===============================================================================
+  subroutine Get_x_1st_derivative_C2C_3D(ixsub, ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
+    integer(4) :: dim, nox
+    integer(4) :: k, j
+!-------------------------------------------------------------------------------
+!  x-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 1
+    nox = size(fo3d, 1)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
+        fi(:) = fi3d(:, j, k)
+        call Get_x_1st_derivative_C2C_1D(ixsub, ibc, fbc, inbr, dd, fi, fo)
+        fo3d(:, j, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_x_1st_derivative_C2C_3D
+
+!===============================================================================
+  subroutine Get_x_1st_derivative_P2P_3D(ixsub, ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
+    integer(4) :: dim, nox
+    integer(4) :: k, j
+!-------------------------------------------------------------------------------
+!  x-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 1
+    nox = size(fo3d, 1)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
+        fi(:) = fi3d(:, j, k)
+        call Get_x_1st_derivative_P2P_1D(ixsub, ibc, fbc, inbr, dd, fi, fo)
+        fo3d(:, j, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_x_1st_derivative_P2P_3D
+!===============================================================================
+  subroutine Get_x_1st_derivative_C2P_3D(ixsub, ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
+    integer(4) :: dim, nox
+    integer(4) :: k, j
+
+!-------------------------------------------------------------------------------
+!  x-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 1
+    nox = size(fo3d, 1)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
+        fi(:) = fi3d(:, j, k)
+        call Get_x_1st_derivative_C2P_1D(ixsub, ibc, fbc, inbr, dd, fi, fo)
+        fo3d(:, j, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_x_1st_derivative_C2P_3D
+
+!===============================================================================
+  subroutine Get_x_1st_derivative_P2C_3D(ixsub, ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 1) )
+    real(WP)   :: fo( size(fo3d, 1) )
+    integer(4) :: dim, nox
+    integer(4) :: k, j
+
+!-------------------------------------------------------------------------------
+!  x-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 1
+    nox = size(fo3d, 1)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do j = 1, size(fi3d, 2)
+        fi(:) = fi3d(:, j, k)
+        call Get_x_1st_derivative_P2C_1D(ixsub, ibc, fbc, inbr, dd, fi, fo)
+        fo3d(:, j, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_x_1st_derivative_P2C_3D
+
+!===============================================================================
+  subroutine Get_y_1st_derivative_C2C_3D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
+    integer(4) :: dim, noy
+    integer(4) :: k, i
+
+    dim = 2
+    noy = size(fo3d, 2)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
+        fi(:) = fi3d(i, :, k)
+        call Get_y_1st_derivative_C2C_1D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+        fo3d(i, :, k) = fo(:)
+      end do
+    end do
+
+    return 
+  end subroutine Get_y_1st_derivative_C2C_3D
+
+!===============================================================================
+  subroutine Get_y_1st_derivative_P2P_3D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
+
+
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
+    integer(4) :: dim, noy
+    integer(4) :: k, i
+!!-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
     dim = 2
@@ -2764,26 +4052,28 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_interp_RHS_array('C2P', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1y_C2P(:), bm1y_C2P(:), &
-                cm1y_C2P(:), dm1y_C2P(:), noy)
+        call Get_y_1st_derivative_P2P_1D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
         fo3d(i, :, k) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_y_midp_C2P_3dArray
-!===============================================================================
-  subroutine Get_y_midp_P2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
+  end subroutine Get_y_1st_derivative_P2P_3D
 
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+!===============================================================================
+  subroutine Get_y_1st_derivative_C2P_3D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -2798,308 +4088,32 @@ contains
 !-------------------------------------------------------------------------------
     dim = 2
     noy = size(fo3d, 2)
-
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_interp_RHS_array('P2C', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1y_P2C(:), bm1y_P2C(:), &
-                cm1y_P2C(:), dm1y_P2C(:), noy)
+        call Get_y_1st_derivative_C2P_1D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
         fo3d(i, :, k) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_y_midp_P2C_3dArray
-  !===============================================================================
-  subroutine Get_z_midp_C2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 3) )
-    real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: dim, noz
-    integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
-!-------------------------------------------------------------------------------
-!  z-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 3
-    noz = size(fo3d, 3)
-
-    fo3d(:, :, :) = ZERO
-    do j = 1, size(fi3d, 2)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_interp_RHS_array('C2P', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), m1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1z_C2P(:), bm1z_C2P(:), &
-                cm1z_C2P(:), dm1z_C2P(:), noz)
-        fo3d(i, j, :) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_z_midp_C2P_3dArray
-!===============================================================================
-  subroutine Get_z_midp_P2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 3) )
-    real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: dim, noz
-    integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
-!-------------------------------------------------------------------------------
-!  z-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 3
-    noz = size(fo3d, 3)
-
-    fo3d(:, :, :) = ZERO
-    do j = 1, size(fi3d, 2)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_interp_RHS_array('P2C', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), m1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), am1z_P2C(:), bm1z_P2C(:), &
-                cm1z_P2C(:), dm1z_P2C(:), noz)
-        fo3d(i, j, :) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_z_midp_P2C_3dArray
-!===============================================================================
-!> \brief To expend to 3D from 1D operation
-!>  for 1st-derivative
-!-------------------------------------------------------------------------------
-!===============================================================================
-  subroutine Get_x_1st_derivative_C2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 1) )
-    real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: dim, nox
-    integer(4) :: k, j
-!-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
-!-------------------------------------------------------------------------------
-!  x-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 1
-    nox = size(fo3d, 1)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do j = 1, size(fi3d, 2)
-        fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2C', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), dm%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_C2C(:), bd1x_C2C(:), &
-                cd1x_C2C(:), dd1x_C2C(:), nox )
-        fo3d(:, j, k) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_x_1st_derivative_C2C_3dArray
+  end subroutine Get_y_1st_derivative_C2P_3D
 
 !===============================================================================
-  subroutine Get_x_1st_derivative_P2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_y_1st_derivative_P2C_3D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 1) )
-    real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: dim, nox
-    integer(4) :: k, j
-!-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
-!-------------------------------------------------------------------------------
-!  x-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 1
-    nox = size(fo3d, 1)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do j = 1, size(fi3d, 2)
-        fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2P', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), dm%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_P2P(:), bd1x_P2P(:), &
-                cd1x_P2P(:), dd1x_P2P(:), nox )
-        fo3d(:, j, k) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_x_1st_derivative_P2P_3dArray
-
-!===============================================================================
-  subroutine Get_x_1st_derivative_C2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 1) )
-    real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: dim, nox
-    integer(4) :: k, j
-!-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
-!-------------------------------------------------------------------------------
-!  x-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 1
-    nox = size(fo3d, 1)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do j = 1, size(fi3d, 2)
-        fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2P', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), dm%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_C2P(:), bd1x_C2P(:), &
-                cd1x_C2P(:), dd1x_C2P(:), nox )
-        fo3d(:, j, k) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_x_1st_derivative_C2P_3dArray
-
-!===============================================================================
-  subroutine Get_x_1st_derivative_P2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 1) )
-    real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: dim, nox
-    integer(4) :: k, j
-!-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
-!-------------------------------------------------------------------------------
-!  x-pencil calculation
-!-------------------------------------------------------------------------------
-
-    !write (OUTPUT_UNIT,*) 'check input  sz:', size(fi3d, 1), size(fi3d, 2), size(fi3d, 3)
-    !write (OUTPUT_UNIT,*) 'check output sz:', size(fo3d, 1), size(fo3d, 2), size(fo3d, 3)
-
-    dim = 1
-    nox = size(fo3d, 1)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do j = 1, size(fi3d, 2)
-        fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2C', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), dm%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1x_P2C(:), bd1x_P2C(:), &
-                cd1x_P2C(:), dd1x_P2C(:), nox )
-        fo3d(:, j, k) = fo(:)
-        !write (OUTPUT_UNIT,*) 'input', fi3d(:, j, k)
-        !write (OUTPUT_UNIT,*) 'outpt', fo3d(:, j, k)
-      end do
-    end do
-
-    return 
-  end subroutine Get_x_1st_derivative_P2C_3dArray
-
-!===============================================================================
-  subroutine Get_y_1st_derivative_C2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 2) )
-    real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: dim, noy
-    integer(4) :: k, i
-
-    dim = 2
-    noy = size(fo3d, 2)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2C', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), dm%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_C2C(:), bd1y_C2C(:), &
-                cd1y_C2C(:), dd1y_C2C(:), noy )
-        fo3d(i, :, k) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_y_1st_derivative_C2C_3dArray
-
-!===============================================================================
-  subroutine Get_y_1st_derivative_P2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -3118,105 +4132,61 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2P', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), dm%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_P2P(:), bd1y_P2P(:), &
-                cd1y_P2P(:), dd1y_P2P(:), noy )
+        call Get_y_1st_derivative_P2C_1D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
         fo3d(i, :, k) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_y_1st_derivative_P2P_3dArray
+  end subroutine Get_y_1st_derivative_P2C_3D
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_C2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_z_1st_derivative_C2C_3D (ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    real(WP)   :: fi( size(fi3d, 3) )
+    real(WP)   :: fo( size(fo3d, 3) )
+    integer(4) :: dim, noz
+    integer(4) :: j, i
+!-------------------------------------------------------------------------------
+!  z-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 3
+    noz = size(fo3d, 3)
 
-    real(WP)   :: fi( size(fi3d, 2) )
-    real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: dim, noy
-    integer(4) :: k, i
-!-------------------------------------------------------------------------------
-!  Default input is in y-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
-!-------------------------------------------------------------------------------
-!  y-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 2
-    noy = size(fo3d, 2)
     fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
+    do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'C2P', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), dm%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_C2P(:), bd1y_C2P(:), &
-                cd1y_C2P(:), dd1y_C2P(:), noy )
-        fo3d(i, :, k) = fo(:)
+        fi(:) = fi3d(i, j, :)
+        call Get_z_1st_derivative_C2C_1D (ibc, fbc, inbr, dd, fi, fo)
+        fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_y_1st_derivative_C2P_3dArray
+  end subroutine Get_z_1st_derivative_C2C_3D
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_P2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_z_1st_derivative_P2P_3D(ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 2) )
-    real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: dim, noy
-    integer(4) :: k, i
-!-------------------------------------------------------------------------------
-!  Default input is in y-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
-!-------------------------------------------------------------------------------
-!  y-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 2
-    noy = size(fo3d, 2)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_1deri_RHS_array( 'P2C', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), dm%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1y_P2C(:), bd1y_P2C(:), &
-                cd1y_P2C(:), dd1y_P2C(:), noy )
-        fo3d(i, :, k) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_y_1st_derivative_P2C_3dArray
-
-!===============================================================================
-  subroutine Get_z_1st_derivative_C2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
@@ -3236,36 +4206,31 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'C2C', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), dm%h1r(dim), d1rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_C2C(:), bd1z_C2C(:), &
-                cd1z_C2C(:), dd1z_C2C(:), noz )
+        call Get_z_1st_derivative_P2P_1D (ibc, fbc, inbr, dd, fi, fo)
         fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_z_1st_derivative_C2C_3dArray
+  end subroutine Get_z_1st_derivative_P2P_3D
 
 !===============================================================================
-  subroutine Get_z_1st_derivative_P2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_z_1st_derivative_C2P_3D(ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3276,76 +4241,31 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'P2P', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), dm%h1r(dim), d1rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_P2P(:), bd1z_P2P(:), &
-                cd1z_P2P(:), dd1z_P2P(:), noz )
+        call Get_z_1st_derivative_C2P_1D (ibc, fbc, inbr, dd, fi, fo)
         fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_z_1st_derivative_P2P_3dArray
-
-!===============================================================================
-  subroutine Get_z_1st_derivative_C2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 3) )
-    real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: dim, noz
-    integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
-!-------------------------------------------------------------------------------
-!  z-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 3
-    noz = size(fo3d, 3)
-
-    fo3d(:, :, :) = ZERO
-    do j = 1, size(fi3d, 2)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'C2P', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), dm%h1r(dim), d1rC2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_C2P(:), bd1z_C2P(:), &
-                cd1z_C2P(:), dd1z_C2P(:), noz )
-        fo3d(i, j, :) = fo(:)
-      end do
-    end do
-
-    return 
-  end subroutine Get_z_1st_derivative_C2P_3dArray
+  end subroutine Get_z_1st_derivative_C2P_3D
 
   !===============================================================================
-  subroutine Get_z_1st_derivative_P2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_z_1st_derivative_P2C_3D(ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3356,39 +4276,48 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_1deri_RHS_array( 'P2C', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), dm%h1r(dim), d1rP2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA( dm%is_periodic(dim), fo(:), ad1z_P2C(:), bd1z_P2C(:), &
-                cd1z_P2C(:), dd1z_P2C(:), noz )
+        call Get_z_1st_derivative_P2C_1D (ibc, fbc, inbr, dd, fi, fo)
         fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return 
-  end subroutine Get_z_1st_derivative_P2C_3dArray
+  end subroutine Get_z_1st_derivative_P2C_3D
 !===============================================================================
-!> \brief To expend to 3D from 1D operation
-!>  for 2nd-derivative
+!> \brief To caculate the 2nd-deriviate in 3D.
+!------------------------------------------------------------------------------- 
+!> Scope:  mpi            called-freq    xdomain     module
+!>       in-given pencil    needed       specified   pubic
 !-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     ixsub         x-subdomain index
+!> \param[in]     ibc           bc type
+!> \param[in]     fbc           bc value
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     fi            the input array of original variable
+!> \param[out]    fo            the output array of interpolated variable
 !===============================================================================
-  subroutine Get_x_2nd_derivative_C2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_x_2nd_derivative_C2C_3D(ixsub, ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:, :)
+    real(WP), intent(inout) :: fo(:, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer(4) :: dim, nox
     integer(4) :: k, j
-!-------------------------------------------------------------------------------
-!  Default input is in x-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not x-pencil")
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3398,27 +4327,27 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_2deri_RHS_array( 'C2C', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), dm%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2x_C2C(:), bd2x_C2C(:), &
-                cd2x_C2C(:), dd2x_C2C(:), nox )
+        call Get_x_2nd_derivative_C2C_1D(ixsub, ibc, fbc, inbr, dd, fi, fo)
         fo3d(:, j, k) = fo(:)
       end do
     end do
 
     return
-  end subroutine Get_x_2nd_derivative_C2C_3dArray
+  end subroutine Get_x_2nd_derivative_C2C_3D
 
   !===============================================================================
-  subroutine Get_x_2nd_derivative_P2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_x_2nd_derivative_P2P_3D(ixsub, ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer(WP), intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi(:, :)
+    real(WP), intent(inout) :: fo(:, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
@@ -3437,26 +4366,63 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Prepare_TDMA_2deri_RHS_array( 'P2P', nox, dm%bc(:, dim), &
-                dm%iNeighb(:, :), dm%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2x_P2P(:), bd2x_P2P(:), &
-                cd2x_P2P(:), dd2x_P2P(:), nox )
+        call Get_x_2nd_derivative_P2P_1D(ixsub, ibc, fbc, inbr, dd, fi, fo)
         fo3d(:, j, k) = fo(:)
       end do
     end do
 
     return
-  end subroutine Get_x_2nd_derivative_P2P_3dArray
+  end subroutine Get_x_2nd_derivative_P2P_3D
 !===============================================================================
-  subroutine Get_y_2nd_derivative_C2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_y_2nd_derivative_C2C_3D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:, 3)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    real(WP)   :: fi( size(fi3d, 2) )
+    real(WP)   :: fo( size(fo3d, 2) )
+    integer(4) :: dim, noy
+    integer(4) :: k, i
+!-------------------------------------------------------------------------------
+!  y-pencil calculation
+!-------------------------------------------------------------------------------
+    dim = 2
+    noy = size(fo3d, 2)
+    fo3d(:, :, :) = ZERO
+    do k = 1, size(fi3d, 3)
+      do i = 1, size(fi3d, 1)
+        fi(:) = fi3d(i, :, k)
+        call Get_y_2nd_derivative_C2C_1D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
+        fo3d(i, :, k) = fo(:)
+      end do
+    end do
+
+    return
+  end subroutine Get_y_2nd_derivative_C2C_3D
+
+!===============================================================================
+  subroutine Get_y_2nd_derivative_P2P_3D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
+    implicit none
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    logical,     intent(in) :: is_stretching
+    real(WP),    intent(in) :: ymapping(:, 3)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -3475,74 +4441,30 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_2deri_RHS_array( 'C2C', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), dm%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2y_C2C(:), bd2y_C2C(:), &
-                cd2y_C2C(:), dd2y_C2C(:), noy )
+        call Get_y_2nd_derivative_P2P_1D(ibc, fbc, inbr, dd, is_stretching, ymapping, fi, fo)
         fo3d(i, :, k) = fo(:)
       end do
     end do
 
     return
-  end subroutine Get_y_2nd_derivative_C2C_3dArray
-
+  end subroutine Get_y_2nd_derivative_P2P_3D
 !===============================================================================
-  subroutine Get_y_2nd_derivative_P2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_z_2nd_derivative_C2C_3D(ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 2) )
-    real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: dim, noy
-    integer(4) :: k, i
-!-------------------------------------------------------------------------------
-!  Default input is in y-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uy_ysz(2) /= dm%np(2)) call Print_error_msg("Error, not Y-pencil")
-!-------------------------------------------------------------------------------
-!  y-pencil calculation
-!-------------------------------------------------------------------------------
-    dim = 2
-    noy = size(fo3d, 2)
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, :, k)
-        call Prepare_TDMA_2deri_RHS_array( 'P2P', noy, dm%bc(:, dim), &
-                dm%jNeighb(:, :), dm%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2y_P2P(:), bd2y_P2P(:), &
-                cd2y_P2P(:), dd2y_P2P(:), noy )
-        fo3d(i, :, k) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_y_2nd_derivative_P2P_3dArray
-!===============================================================================
-  subroutine Get_z_2nd_derivative_C2C_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
-    implicit none
-
-    type(t_domain), intent(in)   :: d
-    real(WP),       intent(in)   :: fi3d(:, :, :)
-    real(WP),       intent(out)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3552,36 +4474,31 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_2deri_RHS_array( 'C2C', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), dm%h2r(dim), d2rC2C(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2z_C2C(:), bd2z_C2C(:), &
-                cd2z_C2C(:), dd2z_C2C(:), noz )
+        call Get_z_2nd_derivative_C2C_1D(ibc, fbc, inbr, dd, fi, fo)
         fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return
-  end subroutine Get_z_2nd_derivative_C2C_3dArray
+  end subroutine Get_z_2nd_derivative_C2C_3D
 
 !===============================================================================
-  subroutine Get_z_2nd_derivative_P2P_3dArray(fi3d, d, fo3d)
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain
-    use tridiagonal_matrix_algorithm, only : Solve_TDMA
+  subroutine Get_z_2nd_derivative_P2P_3D(ibc, fbc, inbr, dd, fi3d, fo3d)
+    use parameters_constant_mod
+    use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
-
-    type(t_domain), intent(in   )  :: d
-    real(WP),       intent(in   )  :: fi3d(:, :, :)
-    real(WP),       intent(inout)  :: fo3d(:, :, :)
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    real(WP),    intent(in) :: dd
+    integer,     intent(in) :: inbr(4, 4)
+    real(WP),    intent(in) :: fi3d(:, :, :)
+    real(WP), intent(inout) :: fo3d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer(4) :: dim, noz
     integer(4) :: j, i
-!-------------------------------------------------------------------------------
-!  Default input is in z-pencil.
-!-------------------------------------------------------------------------------
-    if(dm%uz_zsz(3) /= dm%np(3)) call Print_error_msg("Error, not Z-pencil")
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3591,15 +4508,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Prepare_TDMA_2deri_RHS_array( 'P2P', noz, dm%bc(:, dim), &
-                dm%kNeighb(:, :), dm%h2r(dim), d2rP2P(:, :, :), fi(:), fo(:) )
-        call Solve_TDMA(dm%is_periodic(dim), fo(:), ad2z_P2P(:), bd2z_P2P(:), &
-                cd2z_P2P(:), dd2z_P2P(:), noz )
+        call Get_z_2nd_derivative_P2P_1D(ibc, fbc, inbr, dd, fi, fo)
         fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return
-  end subroutine Get_z_2nd_derivative_P2P_3dArray
+  end subroutine Get_z_2nd_derivative_P2P_3D
 
 end module

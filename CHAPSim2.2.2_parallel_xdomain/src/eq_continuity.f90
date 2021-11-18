@@ -101,20 +101,20 @@ contains
 ! operation in x pencil, du/dx
 !_______________________________________________________________________________
     !call Print_3d_array(ux, nx, ny, nz, 'ux:') ! test
-    call Get_x_1st_derivative_P2C_3dArray( d, ux, div0)
+    call Get_x_1st_derivative_P2C_3D( d, ux, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'du/dx:') ! test
 !-------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !_______________________________________________________________________________
-    call Get_y_1st_derivative_P2C_3dArray( d, uy, div0)
+    call Get_y_1st_derivative_P2C_3D( d, uy, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'dv/dy:')
 
 !-------------------------------------------------------------------------------
 ! operation in z pencil, dv/dz
 !_______________________________________________________________________________
-    call Get_z_1st_derivative_P2C_3dArray( d, uz, div0)
+    call Get_z_1st_derivative_P2C_3D( d, uz, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'dw/dz:')
 

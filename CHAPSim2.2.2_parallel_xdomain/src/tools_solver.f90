@@ -517,7 +517,7 @@ contains
       allocate( varcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       varcp_ypencil = ZERO
 
-      call Get_y_midp_P2C_3dArray ( var_ypencil, dm, varcp_ypencil)
+      call Get_y_midp_P2C_3D ( var_ypencil, dm, varcp_ypencil)
 
       fo = ZERO
       vol = ZERO
@@ -554,7 +554,7 @@ contains
       end if
       allocate( varcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       varcp_ypencil = ZERO
-      call Get_y_midp_C2P_3dArray ( var_ypencil, dm, varcp_ypencil)
+      call Get_y_midp_C2P_3D ( var_ypencil, dm, varcp_ypencil)
 
       fo = ZERO
       vol = ZERO

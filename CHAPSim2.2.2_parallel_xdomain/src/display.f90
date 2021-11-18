@@ -79,11 +79,11 @@ subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
     ! do nothing
   else if (vartp == 1 ) then
     
-    call Get_x_midp_P2C_3dArray( var0,  d, var1 )
+    call Get_x_midp_P2C_3D( var0,  d, var1 )
   else if (vartp == 2) then
-    call Get_y_midp_P2C_3dArray( var0,  d, var1 )
+    call Get_y_midp_P2C_3D( var0,  d, var1 )
   else if (vartp == 3) then
-    call Get_z_midp_P2C_3dArray( var0,  d, var1 )
+    call Get_z_midp_P2C_3D( var0,  d, var1 )
   else 
     call Print_error_msg(" No such direction in Subroutine: "//"Display_vtk_slice")
   end if

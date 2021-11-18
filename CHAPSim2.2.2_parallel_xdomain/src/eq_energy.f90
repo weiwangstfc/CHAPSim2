@@ -37,11 +37,11 @@ contains
     call transpose_x_to_y(f%gz,       gz_ypencil, dm%dccp)  ! intermediate, accp_ypencil = gz_ypencil
     call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp) 
 
-    call Get_x_midp_C2P_3dArray ( t%hEnth, d, hEnth_xpcc )
+    call Get_x_midp_C2P_3D ( t%hEnth, d, hEnth_xpcc )
     call transpose_x_to_y(t%hEnth,   accc_ypencil, dm%dccc)    !intermediate, accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3dArray ( accc_ypencil, d, hEnth_ycpc_ypencil)
+    call Get_y_midp_C2P_3D ( accc_ypencil, d, hEnth_ycpc_ypencil)
     call transpose_y_to_z(accc_ypencil, accc_zpencil, dm%dccc)
-    call Get_z_midp_C2P_3dArray ( accc_zpencil, d, hEnth_zccp_zpencil)
+    call Get_z_midp_C2P_3D ( accc_zpencil, d, hEnth_zccp_zpencil)
 
     call transpose_x_to_y(t%Ttemp,       Ttemp_ypencil, dm%dccc) 
     call transpose_x_to_y(Ttemp_ypencil, Ttemp_zpencil, dm%dccc) 
@@ -55,28 +55,28 @@ contains
 !===============================================================================
     t%ene_rhs = ZERO
 
-    call Get_x_1st_derivative_P2C_3dArray( - f%gx * hEnth_xpcc, d, accc )
+    call Get_x_1st_derivative_P2C_3D( - f%gx * hEnth_xpcc, d, accc )
     t%ene_rhs = t%ene_rhs + accc
 
-    call Get_x_2nd_derivative_C2C_3dArray( t%tTemp,  d, accc )
+    call Get_x_2nd_derivative_C2C_3D( t%tTemp,  d, accc )
     t%ene_rhs = t%ene_rhs + t%kCond * accc
 
-    call Get_x_1st_derivative_C2C_3dArray( t%kCond, d, accc )
-    call Get_x_1st_derivative_C2C_3dArray( t%tTemp, d, accc0 )
+    call Get_x_1st_derivative_C2C_3D( t%kCond, d, accc )
+    call Get_x_1st_derivative_C2C_3D( t%tTemp, d, accc0 )
     t%ene_rhs = t%ene_rhs + accc * accc0
 !===============================================================================
 ! the RHS of energy equation
 ! y-pencil : the RHS terms of energy (derivative) operating in the y direction
 !===============================================================================
     ene_rhs_ypencil = ZERO
-    call Get_y_1st_derivative_P2C_3dArray( - gy_ypencil * hEnth_ycpc_ypencil, d, accc_ypencil )
+    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_ycpc_ypencil, d, accc_ypencil )
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 
-    call Get_y_2nd_derivative_C2C_3dArray( tTemp_ypencil,  d, accc_ypencil )
+    call Get_y_2nd_derivative_C2C_3D( tTemp_ypencil,  d, accc_ypencil )
     ene_rhs_ypencil = ene_rhs_ypencil + kCond_ypencil * accc_ypencil
 
-    call Get_y_1st_derivative_C2C_3dArray( kCond_ypencil, d, accc_ypencil )
-    call Get_y_1st_derivative_C2C_3dArray( tTemp_ypencil, d, accc0_ypencil )
+    call Get_y_1st_derivative_C2C_3D( kCond_ypencil, d, accc_ypencil )
+    call Get_y_1st_derivative_C2C_3D( tTemp_ypencil, d, accc0_ypencil )
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil * accc0_ypencil
 
     call transpose_y_to_x(ene_rhs_ypencil, accc, dm%dccc)
@@ -86,14 +86,14 @@ contains
 ! z-pencil : the RHS terms of energy (derivative) operating in the z direction
 !===============================================================================
     ene_rhs_zpencil = ZERO
-    call Get_z_1st_derivative_P2C_3dArray( - gz_zpencil * hEnth_zccp_zpencil, d, accc_zpencil )
+    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_zccp_zpencil, d, accc_zpencil )
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 
-    call Get_z_2nd_derivative_C2C_3dArray( tTemp_zpencil,  d, accc_ypencil )
+    call Get_z_2nd_derivative_C2C_3D( tTemp_zpencil,  d, accc_ypencil )
     ene_rhs_zpencil = ene_rhs_zpencil + kCond_zpencil * accc_zpencil
 
-    call Get_z_1st_derivative_C2C_3dArray( kCond_zpencil, d, accc_zpencil )
-    call Get_z_1st_derivative_C2C_3dArray( tTemp_zpencil, d, accc0_zpencil )
+    call Get_z_1st_derivative_C2C_3D( kCond_zpencil, d, accc_zpencil )
+    call Get_z_1st_derivative_C2C_3D( tTemp_zpencil, d, accc0_zpencil )
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil * accc0_zpencil
 
     call transpose_z_to_y(ene_rhs_zpencil, ene_rhs_ypencil, dm%dccc)
