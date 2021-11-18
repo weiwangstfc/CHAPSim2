@@ -175,48 +175,114 @@ contains
 !> \param[in]     is_peri      whether the given index array is of periodic b.c.
 !> \param[out]    nbr          the neibouring index in order of -2, -1, +1, +2
 !_______________________________________________________________________________
-  subroutine Buildup_neibour_index(n, is_peri, nbr)
+  subroutine Buildup_npneibour_index(n, ibc, nbr)
+    use parameters_constant_mod
     implicit none
 !===============================================================================
 ! Arguments
 !===============================================================================
     integer(4), intent(in)  :: n
-    logical,    intent(in)  :: is_peri
-    integer(4), intent(out) :: nbr(4, n)
+    integer(4), intent(in)  :: ibc
+    integer(4), intent(inout) :: nbr(4, 4)
 !===============================================================================
 ! Local arguments
 !===============================================================================
-    integer(4) :: i
 !-------------------------------------------------------------------------------
 ! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
 !  i -2       i - 1     i    i + 1      i + 2
 !-------------------------------------------------------------------------------
     nbr(:, :) = huge(i)
 
-    do i = 3, n
-      nbr(1, i) = i - 2
-    end do
+    nbr(1, 3) = 1 + 1
+    nbr(1, 4) = 1 + 2
+    nbr(2, 2) = 2 - 1
+    nbr(2, 3) = 2 + 1 
+    nbr(2, 4) = 2 + 2
+    if(ibc(1) == IBC_PERIODIC) then
+      nbr(1, 1) = n - 1 ! 1'-2' = -1'
+      nbr(1, 2) = n     ! 1'-1' = 0'
+      nbr(2, 1) = n     ! 2'-2' = 0'
+    else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
+      nbr(1, 1) = 3 ! 1'-2' = -1'
+      nbr(1, 2) = 2     ! 1'-1' = 0'
+      nbr(2, 1) = 2     ! 2'-2' = 0'
+    else
+      ! do nothing, should not be used. 
+    end if
 
-    do i = 2, n
-      nbr(2, i) = i - 1
-    end do
+    nbr(n, 1) = n - 2
+    nbr(n, 2) = n - 1
+    nbr(n - 1, 1) = n - 1 - 2
+    nbr(n - 1, 2) = n - 1 - 1
+    nbr(n - 1, 3) = n - 1 + 1
 
-    do i = 1, n-1
-      nbr(3, i) = i + 1
-    end do
+    if(ibc(2) == IBC_PERIODIC) then 
+      nbr(n, 3) = 1   ! n' + 1 
+      nbr(n, 4) = 2   ! n' + 2 
+      nbr(n - 1, 4) = 1 ! n' - 1 + 2 = n' + 1 
+    else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
+      nbr(n, 3) = n - 1   ! n' + 1 
+      nbr(n, 4) = n - 2   ! n' + 2 
+      nbr(n - 1, 4) = n - 1 ! n' - 1 + 2 = n' + 1 
+    else
+      ! do nothing, should not be used. 
+    end if
 
-    do i = 1, n-2
-      nbr(4, i) = i + 2
-    end do
+    return
+  end subroutine
 
-    if(is_peri) then
-      nbr(1, 1)   = n-1  ! -2, i = 1
-      nbr(1, 2)   = n    ! -2, i = 2
-      nbr(2, 1)   = n    ! -1, i = 1
-      
-      nbr(3, n)   = 1    ! +1, i = n
-      nbr(4, n)   = 2    ! +2, i = n
-      nbr(4, n-1) = 1    ! +2, i = n-1
+!_______________________________________________________________________________
+  subroutine Buildup_ncneibour_index(n, ibc, nbr)
+    use parameters_constant_mod
+    implicit none
+!===============================================================================
+! Arguments
+!===============================================================================
+    integer(4), intent(in)  :: n
+    integer(4), intent(in)  :: ibc
+    integer(4), intent(inout) :: nbr(4, 4)
+!===============================================================================
+! Local arguments
+!===============================================================================
+!-------------------------------------------------------------------------------
+! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
+!  i -2       i - 1     i    i + 1      i + 2
+!-------------------------------------------------------------------------------
+    nbr(:, :) = huge(i)
+
+    nbr(1, 3) = 1 + 1
+    nbr(1, 4) = 1 + 2
+    nbr(2, 2) = 2 - 1
+    nbr(2, 3) = 2 + 1 
+    nbr(2, 4) = 2 + 2
+    if(ibc(1) == IBC_PERIODIC) then
+      nbr(1, 1) = n - 1 ! 1-2 = -1
+      nbr(1, 2) = n     ! 1-1 = 0
+      nbr(2, 1) = n     ! 2-2 = 0
+    else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
+      nbr(1, 1) = 2     ! 1-2 = -1
+      nbr(1, 2) = 1     ! 1-1 = 0
+      nbr(2, 1) = 1     ! 2-2 = 0
+    else
+      ! do nothing, should not be used. 
+    end if
+
+    nbr(n, 1) = n - 2
+    nbr(n, 2) = n - 1
+    nbr(n - 1, 1) = n - 1 - 2
+    nbr(n - 1, 2) = n - 1 - 1
+    nbr(n - 1, 3) = n - 1 + 1
+
+    if(ibc(2) == IBC_PERIODIC) then 
+      nbr(n, 3) = 1   ! n + 1 
+      nbr(n, 4) = 2   ! n + 2 
+      nbr(n - 1, 4) = 1 ! n - 1 + 2 = n + 1 
+    else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
+      nbr(n, 3) = n   ! n + 1 
+      nbr(n, 4) = n - 1   ! n + 2 
+      nbr(n - 1, 4) = n ! n - 1 + 2 = n + 1 
+    else
+      ! do nothing, should not be used. 
     end if
 
     return
@@ -266,14 +332,15 @@ contains
     dm%h2r(:) = ONE / dm%h(:) / dm%h(:)
     dm%h1r(:) = ONE / dm%h(:)
 
-    !build up index sequence for bulk part (no b.c. except periodic)
-    allocate ( dm%iNeighb( 4, dm%np(1) ) ); dm%iNeighb =  0
-    allocate ( dm%jNeighb( 4, dm%np(2) ) ); dm%jNeighb =  0
-    allocate ( dm%kNeighb( 4, dm%np(3) ) ); dm%kNeighb =  0
+    !build up index sequence for boundary part
 
-    call Buildup_neibour_index (dm%np(1), dm%is_periodic(1), dm%iNeighb(:, :) )
-    call Buildup_neibour_index (dm%np(2), dm%is_periodic(2), dm%jNeighb(:, :) )
-    call Buildup_neibour_index (dm%np(3), dm%is_periodic(3), dm%kNeighb(:, :) )
+    call Buildup_npneibour_index (dm%np(1), dm%ibcx(1,1:2), dm%ipnbr(:, :) )
+    call Buildup_npneibour_index (dm%np(2), dm%ibcy(1,1:2), dm%jpnbr(:, :) )
+    call Buildup_npneibour_index (dm%np(3), dm%ibcz(1,1:2), dm%kpnbr(:, :) )
+
+    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1,1:2), dm%icnbr(:, :) )
+    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1,1:2), dm%jcnbr(:, :) )
+    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1,1:2), dm%kcnbr(:, :) )
 
     ! allocate  variables for mapping physical domain to computational domain
     allocate ( dm%yp( dm%np_geo(2) ) ); dm%yp(:) = ZERO

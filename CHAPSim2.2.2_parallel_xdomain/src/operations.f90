@@ -1505,237 +1505,240 @@ contains
     return
   end subroutine Prepare_LHS_coeffs_for_operations
 !===============================================================================
+!> \brief Preparing the RHS array for the TDMA algorithm for interpolation.
+!>
+!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
+!> for the interpolation.
+!>
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! interpolation. P2C: periodic
+! [ 1     alpha                       alpha] [f_1] = [a/2 * ( f_{1'}   + f_{2'}   ) + b/2 * ( f_{3'}   + f_{n'}   ) ]
+! [       alpha  1      alpha              ] [f_2]   [a/2 * ( f_{2'}   + f_{3'}   ) + b/2 * ( f_{4'}   + f_{1'}   ) ]
+! [              alpha  1      alpha       ] [f_i]   [a/2 * ( f_{i'}   + f_{i'+1} ) + b/2 * ( f_{i'+2} + f_{i'-1} ) ]
+! [                     alpha  1      alpha] [f_4]   [a/2 * ( f_{n'-1} + f_{n'}   ) + b/2 * ( f_{1'}   + f_{n'-2} ) ]
+! [alpha                       alpha  1    ] [f_5]   [a/2 * ( f_{n'}   + f_{1'}   ) + b/2 * ( f_{2'}   + f_{n'-1} ) ]
+!-----------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! interpolation. P2C: Dirichlet
+! [ 1     alpha1                              ] [f_1] = [a *  f_{1'}   + b * f_{2'} + c * f_{3'}                       ]
+! [alpha2 1      alpha2                       ] [f_2]   [a/2 * ( f_{2'}   + f_{3'}   )                                 ] 
+! [              alpha  1       alpha         ] [f_i]   [a/2 * ( f_{i'}   + f_{i'+1} ) + b/2 * ( f_{i'+2} + f_{i'-1} ) ]
+! [                     alpha2  1       alpha2] [f_4]   [a/2 * ( f_{n'-1} + f_{n'}   )                                 ]
+! [                             alpha1  1     ] [f_5]   [a *  f_{n'+1}   + b * f_{n'}  + c * f_{n'-1}                  ]
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n             the number of unknowns, nc
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
+!> \param[in]     coeff         the defined TDMA coefficients
+!> \param[in]     fi            the input variable to build up the RHS array
+!> \param[out]    fo            the output RHS array
+!===============================================================================
+  subroutine Prepare_TDMA_interp_P2C_RHS_array(n, ibc, fbc, inbr, coeff, fi, fo)
+    use parameters_constant_mod
+    implicit none
+    integer(4),   intent(in) :: n ! unknow numbers
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
+    integer(4),   intent(in) :: inbr(4, 4)
+    real(WP),     intent(in) :: coeff(5, 3, 4)
+    real(WP),     intent(in) :: fi(:)
+    real(WP),     intent(out):: fo(n)
+
+    integer(4) :: i
+    integer(4) :: im2, im1, ip1, ip2
+    real(WP) :: fsign1, fsign2
+
+
+    fo(:) = ZERO
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = 1, 2
+!-------------------------------------------------------------------------------
+    if(ibc(1) == IBC_PERIODIC .or. ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(i == 1 .and. ibc(1) == IBC_ASYMMETRIC) fsign1 = - ONE
+        fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(ip1) + fi(i) ) + &
+                coeff( 3, 2, ibc(1) ) * ( fi(ip2) + fi(im1) * fsign1 )
+      end do
+    else ! all other b.c.
+      fo(1) = coeff( 1, 1, ibc(1) ) * fi(1) + &
+              coeff( 1, 2, ibc(1) ) * fi(2)  + &
+              coeff( 1, 3, ibc(1) ) * fi(3) 
+      fo(2) = coeff( 2, 1, ibc(1) ) * ( fi(2) + fi(3) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    if(ibc(2) == IBC_PERIODIC .or. ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = n-1, n
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        ip2 = inbr(i, 4)
+        if(i == n .and. ibc(2) == IBC_ASYMMETRIC) then
+          fsign1 = - ONE
+          fsign2 = - ONE
+        end if
+        if(i == n - 1 .and. ibc(2) == IBC_ASYMMETRIC) then
+          fsign2 = - ONE
+        end if
+        fo(i) = coeff( 3, 1, bc(2) ) * ( fsign1 * fi(ip1) + fi(i)   ) + &
+                coeff( 3, 2, bc(2) ) * ( fsign2 * fi(ip2) + fi(im1) )
+      end do
+    else ! all other b.c.
+      fo(n) = coeff( 5, 1, bc(2) ) * fi(n + 1) + &
+              coeff( 5, 2, bc(2) ) * fi(n    ) + &
+              coeff( 5, 3, bc(2) ) * fi(n - 1) 
+      fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n) + fi(n - 1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+
+      fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(ip1) + fi(i  ) ) + &
+              coeff( 3, 2, ibc(1) ) * ( fi(ip2) + fi(im1) )
+    end do
+
+    return
+  end subroutine Prepare_TDMA_interp_P2C_RHS_array
+
 !===============================================================================
 !> \brief Preparing the RHS array for the TDMA algorithm for interpolation.
 !>
 !> This subroutine is called repeatly to update the RHS of the TDMA algorithm
 !> for the interpolation.
 !>
+!> Y: index arrangment
+!>      j'-1   j'-1  j'    j'+1  j'+2
+!>      _|__.__|__.__|__.__|__.__|__.__
+!>         j-2   j-1   j     j+1    j+2
+!-------------------------------------------------------------------------------
+! interpolation. C2P: periodic
+! [ 1    alpha                   alpha][f_1']=[a/2 * (f_{1}   + f_{n})   + b/2 * (f_{2}   + f_{n-1})]
+! [      alpha 1     alpha            ][f_2'] [a/2 * (f_{2}   + f_{1})   + b/2 * (f_{3}   + f_{n})  ]
+! [            alpha 1     alpha      ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
+! [                  alpha 1     alpha][f_4'] [a/2 * (f_{n-1} + f_{n-2}) + b/2 * (f_{n}   + f_{n-3})]
+! [alpha                   alpha 1    ][f_5'] [a/2 * (f_{1}   + f_{n-2}) + b/2 * (f_{n}   + f_{n-1})]
+!-----------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! interpolation. C2P: Dirichlet
+! [ 1    alpha1                          ][f_1']=[a1 * f_{1} + b1 * f_{2} + c1 * f_{3}  ]
+! [      alpha2 1     alpha2             ][f_2'] [a2/2 * (f_{2}   + f_{1})]
+! [             alpha 1      alpha       ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
+! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n-1}   + f_{n-2})]
+! [                          alpha1 1    ][f_5'] [a1 * f_{n-1} + b1 * f_{n-2} + c1 * f_{n-3}]
+!-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     str           string to flag interpolation type, C2P or P2C
-!> \param[in]     n             the number of unknowns
-!> \param[in]     bc            the b.c. at two ends of the unknown array
-!> \param[in]     inbr          the neibouring index of unknown index
+!> \param[in]     n             the number of unknowns, nc
+!> \param[in]    ibc            the b.c. type at two ends of the unknown array
+!> \param[in]     inbr          the neibouring index of 4 bc nodes
 !> \param[in]     coeff         the defined TDMA coefficients
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
-!_______________________________________________________________________________
-  subroutine Prepare_TDMA_interp_RHS_array(str, n, bc, inbr, coeff, fi, fo)
 !===============================================================================
-! Module files
-!===============================================================================
+  subroutine Prepare_TDMA_interp_C2P_RHS_array(n, ibc, fbc, inbr, coeff, fi, fo)
     use parameters_constant_mod
-    use input_general_mod
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
-    character(3), intent(in) :: str
     integer(4),   intent(in) :: n ! unknow numbers
-    integer(4),   intent(in) :: bc(2)
-    integer(4),   intent(in) :: inbr(:, :)
+    integer(4),   intent(in) :: ibc(2)
+    real(WP),     intent(in) :: fbc(2)
+    integer(4),   intent(in) :: inbr(4, 4)
     real(WP),     intent(in) :: coeff(5, 3, 4)
     real(WP),     intent(in) :: fi(:)
     real(WP),     intent(out):: fo(n)
-!===============================================================================
-! Local arguments
-!===============================================================================
+
     integer(4) :: i
     integer(4) :: im2, im1, ip1, ip2
-    logical :: fbc = .false.
-    real(WP) :: fsign
-!===============================================================================
-! Code
-!===============================================================================
-    ! initilisation
+    real(WP) :: fsign1, fsign2
+
+
     fo(:) = ZERO
 !-------------------------------------------------------------------------------
-! bulk body for i from 2 to n-1
-! bulk body and b.c. for periodic b.c.
+!   boundary at the side of i = 1, 2
 !-------------------------------------------------------------------------------
-    do i = 1, n
-      ! exclude non-periodic b.c. at both sides
-      fbc = (i == 1 .or. i == 2 .or. i == n-1 .or. i==n)
-      if( (.not. bc(1)==IBC_PERIODIC) .and. fbc) cycle
+    if(ibc(1) == IBC_PERIODIC .or. ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = 1, 2
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        if(i == 1 .and. ibc(1) == IBC_ASYMMETRIC) then 
+          fsign1 = - ONE
+          fsign2 = - ONE
+        end if
+        if (i == 2 .and. ibc(1) == IBC_ASYMMETRIC) then 
+          fsign2 = - ONE
+        end if
+        fo(i) = coeff( 3, 1, ibc(1) ) * ( fi(i  ) + fsign1 * fi(im1) ) + &
+                coeff( 3, 2, ibc(1) ) * ( fi(ip1) + fsign2 * fi(im2) )
+      end do
+    else ! all other b.c.
+      fo(1) = coeff( 1, 1, ibc(1) ) * fi(1) + &
+              coeff( 1, 2, ibc(1) ) * fi(2)  + &
+              coeff( 1, 3, ibc(1) ) * fi(3) 
+      fo(2) = coeff( 2, 1, ibc(1) ) * ( fi(2) + fi(1) )
+    end if
+!-------------------------------------------------------------------------------
+!   boundary at the side of i = n, n-1
+!-------------------------------------------------------------------------------
+    if(ibc(2) == IBC_PERIODIC .or. ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC ) then
+      fsign1 = ONE
+      fsign2 = ONE
+      do i = n-1, n
+        im2 = inbr(i, 1)
+        im1 = inbr(i, 2)
+        ip1 = inbr(i, 3)
+        if(i == n .and. ibc(1) == IBC_ASYMMETRIC) then 
+          fsign1 = - ONE
+        end if
+        fo(i) = coeff( 3, 1, ibc(2) ) * (          fi(i  ) + fi(im1) ) + &
+                coeff( 3, 2, ibc(2) ) * ( fsign1 * fi(ip1) + fi(im2) )
+      end do
+    else ! all other b.c.
+      fo(n)   = coeff( 4, 1, ibc(2) ) * fi(1) + &
+                coeff( 4, 2, ibc(2) ) * fi(2)  + &
+                coeff( 4, 3, ibc(2) ) * fi(3) 
+      fo(n-1) = coeff( 5, 1, ibc(2) ) * ( fi(2) + fi(1) )
+    end if
+!-------------------------------------------------------------------------------
+!   bulk area
+!-------------------------------------------------------------------------------
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
 
-      im2 = inbr(1, i)
-      im1 = inbr(2, i)
-      ip1 = inbr(3, i)
-      ip2 = inbr(4, i)
-
-      if (str == 'P2C') then
-        fo(i) = coeff( 3, 1, bc(1) ) * ( fi(ip1) + fi(i) ) + &
-                coeff( 3, 2, bc(1) ) * ( fi(ip2) + fi(im1) )
-      else if (str == 'C2P') then
-        fo(i) = coeff( 3, 1, bc(1) ) * ( fi(i) + fi(im1) ) + &
-                coeff( 3, 2, bc(1) ) * ( fi(ip1) + fi(im2) )
-      else 
-        call Print_error_msg("Error input in prepare_FD_TDMA_RHS in Subroutine: " // &
-        "Prepare_TDMA_interp_RHS_array")
-      end if
-
+      fo(i) = coeff( 3, 1, ibc(2) ) * ( fi(i  ) + fi(im1) ) + &
+              coeff( 3, 2, ibc(2) ) * ( fi(ip1) + fi(im2) )
     end do
-!-------------------------------------------------------------------------------
-! boundary at the side of i = 1
-!-------------------------------------------------------------------------------
-    if (bc(1) == IBC_PERIODIC) then
-      ! do nothing
-    else if (bc(1) == IBC_ASYMMETRIC .or. bc(1) == IBC_SYMMETRIC) then
-      if (bc(1) == IBC_ASYMMETRIC) then
-        fsign = - ONE
-      else 
-        fsign = ONE
-      end if
-
-      if (str == 'P2C') then
-        i = 1
-        im2 = 3 ! -1'
-        im1 = 2 ! 0'
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) +         fi(i) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) + fsign * fi(im1) )
-
-        i = 2
-        im2 = 2 ! 0'
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(ip1) + fi(i) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip2) + fi(im1) )
-
-      else if (str == 'C2P') then
-
-        i = 1
-        im2 = 2 ! -1
-        im1 = 1 ! 0
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(i)   + fsign * fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip1) + fsign * fi(im2) )
-
-        i = 2
-        im2 = 1 ! 0
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(1) ) * ( fi(i)   +         fi(im1) ) + &
-                coeff( i, 2, bc(1) ) * ( fi(ip1) + fsign * fi(im2) )
-
-      else 
-        call Print_error_msg("Error input in prepare_FD_TDMA_RHS in Subroutine: " // &
-        "Prepare_TDMA_interp_RHS_array")
-      end if
-
-    else if (bc(1) == IBC_UDIRICHLET) then
-      
-      if (str == 'P2C') then
-
-        fo(1) = coeff( 1, 1, bc(1) ) * fi(1) + &
-                coeff( 1, 2, bc(1) ) * fi(2)  + &
-                coeff( 1, 3, bc(1) ) * fi(3) 
-        fo(2) = coeff( 2, 1, bc(1) ) * ( fi(3) + fi(2) )
-
-      else if (str == 'C2P') then
-
-        fo(1) = coeff( 1, 1, bc(1) ) * fi(1) + &
-                coeff( 1, 2, bc(1) ) * fi(2)  + &
-                coeff( 1, 3, bc(1) ) * fi(3) 
-        fo(2) = coeff( 2, 1, bc(1) ) * ( fi(2) + fi(1) )
-        
-      else 
-        call Print_error_msg("Error input in prepare_FD_TDMA_RHS in Subroutine: " // &
-        "Prepare_TDMA_interp_RHS_array")
-      end if
-
-    else 
-      call Print_error_msg("No Such Boundary Defined in Subroutine: " // &
-      "Prepare_TDMA_interp_RHS_array")
-    end if
-!-------------------------------------------------------------------------------
-! boundary at the side of i = n
-!-------------------------------------------------------------------------------
-    if (bc(2) == IBC_PERIODIC) then
-      ! do nothing
-    else if (bc(2) == IBC_ASYMMETRIC .or. bc(2) == IBC_SYMMETRIC) then
-      if (bc(2) == IBC_ASYMMETRIC) then
-        fsign = - ONE
-      else 
-        fsign = ONE
-      end if
-
-      if (str == 'P2C') then
-        i = n
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1 
-        ip2 = n     ! n' + 2
-        fo(i) = coeff( i, 1, bc(2) ) * (         fi(ip1) + fi(i) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip2) + fi(im1) )
-
-        i = n - 1
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = i + 2
-        fo(i) = coeff( i, 1, bc(2) ) * ( fi(ip1) + fi(i) ) + &
-                coeff( i, 2, bc(2) ) * ( fi(ip2) + fi(im1) )
-
-      else if (str == 'C2P') then
-
-        i = n
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = n     ! n + 1
-        ip2 = n - 1 ! n + 2
-        fo(i) = coeff( i, 1, bc(2) ) * (         fi(i)   + fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fsign * fi(ip1) + fi(im2) )
-
-        i = n - 1
-        im2 = i - 2
-        im1 = i - 1
-        ip1 = i + 1
-        ip2 = n ! n + 1
-        fo(i) = coeff( i, 1, bc(2) ) * ( fi(i)   + fi(im1) ) + &
-                coeff( i, 2, bc(2) ) * ( fi(ip1) + fi(im2) )
-
-      else 
-        call Print_error_msg("Error input in prepare_FD_TDMA_RHS in Subroutine: " // &
-        "Prepare_TDMA_interp_RHS_array")
-      end if
-
-    else if (bc(2) == IBC_UDIRICHLET) then
-      
-      if (str == 'P2C') then
-
-        fo(n) = coeff( 5, 1, bc(2) ) * fi(n + 1) + &
-                coeff( 5, 2, bc(2) ) * fi(n    ) + &
-                coeff( 5, 3, bc(2) ) * fi(n - 1) 
-        fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n) + fi(n - 1) )
-
-      else if (str == 'C2P') then
-
-        fo(n) = coeff( 5, 1, bc(2) ) * fi(n - 1) + &
-                coeff( 5, 2, bc(2) ) * fi(n - 2) + &
-                coeff( 5, 3, bc(2) ) * fi(n - 3) 
-        fo(n - 1) = coeff( 4, 1, bc(2) ) * ( fi(n - 1) + fi(n - 2) )
-        
-      else 
-        call Print_error_msg("Error input in prepare_FD_TDMA_RHS in Subroutine: " // &
-        "Prepare_TDMA_interp_RHS_array")
-      end if
-
-    else 
-      call Print_error_msg("No Such Boundary Defined in Subroutine: " // &
-      "Prepare_TDMA_interp_RHS_array")
-    end if
 
     return
-  end subroutine Prepare_TDMA_interp_RHS_array
+  end subroutine Prepare_TDMA_interp_C2P_RHS_array
 !===============================================================================
 !===============================================================================
 !> \brief Preparing the RHS array for the TDMA algorithm for 1st derivative.
@@ -2194,19 +2197,44 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !_______________________________________________________________________________
-  subroutine Get_x_midp_C2P_1D (dm, fi, fo)
+  subroutine Get_x_midp_C2P_1D (ixsub, ibc, fbc, inbr, fi, fo)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    type(t_domain), intent(in) :: dm
-    character(1),   intent(in) :: str1
-    character(3),   intent(in) :: str2
-    real(WP),       intent(in) :: fi(:)
-    real(WP),       intent(out):: fo(:)
+    integer,     intent(in) :: ixsub 
+    integer,     intent(in) :: ibc(2)
+    real(WP),    intent(in) :: fbc(2)
+    integer(WP), intent(in) :: inbr(4, :)
+    real(WP),    intent(in) :: fi(:)
+    real(WP), intent(inout) :: fo(:)
+
     integer(4) :: i, nsz
+    logical :: is_period
 
     nsz = size(fo)
+    fo = ZERO
+
+    call Prepare_TDMA_interp_RHS_array('C2P', nsz, ibc(:), fbc(:), inbr(:, :), &
+                                        m1rC2P(:, :, :), fi(:), fo(:) )
+
+    if (ibc(1) == IBC_PERIODIC) then
+      is_periodic = .true.
+    else
+      is_periodic = .false.
+    end if
+
+    call Solve_TDMA(is_periodic, fo(:), &
+          xtdma_lhs(ixsub)%am1x_C2P(:), &
+          xtdma_lhs(ixsub)%bm1x_C2P(:), &
+          xtdma_lhs(ixsub)%cm1x_C2P(:), &
+          xtdma_lhs(ixsub)%dm1x_C2P(:), &
+          nsz)
+
+    return
+  end subroutine 
+
+
 
     if(str1=='x') then
       i = 1
