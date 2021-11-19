@@ -192,6 +192,7 @@ contains
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
     if (dm%ithermo == 1) then
       call Initialize_thermal_variables (fl, tm)
+      call Apply_BC_thermo(fl, tm)
     else
       fl%dDens  (:, :, :) = ONE
       fl%mVisc  (:, :, :) = ONE
@@ -253,9 +254,9 @@ contains
     !call Display_vtk_slice(d, 'zx', 'w', 3, qz)
     !call Display_vtk_slice(d, 'zx', 'p', 0, pres)
 
-    call Display_vtk_slice(d, 'xy', 'u', 1, fl%qx, 0)
-    call Display_vtk_slice(d, 'xy', 'v', 2, fl%qy, 0)
-    call Display_vtk_slice(d, 'xy', 'w', 0, fl%pres, 0)
+    !call Display_vtk_slice(dm, 'xy', 'u', 1, fl%qx, 0)
+    !call Display_vtk_slice(dm, 'xy', 'v', 2, fl%qy, 0)
+    !call Display_vtk_slice(dm, 'xy', 'w', 0, fl%pres, 0)
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -504,14 +505,16 @@ contains
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Get_volumetric_average_3d(ux, dm%dpcc, dm, ubulk)
+    call Get_volumetric_average_3d(.false., dm%ibcx(:), dm%fbcx(:), &
+          dm%jcnbr(:, :), dm%yp(:), dm%yc(:), dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(ux, dm%dpcc, dm, ubulk)
+    call Get_volumetric_average_3d(.false., dm%ibcx(:), dm%fbcx(:), &
+    dm%jcnbr(:, :), dm%yp(:), dm%yc(:), dm%dpcc, ux, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil
 !-------------------------------------------------------------------------------
-      call transpose_x_to_y(ux, ux_ypencil, dm%dpcc)
+    call transpose_x_to_y(ux, ux_ypencil, dm%dpcc)
 !-------------------------------------------------------------------------------
 !   Y-pencil : write out velocity profile
 !-------------------------------------------------------------------------------
@@ -606,13 +609,13 @@ contains
   end subroutine Initialize_vortexgreen_2dflow
 !===============================================================================
 !===============================================================================
-  subroutine  Validate_TGV2D_error(ux, uy, p, rre, tt, d)
+  subroutine  Validate_TGV2D_error(ux, uy, p, rre, tt, dm)
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
     implicit none
 
-    type(t_domain),    intent(in) :: d
+    type(t_domain),    intent(in) :: dm
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      p (:, :, :)
@@ -623,24 +626,23 @@ contains
     real(wp) :: xc, yc, xp, yp
     real(wp) :: uerrmax, verrmax, perrmax
 
+    type(DECOMP_INFO) :: dtmp
     integer :: output_unit
     character( len = 128) :: filename
     logical :: file_exists = .FALSE.
-!-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
-!-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
+
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of ux
 !-------------------------------------------------------------------------------
+    dtmp = dm%dpcc
     uerr = ZERO
     uerrmax = ZERO
-    do k = 1, dm%ux_xsz(3)
-      do j = 1, dm%ux_xsz(2)
-        jj = dm%ux_xst(2) + j - 1
+    do k = 1, dtmp%xsz(3)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
-        do i = 1, dm%ux_xsz(1)
-          ii = dm%ux_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xp = dm%h(1) * real(ii - 1, WP)
           uc = ux(i, j, k)
           ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * rre * tt)
@@ -657,14 +659,15 @@ contains
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of uy
 !-------------------------------------------------------------------------------
+    dtmp = dm%dcpc
     verr = ZERO
     verrmax = ZERO
-    do k = 1, dm%uy_xsz(3)
-      do j = 1, dm%uy_xsz(2)
-        jj = dm%uy_xst(2) + j - 1
+    do k = 1, dtmp%xsz(3)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yp = dm%yp(jj)
-        do i = 1, dm%uy_xsz(1)
-          ii = dm%uy_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uc = uy(i, j, k)
           ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * fl%rre * fl%time)
@@ -681,14 +684,15 @@ contains
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of p
 !-------------------------------------------------------------------------------
+    dtmp = dm%dccc
     perr = ZERO
     perrmax = ZERO
-    do k = 1, dm%ps_xsz(3)
-      do j = 1, dm%ps_xsz(2)
-        jj = dm%ps_xst(2) + j - 1
+    do k = 1, dtmp%xsz(3)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
-        do i = 1, dm%ps_xsz(1)
-          ii = dm%ps_xst(1) + i - 1
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uc = p(i, j, k)
           ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * fl%rre * fl%time))**2

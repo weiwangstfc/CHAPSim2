@@ -5,22 +5,29 @@ module boundary_conditions_mod
 
 contains
 
-  subroutine Apply_BC_thermo(t, d)
-    use input
+  subroutine Apply_BC_thermo(dm, th)
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(in )   :: dm
+    type(t_thermo), intent(inout) :: th
+
+    integer :: i 
+
 !-------------------------------------------------------------------------------
 !   Build up B.C. info, undimensional, constant temperature
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if( dm%ibcx(5, i) = IBC_DIRICHLET ) then
-        tpbcx(i)%t = dm%fbcx(5, i) / t%t0Ref
+        tpbcx(i)%t = dm%fbcx(5, i) / th%t0Ref
         call tpbcx(i)%Refresh_thermal_properties_from_T_undim
       end if
       if( dm%ibcy(5, i) = IBC_DIRICHLET ) then
-        tpbcy(i)%t = dm%fbcy(5, i) / t%t0Ref
+        tpbcy(i)%t = dm%fbcy(5, i) / tm%t0Ref
         call tpbcy(i)%Refresh_thermal_properties_from_T_undim
       end if
       if( dm%ibcz(5, i) = IBC_DIRICHLET ) then
-        tpbcz(i)%t = dm%fbcz(5, i) / t%t0Ref
+        tpbcz(i)%t = dm%fbcz(5, i) / tm%t0Ref
         call tpbcz(i)%Refresh_thermal_properties_from_T_undim
       end if
     end do
@@ -41,10 +48,8 @@ contains
 !> \param[out]    f             flow
 !===============================================================================
   subroutine Apply_BC_velocity (dm, ux, uy, uz)
-    use precision_mod
-    use parameters_constant_mod, only : ZERO
-    use udf_type_mod, only : t_domain, t_flow
-    use input_general_mod, only : IBC_UDIRICHLET
+    use parameters_constant_mod
+    use udf_type_mod
     implicit none
     type(t_domain), intent(in )   :: dm
     real(WP), intent(inout)       :: ux(:, :, :), &
@@ -59,7 +64,7 @@ contains
     dtmp = dm%dpcc
     m = 1
     n = 1
-    if(dm%ibcx(m, n) == IBC_UDIRICHLET) then
+    if(dm%ibcx(m, n) == IBC_DIRICHLET) then
       if(dtmp%xst(m) == 1) then
         ux(dtmp%xst(m), :, :) = dm%fbcx(m, n)
       end if
@@ -68,7 +73,7 @@ contains
 !   ux at x-pencil , x-id = np
 !-------------------------------------------------------------------------------
     n = 2
-    if(dm%ibcx(m, n) == IBC_UDIRICHLET) then
+    if(dm%ibcx(m, n) == IBC_DIRICHLET) then
       if(dtmp%xen(m) == dm%np(m)) then
         ux(dtmp%xen(m), :, :) = dm%fbcx(m, n)
       end if
@@ -79,7 +84,7 @@ contains
     dtmp = dm%dcpc
     m = 2
     n = 1
-    if(dm%ibcy(m, n) == IBC_UDIRICHLET) then
+    if(dm%ibcy(m, n) == IBC_DIRICHLET) then
       if(dtmp%xst(m) == 1) then
         uy(:, dtmp%xst(m), :) = dm%fbcy(m, n)
       end if
@@ -88,7 +93,7 @@ contains
 !   uy at x-pencil , y-id = np
 !-------------------------------------------------------------------------------
     n = 2
-    if(dm%ibcy(m, n) == IBC_UDIRICHLET) then
+    if(dm%ibcy(m, n) == IBC_DIRICHLET) then
       if(dtmp%xen(m) == dm%np(m)) then
         uy(:, dtmp%xsz(m), :) = dm%fbcy(m, n)
       end if
@@ -99,7 +104,7 @@ contains
     dtmp = dm%dccp
     m = 3
     n = 1
-    if(dm%ibcz(m, n) == IBC_UDIRICHLET) then
+    if(dm%ibcz(m, n) == IBC_DIRICHLET) then
       if(dtmp%xst(m) == 1) then
         uz(:, :, dtmp%xst(m)) = dm%fbcz(m, n)
       end if
@@ -108,7 +113,7 @@ contains
 !   uz at x-pencil , y-id = np
 !-------------------------------------------------------------------------------
     n = 2
-    if(dm%ibcz(m, n) == IBC_UDIRICHLET) then
+    if(dm%ibcz(m, n) == IBC_DIRICHLET) then
       if(dtmp%xen(m) == dm%np(m)) then
         uz(:, :, dtmp%xsz(m)) = dm%fbcz(m, n)
       end if

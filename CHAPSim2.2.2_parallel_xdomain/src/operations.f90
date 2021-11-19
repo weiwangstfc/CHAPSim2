@@ -473,45 +473,45 @@ contains
 ! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
 ! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
 !-------------------------------------------------------------------------------
-    d1fC2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
-    d1fC2C(1, 2, IBC_UDIRICHLET) = ONE
-    d1fC2C(1, 3, IBC_UDIRICHLET) = alpha1
-    d1rC2C(1, 1, IBC_UDIRICHLET) = a1
-    d1rC2C(1, 2, IBC_UDIRICHLET) = b1
-    d1rC2C(1, 3, IBC_UDIRICHLET) = c1
+    d1fC2C(1, 1, IBC_DIRICHLET) = ZERO ! not used
+    d1fC2C(1, 2, IBC_DIRICHLET) = ONE
+    d1fC2C(1, 3, IBC_DIRICHLET) = alpha1
+    d1rC2C(1, 1, IBC_DIRICHLET) = a1
+    d1rC2C(1, 2, IBC_DIRICHLET) = b1
+    d1rC2C(1, 3, IBC_DIRICHLET) = c1
 
-    d1fC2C(2, 1, IBC_UDIRICHLET) = alpha2
-    d1fC2C(2, 2, IBC_UDIRICHLET) = ONE
-    d1fC2C(2, 3, IBC_UDIRICHLET) = alpha2
-    d1rC2C(2, 1, IBC_UDIRICHLET) = a2 / TWO
-    d1rC2C(2, 2, IBC_UDIRICHLET) = b2 / FOUR ! not used
-    d1rC2C(2, 3, IBC_UDIRICHLET) = c2        ! not used
+    d1fC2C(2, 1, IBC_DIRICHLET) = alpha2
+    d1fC2C(2, 2, IBC_DIRICHLET) = ONE
+    d1fC2C(2, 3, IBC_DIRICHLET) = alpha2
+    d1rC2C(2, 1, IBC_DIRICHLET) = a2 / TWO
+    d1rC2C(2, 2, IBC_DIRICHLET) = b2 / FOUR ! not used
+    d1rC2C(2, 3, IBC_DIRICHLET) = c2        ! not used
 
-    d1fC2C(3, 1, IBC_UDIRICHLET) = alpha
-    d1fC2C(3, 2, IBC_UDIRICHLET) = ONE
-    d1fC2C(3, 3, IBC_UDIRICHLET) = alpha
-    d1rC2C(3, 1, IBC_UDIRICHLET) = a / TWO  ! a/2
-    d1rC2C(3, 2, IBC_UDIRICHLET) = b / FOUR ! b/4
-    d1rC2C(3, 3, IBC_UDIRICHLET) = c        ! not used
+    d1fC2C(3, 1, IBC_DIRICHLET) = alpha
+    d1fC2C(3, 2, IBC_DIRICHLET) = ONE
+    d1fC2C(3, 3, IBC_DIRICHLET) = alpha
+    d1rC2C(3, 1, IBC_DIRICHLET) = a / TWO  ! a/2
+    d1rC2C(3, 2, IBC_DIRICHLET) = b / FOUR ! b/4
+    d1rC2C(3, 3, IBC_DIRICHLET) = c        ! not used
 
-    d1fC2C(4, 1, IBC_UDIRICHLET) = alpha2
-    d1fC2C(4, 2, IBC_UDIRICHLET) = ONE
-    d1fC2C(4, 3, IBC_UDIRICHLET) = alpha2
-    d1rC2C(4, 1, IBC_UDIRICHLET) = a2 / TWO
-    d1rC2C(4, 2, IBC_UDIRICHLET) = b2 / FOUR ! not used
-    d1rC2C(4, 3, IBC_UDIRICHLET) = c2       ! not used
+    d1fC2C(4, 1, IBC_DIRICHLET) = alpha2
+    d1fC2C(4, 2, IBC_DIRICHLET) = ONE
+    d1fC2C(4, 3, IBC_DIRICHLET) = alpha2
+    d1rC2C(4, 1, IBC_DIRICHLET) = a2 / TWO
+    d1rC2C(4, 2, IBC_DIRICHLET) = b2 / FOUR ! not used
+    d1rC2C(4, 3, IBC_DIRICHLET) = c2       ! not used
 
-    d1fC2C(5, 1, IBC_UDIRICHLET) = alpha1
-    d1fC2C(5, 2, IBC_UDIRICHLET) = ONE
-    d1fC2C(5, 3, IBC_UDIRICHLET) = ZERO ! not used
-    d1rC2C(5, 1, IBC_UDIRICHLET) = -a1
-    d1rC2C(5, 2, IBC_UDIRICHLET) = -b1
-    d1rC2C(5, 3, IBC_UDIRICHLET) = -c1
+    d1fC2C(5, 1, IBC_DIRICHLET) = alpha1
+    d1fC2C(5, 2, IBC_DIRICHLET) = ONE
+    d1fC2C(5, 3, IBC_DIRICHLET) = ZERO ! not used
+    d1rC2C(5, 1, IBC_DIRICHLET) = -a1
+    d1rC2C(5, 2, IBC_DIRICHLET) = -b1
+    d1rC2C(5, 3, IBC_DIRICHLET) = -c1
 !-------------------------------------------------------------------------------
 ! 1st-derivative : P2P : Dirichlet B.C. Same as C2C
 !-------------------------------------------------------------------------------
-    d1fP2P(:, :, IBC_UDIRICHLET) = d1fC2C(:, :, IBC_UDIRICHLET)
-    d1rP2P(:, :, IBC_UDIRICHLET) = d1rC2C(:, :, IBC_UDIRICHLET)
+    d1fP2P(:, :, IBC_DIRICHLET) = d1fC2C(:, :, IBC_DIRICHLET)
+    d1rP2P(:, :, IBC_DIRICHLET) = d1rC2C(:, :, IBC_DIRICHLET)
 !===============================================================================
 ! 1st derivative on staggered grids P2C and C2P : Periodic or Symmetric B.C.
 ! P2C ==>
@@ -625,40 +625,40 @@ contains
           c2 = ZERO ! not used
     end if
 
-    d1fP2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
-    d1fP2C(1, 2, IBC_UDIRICHLET) = ONE
-    d1fP2C(1, 3, IBC_UDIRICHLET) = alpha1
-    d1rP2C(1, 1, IBC_UDIRICHLET) = a1
-    d1rP2C(1, 2, IBC_UDIRICHLET) = b1
-    d1rP2C(1, 3, IBC_UDIRICHLET) = c1
+    d1fP2C(1, 1, IBC_DIRICHLET) = ZERO ! not used
+    d1fP2C(1, 2, IBC_DIRICHLET) = ONE
+    d1fP2C(1, 3, IBC_DIRICHLET) = alpha1
+    d1rP2C(1, 1, IBC_DIRICHLET) = a1
+    d1rP2C(1, 2, IBC_DIRICHLET) = b1
+    d1rP2C(1, 3, IBC_DIRICHLET) = c1
 
-    d1fP2C(2, 1, IBC_UDIRICHLET) = alpha2
-    d1fP2C(2, 2, IBC_UDIRICHLET) = ONE
-    d1fP2C(2, 3, IBC_UDIRICHLET) = alpha2
-    d1rP2C(2, 1, IBC_UDIRICHLET) = a2
-    d1rP2C(2, 2, IBC_UDIRICHLET) = b2 / THREE ! not used
-    d1rP2C(2, 3, IBC_UDIRICHLET) = c2 ! not used
+    d1fP2C(2, 1, IBC_DIRICHLET) = alpha2
+    d1fP2C(2, 2, IBC_DIRICHLET) = ONE
+    d1fP2C(2, 3, IBC_DIRICHLET) = alpha2
+    d1rP2C(2, 1, IBC_DIRICHLET) = a2
+    d1rP2C(2, 2, IBC_DIRICHLET) = b2 / THREE ! not used
+    d1rP2C(2, 3, IBC_DIRICHLET) = c2 ! not used
 
-    d1fP2C(3, 1, IBC_UDIRICHLET) = alpha
-    d1fP2C(3, 2, IBC_UDIRICHLET) = ONE
-    d1fP2C(3, 3, IBC_UDIRICHLET) = alpha
-    d1rP2C(3, 1, IBC_UDIRICHLET) = a
-    d1rP2C(3, 2, IBC_UDIRICHLET) = b / THREE
-    d1rP2C(3, 3, IBC_UDIRICHLET) = c ! not used
+    d1fP2C(3, 1, IBC_DIRICHLET) = alpha
+    d1fP2C(3, 2, IBC_DIRICHLET) = ONE
+    d1fP2C(3, 3, IBC_DIRICHLET) = alpha
+    d1rP2C(3, 1, IBC_DIRICHLET) = a
+    d1rP2C(3, 2, IBC_DIRICHLET) = b / THREE
+    d1rP2C(3, 3, IBC_DIRICHLET) = c ! not used
 
-    d1fP2C(4, 1, IBC_UDIRICHLET) = alpha2
-    d1fP2C(4, 2, IBC_UDIRICHLET) = ONE
-    d1fP2C(4, 3, IBC_UDIRICHLET) = alpha2
-    d1rP2C(4, 1, IBC_UDIRICHLET) = a2
-    d1rP2C(4, 2, IBC_UDIRICHLET) = b2 / THREE ! not used
-    d1rP2C(4, 3, IBC_UDIRICHLET) = c2 ! not used
+    d1fP2C(4, 1, IBC_DIRICHLET) = alpha2
+    d1fP2C(4, 2, IBC_DIRICHLET) = ONE
+    d1fP2C(4, 3, IBC_DIRICHLET) = alpha2
+    d1rP2C(4, 1, IBC_DIRICHLET) = a2
+    d1rP2C(4, 2, IBC_DIRICHLET) = b2 / THREE ! not used
+    d1rP2C(4, 3, IBC_DIRICHLET) = c2 ! not used
 
-    d1fP2C(5, 1, IBC_UDIRICHLET) = alpha1
-    d1fP2C(5, 2, IBC_UDIRICHLET) = ONE
-    d1fP2C(5, 3, IBC_UDIRICHLET) = ZERO ! not used
-    d1rP2C(5, 1, IBC_UDIRICHLET) = -a1
-    d1rP2C(5, 2, IBC_UDIRICHLET) = -b1
-    d1rP2C(5, 3, IBC_UDIRICHLET) = -c1
+    d1fP2C(5, 1, IBC_DIRICHLET) = alpha1
+    d1fP2C(5, 2, IBC_DIRICHLET) = ONE
+    d1fP2C(5, 3, IBC_DIRICHLET) = ZERO ! not used
+    d1rP2C(5, 1, IBC_DIRICHLET) = -a1
+    d1rP2C(5, 2, IBC_DIRICHLET) = -b1
+    d1rP2C(5, 3, IBC_DIRICHLET) = -c1
 
 !-------------------------------------------------------------------------------
 ! 1st-derivative : C2P : Dirichlet B.C.
@@ -705,40 +705,40 @@ contains
 
     end if
 
-    d1fC2P(1, 1, IBC_UDIRICHLET) = ZERO ! not used
-    d1fC2P(1, 2, IBC_UDIRICHLET) = ONE
-    d1fC2P(1, 3, IBC_UDIRICHLET) = alpha1
-    d1rC2P(1, 1, IBC_UDIRICHLET) = a1
-    d1rC2P(1, 2, IBC_UDIRICHLET) = b1
-    d1rC2P(1, 3, IBC_UDIRICHLET) = c1
+    d1fC2P(1, 1, IBC_DIRICHLET) = ZERO ! not used
+    d1fC2P(1, 2, IBC_DIRICHLET) = ONE
+    d1fC2P(1, 3, IBC_DIRICHLET) = alpha1
+    d1rC2P(1, 1, IBC_DIRICHLET) = a1
+    d1rC2P(1, 2, IBC_DIRICHLET) = b1
+    d1rC2P(1, 3, IBC_DIRICHLET) = c1
 
-    d1fC2P(2, 1, IBC_UDIRICHLET) = alpha2
-    d1fC2P(2, 2, IBC_UDIRICHLET) = ONE
-    d1fC2P(2, 3, IBC_UDIRICHLET) = alpha2
-    d1rC2P(2, 1, IBC_UDIRICHLET) = a2
-    d1rC2P(2, 2, IBC_UDIRICHLET) = b2 / THREE ! not used
-    d1rC2P(2, 3, IBC_UDIRICHLET) = c2 ! not used
+    d1fC2P(2, 1, IBC_DIRICHLET) = alpha2
+    d1fC2P(2, 2, IBC_DIRICHLET) = ONE
+    d1fC2P(2, 3, IBC_DIRICHLET) = alpha2
+    d1rC2P(2, 1, IBC_DIRICHLET) = a2
+    d1rC2P(2, 2, IBC_DIRICHLET) = b2 / THREE ! not used
+    d1rC2P(2, 3, IBC_DIRICHLET) = c2 ! not used
 
-    d1fC2P(3, 1, IBC_UDIRICHLET) = alpha
-    d1fC2P(3, 2, IBC_UDIRICHLET) = ONE
-    d1fC2P(3, 3, IBC_UDIRICHLET) = alpha
-    d1rC2P(3, 1, IBC_UDIRICHLET) = a
-    d1rC2P(3, 2, IBC_UDIRICHLET) = b / THREE
-    d1rC2P(3, 3, IBC_UDIRICHLET) = c ! not used
+    d1fC2P(3, 1, IBC_DIRICHLET) = alpha
+    d1fC2P(3, 2, IBC_DIRICHLET) = ONE
+    d1fC2P(3, 3, IBC_DIRICHLET) = alpha
+    d1rC2P(3, 1, IBC_DIRICHLET) = a
+    d1rC2P(3, 2, IBC_DIRICHLET) = b / THREE
+    d1rC2P(3, 3, IBC_DIRICHLET) = c ! not used
 
-    d1fC2P(4, 1, IBC_UDIRICHLET) = alpha2
-    d1fC2P(4, 2, IBC_UDIRICHLET) = ONE
-    d1fC2P(4, 3, IBC_UDIRICHLET) = alpha2
-    d1rC2P(4, 1, IBC_UDIRICHLET) = a2
-    d1rC2P(4, 2, IBC_UDIRICHLET) = b2 / THREE ! not used
-    d1rC2P(4, 3, IBC_UDIRICHLET) = c2 ! not used
+    d1fC2P(4, 1, IBC_DIRICHLET) = alpha2
+    d1fC2P(4, 2, IBC_DIRICHLET) = ONE
+    d1fC2P(4, 3, IBC_DIRICHLET) = alpha2
+    d1rC2P(4, 1, IBC_DIRICHLET) = a2
+    d1rC2P(4, 2, IBC_DIRICHLET) = b2 / THREE ! not used
+    d1rC2P(4, 3, IBC_DIRICHLET) = c2 ! not used
 
-    d1fC2P(5, 1, IBC_UDIRICHLET) = alpha1
-    d1fC2P(5, 2, IBC_UDIRICHLET) = ONE
-    d1fC2P(5, 3, IBC_UDIRICHLET) = ZERO ! not used
-    d1rC2P(5, 1, IBC_UDIRICHLET) = -a1
-    d1rC2P(5, 2, IBC_UDIRICHLET) = -b1
-    d1rC2P(5, 3, IBC_UDIRICHLET) = -c1
+    d1fC2P(5, 1, IBC_DIRICHLET) = alpha1
+    d1fC2P(5, 2, IBC_DIRICHLET) = ONE
+    d1fC2P(5, 3, IBC_DIRICHLET) = ZERO ! not used
+    d1rC2P(5, 1, IBC_DIRICHLET) = -a1
+    d1rC2P(5, 2, IBC_DIRICHLET) = -b1
+    d1rC2P(5, 3, IBC_DIRICHLET) = -c1
 
 !===============================================================================
 !interpolation. P2C and C2P Periodic or Symmetric B.C.
@@ -873,40 +873,40 @@ contains
           c2 = ZERO ! not used
     end if
     !P2C
-    m1fP2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
-    m1fP2C(1, 2, IBC_UDIRICHLET) = ONE
-    m1fP2C(1, 3, IBC_UDIRICHLET) = alpha1
-    m1rP2C(1, 1, IBC_UDIRICHLET) = a1
-    m1rP2C(1, 2, IBC_UDIRICHLET) = b1
-    m1rP2C(1, 3, IBC_UDIRICHLET) = c1
+    m1fP2C(1, 1, IBC_DIRICHLET) = ZERO ! not used
+    m1fP2C(1, 2, IBC_DIRICHLET) = ONE
+    m1fP2C(1, 3, IBC_DIRICHLET) = alpha1
+    m1rP2C(1, 1, IBC_DIRICHLET) = a1
+    m1rP2C(1, 2, IBC_DIRICHLET) = b1
+    m1rP2C(1, 3, IBC_DIRICHLET) = c1
 
-    m1fP2C(2, 1, IBC_UDIRICHLET) = alpha2
-    m1fP2C(2, 2, IBC_UDIRICHLET) = ONE
-    m1fP2C(2, 3, IBC_UDIRICHLET) = alpha2
-    m1rP2C(2, 1, IBC_UDIRICHLET) = a2 / TWO
-    m1rP2C(2, 2, IBC_UDIRICHLET) = ZERO ! not used
-    m1rP2C(2, 3, IBC_UDIRICHLET) = ZERO ! not used
+    m1fP2C(2, 1, IBC_DIRICHLET) = alpha2
+    m1fP2C(2, 2, IBC_DIRICHLET) = ONE
+    m1fP2C(2, 3, IBC_DIRICHLET) = alpha2
+    m1rP2C(2, 1, IBC_DIRICHLET) = a2 / TWO
+    m1rP2C(2, 2, IBC_DIRICHLET) = ZERO ! not used
+    m1rP2C(2, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fP2C(3, 1, IBC_UDIRICHLET) = alpha
-    m1fP2C(3, 2, IBC_UDIRICHLET) = ONE
-    m1fP2C(3, 3, IBC_UDIRICHLET) = alpha
-    m1rP2C(3, 1, IBC_UDIRICHLET) = a / TWO
-    m1rP2C(3, 2, IBC_UDIRICHLET) = b / TWO
-    m1rP2C(3, 3, IBC_UDIRICHLET) = ZERO ! not used
+    m1fP2C(3, 1, IBC_DIRICHLET) = alpha
+    m1fP2C(3, 2, IBC_DIRICHLET) = ONE
+    m1fP2C(3, 3, IBC_DIRICHLET) = alpha
+    m1rP2C(3, 1, IBC_DIRICHLET) = a / TWO
+    m1rP2C(3, 2, IBC_DIRICHLET) = b / TWO
+    m1rP2C(3, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fP2C(4, 1, IBC_UDIRICHLET) = alpha2
-    m1fP2C(4, 2, IBC_UDIRICHLET) = ONE
-    m1fP2C(4, 3, IBC_UDIRICHLET) = alpha2
-    m1rP2C(4, 1, IBC_UDIRICHLET) = a2 / TWO
-    m1rP2C(4, 2, IBC_UDIRICHLET) = ZERO ! not used
-    m1rP2C(4, 3, IBC_UDIRICHLET) = ZERO ! not used
+    m1fP2C(4, 1, IBC_DIRICHLET) = alpha2
+    m1fP2C(4, 2, IBC_DIRICHLET) = ONE
+    m1fP2C(4, 3, IBC_DIRICHLET) = alpha2
+    m1rP2C(4, 1, IBC_DIRICHLET) = a2 / TWO
+    m1rP2C(4, 2, IBC_DIRICHLET) = ZERO ! not used
+    m1rP2C(4, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fP2C(5, 1, IBC_UDIRICHLET) = alpha1
-    m1fP2C(5, 2, IBC_UDIRICHLET) = ONE
-    m1fP2C(5, 3, IBC_UDIRICHLET) = ZERO ! not used
-    m1rP2C(5, 1, IBC_UDIRICHLET) = a1
-    m1rP2C(5, 2, IBC_UDIRICHLET) = b1
-    m1rP2C(5, 3, IBC_UDIRICHLET) = c1
+    m1fP2C(5, 1, IBC_DIRICHLET) = alpha1
+    m1fP2C(5, 2, IBC_DIRICHLET) = ONE
+    m1fP2C(5, 3, IBC_DIRICHLET) = ZERO ! not used
+    m1rP2C(5, 1, IBC_DIRICHLET) = a1
+    m1rP2C(5, 2, IBC_DIRICHLET) = b1
+    m1rP2C(5, 3, IBC_DIRICHLET) = c1
 
 !-------------------------------------------------------------------------------
 ! interpolation. C2P: Dirichlet
@@ -954,40 +954,40 @@ contains
      
     end if
 
-    m1fC2P(1, 1, IBC_UDIRICHLET) = ZERO ! not used
-    m1fC2P(1, 2, IBC_UDIRICHLET) = ONE
-    m1fC2P(1, 3, IBC_UDIRICHLET) = alpha1
-    m1rC2P(1, 1, IBC_UDIRICHLET) = a1
-    m1rC2P(1, 2, IBC_UDIRICHLET) = b1
-    m1rC2P(1, 3, IBC_UDIRICHLET) = c1
+    m1fC2P(1, 1, IBC_DIRICHLET) = ZERO ! not used
+    m1fC2P(1, 2, IBC_DIRICHLET) = ONE
+    m1fC2P(1, 3, IBC_DIRICHLET) = alpha1
+    m1rC2P(1, 1, IBC_DIRICHLET) = a1
+    m1rC2P(1, 2, IBC_DIRICHLET) = b1
+    m1rC2P(1, 3, IBC_DIRICHLET) = c1
 
-    m1fC2P(2, 1, IBC_UDIRICHLET) = alpha2
-    m1fC2P(2, 2, IBC_UDIRICHLET) = ONE
-    m1fC2P(2, 3, IBC_UDIRICHLET) = alpha2
-    m1rC2P(2, 1, IBC_UDIRICHLET) = a2 / TWO
-    m1rC2P(2, 2, IBC_UDIRICHLET) = ZERO ! not used
-    m1rC2P(2, 3, IBC_UDIRICHLET) = ZERO ! not used
+    m1fC2P(2, 1, IBC_DIRICHLET) = alpha2
+    m1fC2P(2, 2, IBC_DIRICHLET) = ONE
+    m1fC2P(2, 3, IBC_DIRICHLET) = alpha2
+    m1rC2P(2, 1, IBC_DIRICHLET) = a2 / TWO
+    m1rC2P(2, 2, IBC_DIRICHLET) = ZERO ! not used
+    m1rC2P(2, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fC2P(3, 1, IBC_UDIRICHLET) = alpha
-    m1fC2P(3, 2, IBC_UDIRICHLET) = ONE
-    m1fC2P(3, 3, IBC_UDIRICHLET) = alpha
-    m1rC2P(3, 1, IBC_UDIRICHLET) = a / TWO
-    m1rC2P(3, 2, IBC_UDIRICHLET) = b / TWO
-    m1rC2P(3, 3, IBC_UDIRICHLET) = ZERO ! not used
+    m1fC2P(3, 1, IBC_DIRICHLET) = alpha
+    m1fC2P(3, 2, IBC_DIRICHLET) = ONE
+    m1fC2P(3, 3, IBC_DIRICHLET) = alpha
+    m1rC2P(3, 1, IBC_DIRICHLET) = a / TWO
+    m1rC2P(3, 2, IBC_DIRICHLET) = b / TWO
+    m1rC2P(3, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fC2P(4, 1, IBC_UDIRICHLET) = alpha2
-    m1fC2P(4, 2, IBC_UDIRICHLET) = ONE
-    m1fC2P(4, 3, IBC_UDIRICHLET) = alpha2
-    m1rC2P(4, 1, IBC_UDIRICHLET) = a2 / TWO
-    m1rC2P(4, 2, IBC_UDIRICHLET) = ZERO ! not used
-    m1rC2P(4, 3, IBC_UDIRICHLET) = ZERO ! not used
+    m1fC2P(4, 1, IBC_DIRICHLET) = alpha2
+    m1fC2P(4, 2, IBC_DIRICHLET) = ONE
+    m1fC2P(4, 3, IBC_DIRICHLET) = alpha2
+    m1rC2P(4, 1, IBC_DIRICHLET) = a2 / TWO
+    m1rC2P(4, 2, IBC_DIRICHLET) = ZERO ! not used
+    m1rC2P(4, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fC2P(5, 1, IBC_UDIRICHLET) = alpha1
-    m1fC2P(5, 2, IBC_UDIRICHLET) = ONE
-    m1fC2P(5, 3, IBC_UDIRICHLET) = ZERO ! not used
-    m1rC2P(5, 1, IBC_UDIRICHLET) = a1
-    m1rC2P(5, 2, IBC_UDIRICHLET) = b1
-    m1rC2P(5, 3, IBC_UDIRICHLET) = c1
+    m1fC2P(5, 1, IBC_DIRICHLET) = alpha1
+    m1fC2P(5, 2, IBC_DIRICHLET) = ONE
+    m1fC2P(5, 3, IBC_DIRICHLET) = ZERO ! not used
+    m1rC2P(5, 1, IBC_DIRICHLET) = a1
+    m1rC2P(5, 2, IBC_DIRICHLET) = b1
+    m1rC2P(5, 3, IBC_DIRICHLET) = c1
 !-------------------------------------------------------------------------------
 ! 2nd diriviative P2P and C2C
 !-------------------------------------------------------------------------------
@@ -1109,53 +1109,53 @@ contains
     end if
 
     !C2C i = 1
-    d2fC2C(1, 1, IBC_UDIRICHLET) = ZERO ! not used
-    d2fC2C(1, 2, IBC_UDIRICHLET) = ONE
-    d2fC2C(1, 3, IBC_UDIRICHLET) = alpha1
+    d2fC2C(1, 1, IBC_DIRICHLET) = ZERO ! not used
+    d2fC2C(1, 2, IBC_DIRICHLET) = ONE
+    d2fC2C(1, 3, IBC_DIRICHLET) = alpha1
 
-    d2rC2C(1, 1, IBC_UDIRICHLET) = a1
-    d2rC2C(1, 2, IBC_UDIRICHLET) = b1
-    d2rC2C(1, 3, IBC_UDIRICHLET) = c1
-    d2rC2C(1, 4, IBC_UDIRICHLET) = d1
+    d2rC2C(1, 1, IBC_DIRICHLET) = a1
+    d2rC2C(1, 2, IBC_DIRICHLET) = b1
+    d2rC2C(1, 3, IBC_DIRICHLET) = c1
+    d2rC2C(1, 4, IBC_DIRICHLET) = d1
 
     !C2C i = 2
-    d2fC2C(2, 1, IBC_UDIRICHLET) = alpha2
-    d2fC2C(2, 2, IBC_UDIRICHLET) = ONE
-    d2fC2C(2, 3, IBC_UDIRICHLET) = alpha2
+    d2fC2C(2, 1, IBC_DIRICHLET) = alpha2
+    d2fC2C(2, 2, IBC_DIRICHLET) = ONE
+    d2fC2C(2, 3, IBC_DIRICHLET) = alpha2
 
-    d2rC2C(2, 1, IBC_UDIRICHLET) = a2
-    d2rC2C(2, 2, IBC_UDIRICHLET) = ZERO ! not used
-    d2rC2C(2, 3, IBC_UDIRICHLET) = ZERO ! not used
-    d2rC2C(2, 4, IBC_UDIRICHLET) = ZERO ! not used
+    d2rC2C(2, 1, IBC_DIRICHLET) = a2
+    d2rC2C(2, 2, IBC_DIRICHLET) = ZERO ! not used
+    d2rC2C(2, 3, IBC_DIRICHLET) = ZERO ! not used
+    d2rC2C(2, 4, IBC_DIRICHLET) = ZERO ! not used
 
     !C2C i = bulk
-    d2fC2C(3, 1, IBC_UDIRICHLET) = alpha
-    d2fC2C(3, 2, IBC_UDIRICHLET) = ONE
-    d2fC2C(3, 3, IBC_UDIRICHLET) = alpha
-    d2rC2C(3, 1, IBC_UDIRICHLET) = a / ONE
-    d2rC2C(3, 2, IBC_UDIRICHLET) = b / FOUR
-    d2rC2C(3, 3, IBC_UDIRICHLET) = ZERO ! not used
-    d2rC2C(3, 4, IBC_UDIRICHLET) = ZERO ! not used
+    d2fC2C(3, 1, IBC_DIRICHLET) = alpha
+    d2fC2C(3, 2, IBC_DIRICHLET) = ONE
+    d2fC2C(3, 3, IBC_DIRICHLET) = alpha
+    d2rC2C(3, 1, IBC_DIRICHLET) = a / ONE
+    d2rC2C(3, 2, IBC_DIRICHLET) = b / FOUR
+    d2rC2C(3, 3, IBC_DIRICHLET) = ZERO ! not used
+    d2rC2C(3, 4, IBC_DIRICHLET) = ZERO ! not used
 
     !C2C i = n - 1
-    d2fC2C(4, 1, IBC_UDIRICHLET) = alpha2
-    d2fC2C(4, 2, IBC_UDIRICHLET) = ONE
-    d2fC2C(4, 3, IBC_UDIRICHLET) = alpha2
+    d2fC2C(4, 1, IBC_DIRICHLET) = alpha2
+    d2fC2C(4, 2, IBC_DIRICHLET) = ONE
+    d2fC2C(4, 3, IBC_DIRICHLET) = alpha2
 
-    d2rC2C(4, 1, IBC_UDIRICHLET) = a2
-    d2rC2C(4, 2, IBC_UDIRICHLET) = ZERO ! not used
-    d2rC2C(4, 3, IBC_UDIRICHLET) = ZERO ! not used
-    d2rC2C(4, 4, IBC_UDIRICHLET) = ZERO ! not used
+    d2rC2C(4, 1, IBC_DIRICHLET) = a2
+    d2rC2C(4, 2, IBC_DIRICHLET) = ZERO ! not used
+    d2rC2C(4, 3, IBC_DIRICHLET) = ZERO ! not used
+    d2rC2C(4, 4, IBC_DIRICHLET) = ZERO ! not used
 
     !C2C i = n
-    d2fC2C(5, 1, IBC_UDIRICHLET) = alpha1
-    d2fC2C(5, 2, IBC_UDIRICHLET) = ONE
-    d2fC2C(5, 3, IBC_UDIRICHLET) = ZERO ! not used
+    d2fC2C(5, 1, IBC_DIRICHLET) = alpha1
+    d2fC2C(5, 2, IBC_DIRICHLET) = ONE
+    d2fC2C(5, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    d2rC2C(5, 1, IBC_UDIRICHLET) = a1
-    d2rC2C(5, 2, IBC_UDIRICHLET) = b1
-    d2rC2C(5, 3, IBC_UDIRICHLET) = c1
-    d2rC2C(5, 4, IBC_UDIRICHLET) = d1
+    d2rC2C(5, 1, IBC_DIRICHLET) = a1
+    d2rC2C(5, 2, IBC_DIRICHLET) = b1
+    d2rC2C(5, 3, IBC_DIRICHLET) = c1
+    d2rC2C(5, 4, IBC_DIRICHLET) = d1
 
     ! P2P
     d2fP2P(:, :, :) = d2fC2C(:, :, :)
