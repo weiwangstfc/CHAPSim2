@@ -16,7 +16,6 @@ module solver_tools_mod
 contains
 !===============================================================================
 !> \brief The main code for initializing flow variables
-!>
 !> This subroutine is called once in \ref Initialize_chapsim.
 !>
 !-------------------------------------------------------------------------------
@@ -26,15 +25,13 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]  
 !===============================================================================
-  subroutine Update_RePrGr(dm, iter, fl, tm)
+  subroutine Update_Re(iter, fl)
     use parameters_constant_mod
     use input_thermo_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent(in   ) :: dm
     integer(4),     intent(in   ) :: iter  
     type(t_flow),   intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
     
 
     real(WP) :: u0, rtmp
@@ -46,38 +43,48 @@ contains
     else
       fl%rre = ONE / fl%ren
     end if
-
-    if(dm%ithermo == 1) then
-  !-------------------------------------------------------------------------------
-  !  1/(Re*Pr)                                   
-  !-------------------------------------------------------------------------------
-      tm%rPrRen = fl%rre * tpRef0%k / tpRef0%m / tpRef0%cp
-  !-------------------------------------------------------------------------------
-  !  gravity force                          
-  !-------------------------------------------------------------------------------  
-      u0 = ONE / fl%rre * tpRef0%m / tpRef0%d / tm%lenRef
-      rtmp = tm%lenRef / u0 / u0 * GRAVITY
-      fl%fgravity(:) = ZERO
-      if (tm%igravity == 1 ) then ! flow/gravity same dirction - x
-        fl%fgravity(1) =  rtmp
-      else if (tm%igravity == 2 ) then ! flow/gravity same dirction - y
-        fl%fgravity(2) =  rtmp
-      else if (tm%igravity == 3 ) then ! flow/gravity same dirction - z
-        fl%fgravity(3) =  rtmp
-      else if (tm%igravity == -1 ) then ! flow/gravity opposite dirction - x
-        fl%fgravity(1) =  - rtmp
-      else if (tm%igravity == -2 ) then ! flow/gravity opposite dirction - y
-        fl%fgravity(2) =  - rtmp
-      else if (tm%igravity == -3 ) then ! flow/gravity opposite dirction - z
-        fl%fgravity(3) =  - rtmp
-      else ! no gravity
-        fl%fgravity(:) = ZERO
-      end if
-      
-    end if
-
     return
-  end subroutine Update_RePrGr
+  end subroutine Update_Re
+
+  subroutine Update_PrGr(fl, tm)
+    use parameters_constant_mod
+    use input_thermo_mod, only : tpRef0
+    use udf_type_mod
+    implicit none
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
+    
+
+    real(WP) :: u0, rtmp
+  
+!-------------------------------------------------------------------------------
+!  1/(Re*Pr)                                   
+!-------------------------------------------------------------------------------
+    tm%rPrRen = fl%rre * tpRef0%k / tpRef0%m / tpRef0%cp
+!-------------------------------------------------------------------------------
+!  gravity force                          
+!-------------------------------------------------------------------------------  
+    u0 = ONE / fl%rre * tpRef0%m / tpRef0%d / tm%lenRef
+    rtmp = tm%lenRef / u0 / u0 * GRAVITY
+    fl%fgravity(:) = ZERO
+    if (tm%igravity == 1 ) then ! flow/gravity same dirction - x
+      fl%fgravity(1) =  rtmp
+    else if (tm%igravity == 2 ) then ! flow/gravity same dirction - y
+      fl%fgravity(2) =  rtmp
+    else if (tm%igravity == 3 ) then ! flow/gravity same dirction - z
+      fl%fgravity(3) =  rtmp
+    else if (tm%igravity == -1 ) then ! flow/gravity opposite dirction - x
+      fl%fgravity(1) =  - rtmp
+    else if (tm%igravity == -2 ) then ! flow/gravity opposite dirction - y
+      fl%fgravity(2) =  - rtmp
+    else if (tm%igravity == -3 ) then ! flow/gravity opposite dirction - z
+      fl%fgravity(3) =  - rtmp
+    else ! no gravity
+      fl%fgravity(:) = ZERO
+    end if
+    
+    return
+  end subroutine Update_PrGr
 !===============================================================================
 !> \brief The main code for initializing flow variables
 !>
@@ -352,7 +359,8 @@ contains
     return
   end subroutine
 !===============================================================================
-!> \brief : 
+!> \brief : to check CFL for convection terms
+!> CFL = u^x/dx + v^y/dy + w^z/dz < limit
 !> MPI : x-pencil
 !>  (y) ^_____ _____ ______
 !>      |_____|_____|______|
@@ -365,53 +373,59 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]         
 !===============================================================================
-  subroutine Check_cfl_convection(u, v, w, d)
-    use parameters_constant_mod, only : ZERO, ONE
-    use precision_mod
-    use input_general_mod, only : dt
-    use udf_type_mod, only : t_domain
-    use operations, only : Get_midp_interpolation_1D
-    use domain_decomposition_mod
+  subroutine Check_cfl_convection(u, v, w, dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    use operations
     implicit none
 
-    type(t_domain),               intent(in) :: d
+    type(t_domain),               intent(in) :: dm
     real(WP), dimension(:, :, :), intent(in) :: u, v, w
 
-    real(WP), allocatable :: fi(:), fo(:)
-    real(WP) :: udx_xpencil (dm%ps_xsz(1), dm%ps_xsz(2), dm%ps_xsz(3))
-    real(WP) :: udx_ypencil (dm%ps_ysz(1), dm%ps_ysz(2), dm%ps_ysz(3))
-    real(WP) :: udx_ypencil (dm%ps_zsz(1), dm%ps_zsz(2), dm%ps_zsz(3))
-    real(WP) ::   v_ypencil (dm%uy_ysz(1), dm%uy_ysz(2), dm%uy_ysz(3))
-    real(WP) ::   w_ypencil (dm%uz_ysz(1), dm%uz_ysz(2), dm%uz_ysz(3))
-    real(WP) ::   w_zpencil (dm%uz_zsz(1), dm%uz_zsz(2), dm%uz_zsz(3))
+    real(WP), dimension( dm%np(1) ) :: fix
+    real(WP), dimension( dm%nc(1) ) :: fox
+    real(WP), dimension( dm%np(2) ) :: fiy
+    real(WP), dimension( dm%nc(2) ) :: foy
+    real(WP), dimension( dm%np(3) ) :: fiz
+    real(WP), dimension( dm%nc(3) ) :: foz
+
+    real(WP) :: udx_xpencil (dm%dccc%xsz(1), &
+                             dm%dccc%xsz(2), &
+                             dm%dccc%xsz(3))
+    real(WP) :: udx_ypencil (dm%dccc%ysz(1), &
+                             dm%dccc%ysz(2), &
+                             dm%dccc%ysz(3))
+    real(WP) :: udx_zpencil (dm%dccc%zsz(1), &
+                             dm%dccc%zsz(2), &
+                             dm%dccc%zsz(3))
+    real(WP) ::   v_ypencil (dm%dcpc%ysz(1), &
+                             dm%dcpc%ysz(2), &
+                             dm%dcpc%ysz(3))
+    real(WP) ::   w_ypencil (dm%dccp%ysz(1), &
+                             dm%dccp%ysz(2), &
+                             dm%dccp%ysz(3))
+    real(WP) ::   w_zpencil (dm%dccp%zsz(1), &
+                             dm%dccp%zsz(2), &
+                             dm%dccp%zsz(3))
     real(WP)   :: cfl_convection, cfl_convection_work
     integer(4) :: i, j, k
+    type(DECOMP_INFO) :: dtmp
 
-
 !-------------------------------------------------------------------------------
-!   Ensure it is in x-pencil
+! X-pencil : u_ccc / dx * dt
 !-------------------------------------------------------------------------------
-    if(dm%ux_xsz(1) /= dm%np(1)) call Print_error_msg("Error, not X-pencil")
-!-------------------------------------------------------------------------------
-! X-pencil
-!-------------------------------------------------------------------------------
-    allocate ( udx_xpencil( dm%ps_xsz(1), dm%ps_xsz(2), dm%ps_xsz(3) ) )
-    udx_xpencil = ZERO
-!-------------------------------------------------------------------------------
-! X-pencil : \overline{u}^x/dx at cell centre
-!-------------------------------------------------------------------------------
-    allocate ( fi( dm%np(1) ) ); fi = ZERO
-    allocate ( fo( dm%nc(1) ) ); fo = ZERO
     udx_pencil(:, :, :) = ZERO
-    do k = 1, dm%ux_xsz(3)
-      do j = 1, dm%ux_xsz(2)
-        fi(:) = u(:, j, k)
-        call Get_midp_interpolation_1D('x', 'P2C', d, fi(:), fo(:))
-        udx_xpencil(:, j, k) = fo(:) * dm%h1r(3) * dt
+
+    dtmp = dm%dpcc
+    ibc(:) = dm%ibcx(1, :)
+    fbc(:) = dm%fbcx(1, :)
+    do k = 1, dtmp%xsz(3)
+      do j = 1, dtmp%xsz(2)
+        fix(:) = u(:, j, k)
+        call Get_x_midp_P2C_1D (dm%idom, ibc, fbc, dm%ipnbr, fix, fox)
+        udx_xpencil(:, j, k) = fox(:) * dm%h1r(1) * dm%dt
       end do
     end do
-    deallocate (fi)
-    deallocate (fo)
 !-------------------------------------------------------------------------------
 ! Convert X-pencil to Y-Pencil
 !-------------------------------------------------------------------------------
@@ -419,19 +433,18 @@ contains
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
 !-------------------------------------------------------------------------------
-! Y-pencil : \overline{v}^y/dy at cell centre
+! Y-pencil : v_ccc / dy * dt
 !-------------------------------------------------------------------------------
-    allocate ( fi( dm%np(2) ) ); fi = ZERO
-    allocate ( fo( dm%nc(2) ) ); fo = ZERO
-    do k = 1, dm%uy_ysz(3)
-      do i = 1, dm%uy_ysz(1)
-        fi(:) = v(i, :, k)
-        call Get_midp_interpolation_1D('y', 'P2C', d, fi(:), fo(:))
-        udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + fo(:) * dm%h1r(2) * dt
+    dtmp = dm%dcpc
+    ibc(:) = dm%ibcy(2, :)
+    fbc(:) = dm%fbcy(2, :)
+    do k = 1, dtmp%ysz(3)
+      do i = 1, dtmp%ysz(1)
+        fiy(:) = v(i, :, k)
+        call Get_y_midp_P2C_1D (ibc, fbc, dm%jpnbr, fiy, foy)
+        udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + foy(:) * dm%h1r(2) * dm%dt
       end do
     end do
-    deallocate (fi)
-    deallocate (fo)
 !-------------------------------------------------------------------------------
 ! Convert Y-pencil to Z-Pencil
 !-------------------------------------------------------------------------------
@@ -440,17 +453,16 @@ contains
 !-------------------------------------------------------------------------------
 ! Z-pencil : \overline{w}^z/dz at cell centre
 !-------------------------------------------------------------------------------
-    allocate ( fi( dm%np(3) ) ); fi = ZERO
-    allocate ( fo( dm%nc(3) ) ); fo = ZERO
-    do j = 1, dm%uz_zsz(2)
-      do i = 1, dm%uz_zsz(1)
-        fi(:) = w_zpencil(i, j, :)
-        call Get_midp_interpolation_1D('z', 'P2C', d, fi(:), fo(:))
-        udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + fo(:) * dm%h1r(3) * dt
+    dtmp = dm%dccp
+    ibc(:) = dm%ibcz(3, :)
+    fbc(:) = dm%fbcz(3, :)
+    do j = 1, dtmp%zsz(2)
+      do i = 1, dtmp%zsz(1)
+        fiz(:) = w_zpencil(i, j, :)
+        call Get_z_midp_P2C_1D (ibc, fbc, dm%kpnbr, fiz, foz)
+        udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
       end do
     end do
-    deallocate (fi)
-    deallocate (fo)
 !-------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !-------------------------------------------------------------------------------

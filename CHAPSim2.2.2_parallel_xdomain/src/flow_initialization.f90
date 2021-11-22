@@ -29,8 +29,10 @@ module flow_thermo_initialiasation
   private :: Initialize_thermal_variables
   private :: Generate_random_field
 
-  private  :: Allocate_thermoflow_variables
+  private  :: Allocate_flow_variables
+  private  :: Allocate_thermo_variables
   private  :: Initialize_flow_variables
+  private  :: Initialize_thermo_variables
 
   public  :: Validate_TGV2D_error
   public  :: Initialize_flow_thermal_fields
@@ -61,13 +63,21 @@ contains
     iter = 0
     do i = 1, nxdomain
 
-      call Allocate_thermoflow_variables (domain(i), flow(i), thermo(i))
+      call Allocate_flow_variables (domain(i), flow(i))
+      if(domain(i)%ithermo == 1) call Allocate_thermo_variables (domain(i), thermo(i))
 
       if (irestart == INITIAL_RANDOM) then
         iter = 0
-        call Update_RePrGr(domain(i), iter, flow(i), thermo(i))
-        call Initialize_flow_variables ( domain(i), flow(i), thermo(i) )
+        call Update_Re(iter, flow(i))
+        if(domain(i)%ithermo == 1) &
+        call Update_PrGr(flow(i), thermo(i))
+
+        call Initialize_flow_variables ( domain(i), flow(i) )
+        if(domain(i)%ithermo == 1) &
+        call Initialize_thermo_variables ( domain(i), flow(i), thermo(i) )
+
         flow(i)%time = ZERO
+        if(domain(i)%ithermo == 1) &
         thermo(i)%time = ZERO 
       else if (irestart == INITIAL_RESTART) then
 
@@ -102,16 +112,15 @@ contains
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !===============================================================================
-  subroutine Allocate_thermoflow_variables (dm, fl, tm)
+  subroutine Allocate_flow_variables (dm, fl)
     use parameters_constant_mod
     use mpi_mod
     implicit none
 
     type(t_domain), intent(in)    :: dm
     type(t_flow),   intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
 
-    if(nrank == 0) call Print_debug_start_msg("Allocating flow and thermal variables ...")
+    if(nrank == 0) call Print_debug_start_msg("Allocating flow variables ...")
 !-------------------------------------------------------------------------------
 ! default : x pencil. 
 ! varaible index is LOCAL. means 1:xsize(1)
@@ -141,17 +150,35 @@ contains
     call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
-    if(dm%ithermo == 1) then
-      call alloc_x(tm%dh,    dm%dccc) ; tm%dh    = ZERO
-      call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
-      call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
-      call alloc_x(tm%tTemp, dm%dccc) ; tm%tTemp = ONE
-    end if
+    if(nrank == 0) call Print_debug_end_msg
+    return
+
+  end subroutine Allocate_flow_variables
+  !===============================================================================
+  subroutine Allocate_thermo_variables (dm, tm)
+    use parameters_constant_mod
+    use mpi_mod
+    implicit none
+
+    type(t_domain), intent(in)    :: dm
+    type(t_thermo), intent(inout) :: tm
+
+    if(nrank == 0) call Print_debug_start_msg("Allocating thermal variables ...")
+!-------------------------------------------------------------------------------
+! default : x pencil. 
+! varaible index is LOCAL. means 1:xsize(1)
+!-------------------------------------------------------------------------------
+    if(dm%ithermo /= 1) return
+
+    call alloc_x(tm%dh,    dm%dccc) ; tm%dh    = ZERO
+    call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
+    call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
+    call alloc_x(tm%tTemp, dm%dccc) ; tm%tTemp = ONE
 
     if(nrank == 0) call Print_debug_end_msg
     return
 
-  end subroutine Allocate_thermoflow_variables
+  end subroutine Allocate_thermo_variables
 !===============================================================================
 !> \brief The main code for initializing flow variables
 !------------------------------------------------------------------------------- 
@@ -164,13 +191,12 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[in]     dm
 !===============================================================================
-  subroutine Initialize_flow_variables( dm, fl, tm )
+  subroutine Initialize_flow_variables( dm, fl)
     use udf_type_mod
     use solver_tools_mod
     implicit none
     type(t_domain), intent(in   ) :: dm
     type(t_flow),   intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
 
     interface 
        subroutine Display_vtk_slice(dm, str, varnm, vartp, var0, iter)
@@ -187,21 +213,13 @@ contains
     if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
 
 !-------------------------------------------------------------------------------
-! to initialize thermal variables 
-!-------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
-    if (dm%ithermo == 1) then
-      call Initialize_thermal_variables (fl, tm)
-      call Apply_BC_thermo(fl, tm)
-    else
-      fl%dDens  (:, :, :) = ONE
-      fl%mVisc  (:, :, :) = ONE
-      fl%dDensm1(:, :, :) = ONE
-      fl%dDensm2(:, :, :) = ONE
-    end if
-!-------------------------------------------------------------------------------
 ! to initialize flow velocity and pressure
 !-------------------------------------------------------------------------------
+    fl%dDens  (:, :, :) = ONE
+    fl%mVisc  (:, :, :) = ONE
+    fl%dDensm1(:, :, :) = ONE
+    fl%dDensm2(:, :, :) = ONE
+
     if(nrank == 0) call Print_debug_mid_msg("Initializing flow field ...")
     if ( (dm%icase == ICASE_CHANNEL) .or. &
          (dm%icase == ICASE_PIPE) .or. &
@@ -225,38 +243,49 @@ contains
 !-------------------------------------------------------------------------------
     call Check_maximum_velocity(fl%qx, fl%qy, fl%qz)
 !-------------------------------------------------------------------------------
-! to update mass flux terms 
+! to set up old arrays 
 !-------------------------------------------------------------------------------
-    if (dm%ithermo == 1) then
-      call Calculate_massflux_from_velocity (dm, fl)
-    else
-      fl%gx(:, :, :) = fl%qx(:, :, :)
-      fl%gy(:, :, :) = fl%qy(:, :, :)
-      fl%gz(:, :, :) = fl%qz(:, :, :)
-    end if
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine
+
+  subroutine Initialize_thermo_variables( dm, fl, tm )
+    use udf_type_mod
+    use solver_tools_mod
+    implicit none
+    type(t_domain), intent(in   ) :: dm
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
+
+    interface 
+       subroutine Display_vtk_slice(dm, str, varnm, vartp, var0, iter)
+        use udf_type_mod
+        type(t_domain), intent( in ) :: dm
+        integer(4) :: vartp
+        character( len = *), intent( in ) :: str
+        character( len = *), intent( in ) :: varnm
+        real(WP), intent( in ) :: var0(:, :, :)
+        integer(4), intent( in ) :: iter
+       end subroutine Display_vtk_slice
+    end interface
+
+    if (dm%ithermo /= 1) return
+!-------------------------------------------------------------------------------
+! to initialize thermal variables 
+!-------------------------------------------------------------------------------
+    if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
+    call Initialize_thermal_variables (fl, tm)
+    call Apply_BC_thermo(fl, tm)
+
+    call Calculate_massflux_from_velocity (dm, fl)
 !-------------------------------------------------------------------------------
 ! to set up old arrays 
 !-------------------------------------------------------------------------------
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
-!-------------------------------------------------------------------------------
-! to write and display the initial fields
-!-------------------------------------------------------------------------------
-    !call Display_vtk_slice(d, 'xy', 'u', 1, qx)
-    !call Display_vtk_slice(d, 'xy', 'v', 2, qy)
-    !call Display_vtk_slice(d, 'xy', 'p', 0, pres)
-
-    !call Display_vtk_slice(d, 'yz', 'v', 2, qy)
-    !call Display_vtk_slice(d, 'yz', 'w', 3, qz)
-    !call Display_vtk_slice(d, 'yz', 'p', 0, pres)
-
-    !call Display_vtk_slice(d, 'zx', 'u', 1, qx)
-    !call Display_vtk_slice(d, 'zx', 'w', 3, qz)
-    !call Display_vtk_slice(d, 'zx', 'p', 0, pres)
-
-    !call Display_vtk_slice(dm, 'xy', 'u', 1, fl%qx, 0)
-    !call Display_vtk_slice(dm, 'xy', 'v', 2, fl%qy, 0)
-    !call Display_vtk_slice(dm, 'xy', 'w', 0, fl%pres, 0)
 
     if(nrank == 0) call Print_debug_end_msg
     return

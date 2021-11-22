@@ -1,6 +1,9 @@
 module eq_energy_mod
   use precision_mod, only : WP
   implicit none
+
+  public :: Compute_momentum_rhs
+  public :: Solve_energy_eq
 contains
 
   subroutine Compute_momentum_rhs(f, t, d, isub)

@@ -104,79 +104,64 @@ end subroutine Initialize_chapsim
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Solve_eqs_iteration
-  use input_general_mod!,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
-                                  !nIterFlowStart, nIterThermoStart, &
-                                  !tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
-                                  !dt, nsubitr, niter
-  use var_dft_mod!,      only : flow, thermo, domain
-  use flow_variables_mod!, only : Update_RePrGr, Check_maximum_velocity
-  use eq_momentum_mod!,    only : Solve_momentum_eq
   use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
   use continuity_eq_mod
   use poisson_mod
   use code_performance_mod
+  use var_dft_mod
   implicit none
 
-  logical    :: is_flow   = .false.
-  logical    :: is_thermo = .false.
-  integer(4) :: iter, isub
-  real(wp)   :: rtmp
+  logical :: is_flow   = .false.
+  logical :: is_thermo = .false.
+  integer :: iter
+  integer :: nrsttckpt
+  integer :: niter
 
-  interface 
-  subroutine Display_vtk_slice(d, str, varnm, vartp, var0, iter)
-   use udf_type_mod
-   type(t_domain), intent( in ) :: d
-   integer(4) :: vartp
-   character( len = *), intent( in ) :: str
-   character( len = *), intent( in ) :: varnm
-   real(WP), intent( in ) :: var0(:, :, :)
-   integer(4), intent( in ) :: iter
-  end subroutine Display_vtk_slice
-end interface
-  
-  do i = 1, nxdomain
-    if(dm%ithermo == 1) then
-      niter = MAX(flow(i)%nIterFlowEnd, thermo(i)%nIterThermoEnd)
-    else
-      niter = nIterFlowEnd
-    end if
-  end do
+  nrsttckpt = MIN(flow(:)%nrsttckpt)
+
+  niter = MAX(flow(:)%nIterFlowEnd)
+  if(is_any_energyeq) niter = MAX(niter, thermo(:)%nIterThermoEnd)
 
   do iter = nrsttckpt + 1, niter
     call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
+    do i = 1, nxdomain
 !===============================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
 !===============================================================================
-    call Update_RePrGr(flow, thermo, iter)
+      call Update_Re(iter, flow(i))
+      if(domain(i)%ithermo == 1) &
+      call Update_PrGr(flow(i), thermo(i))
 !===============================================================================
 !      setting up flow solver
 !===============================================================================
-    if ( (iter >= nIterFlowStart) .and. (iter <=nIterFlowEnd)) then
-      is_flow = .true.
-      flow%time = flow%time + dt
-      call Check_cfl_diffusion (domain%h2r(:), flow%rre)
-      call Check_cfl_convection(flow%qx, flow%qy, flow%qz, domain)
-    end if
+      if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
+        is_flow = .true.
+        flow(i)%time = flow(i)%time + domain(i)%dt
+        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre)
+        call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+      end if
 !===============================================================================
 !     setting up thermo solver
 !===============================================================================
-    if ( (iter >= nIterThermoStart) .and. (iter <=nIterThermoEnd)) then
-      is_thermo = .true.
-      thermo%time = thermo%time  + dt
-    end if
+      if(domain(i)%ithermo == 1) then
+        if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <=thermo(i)%nIterThermoEnd)) then
+          is_thermo = .true.
+          thermo(i)%time = thermo(i)%time  + domain(i)%dt
+        end if
+      end if
 !===============================================================================
 !     main solver
 !===============================================================================
-    do isub = 1, nsubitr
-      !if(is_thermo) call Solve_energy_eq  (flow, thermo, domain, isub)
-      if(is_flow)   call Solve_momentum_eq(flow, domain, isub)
+      do isub = 1, nsubitr
+        if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
+        if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
 #ifdef DEBUG
-      write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
-      call Check_mass_conservation(flow, domain) 
-      call Check_maximum_velocity(flow%qx, flow%qy, flow%qz)
-      call Get_volumetric_average_3d(flow%qx, 'ux', domain, rtmp)   
+        write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
+        call Check_mass_conservation(flow(i), domain(i)) 
+        call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
+        call Get_volumetric_average_3d(flow(i)%qx, 'ux', domain(i), rtmp)   
 #endif
-    end do
+      end do
 !
     !comment this part code for testing 
     ! below is for validation
@@ -184,18 +169,19 @@ end interface
 !===============================================================================
 !     validation
 !===============================================================================
-    call Check_mass_conservation(flow, domain) 
-    if(icase == ICASE_TGV2D) call Validate_TGV2D_error (flow, domain)
+      call Check_mass_conservation(flow(i), domain(i)) 
+      if(icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
 
-    call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
+      call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
 !===============================================================================
 !   visualisation
 !===============================================================================
-    if(MOD(iter, nvisu) == 0) then
-      call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, iter)
-      call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, iter)
-      call Display_vtk_slice(domain, 'xy', 'p', 0, flow%pres, iter)
-    end if
+      if(MOD(iter, nvisu) == 0) then
+        call Display_vtk_slice(domain, 'xy', 'u', 1, flow(i)%qx, iter)
+        call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
+        call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
+      end if
+    end do
   end do
 
 
