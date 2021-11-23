@@ -74,7 +74,7 @@ contains
 !> \param[in]     rhs1_semi     the semi-implicit term
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, dt, isub)
+  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, dt, isub, rhs1_semi)
     use parameters_constant_mod
     implicit none
     real(WP), dimension(:, :, :), intent(in   ) :: rhs1_semi
@@ -105,7 +105,6 @@ contains
 
     return
   end subroutine
-!===============================================================================
 !===============================================================================
 !> \brief To calcuate all rhs of momentum eq.
 !>
@@ -795,9 +794,9 @@ contains
 !-------------------------------------------------------------------------------
 ! x-pencil : x-momentum
 !-------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm%dt, isub)
     if(fl%idriven /= IDRVF_NO) &
     call Calculate_xmomentum_driven_source(isub, fl%idriven, fl%drvfc, dm, fl%mx_rhs) 
+    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm%dt, isub)
 !-------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !-------------------------------------------------------------------------------

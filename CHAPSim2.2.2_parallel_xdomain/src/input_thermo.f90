@@ -586,12 +586,12 @@ contains
 
     do i = 2, nlist - 1
         ddh1 = listTP(i)%dh - listTP(i - 1)%dh
-        dt1 = listTP(i)%t - listTP(i - 1)%t
-        dh1 = listTP(i)%h - listTP(i - 1)%h
+        dt1  = listTP(i)%t  - listTP(i - 1)%t
+        dh1  = listTP(i)%h  - listTP(i - 1)%h
 
         ddh2 = listTP(i + 1)%dh - listTP(i)%dh
-        dt2 = listTP(i + 1)%t - listTP(i)%t
-        dh2 = listTP(i + 1)%h - listTP(i)%h
+        dt2  = listTP(i + 1)%t  - listTP(i)%t
+        dh2  = listTP(i + 1)%h  - listTP(i)%h
 
         ddt = ddh1 / dt1 * ddh2 / dt2 
         ddh = ddh1 / dh1 * ddh2 / dh2
