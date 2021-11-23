@@ -8,6 +8,7 @@ contains
   subroutine Apply_BC_thermo(dm, th)
     use parameters_constant_mod
     use udf_type_mod
+    use input_thermo_mod
     implicit none
     type(t_domain), intent(in )   :: dm
     type(t_thermo), intent(inout) :: th
@@ -18,18 +19,37 @@ contains
 !   Build up B.C. info, undimensional, constant temperature
 !-------------------------------------------------------------------------------
     do i = 1, 2
+
       if( dm%ibcx(5, i) = IBC_DIRICHLET ) then
-        tpbcx(i)%t = dm%fbcx(5, i) / th%t0Ref
+        dm%fbcx(5, i) = dm%fbcx(5, i) / th%t0Ref ! dimensional T --> undimensional T
+        tpbcx(i)%t = dm%fbcx(5, i)
         call tpbcx(i)%Refresh_thermal_properties_from_T_undim
+      else if (dm%ibcx(5, i) = IBC_NEUMANN) then
+        ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
+        dm%fbcx(5, i) = dm%fbcx(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
+      else
       end if
+
       if( dm%ibcy(5, i) = IBC_DIRICHLET ) then
-        tpbcy(i)%t = dm%fbcy(5, i) / tm%t0Ref
+        dm%fbcy(5, i) = dm%fbcy(5, i) / th%t0Ref ! dimensional T --> undimensional T
+        tpbcy(i)%t = dm%fbcy(5, i)
         call tpbcy(i)%Refresh_thermal_properties_from_T_undim
+      else if (dm%ibcy(5, i) = IBC_NEUMANN) then
+        ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
+        dm%fbcy(5, i) = dm%fbcy(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
+      else
       end if
+
       if( dm%ibcz(5, i) = IBC_DIRICHLET ) then
-        tpbcz(i)%t = dm%fbcz(5, i) / tm%t0Ref
+        dm%fbcz(5, i) = dm%fbcz(5, i) / th%t0Ref ! dimensional T --> undimensional T
+        tpbcz(i)%t = dm%fbcz(5, i)
         call tpbcz(i)%Refresh_thermal_properties_from_T_undim
+      else if (dm%ibcz(5, i) = IBC_NEUMANN) then
+        ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
+        dm%fbcz(5, i) = dm%fbcz(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
+      else
       end if
+
     end do
 
     return

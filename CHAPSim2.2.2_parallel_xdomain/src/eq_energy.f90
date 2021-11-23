@@ -57,6 +57,7 @@ contains
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: gz_ypencil ! intermediate
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_zpencil ! intermediate
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: hEnth_xpcc
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: kCond_xpcc
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: hEnth_ycpc_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: hEnth_zccp_zpencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: Ttemp_ypencil
@@ -72,9 +73,13 @@ contains
     call transpose_y_to_z(gz_ypencil,  gz_zpencil, dm%dccp)   ! for d(g_z h)/dz
 
     do i = 1, 2
-      fbc(i) = dm%fbcx(1, i) * tm%tpbcx(i)%h
+      fbc(i) = tm%tpbcx(i)%h
     end do
-    call Get_x_midp_C2P_3D(dm%ibcx(5, :), fbc(:), dm, tm%hEnth, hEnth_xpcc )            ! for d(g_y h)/dy
+    call Get_x_midp_C2P_3D(dm%ibcx(5, :), fbc(:), dm, tm%hEnth, hEnth_xpcc ) ! for d(g_y h)/dy
+    do i = 1, 2
+      fbc(i) = tm%tpbcx(i)%k
+    end do
+    call Get_x_midp_C2P_3D(dm%ibcx(5, :), fbc(:), dm, tm%kCond, kCond_xpcc ) ! for d(k*(dT/dx))/dx
 
     call transpose_x_to_y (tm%hEnth,      accc_ypencil, dm%dccc)    !intermediate, accc_ypencil = hEnth_ypencil
     call Get_y_midp_C2P_3D(dm%ibcx(5, :), fbc(:), dm, accc_ypencil, hEnth_ycpc_ypencil)! for d(g_y h)/dy
@@ -88,6 +93,8 @@ contains
     call transpose_x_to_y (tm%kCond,      kCond_ypencil, dm%dccc)  ! for k d2(T)/dy^2
     call transpose_x_to_y (kCond_ypencil, kCond_zpencil, dm%dccc) 
 
+
+
 !-------------------------------------------------------------------------------
 ! the RHS of energy equation
 ! x-pencil : the RHS terms of energy (derivative) operating in the x direction
@@ -96,17 +103,31 @@ contains
     do i = 1, 2
       fbc(i) = dm%fbcx(1, i) * tm%tpbcx(i)%h
     end do
+    ! accc = -d(gx * h)/dx
     call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbc(:),        dm, - fl%gx * hEnth_xpcc, accc )
     tm%ene_rhs = tm%ene_rhs + accc
-
-    call Get_x_2nd_derivative_C2C_3D(dm%ibcx(5, :), dm%fbcx(5, :), dm, tm%tTemp, accc )
-    tm%ene_rhs = tm%ene_rhs + tm%kCond * accc
-
+    ! apcc = d(T)/dx; accc = d( k * dT/dx)/dx
     do i = 1, 2
-      fbc(i) = tm%tpbcx(i)%k
+      if (dm%ibcx(5, i) == IBC_NEUMANN) then
+        ibc(i) = IBC_UNKNOWN
+        fbc(i) = ZERO
+      else
+        ibc(i) = dm%ibcx(5, i)
+        fbc(i) = dm%fbcx(5, i)
+      end if
     end do
-    call Get_x_1st_derivative_C2C_3D(dm%ibcx(5, :), fbc(:),        dm, tm%kCond, accc )
-    call Get_x_1st_derivative_C2C_3D(dm%ibcx(5, :), dm%fbcx(5, :), dm, tm%tTemp, accc0 )
+    call Get_x_1st_derivative_C2P_3D(ibc(:), fbc(:), dm, tm%tTemp, apcc )
+    do i = 1, 2
+      if (dm%ibcx(5, i) == IBC_DIRICHLET) then
+        ibc(i) = dm%ibcx(5, i)
+        fbc(i) = ZERO
+      else
+        ibc(i) = dm%ibcx(5, :)
+        fbc(i) = dm%fbcx(5, :)
+      end if
+    end do
+    call Get_x_1st_derivative_P2C_3D(dm%ibcx(5, :), dm%fbcx(5, :), dm, apcc * kCond_xpcc, accc )
+
     tm%ene_rhs = tm%ene_rhs + accc * accc0
 !-------------------------------------------------------------------------------
 ! the RHS of energy equation
@@ -198,7 +219,6 @@ contains
     type(t_thermo), intent(inout) :: tm
     integer,        intent(in) :: isub
 
-    
 !-------------------------------------------------------------------------------
 !   calculate rhs of energy equation
 !-------------------------------------------------------------------------------
