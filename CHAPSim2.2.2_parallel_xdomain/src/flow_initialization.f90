@@ -535,11 +535,11 @@ contains
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
     call Get_volumetric_average_3d(.false., dm%ibcx(:), dm%fbcx(:), &
-          dm%jcnbr(:, :), dm%yp(:), dm%yc(:), dm%dpcc, ux, ubulk)
+          dm, dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
     call Get_volumetric_average_3d(.false., dm%ibcx(:), dm%fbcx(:), &
-    dm%jcnbr(:, :), dm%yp(:), dm%yc(:), dm%dpcc, ux, ubulk)
+          dm, dm%dpcc, ux, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil
 !-------------------------------------------------------------------------------

@@ -270,7 +270,7 @@ contains
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
         fix(:) = fl%dDens(:, j, k)
-        call Get_x_midp_C2P_1D (dm%idom, ibc, fbc, dm%icnbr, fix, fox)
+        call Get_x_midp_C2P_1D (ibc, fbc, dm, fix, fox)
         fl%gx(:, j, k) = fox(:) * fl%qx(:, j, k)
       end do
     end do
@@ -291,7 +291,7 @@ contains
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
         fiy(:) = d_ypencil(i, :, k)
-        call Get_y_midp_C2P_1D (ibc, fbc, dm%jcnbr, fiy, foy)
+        call Get_y_midp_C2P_1D (ibc, fbc, dm, fiy, foy)
         duy_ypencil(i, :, k) = foy(:) * uy_ypencil
       end do
     end do
@@ -311,7 +311,7 @@ contains
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = d_zpencil(i, j, :)
-        call Get_z_midp_C2P_1D (ibc, fbc, dm%kcnbr, fiz, foz)
+        call Get_z_midp_C2P_1D (ibc, fbc, dm, fiz, foz)
         duz_zpencil(i, j, :) = foz(:) * uz_zpencil(i, j, :)
       end do
     end do
@@ -417,12 +417,10 @@ contains
     udx_pencil(:, :, :) = ZERO
 
     dtmp = dm%dpcc
-    ibc(:) = dm%ibcx(1, :)
-    fbc(:) = dm%fbcx(1, :)
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
         fix(:) = u(:, j, k)
-        call Get_x_midp_P2C_1D (dm%idom, ibc, fbc, dm%ipnbr, fix, fox)
+        call Get_x_midp_P2C_1D (dm%ibcx(1, :), dm%fbcx(1, :), dm, fix, fox)
         udx_xpencil(:, j, k) = fox(:) * dm%h1r(1) * dm%dt
       end do
     end do
@@ -436,12 +434,10 @@ contains
 ! Y-pencil : v_ccc / dy * dt
 !-------------------------------------------------------------------------------
     dtmp = dm%dcpc
-    ibc(:) = dm%ibcy(2, :)
-    fbc(:) = dm%fbcy(2, :)
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
         fiy(:) = v(i, :, k)
-        call Get_y_midp_P2C_1D (ibc, fbc, dm%jpnbr, fiy, foy)
+        call Get_y_midp_P2C_1D (dm%ibcy(2, :), dm%fbcy(2, :), dm, fiy, foy)
         udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + foy(:) * dm%h1r(2) * dm%dt
       end do
     end do
@@ -454,12 +450,10 @@ contains
 ! Z-pencil : \overline{w}^z/dz at cell centre
 !-------------------------------------------------------------------------------
     dtmp = dm%dccp
-    ibc(:) = dm%ibcz(3, :)
-    fbc(:) = dm%fbcz(3, :)
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = w_zpencil(i, j, :)
-        call Get_z_midp_P2C_1D (ibc, fbc, dm%kpnbr, fiz, foz)
+        call Get_z_midp_P2C_1D (dm%ibcz(3, :), dm%fbcz(3, :), dm, fiz, foz)
         udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
       end do
     end do
@@ -504,7 +498,7 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]         
 !===============================================================================
-  subroutine Get_volumetric_average_3d(is_ynp, ibc, fbc, inbr, yp, yc, dtmp, var, fo_work)
+  subroutine Get_volumetric_average_3d(is_ynp, ibc, fbc, dm, dtmp, var, fo_work)
     use mpi_mod
     use udf_type_mod
     use operations
@@ -539,7 +533,7 @@ contains
 !   if variable is stored in y-nodes, extend them to y-cell centres (P2C)
 !   for example, uy.
 !-------------------------------------------------------------------------------
-      if( ibc(1) == IBC_PERIODIC ) then
+      if( dm%is_periodic(2) ) then
         noy = dtmp%ysz(2)
       else
         noy = dtmp%ysz(2) - 1
@@ -548,7 +542,7 @@ contains
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
 
-      call Get_y_midp_P2C_3D(ibc, fbc, inbr, var_ypencil, vcp_ypencil)
+      call Get_y_midp_P2C_3D(ibc, fbc, dm, var_ypencil, vcp_ypencil)
 
       fo = ZERO
       vol = ZERO
@@ -565,10 +559,10 @@ contains
             !       fi3d_ypencil(i, dm%jNeighb(3, j), k)) ! Simpson 2nd order 
             fo = fo + &      
                 ( var_ypencil(i, j + 1, k) + vcp_ypencil(i, j, k) ) * &
-                ( yp(j + 1) - yc(j) ) * HALF + &
+                ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
                 ( var_ypencil(i, j,     k) + vcp_ypencil(i, j, k) ) * &
-                ( yc(j    ) - yp(j) ) * HALF
-            vol = vol + ( yp(j + 1) - yp(j) )
+                ( dm%yc(j    ) - dm%yp(j) ) * HALF
+            vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
           end do
         end do
       end do
@@ -578,14 +572,14 @@ contains
 !   if variable is not stored in y-nodes, extends them to y-nodes. C2P
 !   for example, ux, density, etc.
 !-------------------------------------------------------------------------------
-      if( ibc(1) == IBC_PERIODIC ) then
+      if( dm%is_periodic(2) ) then
         noy = dtmp%ysz(2)
       else
         noy = dtmp%ysz(2) + 1
       end if
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
-      call Get_y_midp_P2C_3D(ibc, fbc, inbr, var_ypencil, vcp_ypencil)
+      call Get_y_midp_P2C_3D(ibc, fbc, dm, var_ypencil, vcp_ypencil)
 
       fo = ZERO
       vol = ZERO
@@ -597,10 +591,10 @@ contains
 !>         j  
             fo = fo + &
                 ( vcp_ypencil(i, j + 1, k) + var_ypencil(i, j, k) ) * &
-                ( yp(j + 1) - yc(j) ) * HALF + &
+                ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
                 ( var_ypencil(i, j,     k) + var_ypencil(i, j, k) ) * &
-                ( yc(j    ) - yp(j) ) * HALF
-            vol = vol + ( yp(j + 1) - yp(j) )
+                ( dm%yc(j    ) - dm%yp(j) ) * HALF
+            vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
           end do
         end do
       end do
