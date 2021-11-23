@@ -58,14 +58,35 @@ contains
     implicit none
 
     logical :: itest = .false.
-    integer :: i, iter
+    integer :: i, j, iter
 
     iter = 0
     do i = 1, nxdomain
-
+!-------------------------------------------------------------------------------
+! to test algorithms based on given values.
+!-------------------------------------------------------------------------------
+      if(domain(i)%ithermo == 0) then
+        domain(i)%fbc_dend(:, :) = ONE
+        domain(i)%fbc_vism(:, :) = ONE
+      else 
+        call Apply_BC_thermo(flow(i), thermo(i))
+        do j = 1, 2
+          domain(i)%fbc_dend(1, j) = thermo(i)%tpbcx(j)%d
+          domain(i)%fbc_dend(2, j) = thermo(i)%tpbcy(j)%d
+          domain(i)%fbc_dend(3, j) = thermo(i)%tpbcz(j)%d
+          domain(i)%fbc_vism(1, j) = thermo(i)%tpbcx(j)%m
+          domain(i)%fbc_vism(2, j) = thermo(i)%tpbcy(j)%m
+          domain(i)%fbc_vism(3, j) = thermo(i)%tpbcz(j)%m
+        end do
+      end if
+!-------------------------------------------------------------------------------
+! to allocate variables
+!-------------------------------------------------------------------------------
       call Allocate_flow_variables (domain(i), flow(i))
       if(domain(i)%ithermo == 1) call Allocate_thermo_variables (domain(i), thermo(i))
-
+!-------------------------------------------------------------------------------
+! to intialize variable
+!-------------------------------------------------------------------------------
       if (irestart == INITIAL_RANDOM) then
         iter = 0
         call Update_Re(iter, flow(i))
@@ -86,6 +107,7 @@ contains
       else
         call Print_error_msg("Error in flow initialisation flag.")
       end if
+
     end do
 
 !-------------------------------------------------------------------------------

@@ -152,7 +152,7 @@ subroutine Solve_eqs_iteration
 !===============================================================================
 !     main solver
 !===============================================================================
-      do isub = 1, nsubitr
+      do isub = 1, domain(i)%nsubitr
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
 #ifdef DEBUG

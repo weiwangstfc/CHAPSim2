@@ -1,7 +1,7 @@
 module eq_momentum_mod
   use precision_mod, only : WP
   implicit none
-  private :: Calculate_momentum_driven_source
+  private :: Calculate_xmomentum_driven_source
   private :: Calculate_momentum_fractional_step
   private :: Compute_momentum_rhs
   private :: Correct_massflux
@@ -12,7 +12,7 @@ contains
 !> \brief To calcuate the driven force for streamwise peridic flow.
 !>
 !> This subroutine is called everytime when calcuting the rhs of momentum eqs.
-!>
+!> check
 !-------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -22,38 +22,33 @@ contains
 !> \param[in]     d            domain name
 !> \param[in]     isub         the RK iteration to get correct Coefficient 
 !===============================================================================
-  subroutine Calculate_momentum_driven_source(rhs, str, d, isub)
-    use input_general_mod,       only : idriven, drvf,  IDRVF_NO, IDRVF_MASSFLUX, &
-                                        IDRVF_SKINFRIC, IDRVF_PRESLOSS, &
-                                        tAlpha, dt
-    use operations,              only : Get_volumetric_average_3d
-    use udf_type_mod,            only : t_domain
-    use parameters_constant_mod, only : HALF, ZERO
+  subroutine Calculate_xmomentum_driven_source(isub, idriven, drvf, dm, rhs)
+    use parameters_constant_mod
     implicit none
 
-    type(t_domain), intent(in) :: d
+    type(t_domain), intent(in) :: dm
     real(WP),    intent(inout) :: rhs(:, :, :)
     integer(4),     intent(in) :: isub
-    character(2),   intent(in) :: str
+    integer(4),     intent(in) :: idriven
+    real(WP),       intent(in) :: drvf
     
     real(WP) :: rhs_bulk
-    logical :: is_stored_nyp
 
     rhs_bulk = ZERO
 
     if(idriven == IDRVF_MASSFLUX) then
 
-      is_stored_nyp = .false.
-      call Get_volumetric_average_3d(rhs, str, d, rhs_bulk)
+      call Get_volumetric_average_3d(.false., dm%ibcy(1,:), dm%fbcy(1,:), &
+          dm, dm%dpcc, rhs, rhs_bulk)
       
     else if (idriven == IDRVF_SKINFRIC) then
 
-      rhs_bulk = - HALF * drvf * tAlpha(isub) * dt
+      rhs_bulk = - HALF * drvf * dm%tAlpha(isub) * dt
 
     else if (idriven == IDRVF_PRESLOSS ) then
 
     ! to check this part
-      rhs_bulk = - HALF * drvf * tAlpha(isub) * dt
+      rhs_bulk = - HALF * drvf * dm%tAlpha(isub) * dt
 
     else 
       return
@@ -79,13 +74,13 @@ contains
 !> \param[in]     rhs1_semi     the semi-implicit term
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, isub)
-    use input_general_mod, only : tGamma, tZeta, tAlpha, dt, &
-                                  IVIS_SEMIMPLT, iviscous
+  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, dt, isub)
+    use parameters_constant_mod
     implicit none
     real(WP), dimension(:, :, :), intent(in   ) :: rhs1_semi
     real(WP), dimension(:, :, :), intent(inout) :: rhs0, rhs1
     integer(4),                   intent(in   ) :: isub
+    real(WP), intent(in) :: dt
 
     integer(4) :: n(3)
     real(WP), allocatable :: rhs_dummy(:, :, :)
@@ -125,17 +120,13 @@ contains
 !> \param[inout]  d             domain    
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine Compute_momentum_rhs(fl, t, dm, isub)
-    use input_general_mod,       only : ithermo, igravity, idriven, &
-                                        sigma1p, &   
-                                        IDRVF_NO, IVIS_EXPLICIT, IVIS_SEMIMPLT
-    use udf_type_mod,            only : t_flow, t_domain
-    use parameters_constant_mod, only : TWO, ZERO, ONE_THIRD, TWO_THIRD
+  subroutine Compute_momentum_rhs(fl, dm, isub)
+    use parameters_constant_mod
     use operations
     implicit none
 
-    type(t_flow),   intent(inout) :: f
-    type(t_domain), intent(in   ) :: d
+    type(t_flow),   intent(inout) :: fl
+    type(t_domain), intent(in   ) :: dm
     integer(4),     intent(in   ) :: isub
 !-------------------------------------------------------------------------------
 ! common vars
@@ -251,7 +242,7 @@ contains
 ! others
 !-------------------------------------------------------------------------------
     real(WP) :: one_third_rre, two_third_rre, two_rre
-    real(WP) :: fbcx(2), fbcy(2), fbcz(2), fbc(2)
+    real(WP) :: fbc(2)
     integer  :: ibc(2)
     integer  :: i
 !===============================================================================
@@ -384,40 +375,33 @@ contains
 !                                      | --> m_zccp_zpencil --> m_zccp_ypencil --> m_zccp --> dmdx_zccp --> dmdx_zccp_ypencil(I) --> dmdx_zccp_zpencil--> dmdy_zccp_ypencil
 !-------------------------------------------------------------------------------
     i = 5
-    fbcx(1) = tm%tpbcx(1)%m
-    fbcx(2) = tm%tpbcx(2)%m
-    fbcy(1) = tm%tpbcy(1)%m
-    fbcy(2) = tm%tpbcy(2)%m
-    fbcz(1) = tm%tpbcz(1)%m
-    fbcz(2) = tm%tpbcz(2)%m
-
-    call Get_x_1st_derivative_C2P_3D(dm%ibcx(i,:), fbcx(:), dm, fl%mVisc,       dmdx_xpcc         )  ! x-pencil : x-mom, w thermal
-    call Get_x_midp_C2P_3D          (dm%ibcx(i,:), fbcx(:), dm, fl%mVisc,       m_xpcc            )  ! x-pencil : x-mom, w thermal
+    call Get_x_1st_derivative_C2P_3D(dm%ibcx(i,:), dm%fbc_vism(1, :), dm, fl%mVisc,       dmdx_xpcc         )  ! x-pencil : x-mom, w thermal
+    call Get_x_midp_C2P_3D          (dm%ibcx(i,:), dm%fbc_vism(1, :), dm, fl%mVisc,       m_xpcc            )  ! x-pencil : x-mom, w thermal
     call transpose_x_to_y (m_xpcc,            m_xpcc_ypencil,    dm%dpcc)                            ! y-pencil : x-mom, w thermal
     
-    call Get_y_1st_derivative_C2C_3D(dm%ibcy(i,:), fbcy(:), dm, m_xpcc_ypencil, dmdy_xpcc_ypencil )  ! y-pencil : x-mom, w thermal
+    call Get_y_1st_derivative_C2C_3D(dm%ibcy(i,:), dm%fbc_vism(2, :), dm, m_xpcc_ypencil, dmdy_xpcc_ypencil )  ! y-pencil : x-mom, w thermal
     call transpose_y_to_x (dmdy_xpcc_ypencil, dmdy_xpcc,         dm%dpcc)                            ! x-pencil : x-mom, w thermal
     
     call transpose_y_to_z (m_xpcc_ypencil,    m_xpcc_zpencil,    dm%dpcc)                            ! z-pencil : x-mom, w thermal
-    call Get_z_1st_derivative_C2C_3D(dm%ibcz(i,:), fbcz(:), dm, m_xpcc_zpencil, dmdz_xpcc_zpencil )  ! z-pencil : x-mom, w thermal
+    call Get_z_1st_derivative_C2C_3D(dm%ibcz(i,:), dm%fbc_vism(3, :), dm, m_xpcc_zpencil, dmdz_xpcc_zpencil )  ! z-pencil : x-mom, w thermal
     call transpose_z_to_y (dmdz_xpcc_zpencil, apcc_ypencil,      dm%dpcc)                            ! intermediate, apcc_ypencil = dmdz_xpcc_ypencil
     call transpose_y_to_x (apcc_ypencil,      dmdz_xpcc,         dm%dpcc)                            ! x-pencil : x-mom, w thermal
 
     call transpose_x_to_y (fl%mVisc, accc_ypencil, dm%dccc)                                          ! intermediate, accc_ypencil = m_ypencil 
-    call Get_y_midp_C2P_3D          (dm%ibcy(i,:), fbcy(:), dm, accc_ypencil,   m_ycpc_ypencil    )              ! y-pencil : y-mom, w thermal
+    call Get_y_midp_C2P_3D          (dm%ibcy(i,:), dm%fbc_vism(2, :), dm, accc_ypencil,   m_ycpc_ypencil    )              ! y-pencil : y-mom, w thermal
     call transpose_y_to_z (m_ycpc_ypencil,    m_ycpc_zpencil,    dm%dcpc)                            ! z-pencil : y-mom, w thermal
     call transpose_y_to_x (m_ycpc_ypencil,    m_ycpc,            dm%dcpc)                            ! x-pencil : y-mom, w thermal
-    call Get_x_1st_derivative_C2C_3D(dm%ibcx(i,:), fbcx(:), dm, m_ycpc,         dmdx_ycpc         )                ! x-pencil : y-mom, w thermal
+    call Get_x_1st_derivative_C2C_3D(dm%ibcx(i,:), dm%fbc_vism(1, :), dm, m_ycpc,         dmdx_ycpc         )                ! x-pencil : y-mom, w thermal
       
     call transpose_y_to_z (accc_ypencil,      accc_zpencil,      dm%dccc)                             ! intermediate, accc_zpencil = m_zpencil
-    call Get_z_1st_derivative_C2P_3D(dm%ibcz(i,:), fbcz(:), dm, accc_zpencil,   dmdz_zccp_zpencil )   ! z-pencil : z-mom, w thermal
-    call Get_z_midp_C2P_3D          (dm%ibcz(i,:), fbcz(:), dm, accc_zpencil,   m_zccp_zpencil    )              ! z-pencil : z-mom, w thermal
+    call Get_z_1st_derivative_C2P_3D(dm%ibcz(i,:), dm%fbc_vism(3, :), dm, accc_zpencil,   dmdz_zccp_zpencil )   ! z-pencil : z-mom, w thermal
+    call Get_z_midp_C2P_3D          (dm%ibcz(i,:), dm%fbc_vism(3, :), dm, accc_zpencil,   m_zccp_zpencil    )              ! z-pencil : z-mom, w thermal
     call transpose_z_to_y (m_zccp_zpencil,    m_zccp_ypencil,    dm%dccp)                             ! y-pencil : z-mom, w thermal
     call transpose_y_to_x (m_zccp_ypencil,    m_zccp,            dm%dccp)                             ! x-pencil : z-mom, w thermal
-    call Get_x_1st_derivative_C2C_3D(dm%ibcx(i,:), fbcx(:), dm, m_zccp,         dmdx_zccp         )                ! x-pencil : z-mom, w thermal
+    call Get_x_1st_derivative_C2C_3D(dm%ibcx(i,:), dm%fbc_vism(1, :), dm, m_zccp,         dmdx_zccp         )                ! x-pencil : z-mom, w thermal
     call transpose_x_to_y (dmdx_zccp,         accp_ypencil,      dm%dccp)                             ! intermidate, accp_ypencil = dmdx_zccp_ypencil
     call transpose_y_to_z (accp_ypencil,      dmdx_zccp_zpencil, dm%dccp)                             ! z-pencil : z-mom, w thermal
-    call Get_y_1st_derivative_C2C_3D(dm%ibcy(i,:), fbcy(:), dm, m_zccp_ypencil, dmdy_zccp_ypencil )   ! y-pencil : z-mom, w thermal
+    call Get_y_1st_derivative_C2C_3D(dm%ibcy(i,:), dm%fbc_vism(2, :), dm, m_zccp_ypencil, dmdy_zccp_ypencil )   ! y-pencil : z-mom, w thermal
 !-------------------------------------------------------------------------------
 ! calculate div(u_vec)
 !-------------------------------------------------------------------------------
@@ -456,13 +440,12 @@ contains
 !-------------------------------------------------------------------------------
     
     if ( dm%ithermo == 0) then
-      fbcx(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2)
-      call Get_x_1st_derivative_P2P_3D(dm%ibcx(1, :), fbcx(:), dm, -fl%qx * fl%qx, apcc )
+      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2)
+      call Get_x_1st_derivative_P2P_3D(dm%ibc(1, :), fbc(:), dm, -fl%qx * fl%qx, apcc )
     end if
     if ( dm%ithermo == 1) then
-      fbcx(1) = dm%fbcx(1, 1) * dm%fbcx(1, 1) * tm%tpbcx(1)%d
-      fbcx(2) = dm%fbcx(1, 2) * dm%fbcx(1, 2) * tm%tpbcx(2)%d
-      call Get_x_1st_derivative_P2P_3D(dm%ibcx(1, :), fbcx(:), dm, -fl%gx * fl%qx, apcc )
+      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2) * dm%fbc_dend(1, 1:2)
+      call Get_x_1st_derivative_P2P_3D(dm%ibcx(1, :), fbc(:), dm, -fl%gx * fl%qx, apcc )
     end if
     fl%mx_rhs = fl%mx_rhs + apcc
 !-------------------------------------------------------------------------------
@@ -475,13 +458,12 @@ contains
 ! X-pencil : Y-mom convection term (y-c1/3), d(gx^y * qy^x)/dx at (i, j', k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcx(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(2, 1:2)
-      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbcx(:), dm, -qx_yppc * qy_xppc, acpc )
+      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(2, 1:2)
+      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbc(:), dm, -qx_yppc * qy_xppc, acpc )
     end if
     if ( dm%ithermo == 1) then
-      fbcx(1) = dm%fbcx(2, 1) * dm%fbcx(1, 1) * tm%tpbcx(1)%d
-      fbcx(2) = dm%fbcx(2, 2) * dm%fbcx(1, 2) * tm%tpbcx(2)%d
-      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbcx(:), dm, -gx_yppc * qy_xppc, acpc )
+      fbc(1:2) = dm%fbcx(2, 1:2) * dm%fbcx(1, 1:2) * dm%fbc_dend(1, 1:2)
+      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbc(:), dm, -gx_yppc * qy_xppc, acpc )
     end if
     fl%my_rhs = fl%my_rhs + acpc
 !-------------------------------------------------------------------------------
@@ -494,13 +476,12 @@ contains
 ! X-pencil : Z-mom convection term (z-c1/3), d(gx^z * qz^x)/dx at (i, j, k')
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcx(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(3, 1:2)
-      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbcx(:), dm, -qx_zpcp * qz_xpcp, d, accp )
+      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(3, 1:2)
+      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbc(:), dm, -qx_zpcp * qz_xpcp, d, accp )
     end if
     if ( dm%ithermo == 1) then
-      fbcx(1) = dm%fbcx(3, 1) * dm%fbcx(1, 1) * tm%tpbcx(1)%d
-      fbcx(2) = dm%fbcx(3, 2) * dm%fbcx(1, 2) * tm%tpbcx(2)%d
-      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbcx(:), dm, -gx_zpcp * qz_xpcp, d, accp )
+      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(3, 1:2) * dm%fbc_dend(1, 1:2)
+      call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), fbc(:), dm, -gx_zpcp * qz_xpcp, d, accp )
     end if
     fl%mz_rhs = fl%mz_rhs + accp
 !-------------------------------------------------------------------------------
@@ -520,9 +501,7 @@ contains
 ! x-pencil : X-mom, gravity force in x direction
 !-------------------------------------------------------------------------------
       if(igravity == 1 .or. igravity == -1)  then
-        fbc(1) = tm%tpbcx(1)%d
-        fbc(2) = tm%tpbcx(2)%d
-        call Get_x_midp_C2P_3D(dm%ibcx(:, 5), fbc(:), dm, fl%dDens, apcc )
+        call Get_x_midp_C2P_3D(dm%ibcx(:, 5), dm%fbc_dend(1, :), dm, fl%dDens, apcc )
         mx_rhs_implicit =  mx_rhs_implicit + fl%fgravity * apcc
       end if
 !-------------------------------------------------------------------------------
@@ -576,13 +555,12 @@ contains
 ! Y-pencil : X-mom convection term (x-c2/3): d(<gy>^x * <qx>^y)/dy at (i', j, k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcy(1:2) = dm%fbcy(1, 1:2) * dm%fbcy(2, 1:2)
-      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, -qy_xppc_ypencil * qx_yppc_ypencil, apcc_ypencil )
+      fbc(1:2) = dm%fbcy(1, 1:2) * dm%fbcy(2, 1:2)
+      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), fbc(:), dm, -qy_xppc_ypencil * qx_yppc_ypencil, apcc_ypencil )
     end if
     if ( dm%ithermo == 1) then
-      fbcy(1) = dm%fbcy(1, 1) * dm%fbcy(2, 1) * tm%tpbcy(1)%d
-      fbcy(2) = dm%fbcy(1, 2) * dm%fbcy(2, 2) * tm%tpbcy(2)%d
-      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, -gy_xppc_ypencil * qx_yppc_ypencil, apcc_ypencil )
+      fbc(1:2) = dm%fbcy(1, 1:2) * dm%fbcy(2, 1:2) * dm%fbc_dend(2, 1:2)
+      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), fbc(:), dm, -gy_xppc_ypencil * qx_yppc_ypencil, apcc_ypencil )
     end if
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
 !-------------------------------------------------------------------------------
@@ -595,13 +573,12 @@ contains
 ! Y-pencil : Y-mom convection term (y-c2/3), d(gy * qy)/dy at (i, j', k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcy(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(2, 1:2)
-      call Get_y_1st_derivative_P2P_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, -qy_ypencil * qy_ypencil, acpc_ypencil )
+      fbc(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(2, 1:2)
+      call Get_y_1st_derivative_P2P_3D(dm%ibcy(2, :), fbc(:), dm, -qy_ypencil * qy_ypencil, acpc_ypencil )
     end if
     if ( dm%ithermo == 1) then
-      fbcy(1) = dm%fbcy(2, 1) * dm%fbcy(2, 1) * tm%tpbcy(1)%d
-      fbcy(2) = dm%fbcy(2, 2) * dm%fbcy(2, 2) * tm%tpbcy(2)%d
-      call Get_y_1st_derivative_P2P_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, -gy_ypencil * qy_ypencil, acpc_ypencil )
+      fbc(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(2, 1:2) * dm%fbc_dend(2, 1:2)
+      call Get_y_1st_derivative_P2P_3D(dm%ibcy(2, :), fbc(:), dm, -gy_ypencil * qy_ypencil, acpc_ypencil )
     end if
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 
@@ -615,13 +592,12 @@ contains
 ! Y-pencil : Z-mom convection term (z-c2/3), d(gy^z * qz^y)/dy at (i, j, k')
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcy(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(3, 1:2)
-      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), fbcy(:), dm, -qy_zcpp_ypencil * qz_ycpp_ypencil, accp_ypencil )
+      fbc(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(3, 1:2)
+      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), fbc(:), dm, -qy_zcpp_ypencil * qz_ycpp_ypencil, accp_ypencil )
     end if
     if ( dm%ithermo == 1) then
-      fbcy(1) = dm%fbcy(2, 1) * dm%fbcy(3, 1) * tm%tpbcy(1)%d
-      fbcy(2) = dm%fbcy(2, 2) * dm%fbcy(3, 2) * tm%tpbcy(2)%d
-      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), fbcy(:), dm, -gy_zcpp_ypencil * qz_ycpp_ypencil, accp_ypencil )
+      fbc(1:2) = dm%fbcy(3, 1:2) * dm%fbcy(2, 1:2) * dm%fbc_dend(2, 1:2)
+      call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), fbc(:), dm, -gy_zcpp_ypencil * qz_ycpp_ypencil, accp_ypencil )
     end if
     mz_rhs_ypencil = mz_rhs_ypencil + accp_ypencil
 !-------------------------------------------------------------------------------
@@ -641,9 +617,7 @@ contains
 ! Y-pencil : Y-mom gravity force in y direction
 !-------------------------------------------------------------------------------
       if( igravity == 2 .or. igravity == -2) then
-        fbc(1) = tm%tpbcy(1)%d
-        fbc(2) = tm%tpbcy(2)%d
-        call Get_y_midp_C2P_3D(dm%ibcy(5, :), fbc(:), dm, dDens_ypencil, acpc_ypencil )
+        call Get_y_midp_C2P_3D(dm%ibcy(5, :), dm%fbc_dend(2, 1:2), dm, dDens_ypencil, acpc_ypencil )
         my_rhs_implicit_ypencil =  my_rhs_implicit_ypencil + fl%fgravity * acpc_ypencil
       end if
 !-------------------------------------------------------------------------------
@@ -707,13 +681,12 @@ contains
 ! Z-pencil : X-mom convection term (x-c3/3): d(<gz>^x * <qx>^z)/dz at (i', j, k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcz(1:2) = dm%fbcz(1, 1:2) * dm%fbcz(3, 1:2)
-      call Get_z_1st_derivative_P2C_3D(dm%ibcz(1, :), fbcz(:), dm, -qz_xpcp_zpencil * qx_zpcp_zpencil, apcc_zpencil )
+      fbc(1:2) = dm%fbcz(1, 1:2) * dm%fbcz(3, 1:2)
+      call Get_z_1st_derivative_P2C_3D(dm%ibcz(1, :), fbc(:), dm, -qz_xpcp_zpencil * qx_zpcp_zpencil, apcc_zpencil )
     end if
     if ( dm%ithermo == 1) then
-      fbcz(1) = dm%fbcz(1, 1) * dm%fbcz(3, 1) * tm%tpbcz(1)%d
-      fbcz(2) = dm%fbcz(1, 2) * dm%fbcz(3, 2) * tm%tpbcz(2)%d
-      call Get_z_1st_derivative_P2C_3D(dm%ibcz(1, :), fbcz(:), dm, -gz_xpcp_zpencil * qx_zpcp_zpencil, apcc_zpencil )
+      fbc(1:2) = dm%fbcz(1, 1:2) * dm%fbcz(3, 1:2) * dm%fbc_dend(3, 1:2)
+      call Get_z_1st_derivative_P2C_3D(dm%ibcz(1, :), fbc(:), dm, -gz_xpcp_zpencil * qx_zpcp_zpencil, apcc_zpencil )
     end if
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
 
@@ -728,13 +701,12 @@ contains
 ! Z-pencil : Y-mom convection term (y-c3/3), d(<gz>^y * <qy>^z)/dz at (i, j', k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbcz(1:2) = dm%fbcz(2, 1:2) * dm%fbcz(3, 1:2)
-      call Get_z_1st_derivative_P2C_3D(dm%ibcz(3, :), fbcz(:), dm, -qz_ycpp_zpencil * qy_zcpp_zpencil, acpc_zpencil )
+      fbc(1:2) = dm%fbcz(2, 1:2) * dm%fbcz(3, 1:2)
+      call Get_z_1st_derivative_P2C_3D(dm%ibcz(3, :), fbc(:), dm, -qz_ycpp_zpencil * qy_zcpp_zpencil, acpc_zpencil )
     end if
     if ( dm%ithermo == 1) then
-      fbcz(1) = dm%fbcz(2, 1) * dm%fbcz(3, 1) * tm%tpbcz(1)%d
-      fbcz(2) = dm%fbcz(2, 2) * dm%fbcz(3, 2) * tm%tpbcz(2)%d
-      call Get_z_1st_derivative_P2C_3D(dm%ibcz(3, :), fbcz(:), dm, -gz_ycpp_zpencil * qy_zcpp_zpencil, acpc_zpencil )
+      fbc(1:2) = dm%fbcz(2, 1:2) * dm%fbcz(3, 1:2) * dm%fbc_dend(3, 1:2)
+      call Get_z_1st_derivative_P2C_3D(dm%ibcz(3, :), fbc(:), dm, -gz_ycpp_zpencil * qy_zcpp_zpencil, acpc_zpencil )
     end if
     my_rhs_zpencil = my_rhs_zpencil + acpc_zpencil
 !-------------------------------------------------------------------------------
@@ -760,9 +732,7 @@ contains
 ! z-pencil : gravity force in z direction
 !-------------------------------------------------------------------------------
       if( igravity == 3 .or. igravity == -3) then
-        fbc(1) = tm%tpbcz(1)%d
-        fbc(2) = tm%tpbcz(2)%d
-        call Get_z_midp_C2P_3D(dm%ibcz(5, :), fbc(:), dm, dDens_zpencil, accp_zpencil )
+        call Get_z_midp_C2P_3D(dm%ibcz(5, :), dm%fbc_dend(3, :), dm, dDens_zpencil, accp_zpencil )
         mz_rhs_implicit_zpencil =  mz_rhs_implicit_zpencil + fl%fgravity * accp_zpencil
       end if
 !-------------------------------------------------------------------------------
@@ -825,16 +795,17 @@ contains
 !-------------------------------------------------------------------------------
 ! x-pencil : x-momentum
 !-------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, isub)
-    if(idriven /= IDRVF_NO) call Calculate_momentum_driven_source(fl%mx_rhs, 'ux', d, isub) 
+    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm%dt, isub)
+    if(fl%idriven /= IDRVF_NO) &
+    call Calculate_xmomentum_driven_source(isub, fl%idriven, fl%drvfc, dm, fl%mx_rhs) 
 !-------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !-------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_implicit, isub)
+    call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_implicit, dm%dt, isub)
 !-------------------------------------------------------------------------------
 ! x-pencil : z-momentum
 !-------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_implicit, isub)
+    call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_implicit, dm%dt, isub)
  
     return
   end subroutine Compute_momentum_rhs
@@ -862,32 +833,50 @@ contains
   end subroutine Calculate_intermediate_mvar
 !===============================================================================
 !===============================================================================
-  subroutine Correct_massflux(ux, uy, uz, phi, d, isub)
+  subroutine Correct_massflux(ux, uy, uz, phi, dm, isub)
     use udf_type_mod,      only : t_domain
     use input_general_mod, only : tAlpha, dt, sigma2p
     use operations
     implicit none
 
-    type(t_domain), intent(in   ) :: d
+    type(t_domain), intent(in   ) :: dm
     integer(4),     intent(in   ) :: isub
-    real(WP), dimension( dm%np(1), dm%nc(2), dm%nc(3) ), intent(inout) :: ux
-    real(WP), dimension( dm%nc(1), dm%np(2), dm%nc(3) ), intent(inout) :: uy
-    real(WP), dimension( dm%nc(1), dm%nc(2), dm%np(3) ), intent(inout) :: uz
-    real(WP), dimension( dm%nc(1), dm%nc(2), dm%nc(3) ), intent(in   ) :: phi
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ), intent(inout) :: ux
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ), intent(inout) :: uy
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ), intent(inout) :: uz
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ), intent(in   ) :: phi
 
-    real(WP), dimension( dm%np(1), dm%nc(2), dm%nc(3) ) :: dphidx
-    real(WP), dimension( dm%nc(1), dm%np(2), dm%nc(3) ) :: dphidy
-    real(WP), dimension( dm%nc(1), dm%nc(2), dm%np(3) ) :: dphidz
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: dphidx
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: dphidy
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: dphidz
 
-  
-    call Get_x_1st_derivative_C2P_3D( phi,  dphidx )
-    ux = ux - dt * tAlpha(isub) * sigma2p * dphidx
-
-    call Get_y_1st_derivative_C2P_3D( phi,  dphidy )
-    uy = uy - dt * tAlpha(isub) * sigma2p * dphidy
-
-    call Get_z_1st_derivative_C2P_3D( phi,  dphidz )
-    uz = uz - dt * tAlpha(isub) * sigma2p * dphidz
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: phi_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dphidy_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: dphidz_ypencil
+    
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: phi_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dphidz_zpencil
+    
+!-------------------------------------------------------------------------------
+!   x-pencil, ux = ux - dt * alpha * d(phi)/dx
+!_______________________________________________________________________________
+    call Get_x_1st_derivative_C2P_3D(dm%ibcx(4, :), dm%fbcx(4, :), dm,  phi,  dphidx )
+    ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx
+!-------------------------------------------------------------------------------
+!   y-pencil, uy = uy - dt * alpha * d(phi)/dy
+!_______________________________________________________________________________
+    call transpose_from_x_to_y (phi, phi_ypencil, dm%dccc)
+    call Get_y_1st_derivative_C2P_3D(dm%ibcy(4, :), dm%fbcy(4, :), dm,  phi_ypencil, dphidy_ypencil )
+    call transpose_from_y_to_x (dphidy_ypencil, dphidy, dm%dcpc)
+    uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy
+!-------------------------------------------------------------------------------
+!   z-pencil, uz = uz - dt * alpha * d(phi)/dz
+!_______________________________________________________________________________
+    call transpose_from_y_to_z (phi_ypencil, phi_zpencil, dm%dccc)
+    call Get_z_1st_derivative_C2P_3D(dm%ibcz(4, :), dm%fbcz(4, :), dm,  phi_zpencil, dphidz_zpencil )
+    call transpose_from_z_to_y (dphidz_zpencil, dphidz_ypencil, dm%dccp)
+    call transpose_from_y_to_x (dphidz_ypencil, dphidz,         dm%dccp)
+    uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz
 
     return
   end subroutine Correct_massflux
@@ -949,13 +938,13 @@ contains
 !-------------------------------------------------------------------------------
 ! to update b.c. values
 !-------------------------------------------------------------------------------
-    call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
     call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
+    if(dm%ithermo ==  1) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
 !-------------------------------------------------------------------------------
 ! to calculate the provisional divergence constrains
 !-------------------------------------------------------------------------------
   !call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
-    call Calculate_continuity_constrains(f, d, isub)
+    call Calculate_continuity_constrains(fl, dm, isub)
 !-------------------------------------------------------------------------------
 ! to solve Poisson equation
 !-------------------------------------------------------------------------------
@@ -966,9 +955,9 @@ contains
 !-------------------------------------------------------------------------------
   !call Print_debug_mid_msg("  Updating velocity/mass flux ...")
     if ( dm%ithermo == 0) then 
-      call Correct_massflux(fl%qx, fl%qy, fl%qz, fl%pcor, d, isub)
+      call Correct_massflux(fl%qx, fl%qy, fl%qz, fl%pcor, dm, isub)
     else
-      call Correct_massflux(fl%gx, fl%gy, fl%gz, fl%pcor, d, isub)
+      call Correct_massflux(fl%gx, fl%gy, fl%gz, fl%pcor, dm, isub)
     end if
 !-------------------------------------------------------------------------------
 ! to update pressure

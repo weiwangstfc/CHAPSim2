@@ -19,40 +19,36 @@ contains
 !> \param[out] drhodt           d(rho)/dt
 !> \param[in]  itime            the sub-step in RK3
 !_______________________________________________________________________________
-  subroutine Calculate_drhodt(dDens, dDensm1, dDensm2, drhodt)
-    use precision_mod
-    use udf_type_mod, only : t_flow, t_domain
-    use input_general_mod, only : dt, iTimeScheme, ITIME_RK3, ITIME_RK3_CN, ITIME_AB2, &
-         nsubitr, tAlpha
-    use parameters_constant_mod, only : ONEPFIVE, TWO, HALF
+  subroutine Calculate_drhodt(dm, dDens, dDensm1, dDensm2, drhodt)
+    use parameters_constant_mod
     implicit none
-
+    type(t_domain), intent(in) :: dm
     real(WP), dimension(:, :, :), intent ( in  ) :: dDens, dDensm1, dDensm2
     real(WP), dimension(:, :, :), intent ( out ) :: drhodt
 
     integer(4) :: i
 
-    if(iTimeScheme == ITIME_AB2) then
+    if(dm%iTimeScheme == ITIME_AB2) then
 
       drhodt(:, :, :) = HALF * dDens  (:, :, :) - &
                         TWO  * dDensm1(:, :, :) + &
                         HALF * dDensm2(:, :, :)
-      drhodt(:, :, :) = drhodt(:, :, :) * dt
+      drhodt(:, :, :) = drhodt(:, :, :) * dm%dt
 
-    else if (iTimeScheme == ITIME_RK3 .or. iTimeScheme == ITIME_RK3_CN) then
+    else if (dm%iTimeScheme == ITIME_RK3 .or. dm%iTimeScheme == ITIME_RK3_CN) then
 
       ! to check this part, is iteration necessary?
       drhodt(:, :, :) = dDens  (:, :, :)
-      do i = 1, nsubitr
-        drhodt(:, :, :) = drhodt(:, :, :) + tAlpha(i) * &
-                          (dDensm1(:, :, :) - dDensm2(:, :, :))  * dt
+      do i = 1, dm%nsubitr
+        drhodt(:, :, :) = drhodt(:, :, :) + dm%tAlpha(i) * &
+                          (dDensm1(:, :, :) - dDensm2(:, :, :))  * dm%dt
       end do
 
     else  
 
       ! default, Euler 1st order 
       drhodt(:, :, :) = dDens(:, :, :) - dDensm1(:, :, :)
-      drhodt(:, :, :) = drhodt(:, :, :) * dt
+      drhodt(:, :, :) = drhodt(:, :, :) * dm%dt
 
     end if
 
@@ -74,14 +70,11 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Get_divergence_vel(ux, uy, uz, div, d)
-    use precision_mod
-    use udf_type_mod, only : t_domain, t_flow
-    use parameters_constant_mod, only : ZERO
-    use operations
+  subroutine Get_divergence_vel(ux, uy, uz, div, dm)
+    use parameters_constant_mod
     implicit none
 
-    type(t_domain),               intent (in   ) :: d
+    type(t_domain),               intent (in   ) :: dm
     real(WP), dimension(:, :, :), intent (in   ) :: ux
     real(WP), dimension(:, :, :), intent (in   ) :: uy
     real(WP), dimension(:, :, :), intent (in   ) :: uz
@@ -101,20 +94,20 @@ contains
 ! operation in x pencil, du/dx
 !_______________________________________________________________________________
     !call Print_3d_array(ux, nx, ny, nz, 'ux:') ! test
-    call Get_x_1st_derivative_P2C_3D( d, ux, div0)
+    call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), dm%fbcx(1, :), dm, ux, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'du/dx:') ! test
 !-------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !_______________________________________________________________________________
-    call Get_y_1st_derivative_P2C_3D( d, uy, div0)
+    call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, uy, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'dv/dy:')
 
 !-------------------------------------------------------------------------------
 ! operation in z pencil, dv/dz
 !_______________________________________________________________________________
-    call Get_z_1st_derivative_P2C_3D( d, uz, div0)
+    call Get_z_1st_derivative_P2C_3D(dm%ibcz(3, :), dm%fbcz(3, :), dm, uz, div0)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'dw/dz:')
 
@@ -137,7 +130,7 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Check_mass_conservation(f, d)
+  subroutine Check_mass_conservation(fl, dm)
     use precision_mod,           only : WP
     use udf_type_mod,            only : t_domain, t_flow
     use input_general_mod,       only : ithermo
@@ -146,34 +139,34 @@ contains
     use mpi_mod
     implicit none
 
-    type(t_domain), intent( in    ) :: d
-    type(t_flow),   intent( inout ) :: f                  
+    type(t_domain), intent( in    ) :: dm
+    type(t_flow),   intent( inout ) :: fl                  
 
     real(WP), allocatable  :: div (:, :, :)
     integer(4) :: nx, ny, nz
     integer(4) :: loc3d(3)
     real(WP)   :: divmax
 
-    nx = size(f%pcor, 1)
-    ny = size(f%pcor, 2)
-    nz = size(f%pcor, 3)
+    nx = size(fl%pcor, 1)
+    ny = size(fl%pcor, 2)
+    nz = size(fl%pcor, 3)
     allocate( div(nx, ny, nz) )
 
-    f%pcor = ZERO
+    fl%pcor = ZERO
     div  = ZERO
 !-------------------------------------------------------------------------------
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
     if (ithermo == 1) then
-      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, f%pcor)
+      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
     end if
 !-------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
     if (ithermo == 1) then
-      call Get_divergence_vel(f%gx, f%gy, f%gz, div, d)
+      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, d)
     else
-      call Get_divergence_vel(f%qx, f%qy, f%qz, div, d)
+      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, d)
     end if
   
     divmax = MAXVAL( abs_wp( div ) )
@@ -192,16 +185,12 @@ contains
 
 !===============================================================================
 !===============================================================================
-  subroutine Calculate_continuity_constrains(f, d, isub)
-    use precision_mod,           only : WP
-    use udf_type_mod,            only : t_domain, t_flow
-    use input_general_mod,       only : ithermo, dt, sigma2p, tAlpha
-    use parameters_constant_mod, only : ZERO
-    use math_mod,                only : abs_wp
+  subroutine Calculate_continuity_constrains(fl, dm, isub)
+    use parameters_constant_mod
     implicit none
 
-    type(t_domain), intent( in    ) :: d
-    type(t_flow),   intent( inout ) :: f                  
+    type(t_domain), intent( in    ) :: dm
+    type(t_flow),   intent( inout ) :: fl                  
     integer(4),     intent( in    ) :: isub
 
     real(WP), allocatable  :: div (:, :, :)
@@ -212,25 +201,25 @@ contains
     nz = dm%nc(3)
     allocate( div(nx, ny, nz) )
 
-    f%pcor = ZERO
+    fl%pcor = ZERO
     div  = ZERO
 !-------------------------------------------------------------------------------
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
-    if (ithermo == 1) then
-      call Calculate_drhodt(f%dDens, f%dDensm1, f%dDensm2, f%pcor)
+    if (dm%ithermo == 1) then
+      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
     end if
 !-------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
-    if (ithermo == 1) then
-      call Get_divergence_vel(f%gx, f%gy, f%gz, div, d)
+    if (dm%ithermo == 1) then
+      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
     else
-      call Get_divergence_vel(f%qx, f%qy, f%qz, div, d)
+      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
 
-    f%pcor = f%pcor + div
-    f%pcor = f%pcor / (tAlpha(isub) * sigma2p * dt)
+    fl%pcor = fl%pcor + div
+    fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     
     deallocate (div)
 

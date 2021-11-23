@@ -503,12 +503,10 @@ contains
     use udf_type_mod
     use operations
     implicit none
+    type(t_domainin),  intent(in) :: dm
     logical,           intent(in) :: is_ynp
     integer,           intent(in) :: ibc(2)
     real(WP),          intent(in) :: fbc(2)
-    integer(WP),       intent(in) :: inbr(4, 4)
-    real(WP),          intent(in) :: yp(:)
-    real(WP),          intent(in) :: yc(:)
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
@@ -579,7 +577,7 @@ contains
       end if
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
-      call Get_y_midp_P2C_3D(ibc, fbc, dm, var_ypencil, vcp_ypencil)
+      call Get_y_midp_C2P_3D(ibc, fbc, dm, var_ypencil, vcp_ypencil)
 
       fo = ZERO
       vol = ZERO

@@ -260,12 +260,14 @@ module udf_type_mod
     integer :: nc(3) ! geometric cell number
     integer :: np_geo(3) ! geometric points
     integer :: np(3) ! calculated points
-    integer  :: ibcx(5, 2) ! bc type, (5 variables, 2 sides)
+    integer  :: ibcx(5, 2) ! bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy(5, 2) ! bc type, (5 variables, 2 sides)
     integer  :: ibcz(5, 2) ! bc type, (5 variables, 2 sides)
     real(wp) :: fbcx(5, 2) ! bc values, (5 variables, 2 sides)
     real(wp) :: fbcy(5, 2) ! bc values, (5 variables, 2 sides)
     real(wp) :: fbcz(5, 2) ! bc values, (5 variables, 2 sides)
+    real(WP) :: fbc_vism(3, 2) ! bc values for mu, in 3 direction, 2 sides.
+    real(WP) :: fbc_dend(3, 2) ! bc values for density, in 3 direction, 2 sides.
     real(wp) :: lxx
     real(wp) :: lyt
     real(wp) :: lyb
@@ -324,7 +326,7 @@ module udf_type_mod
     real(WP) :: fgravity(3)
     real(wp) :: renIni
     real(wp) :: initNoise
-   
+  
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)
     real(WP), allocatable :: qz(:, :, :)
