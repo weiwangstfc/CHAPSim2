@@ -177,9 +177,9 @@ subroutine Solve_eqs_iteration
 !   visualisation
 !===============================================================================
       if(MOD(iter, nvisu) == 0) then
-        call Display_vtk_slice(domain, 'xy', 'u', 1, flow(i)%qx, iter)
-        call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
-        call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
+        !call Display_vtk_slice(domain, 'xy', 'u', 1, flow(i)%qx, iter)
+        !call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
+        !call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
       end if
     end do
   end do

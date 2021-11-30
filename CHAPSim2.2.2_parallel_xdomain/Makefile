@@ -63,7 +63,6 @@ OBJS= modules.o\
       eq_momentum.o\
       test_algrithms.o\
       flow_initialization.o\
-      display.o\
       chapsim.o
 
 
