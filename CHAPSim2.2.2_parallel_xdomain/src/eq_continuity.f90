@@ -94,20 +94,20 @@ contains
 ! operation in x pencil, du/dx
 !_______________________________________________________________________________
     !call Print_3d_array(ux, nx, ny, nz, 'ux:') ! test
-    call Get_x_1st_derivative_P2C_3D(dm%ibcx(1, :), dm%fbcx(1, :), dm, ux, div0)
+    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(1, :))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'du/dx:') ! test
 !-------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !_______________________________________________________________________________
-    call Get_y_1st_derivative_P2C_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, uy, div0)
+    call Get_y_1st_derivative_P2C_3D(uy, div0, dm, dm%ibcy(2, :))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'dv/dy:')
 
 !-------------------------------------------------------------------------------
 ! operation in z pencil, dv/dz
 !_______________________________________________________________________________
-    call Get_z_1st_derivative_P2C_3D(dm%ibcz(3, :), dm%fbcz(3, :), dm, uz, div0)
+    call Get_z_1st_derivative_P2C_3D(uz, div0, dm, dm%ibcz(3, :))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !call Print_3d_array(div0, nx, ny, nz, 'dw/dz:')
 

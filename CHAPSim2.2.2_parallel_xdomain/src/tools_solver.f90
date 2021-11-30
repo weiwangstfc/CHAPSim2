@@ -263,14 +263,12 @@ contains
 ! x-pencil : u1 -> g1
 !-------------------------------------------------------------------------------
     dtmp = dm%dpcc
-    do i = 1, 2
-      ibc(i) = dm%ibcx(5, i)
-      fbc(i) = tm%tpbcx(i)%d
-    end do
+    ibc(:) = dm%ibcx(5, :)
+    fbc(:) = dm%fbc_dend(1, :)
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
         fix(:) = fl%dDens(:, j, k)
-        call Get_x_midp_C2P_1D (ibc, fbc, dm, fix, fox)
+        call Get_x_midp_C2P_1D (fix, fox, dm, ibc, fbc)
         fl%gx(:, j, k) = fox(:) * fl%qx(:, j, k)
       end do
     end do
@@ -284,14 +282,12 @@ contains
 ! y-pencil : u2 -> g2
 !-------------------------------------------------------------------------------
     dtmp = dm%dcpc
-    do i = 1, 2
-      ibc(i) = dm%ibcy(5, i)
-      fbc(i) = tm%tpbcy(i)%d
-    end do
+    ibc(:) = dm%ibcy(5, :)
+    fbc(:) = dm%fbc_dend(2, :)
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
         fiy(:) = d_ypencil(i, :, k)
-        call Get_y_midp_C2P_1D (ibc, fbc, dm, fiy, foy)
+        call Get_y_midp_C2P_1D (fiy, foy, dm, ibc, fbc)
         duy_ypencil(i, :, k) = foy(:) * uy_ypencil
       end do
     end do
@@ -304,14 +300,12 @@ contains
 ! Z-pencil : u3 -> g3
 !-------------------------------------------------------------------------------
     dtmp = dm%dcpc
-    do i = 1, 2
-      ibc(i) = dm%ibcz(5, i)
-      fbc(i) = tm%tpbcz(i)%d
-    end do
+    ibc(:) = dm%ibcz(5, :)
+    fbc(:) = dm%fbc_dend(3, :)
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = d_zpencil(i, j, :)
-        call Get_z_midp_C2P_1D (ibc, fbc, dm, fiz, foz)
+        call Get_z_midp_C2P_1D (fiz, foz, dm, ibc, fbc)
         duz_zpencil(i, j, :) = foz(:) * uz_zpencil(i, j, :)
       end do
     end do
@@ -420,7 +414,7 @@ contains
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
         fix(:) = u(:, j, k)
-        call Get_x_midp_P2C_1D (dm%ibcx(1, :), dm%fbcx(1, :), dm, fix, fox)
+        call Get_x_midp_P2C_1D (fix, fox, dm, dm%ibcx(1, :))
         udx_xpencil(:, j, k) = fox(:) * dm%h1r(1) * dm%dt
       end do
     end do
@@ -437,7 +431,7 @@ contains
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
         fiy(:) = v(i, :, k)
-        call Get_y_midp_P2C_1D (dm%ibcy(2, :), dm%fbcy(2, :), dm, fiy, foy)
+        call Get_y_midp_P2C_1D (fiy, foy, dm, dm%ibcy(2, :))
         udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + foy(:) * dm%h1r(2) * dm%dt
       end do
     end do
@@ -453,7 +447,7 @@ contains
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = w_zpencil(i, j, :)
-        call Get_z_midp_P2C_1D (dm%ibcz(3, :), dm%fbcz(3, :), dm, fiz, foz)
+        call Get_z_midp_P2C_1D (fiz, foz, dm, dm%ibcz(3, :))
         udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
       end do
     end do
@@ -540,7 +534,7 @@ contains
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
 
-      call Get_y_midp_P2C_3D(ibc, fbc, dm, var_ypencil, vcp_ypencil)
+      call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibc)
 
       fo = ZERO
       vol = ZERO
@@ -577,7 +571,7 @@ contains
       end if
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
-      call Get_y_midp_C2P_3D(ibc, fbc, dm, var_ypencil, vcp_ypencil)
+      call Get_y_midp_C2P_3D(var_ypencil, vcp_ypencil, dm, ibc, fbc)
 
       fo = ZERO
       vol = ZERO

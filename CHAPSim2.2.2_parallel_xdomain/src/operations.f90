@@ -319,7 +319,6 @@ module operations
 
 contains
 !===============================================================================
-!===============================================================================
 !> \brief Assigned the cooefficients for the compact schemes     
 !> Scope:  mpi    called-freq    xdomain     module
 !>         all    once           specified   private
@@ -330,7 +329,7 @@ contains
 !  mode           name          role                                           !
 !-------------------------------------------------------------------------------
 !> \param[in]     iaccu         the accuracy given by user
-!-------------------------------------------------------------------------------
+!===============================================================================
   subroutine Prepare_compact_coefficients(iaccu)
     use parameters_constant_mod
     use input_general_mod
