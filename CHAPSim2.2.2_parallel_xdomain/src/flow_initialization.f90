@@ -220,18 +220,6 @@ contains
     type(t_domain), intent(in   ) :: dm
     type(t_flow),   intent(inout) :: fl
 
-    interface 
-       subroutine Display_vtk_slice(dm, str, varnm, vartp, var0, iter)
-        use udf_type_mod
-        type(t_domain), intent( in ) :: dm
-        integer(4) :: vartp
-        character( len = *), intent( in ) :: str
-        character( len = *), intent( in ) :: varnm
-        real(WP), intent( in ) :: var0(:, :, :)
-        integer(4), intent( in ) :: iter
-       end subroutine Display_vtk_slice
-    end interface
-
     if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
 
 !-------------------------------------------------------------------------------
@@ -281,18 +269,6 @@ contains
     type(t_domain), intent(in   ) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
-
-    interface 
-       subroutine Display_vtk_slice(dm, str, varnm, vartp, var0, iter)
-        use udf_type_mod
-        type(t_domain), intent( in ) :: dm
-        integer(4) :: vartp
-        character( len = *), intent( in ) :: str
-        character( len = *), intent( in ) :: varnm
-        real(WP), intent( in ) :: var0(:, :, :)
-        integer(4), intent( in ) :: iter
-       end subroutine Display_vtk_slice
-    end interface
 
     if (dm%ithermo /= 1) return
 !-------------------------------------------------------------------------------
@@ -660,18 +636,14 @@ contains
   end subroutine Initialize_vortexgreen_2dflow
 !===============================================================================
 !===============================================================================
-  subroutine  Validate_TGV2D_error(ux, uy, p, rre, tt, dm)
+  subroutine  Validate_TGV2D_error(fl, dm)
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
     implicit none
 
-    type(t_domain),    intent(in) :: dm
-    real(WP),       intent(inout) :: ux(:, :, :) , &
-                                     uy(:, :, :) , &
-                                     p (:, :, :)
-    real(WP),          intent(in) :: rre
-    real(WP),          intent(in) :: tt
+    type(t_domain), intent(in) :: dm
+    type(t_flow),   intent(in) :: fl
     integer :: k, i, j
     real(wp) :: uerr, ue, uc, verr, perr
     real(wp) :: xc, yc, xp, yp
@@ -695,8 +667,8 @@ contains
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
           xp = dm%h(1) * real(ii - 1, WP)
-          uc = ux(i, j, k)
-          ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * rre * tt)
+          uc = fl%qx(i, j, k)
+          ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * fl%rre * fl%time)
           uerr = uerr + (uc - ue)**2
           if(dabs(uc - ue) > uerrmax) uerrmax = dabs(uc - ue)
         end do
@@ -720,7 +692,7 @@ contains
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-          uc = uy(i, j, k)
+          uc = fl%qy(i, j, k)
           ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * fl%rre * fl%time)
           verr = verr + (uc - ue)**2
           if(dabs(uc - ue) > verrmax) verrmax = dabs(uc - ue)
@@ -745,7 +717,7 @@ contains
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-          uc = p(i, j, k)
+          uc = fl%pres(i, j, k)
           ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * fl%rre * fl%time))**2
           perr = perr + (uc - ue)**2
           if(dabs(uc - ue) > perrmax) perrmax = dabs(uc - ue)
