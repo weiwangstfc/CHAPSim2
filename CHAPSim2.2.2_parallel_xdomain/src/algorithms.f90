@@ -10,17 +10,17 @@ module tridiagonal_matrix_algorithm
   public :: Test_TDMA_cyclic
 
 contains
-
+!===============================================================================
   subroutine Preprocess_TDMA_coeffs(a, b, c, d, n)
     use math_mod
     use parameters_constant_mod, only : ONE
     use precision_mod
     implicit none
-    integer(4), intent(in) :: n
+    integer, intent(in) :: n
     real(WP), intent(in)    :: a(n), b(n)
     real(WP), intent(inout) :: c(n)
     real(WP), intent(out)   :: d(n)
-    integer(4) :: i
+    integer :: i
 
     ! prepare coefficients
     c(1) = c(1) / b(1)
@@ -32,7 +32,7 @@ contains
 
     return
   end subroutine Preprocess_TDMA_coeffs
-
+!===============================================================================
   subroutine Solve_TDMA_basic(x, a, b, c, d, n)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! solution of a tridiagnal system of n equations of the form
@@ -43,12 +43,12 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     use precision_mod
     implicit none
-
-    integer(4), intent(in) :: n
+!===============================================================================
+    integer, intent(in) :: n
     real(WP), intent(inout) :: x(n) ! R in, X out.
     real(WP), intent(in) :: a(n), b(n)
     real(WP), intent(in) :: c(n), d(n)
-    integer(4) :: i
+    integer :: i
     
     x(1) = x(1) / b(1)
     
@@ -64,15 +64,13 @@ contains
 
     return
   end subroutine Solve_TDMA_basic
-
-
-
+!===============================================================================
   subroutine Solve_TDMA_cyclic(x, a, b, c, d, n)
 
     use precision_mod
     implicit none
     
-    integer(4), intent(in) :: n
+    integer, intent(in) :: n
     real(WP), intent(inout) :: x(n) ! R in, X out.
     real(WP), intent(in) :: a(n), b(n)
     real(WP), intent(in) :: c(n), d(n)
@@ -90,13 +88,13 @@ contains
     x(1:n-1) = x(1:n-1) + x1(1:n-1) * x(n)
     return
   end subroutine Solve_TDMA_cyclic
-
+!===============================================================================
   subroutine Solve_TDMA(peri, x, a, b, c, d, n)
     use input_general_mod
     use precision_mod
     implicit none
     logical, intent(in) :: peri
-    integer(4), intent(in) :: n
+    integer, intent(in) :: n
     real(WP), intent(inout) :: x(n) ! R in, X out.
     real(WP), intent(in) :: a(n), b(n)
     real(WP), intent(in) :: c(n), d(n)
@@ -109,14 +107,15 @@ contains
 
     return
   end subroutine
-
+!===============================================================================
   subroutine Test_TDMA_noncyclic
+    use iso_fortran_env
     use precision_mod
     implicit none
-    integer(4), parameter :: n = 10
+    integer, parameter :: n = 10
     real(WP) :: a(n), b(n), c(n), d(n), r(n)
     real(WP) :: ref(n)
-    integer(4) :: i
+    integer :: i
     !real(WP) :: PI = 3.1416926
 
     ! example 1, n = 10
@@ -154,14 +153,15 @@ contains
     
     return
   end subroutine Test_TDMA_noncyclic
-
+!===============================================================================
   subroutine Test_TDMA_cyclic
     use precision_mod
+    use iso_fortran_env
     implicit none
-    integer(4), parameter :: n = 10
+    integer, parameter :: n = 10
     real(WP) :: a(n), b(n), c(n), d(n), r(n)
     real(WP) :: ref(n)
-    integer(4) :: i
+    integer :: i
 
     a(1: n) = [3.0_WP, 1.0_WP, 1.0_WP, 7.0_WP, 6.0_WP, 3.0_WP, 8.0_WP, 6.0_WP, 5.0_WP, 4.0_WP]
     b(1: n) = [2.0_WP, 3.0_WP, 3.0_WP, 2.0_WP, 2.0_WP, 4.0_WP, 1.0_WP, 2.0_WP, 4.0_WP, 5.0_WP]

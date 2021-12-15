@@ -1,5 +1,6 @@
 !===============================================================================
   subroutine Print_error_msg(msg)
+    use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
     
@@ -12,6 +13,7 @@
   end subroutine Print_error_msg
 !===============================================================================
   subroutine Print_warning_msg(msg)
+    use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
     
@@ -21,6 +23,7 @@
   end subroutine Print_warning_msg
   !===============================================================================
   subroutine Print_debug_start_msg(msg)
+    use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
 
@@ -31,6 +34,7 @@
   end subroutine Print_debug_start_msg
 !===============================================================================
   subroutine Print_debug_mid_msg(msg)
+    use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
 
@@ -39,6 +43,7 @@
   end subroutine Print_debug_mid_msg
 !===============================================================================
   subroutine Print_debug_end_msg
+    use iso_fortran_env
     implicit none
 
     write (OUTPUT_UNIT,*) "... done."
@@ -47,14 +52,14 @@
 
 !===============================================================================
   subroutine Print_3d_array(var, nx, ny, nz, str)
-    use mpi_mod
     use precision_mod
+    use iso_fortran_env
     implicit none
-    integer(4), intent(in) :: nx, ny, nz
+    integer, intent(in) :: nx, ny, nz
     real(wp), intent(in) :: var(nx, ny, nz)
     character(len=*),  intent(in) :: str
 
-    integer(4) :: i, j, k
+    integer :: i, j, k
 
     write (OUTPUT_UNIT, *) str
     do k = 1, nz
@@ -74,7 +79,7 @@ module code_performance_mod
   use precision_mod
   implicit none
   
-  integer(4), parameter :: CPU_TIME_CODE_START = 1, &
+  integer, parameter :: CPU_TIME_CODE_START = 1, &
                            CPU_TIME_ITER_START = 2, &
                            CPU_TIME_ITER_END   = 3, &
                            CPU_TIME_CODE_END   = 4
@@ -115,10 +120,10 @@ module code_performance_mod
     use mpi_mod
     use decomp_2d
     implicit none
-    integer(4), intent(in) :: itype
-    integer(4), intent(in) :: nrsttckpt, niter
-    integer(4), intent(in), optional :: iter
-    integer(4) :: hrs, mins
+    integer, intent(in) :: itype
+    integer, intent(in) :: nrsttckpt, niter
+    integer, intent(in), optional :: iter
+    integer :: hrs, mins
     real(wp) :: secs
     real(WP) :: t_total, t_elaspsed,t_remaining, t_aveiter, t_this_iter
     real(WP) :: t_total0, t_elaspsed0,t_remaining0, t_aveiter0, t_this_iter0
@@ -236,7 +241,7 @@ contains
     !
     !  parameters:
     !
-    !    Input/output, INTEGER(4) seed.
+    !    Input/output, integer seed.
     !    IF seed is zero on input, THEN you're asking this routine to come up
     !    with a seed value, whICh is RETURNed as output.
     !    IF seed is nonzero on input, THEN you're asking this routine to
@@ -245,14 +250,14 @@ contains
     !
     implicit none
     !
-    integer(4) :: count
-    integer(4) :: count_max
-    integer(4) :: count_rate
+    integer :: count
+    integer :: count_max
+    integer :: count_rate
     logical, parameter :: debug = .false.
-    integer(4) :: i
-    integer(4) :: seed
-    integer(4), allocatable :: seed_vector(:)
-    integer(4) :: seed_size
+    integer :: i
+    integer :: seed
+    integer, allocatable :: seed_vector(:)
+    integer :: seed_size
     real(wp) :: t
     !
     !  Initialize the random number seed.
@@ -329,18 +334,18 @@ contains
     !
     !    Input, REAL(WP) ALO, AHI, the range allowed for the entries.
     !
-    !    Input, INTEGER(4) N, the number of entries in the vector.
+    !    Input, integer N, the number of entries in the vector.
     !
     !    Output, REAL(WP) A(N), the vector of randomly chosen values.
     !
     implicit none
     !
-    integer(4) n
+    integer n
     !
     real(wp) a(n)
     real(wp) ahi
     real(wp) alo
-    integer(4) i
+    integer i
     !
     do i = 1, n
         call Generate_r_random ( alo, ahi, a(i) )

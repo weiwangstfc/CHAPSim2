@@ -25,8 +25,6 @@
 !>
 !===============================================================================
 module input_general_mod
-  use parameters_constant_mod
-  use var_dft_mod
   implicit none
 
   logical :: is_any_energyeq
@@ -47,8 +45,10 @@ contains
 !===============================================================================
   subroutine Read_input_parameters
     use wtformat_mod
+    use mpi_mod
     use parameters_constant_mod
-    use mpi_mod, only : nrow, ncol
+    use vars_df_mod
+    use thermo_info_mod
     implicit none
 
     character(len = 18) :: flname = 'input_champsim.ini'
@@ -61,6 +61,7 @@ contains
     character(len = 80) :: varname
     integer  :: itmp
     real(WP) :: rtmp
+    integer :: i, j
     
     if(nrank == 0) call Print_debug_start_msg("CHAPSim2.0 Starts ...")
 !-------------------------------------------------------------------------------
@@ -150,11 +151,12 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:5, 2), domain(1)%fbcy(1:5, 2)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:5, 1), domain(1)%fbcz(1:5, 1)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:5, 2), domain(1)%fbcz(1:5, 2)
-
-        domain(:)%ibcy(:, :) = domain(1)%ibcy(:, :)
-        domain(:)%fbcy(:, :) = domain(1)%fbcy(:, :)
-        domain(:)%ibcz(:, :) = domain(1)%ibcz(:, :)
-        domain(:)%fbcz(:, :) = domain(1)%fbcz(:, :)
+        do i = 1, nxdomain
+          domain(i)%ibcy(:, :) = domain(1)%ibcy(:, :)
+          domain(i)%fbcy(:, :) = domain(1)%fbcy(:, :)
+          domain(i)%ibcz(:, :) = domain(1)%ibcz(:, :)
+          domain(i)%fbcz(:, :) = domain(1)%fbcz(:, :)
+        end do
 !-------------------------------------------------------------------------------
 ! [mesh] 
 !-------------------------------------------------------------------------------
@@ -323,15 +325,15 @@ contains
       domain(i)%is_periodic(:) = .false.
       do j = 1, 5
         if(domain(i)%ibcx(j, 1) == IBC_PERIODIC .or. domain(i)%ibcx(j, 2) == IBC_PERIODIC) then
-          domain(i)%ibcx(j, 1:2) == IBC_PERIODIC
+          domain(i)%ibcx(j, 1:2) = IBC_PERIODIC
           domain(i)%is_periodic(1) = .true.
         end if
         if(domain(i)%ibcy(j, 1) == IBC_PERIODIC .or. domain(i)%ibcy(j, 2) == IBC_PERIODIC) then
-          domain(i)%ibcy(j, 1:2) == IBC_PERIODIC
+          domain(i)%ibcy(j, 1:2) = IBC_PERIODIC
           domain(i)%is_periodic(2) = .true.
         end if
         if(domain(i)%ibcz(j, 1) == IBC_PERIODIC .or. domain(i)%ibcz(j, 2) == IBC_PERIODIC) then
-          domain(i)%ibcz(j, 1:2) == IBC_PERIODIC
+          domain(i)%ibcz(j, 1:2) = IBC_PERIODIC
           domain(i)%is_periodic(3) = .true.
         end if
       end do

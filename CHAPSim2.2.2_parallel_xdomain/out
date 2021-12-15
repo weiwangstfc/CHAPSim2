@@ -1,0 +1,14 @@
+make[1]: Entering directory '/home/weiwang/Work/CHAPSim/CHAPSim2/CHAPSim2.2.2_parallel_xdomain'
+make[1]: Leaving directory '/home/weiwang/Work/CHAPSim/CHAPSim2/CHAPSim2.2.2_parallel_xdomain'
+make CHAPSim -f Makefile
+make[1]: Entering directory '/home/weiwang/Work/CHAPSim/CHAPSim2/CHAPSim2.2.2_parallel_xdomain'
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/mpi_mod.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/modules.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/tools_general.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/input_thermo.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/input_general.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/geometry.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/domain_decomposition.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/algorithms.f90
+mpif90 -I ./lib/2decomp_fft/include -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=f2008 -ffpe-trap=invalid,zero,overflow -fall-intrinsics -DOUBLE_PREC -O3 -fcray-pointer -cpp  -c src/operations.f90
+make[1]: Leaving directory '/home/weiwang/Work/CHAPSim/CHAPSim2/CHAPSim2.2.2_parallel_xdomain'

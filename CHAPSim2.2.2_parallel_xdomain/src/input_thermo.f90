@@ -24,11 +24,13 @@
 !> relationships between properties.
 !>
 !===============================================================================
-module input_thermo_mod
+module thermo_info_mod
   use parameters_constant_mod
   implicit none
-
-  type thermoProperty_t
+!-------------------------------------------------------------------------------
+! udf_type : t_thermoProperty
+!-------------------------------------------------------------------------------
+  type t_thermoProperty
     real(WP) :: t  ! temperature
     real(WP) :: d  ! density
     real(WP) :: m  ! dynviscosity
@@ -48,15 +50,45 @@ module input_thermo_mod
     procedure :: Print_debug
     generic :: Print => Print_debug
     generic :: write(formatted) => Print_debug
-  end type thermoProperty_t
+  end type t_thermoProperty
+!-------------------------------------------------------------------------------
+! udf_type : t_thermo
+!-------------------------------------------------------------------------------
+  type t_thermo
+    integer  :: ifluid
+    integer  :: igravity
+    integer  :: nIterThermoStart
+    integer  :: nIterThermoEnd
+    real(WP) :: lenRef
+    real(WP) :: T0Ref
+    real(WP) :: Tini0
+    real(WP) :: time
+    real(WP) :: rPrRen
+    
+    type(t_thermoProperty) :: tpIni     ! undim, initial state
+    type(t_thermoProperty) :: tpbcx(2)  ! undim, xbc state
+    type(t_thermoProperty) :: tpbcy(2)  ! undim, ybc state
+    type(t_thermoProperty) :: tpbcz(2)  ! undim, zbc state
 
-  type(thermoProperty_t), save, allocatable, dimension(:) :: listTP
-  type(thermoProperty_t) :: tpRef0 ! dim, reference state
-
-  private
+    real(WP), allocatable :: dh(:, :, :)
+    real(WP), allocatable :: hEnth(:, :, :)
+    real(WP), allocatable :: kCond(:, :, :)
+    real(WP), allocatable :: tTemp(:, :, :)
+    real(WP), allocatable :: ene_rhs(:, :, :)  ! current step rhs
+    real(WP), allocatable :: ene_rhs0(:, :, :) ! last step rhs
+  end type t_thermo
+!-------------------------------------------------------------------------------
+! public variables
+!-------------------------------------------------------------------------------
+  type(t_thermoProperty) :: tpRef0 ! dim, reference state
+  type(t_thermo), allocatable, save :: thermo(:)
+!-------------------------------------------------------------------------------
+! private variables
+!-------------------------------------------------------------------------------
+  !private
   character(len = 64) :: inputProperty
+  integer :: ifluid
   integer :: ipropertyState
-  real(WP) :: u0dim
   real(WP) :: TM0
   real(WP) :: TB0
   real(WP) :: HM0
@@ -66,21 +98,25 @@ module input_thermo_mod
   real(WP) :: CoCp(-2:2)
   real(WP) :: CoH(-1:3)
   real(WP) :: CoM(-1:1)
-
   integer :: nlist
-
+  type(t_thermoProperty), save, allocatable, dimension(:) :: listTP
+!-------------------------------------------------------------------------------
+! private functions
+!-------------------------------------------------------------------------------
   private :: Buildup_property_relations_from_table
   private :: Buildup_property_relations_from_function
   private :: Check_monotonicity_DH_of_HT_list
-  public  :: Buildup_thermo_mapping_relations
   private :: Initialize_thermo_parameters
   private :: Sort_listTP_Tsmall2big
   private :: Write_thermo_property
-
+!-------------------------------------------------------------------------------
+! public functions
+!-------------------------------------------------------------------------------
+  public  :: Buildup_thermo_mapping_relations
 contains
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type thermoProperty_t.
+!> \brief Defination of a procedure in the type t_thermoProperty.
 !>  to initialize the default thermal properties.     
 !>
 !> This subroutine is called as required to initialize the default
@@ -96,7 +132,7 @@ contains
   subroutine Get_initialized_thermal_properties ( this )
     implicit none
 
-    class(thermoProperty_t), intent(inout) :: this
+    class(t_thermoProperty), intent(inout) :: this
     
     this%t  = ONE
     this%d  = ONE
@@ -111,7 +147,7 @@ contains
   end subroutine Get_initialized_thermal_properties
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type thermoProperty_t.
+!> \brief Defination of a procedure in the type t_thermoProperty.
 !>  to check the temperature limitations.     
 !>
 !> This subroutine is called as required to check the temperature
@@ -128,7 +164,7 @@ contains
   subroutine is_T_in_scope ( this )
     implicit none
 
-    class( thermoProperty_t ), intent( inout ) :: this
+    class( t_thermoProperty ), intent( inout ) :: this
     
     if(ipropertyState == IPROPERTY_TABLE) then
       if ( ( this%t < listTP(1)%t     )  .OR. &
@@ -150,7 +186,7 @@ contains
   end subroutine is_T_in_scope
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type thermoProperty_t.
+!> \brief Defination of a procedure in the type t_thermoProperty.
 !>  to update the thermal properties based on the known temperature.     
 !>
 !> This subroutine is called as required to update all thermal properties from
@@ -168,9 +204,8 @@ contains
 !_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_T_dimensional ( this )
     use parameters_constant_mod, only : MINP, ONE, ZERO
-    use input_general_mod, only : ifluid
     implicit none
-    class(thermoProperty_t), intent(inout) :: this
+    class(t_thermoProperty), intent(inout) :: this
     
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -258,9 +293,8 @@ contains
 !===============================================================================
   subroutine Refresh_thermal_properties_from_T_undim ( this)
     use parameters_constant_mod, only : MINP, ONE, ZERO
-    use input_general_mod, only : ifluid
     implicit none
-    class(thermoProperty_t), intent(inout) :: this
+    class(t_thermoProperty), intent(inout) :: this
     
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -352,7 +386,7 @@ contains
   end subroutine Refresh_thermal_properties_from_T_undim
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type thermoProperty_t.
+!> \brief Defination of a procedure in the type t_thermoProperty.
 !>  to update the thermal properties based on the known enthalpy.     
 !>
 !> This subroutine is called as required to update all thermal properties from
@@ -367,7 +401,7 @@ contains
 !_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_H(this)
     use parameters_constant_mod, only : MINP, ONE
-    class(thermoProperty_t), intent(inout) :: this
+    class(t_thermoProperty), intent(inout) :: this
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -401,7 +435,7 @@ contains
   end subroutine Refresh_thermal_properties_from_H
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type thermoProperty_t.
+!> \brief Defination of a procedure in the type t_thermoProperty.
 !>  to update the thermal properties based on the known enthalpy per unit mass.     
 !>
 !> This subroutine is called as required to update all thermal properties from
@@ -416,12 +450,11 @@ contains
 !_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_DH(this)
     use parameters_constant_mod, only : MINP, ONE
-    class(thermoProperty_t), intent(inout) :: this
+    class(t_thermoProperty), intent(inout) :: this
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
     real(WP) :: w1, w2
-    logical :: is_dim
 
     i1 = 1
     i2 = nlist
@@ -453,7 +486,7 @@ contains
   end subroutine Refresh_thermal_properties_from_DH
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type thermoProperty_t.
+!> \brief Defination of a procedure in the type t_thermoProperty.
 !>  to print out the thermal properties at the given element.     
 !>
 !> This subroutine is called as required to print out thermal properties 
@@ -473,7 +506,7 @@ contains
 !_______________________________________________________________________________
   subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
     use iso_fortran_env, only : error_unit
-    class(thermoProperty_t), intent(in) :: this
+    class(t_thermoProperty), intent(in) :: this
     integer, intent(in)                 :: unit
     character(len = *), intent(in)      :: iotype
     integer, intent(in)                 :: v_list(:)
@@ -518,7 +551,7 @@ contains
 !> \param[inout]  list         the thermal table element array
 !===============================================================================
   subroutine Sort_listTP_Tsmall2big(list)
-    type(thermoProperty_t),intent(inout) :: list(:)
+    type(t_thermoProperty),intent(inout) :: list(:)
     integer :: i, n, k
     real(WP) :: buf
 
@@ -626,7 +659,6 @@ contains
     character(len = 80) :: str
     real(WP) :: rtmp
     integer :: i
-    logical :: is_dim
 !-------------------------------------------------------------------------------
 ! to read given table of thermal properties
 !-------------------------------------------------------------------------------
@@ -733,7 +765,7 @@ contains
     !use mpi_mod ! for test
     use parameters_constant_mod, only : ZERO, TRUNCERR
     implicit none
-    type(thermoProperty_t) :: tp
+    type(t_thermoProperty) :: tp
     integer :: n, i
     real(WP) :: dhmax1, dhmin1
     real(WP) :: dhmax, dhmin
@@ -790,9 +822,8 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]  none          NA
 !===============================================================================
-  subroutine Initialize_thermo_parameters(ifluid)
+  subroutine Initialize_thermo_parameters
     use mpi_mod
-    integer, intent(in) :: ifluid
     implicit none
 
     if(nrank == 0) call Print_debug_start_msg("Initializing thermal parameters ...")
@@ -884,13 +915,10 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Buildup_thermo_mapping_relations
-    use input_general_mod, only : is_any_energyeq
-    use var_dft_mod, only : thermo
     implicit none
-    
-    if ( .not. is_any_energyeq) return
 
-    call Initialize_thermo_parameters(thermo(1)%ifluid)
+    ifluid = thermo(1)%ifluid
+    call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table(thermo(1)%T0Ref)
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function(thermo(1)%T0Ref)
     call Check_monotonicity_DH_of_HT_list
@@ -898,7 +926,7 @@ contains
     return
   end subroutine Buildup_thermo_mapping_relations
   
-end module input_thermo_mod
+end module thermo_info_mod
 
 
 

@@ -8,7 +8,7 @@
 ! Foundation; either version 3 of the License, or (at your option) any later
 ! version.
 !
-! This program is distributed in the hope that it will be useful, but WITHOUT
+! This program is disatributed in the hope that it will be useful, but WITHOUT
 ! ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 ! FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
 ! details.
@@ -69,7 +69,7 @@ module operations
 !-------------------------------------------------------------------------------
   ! collocated C2C
   real(WP), public :: d2fC2C(5, 3, 4)
-  real(WP), public :: d2rC2C(5, 4, 4)
+  real(WP), public :: d2rC2C(5, 4, 4) ! one more value used. 
   
   ! collocated P2P
   real(WP) :: d2fP2P(5, 3, 4)
@@ -336,7 +336,7 @@ contains
     use mpi_mod
     implicit none
 
-    integer(4), intent(in) :: iaccu
+    integer, intent(in) :: iaccu
 
     real(WP) :: alpha,  a,  b,  c,  d
     real(WP) :: alpha1, a1, b1, c1, d1
@@ -389,6 +389,7 @@ contains
     d1fC2C(1:5, 1, IBC_PERIODIC) = alpha
     d1fC2C(1:5, 2, IBC_PERIODIC) = ONE
     d1fC2C(1:5, 3, IBC_PERIODIC) = alpha
+
     d1rC2C(1:5, 1, IBC_PERIODIC) = a / TWO  ! a/2
     d1rC2C(1:5, 2, IBC_PERIODIC) = b / FOUR ! b/4
     d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
@@ -520,6 +521,12 @@ contains
 !-------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_DIRICHLET) = d1fC2C(:, :, IBC_DIRICHLET)
     d1rP2P(:, :, IBC_DIRICHLET) = d1rC2C(:, :, IBC_DIRICHLET)
+!===============================================================================
+! 1st derivative on collocated grids, C2C coefficients : Neumann B.C.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+!===============================================================================
+
 !===============================================================================
 ! 1st derivative on staggered grids P2C and C2P : Periodic or Symmetric B.C.
 ! P2C ==>
@@ -1191,32 +1198,31 @@ contains
 !> \param[out]    d             An assisting coeffients for the TDMA scheme.
 !-------------------------------------------------------------------------------
   subroutine Buildup_TDMA_LHS_array(n, is_periodic, coeff, a, b, c, d)
-    use input_general_mod, only : IBC_PERIODIC
     use tridiagonal_matrix_algorithm
     implicit none
 
-    integer(4), intent(in) :: n
+    integer, intent(in) :: n
     logical,  intent(in)   :: is_periodic
     real(WP), intent(in)   :: coeff(5, 3, 4)
     real(WP), intent(out)  :: a(n), b(n), c(n), d(n)
 
-    a(1)         = coeff( 1, 1, bc(1) )
-    a(2)         = coeff( 2, 1, bc(1) )
-    a(3 : n - 2) = coeff( 3, 1, bc(1) )
-    a(n - 1)     = coeff( 4, 1, bc(2) )
-    a(n)         = coeff( 5, 1, bc(2) )
+    a(1)         = coeff( 1, 1, ibc(1) )
+    a(2)         = coeff( 2, 1, ibc(1) )
+    a(3 : n - 2) = coeff( 3, 1, ibc(1) )
+    a(n - 1)     = coeff( 4, 1, ibc(2) )
+    a(n)         = coeff( 5, 1, ibc(2) )
 
-    b(1)         = coeff( 1, 2, bc(1) )
-    b(2)         = coeff( 2, 2, bc(1) )
-    b(3 : n - 2) = coeff( 3, 2, bc(1) )
-    b(n - 1)     = coeff( 4, 2, bc(2) )
-    b(n)         = coeff( 5, 2, bc(2) )
+    b(1)         = coeff( 1, 2, ibc(1) )
+    b(2)         = coeff( 2, 2, ibc(1) )
+    b(3 : n - 2) = coeff( 3, 2, ibc(1) )
+    b(n - 1)     = coeff( 4, 2, ibc(2) )
+    b(n)         = coeff( 5, 2, ibc(2) )
 
-    c(1)         = coeff( 1, 3, bc(1) )
-    c(2)         = coeff( 2, 3, bc(1) )
-    c(3 : n - 2) = coeff( 3, 3, bc(1) )
-    c(n - 1)     = coeff( 4, 3, bc(2) )
-    c(n)         = coeff( 5, 3, bc(2) )
+    c(1)         = coeff( 1, 3, ibc(1) )
+    c(2)         = coeff( 2, 3, ibc(1) )
+    c(3 : n - 2) = coeff( 3, 3, ibc(1) )
+    c(n - 1)     = coeff( 4, 3, ibc(2) )
+    c(n)         = coeff( 5, 3, ibc(2) )
 
     if (is_periodic) then
       call Preprocess_TDMA_coeffs(a(1:n-1), b(1:n-1), c(1:n-1), d(1:n-1), n-1)
@@ -1238,9 +1244,11 @@ contains
 !-------------------------------------------------------------------------------
 !===============================================================================
   subroutine Prepare_LHS_coeffs_for_operations
-    use var_dft_mod, only : domain
+    use vars_df_mod, only : domain
     use mpi_mod
+    use parameters_constant_mod
     implicit none
+    integer :: i, nsz
 
 !===============================================================================
 !   building up the basic lhs coeffients for compact schemes, based on the given
@@ -1556,15 +1564,15 @@ contains
   subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, n, inbr, coeff, ibc)
     use parameters_constant_mod
     implicit none
-    real(WP),           intent(in ) :: fi(:)
-    real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
-    integer(4),         intent(in ) :: ibc(2)
+    real(WP), intent(in ) :: fi(:)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
+    real(WP), intent(in ) :: coeff(5, 3, 4)
+    integer,  intent(in ) :: ibc(2)
 
-    integer(4) :: i, m, l
-    integer(4) :: im2, im1, ip1, ip2
+    integer :: i, m, l
+    integer :: im2, im1, ip1, ip2
     real(WP) :: fsign1, fsign2
 
 
@@ -1617,14 +1625,14 @@ contains
           if ( (i + 1 ) > n ) fsign1 = - ONE
           if ( (i + 2 ) > n ) fsign2 = - ONE
         end if
-        fo(i) = coeff( l, 1, bc(m) ) * ( fsign1 * fi(ip1) + fi(i)   ) + &
-                coeff( l, 2, bc(m) ) * ( fsign2 * fi(ip2) + fi(im1) )
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fsign1 * fi(ip1) + fi(i)   ) + &
+                coeff( l, 2, ibc(m) ) * ( fsign2 * fi(ip2) + fi(im1) )
       end do
     else ! all other b.c.
-      fo(n) = coeff( 5, 1, bc(m) ) * fi(n + 1) + &
-              coeff( 5, 2, bc(m) ) * fi(n    ) + &
-              coeff( 5, 3, bc(m) ) * fi(n - 1) 
-      fo(n - 1) = coeff( 4, 1, bc(m) ) * ( fi(n) + fi(n - 1) )
+      fo(n) = coeff( 5, 1, ibc(m) ) * fi(n + 1) + &
+              coeff( 5, 2, ibc(m) ) * fi(n    ) + &
+              coeff( 5, 3, ibc(m) ) * fi(n - 1) 
+      fo(n - 1) = coeff( 4, 1, ibc(m) ) * ( fi(n) + fi(n - 1) )
     end if
 !-------------------------------------------------------------------------------
 !   bulk area
@@ -1687,15 +1695,15 @@ contains
     implicit none
 
     real(WP),           intent(in ) :: fi(:)
+    integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
+    integer,            intent(in ) :: inbr(4, 4)
     real(WP),           intent(in ) :: coeff(5, 3, 4)
-    integer(4),         intent(in ) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2) ! used for Dirichlet B.C.
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
 
-    integer(4) :: i, l, m
-    integer(4) :: im2, im1, ip1, ip2
+    integer :: i, l, m
+    integer :: im2, im1, ip1, ip2
     real(WP) :: fsign1, fsign2
 
 
@@ -1826,13 +1834,16 @@ contains
   subroutine Prepare_TDMA_1deri_C2C_RHS_array(fi, fo, n, inbr, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
-    real(WP),           intent(in ) :: fi(:)
-    real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
-    real(WP),           intent(in ) :: dd
-    integer(4),         intent(in ) :: ibc(2)
+    real(WP), intent(in ) :: fi(:)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
+    real(WP), intent(in ) :: coeff(5, 3, 4)
+    real(WP), intent(in ) :: dd
+    integer,  intent(in ) :: ibc(2)
+
+    real(WP) :: fsign1, fsign2
+    integer  :: i, m, l, im2, im1, ip1, ip2
 
     fo(:) = ZERO
 !-------------------------------------------------------------------------------
@@ -1853,8 +1864,8 @@ contains
           if ( (i - 1) < 1 ) fsign1 = - ONE
           if ( (i - 2) < 1 ) fsign2 = - ONE
         end if
-        fo(i) = coeff( i, 1, bc(m) ) * ( fi(ip1) - fsign1 * fi(im1) ) + &
-                coeff( i, 2, bc(m) ) * ( fi(ip2) - fsign2 * fi(im2) )
+        fo(i) = coeff( i, 1, ibc(m) ) * ( fi(ip1) - fsign1 * fi(im1) ) + &
+                coeff( i, 2, ibc(m) ) * ( fi(ip2) - fsign2 * fi(im2) )
       end do
     else! all other b.c.
       i = 1
@@ -1965,12 +1976,12 @@ contains
     use parameters_constant_mod
     implicit none
     real(WP),           intent(in ) :: fi(:)
+    integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
+    integer,            intent(in ) :: inbr(4, 4)
     real(WP),           intent(in ) :: coeff(5, 3, 4)
     real(WP),           intent(in ) :: dd
-    integer(4),         intent(in ) :: ibc(2)
+    integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
 
     integer :: m, l , i
@@ -2121,12 +2132,12 @@ contains
     use parameters_constant_mod
     implicit none
     real(WP),           intent(in ) :: fi(:)
+    integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
+    integer,            intent(in ) :: inbr(4, 4)
     real(WP),           intent(in ) :: coeff(5, 3, 4)
     real(WP),           intent(in ) :: dd
-    integer(4),         intent(in ) :: ibc(2)
+    integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
 
     integer :: m, l , i
@@ -2269,13 +2280,13 @@ contains
   subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, n, inbr, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
-    real(WP),           intent(in ) :: fi(:)
-    real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
-    real(WP),           intent(in ) :: dd
-    integer(4),         intent(in ) :: ibc(2)
+    real(WP), intent(in ) :: fi(:)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
+    real(WP), intent(in ) :: coeff(5, 3, 4)
+    real(WP), intent(in ) :: dd
+    integer,  intent(in ) :: ibc(2)
 
     integer :: m, l , i
     integer :: im1, im2, ip1, ip2
@@ -2400,13 +2411,16 @@ contains
   subroutine Prepare_TDMA_2deri_C2C_RHS_array(fi, fo, n, inbr, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
-    real(WP),           intent(in ) :: fi(:)
-    real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
-    real(WP),           intent(in ) :: dd
-    integer(4),         intent(in ) :: ibc(2)
+    real(WP), intent(in ) :: fi(:)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
+    real(WP), intent(in ) :: coeff(5, 4, 4)
+    real(WP), intent(in ) :: dd
+    integer,  intent(in ) :: ibc(2)
+
+    real(WP) :: fsign1, fsign2
+    integer  :: i, l, m, im2, im1, ip1, ip2
 
     fo(:) = ZERO
 !-------------------------------------------------------------------------------
@@ -2526,13 +2540,17 @@ contains
   subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, n, inbr, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
-    real(WP),           intent(in ) :: fi(:)
-    real(WP),           intent(out) :: fo(n)
-    integer(4),         intent(in ) :: n ! unknow numbers
-    integer(4),         intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
-    real(WP),           intent(in ) :: dd
-    integer(4),         intent(in ) :: ibc(2)
+    real(WP), intent(in ) :: fi(:)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
+    real(WP), intent(in ) :: coeff(5, 4, 4)
+    real(WP), intent(in ) :: dd
+    integer,  intent(in ) :: ibc(2)
+
+    real(WP) :: fsign1, fsign2
+    integer  :: i, im2, im1, ip1, ip2
+    integer  :: l, m
 
     fo(:) = ZERO
 !-------------------------------------------------------------------------------
@@ -2650,7 +2668,7 @@ contains
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
 
-    integer(4) :: ixsub, nsz
+    integer :: ixsub, nsz
 
     ixsub = dm%idom
     
@@ -2659,10 +2677,10 @@ contains
     
     if(ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
       call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:,:), &
-                            m1rC2P(:, :. :), ibc(:), fbc(:))
+                            m1rC2P(:, :, :), ibc(:), fbc(:))
     else
       call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:,:), &
-                            m1rC2P(:, :. :), ibc(:))
+                            m1rC2P(:, :, :), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
@@ -2684,14 +2702,14 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: ixsub, nsz
+    integer :: ixsub, nsz
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:,:), &
-                          m1rP2C(:, :. :), ibc(:))
+                          m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_P2C(:), &
@@ -2706,23 +2724,24 @@ contains
   subroutine Get_y_midp_C2P_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use tridiagonal_matrix_algorithm
+    use udf_type_mod
     implicit none
     real(WP),           intent(in   ) :: fi(:)
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     if(ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
       call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:,:), &
-                            m1rC2P(:, :. :), ibc(:), fbc(:))
+                            m1rC2P(:, :, :), ibc(:), fbc(:))
     else
       call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:,:), &
-                            m1rC2P(:, :. :), ibc(:))
+                            m1rC2P(:, :, :), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
@@ -2744,13 +2763,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
     
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), &
-                          m1rP2C(:, :. :), ibc(:) )
+                          m1rP2C(:, :, :), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           am1y_P2C(:), &
@@ -2772,17 +2791,17 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
     
     if(ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
       call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), &
-                            m1rC2P(:, :. :), ibc(:), fbc(:))
+                            m1rC2P(:, :, :), ibc(:), fbc(:))
     else
       call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), &
-                            m1rC2P(:, :. :), ibc(:))
+                            m1rC2P(:, :, :), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
@@ -2804,13 +2823,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:, :), &
-                          m1rP2C(:, :. :), ibc(:))
+                          m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_P2C(:), &
@@ -2849,14 +2868,14 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: ixsub, nsz
+    integer :: ixsub, nsz
 
     ixsub = dm%idom
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:, :), &
-                         d1rC2C(:, :. :), dm%h1r(1), ibc(:))
+                         d1rC2C(:, :, :), dm%h1r(1), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_C2C(:), &
@@ -2879,7 +2898,7 @@ contains
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
 
-    integer(4) :: ixsub, nsz
+    integer :: ixsub, nsz
 
     nsz = size(fo)
     fo = ZERO
@@ -2887,10 +2906,10 @@ contains
 
     if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:, :), &
-                           d1rP2P(:, :. :), dm%h1r(1), ibc(:), fbc(:))
+                           d1rP2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
     else
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:, :), &
-                           d1rP2P(:, :. :), dm%h1r(1), ibc(:))
+                           d1rP2P(:, :, :), dm%h1r(1), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
@@ -2914,7 +2933,7 @@ contains
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
 
-    integer(4) :: ixsub, nsz
+    integer :: ixsub, nsz
 
     nsz = size(fo)
     fo = ZERO
@@ -2923,10 +2942,10 @@ contains
 
     if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
       call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:, :), &
-                           d1rC2P(:, :. :), dm%h1r(1), ibc(:), fbc(:))
+                           d1rC2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
     else
       call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:, :), &
-                           d1rC2P(:, :. :), dm%h1r(1), ibc(:))
+                           d1rC2P(:, :, :), dm%h1r(1), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
@@ -2948,7 +2967,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz, ixsub
+    integer :: nsz, ixsub
 
     nsz = size(fo)
     fo = ZERO
@@ -2956,7 +2975,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:, :), &
-                         d1rP2C(:, :. :), dm%h1r(1), ibc(:) )
+                         d1rP2C(:, :, :), dm%h1r(1), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2C(:), &
@@ -2979,13 +2998,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:, :), &
-                         d1rC2C(:, :. :), dm%h1r(2), ibc(:))
+                         d1rC2C(:, :, :), dm%h1r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_C2C(:), &
@@ -3009,17 +3028,17 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), &
-                           d1rP2P(:, :. :), dm%h1r(2), ibc(:), fbc(:))
+                           d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
     else
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), &
-                           d1rP2P(:, :. :), dm%h1r(2), ibc(:))
+                           d1rP2P(:, :, :), dm%h1r(2), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
@@ -3044,17 +3063,17 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
       call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:, :), &
-                           d1rC2P(:, :. :), dm%h1r(2), ibc(:), fbc(:) )
+                           d1rC2P(:, :, :), dm%h1r(2), ibc(:), fbc(:) )
     else
       call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:, :), &
-                           d1rC2P(:, :. :), dm%h1r(2), ibc(:), fbc(:) )
+                           d1rC2P(:, :, :), dm%h1r(2), ibc(:), fbc(:) )
     end if
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
@@ -3078,13 +3097,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), &
-                         d1rP2C(:, :. :), dm%h1r(2), ibc(:))
+                         d1rP2C(:, :, :), dm%h1r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2C(:), &
@@ -3110,13 +3129,13 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
 
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), &
-                         d1rC2C(:, :. :), dm%h1r(3), ibc(:))
+                         d1rC2C(:, :, :), dm%h1r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_C2C(:), &
@@ -3138,17 +3157,17 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), &
-                           d1rP2P(:, :. :), dm%h1r(3), ibc(:), fbc(:))
+                           d1rP2P(:, :, :), dm%h1r(3), ibc(:), fbc(:))
     else
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), &
-                           d1rP2P(:, :. :), dm%h1r(3), ibc(:))
+                           d1rP2P(:, :, :), dm%h1r(3), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
@@ -3171,17 +3190,17 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
       call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), &
-                           d1rC2P(:, :. :), dm%h1r(3), ibc(:), fbc(:) )
+                           d1rC2P(:, :, :), dm%h1r(3), ibc(:), fbc(:) )
     else
       call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), &
-                           d1rC2P(:, :. :), dm%h1r(3), ibc(:))
+                           d1rC2P(:, :, :), dm%h1r(3), ibc(:))
     end if
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
@@ -3203,13 +3222,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), &
-                         d1rP2C(:, :. :), dm%h1r(3), ibc(:))
+                         d1rP2C(:, :, :), dm%h1r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2C(:), &
@@ -3248,14 +3267,14 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz, ixsub
+    integer :: nsz, ixsub
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:,:), &
-                         d2rC2C(:, :. :), dm%h2r(1), ibc(:),)
+                         d2rC2C(:, :, :), dm%h2r(1), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_C2C(:), &
@@ -3276,14 +3295,14 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz, ixsub
+    integer :: nsz, ixsub
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:,:), &
-                         d2rP2P(:, :. :), dm%h2r(1), ibc(:))
+                         d2rP2P(:, :, :), dm%h2r(1), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_P2P(:), &
@@ -3306,14 +3325,14 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
     real(WP), allocatable :: fo1(:)
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:,:), &
-                         d2rC2C(:, :. :), dm%h2r(2), ibc(:) )
+                         d2rC2C(:, :, :), dm%h2r(2), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_C2C(:), &
@@ -3325,7 +3344,7 @@ contains
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
       call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo1(:), nsz, dm%jcnbr(:,:), &
-                           d1rC2C(:, :. :), dm%h1r(2), ibc(:))
+                           d1rC2C(:, :, :), dm%h1r(2), ibc(:))
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_C2C(:), &
            bd1y_C2C(:), &
@@ -3350,14 +3369,14 @@ contains
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
 
-    integer(4) :: nsz
+    integer :: nsz
     real(WP), allocatable :: fo1(:)
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:,:), &
-                         d2rP2P(:, :. :), dm%h2r(2), ibc(:))
+                         d2rP2P(:, :, :), dm%h2r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_P2P(:), &
@@ -3371,10 +3390,10 @@ contains
 
       if(ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
         call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, dm%jpnbr(:,:), &
-                             d1rP2P(:, :. :), dm%h1r(2), ibc(:), fbc(:))
+                             d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
       else
         call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, dm%jpnbr(:,:), &
-                             d1rP2P(:, :. :), dm%h1r(2), ibc(:))
+                             d1rP2P(:, :, :), dm%h1r(2), ibc(:))
       end if
 
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
@@ -3401,13 +3420,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), &
-                         d2rC2C(:, :. :), dm%h2r(3), ibc(:))
+                         d2rC2C(:, :, :), dm%h2r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_C2C(:), &
@@ -3428,13 +3447,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    integer(4) :: nsz
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), &
-                         d2rP2P(:, :. :), dm%h2r(3), ibc(:))
+                         d2rP2P(:, :, :), dm%h2r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_P2P(:), &
@@ -3466,6 +3485,7 @@ contains
   subroutine Get_x_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use tridiagonal_matrix_algorithm
+    use udf_type_mod
     implicit none
     real(WP),           intent(in) :: fi3d(:, :, :)
     real(WP),           intent(out):: fo3d(:, :, :)
@@ -3474,7 +3494,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3496,6 +3516,7 @@ contains
 !===============================================================================
   subroutine Get_x_midp_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
+    use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
     real(WP),           intent(in) :: fi3d(:, :, :)
@@ -3504,7 +3525,7 @@ contains
     integer,            intent(in) :: ibc(2)
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3522,6 +3543,7 @@ contains
 !===============================================================================
   subroutine Get_y_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
+    use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
     real(WP),           intent(in) :: fi3d(:, :, :)
@@ -3531,7 +3553,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !-------------------------------------------------------------------------------
 !  default : y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3540,9 +3562,9 @@ contains
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
         if(ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-          call call Get_y_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+          call Get_y_midp_C2P_1D (fi, fo, dm, ibc, fbc)
         else
-          call call Get_y_midp_C2P_1D (fi, fo, dm, ibc)
+          call Get_y_midp_C2P_1D (fi, fo, dm, ibc)
         end if
         fo3d(i, :, k) = fo(:)
       end do
@@ -3553,6 +3575,7 @@ contains
 !===============================================================================
   subroutine Get_y_midp_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
+    use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
     real(WP),           intent(in) :: fi3d(:, :, :)
@@ -3561,7 +3584,7 @@ contains
     integer,            intent(in) :: ibc(2)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3579,6 +3602,7 @@ contains
   !===============================================================================
   subroutine Get_z_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
+    use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
     real(WP),           intent(in) :: fi3d(:, :, :)
@@ -3588,7 +3612,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3597,9 +3621,9 @@ contains
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
         if(ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-          call call Get_z_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+          call Get_z_midp_C2P_1D (fi, fo, dm, ibc, fbc)
         else
-          call call Get_z_midp_C2P_1D (fi, fo, dm, ibc)
+          call Get_z_midp_C2P_1D (fi, fo, dm, ibc)
         end if
         fo3d(i, j, :) = fo(:)
       end do
@@ -3610,6 +3634,7 @@ contains
 !===============================================================================
   subroutine Get_z_midp_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
+    use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
     real(WP),           intent(in) :: fi3d(:, :, :)
@@ -3618,7 +3643,7 @@ contains
     integer,            intent(in) :: ibc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3663,7 +3688,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3692,7 +3717,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3724,7 +3749,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3756,7 +3781,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3784,7 +3809,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
@@ -3810,7 +3835,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !!-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3818,7 +3843,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_1st_derivative_P2P_1D(ibc, fbc, dm, fi, fo)
+        call Get_y_1st_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3838,7 +3863,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3871,7 +3896,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3898,7 +3923,7 @@ contains
     integer,            intent(in) :: ibc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3927,7 +3952,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3959,7 +3984,7 @@ contains
     real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -3991,7 +4016,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -4036,7 +4061,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -4064,7 +4089,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
-    integer(4) :: k, j
+    integer :: k, j
 !-------------------------------------------------------------------------------
 !  x-pencil calculation
 !-------------------------------------------------------------------------------
@@ -4092,7 +4117,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -4121,7 +4146,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
-    integer(4) :: k, i
+    integer :: k, i
 !-------------------------------------------------------------------------------
 !  y-pencil calculation
 !-------------------------------------------------------------------------------
@@ -4153,7 +4178,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------
@@ -4181,7 +4206,7 @@ contains
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
-    integer(4) :: j, i
+    integer :: j, i
 !-------------------------------------------------------------------------------
 !  z-pencil calculation
 !-------------------------------------------------------------------------------

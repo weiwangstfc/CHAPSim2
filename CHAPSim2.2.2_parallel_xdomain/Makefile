@@ -46,11 +46,11 @@ DIR_BIN= ./bin
 DIR_OBJ= ./obj
 DIR_MOD= ./mod
 
-OBJS= modules.o\
-      mpi_mod.o\
+OBJS= mpi_mod.o\
+      modules.o\
       tools_general.o\
-      input_general.o\
       input_thermo.o\
+      input_general.o\
       geometry.o\
       domain_decomposition.o\
       algorithms.o\

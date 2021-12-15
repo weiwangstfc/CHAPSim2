@@ -52,8 +52,8 @@ module poisson_mod
 ! boundary conditions and index
 !_______________________________________________________________________________
   logical,                  save :: is_periodic(3)
-  integer(4), dimension(3), save :: fft_st, fft_en, fft_sz
-  integer(4), dimension(3), save :: nw
+  integer, dimension(3), save :: fft_st, fft_en, fft_sz
+  integer, dimension(3), save :: nw
 !_______________________________________________________________________________
 ! work arrays, 
 ! naming convention: cw (complex); rw (real); 
@@ -93,7 +93,7 @@ contains
 !===============================================================================
 !===============================================================================
   subroutine Prepare_poisson_fft
-    use var_dft_mod, only : domain
+    use vars_df_mod, only : domain
     implicit none
     integer :: i
     do i = 1, nxdomain
@@ -120,7 +120,7 @@ contains
     use parameters_constant_mod, only : PI, TWO
     use math_mod
     implicit none
-    integer(4), intent(in) :: nsz
+    integer, intent(in) :: nsz
     logical,    intent(in) :: is_peri
     real(mytype), dimension(:), intent(out) :: afsin
     real(mytype), dimension(:), intent(out) :: bfcos
@@ -168,7 +168,7 @@ contains
     real(wp) :: w, cosw, aunit
     real(wp) :: tr, ti
     complex(wp) :: tc, ic
-    integer(4) :: l
+    integer :: l
 
     if(is_peri) then
 
@@ -310,8 +310,8 @@ contains
     use parameters_constant_mod!, only : ZERO, MAXP, TRUNCERR
     implicit none
     type(t_domain), intent(in) :: d
-    integer(4) :: i, j, k
-    integer(4) :: it1s, it2s, it3s, it1e, it2e, it3e
+    integer :: i, j, k
+    integer :: it1s, it2s, it3s, it1e, it2e, it3e
 
     if(nrank == 0) call Print_debug_start_msg("Initializing variables for Poisson Solver ...")
 !_______________________________________________________________________________
@@ -698,7 +698,7 @@ contains
     use parameters_constant_mod
     implicit none
     real(wp), dimension(:,:,:), intent(INOUT) :: rhs
-    integer(4) :: i, j, k
+    integer :: i, j, k
     real(wp) :: cwRe1, cwRe2, cwIm1, cwIm2
     real(wp) :: aRe1, bRe1, aRe2, bRe2, &
                 aIm1, bIm1, aIm2, bIm2
@@ -869,7 +869,7 @@ contains
     use input_general_mod
     implicit none
     real(wp), dimension(:,:,:), intent(INOUT) :: rhs
-    integer(4) :: i, j, k
+    integer :: i, j, k
     real(wp) :: cwRe1, cwRe2, cwIm1, cwIm2
     real(wp) :: aRe1, bRe1, aRe2, bRe2, &
                 aIm1, bIm1, aIm2, bIm2
@@ -1067,7 +1067,7 @@ contains
     use input_general_mod
     implicit none
 
-    integer(4) :: k, j, i, nn
+    integer :: k, j, i, nn
     real(WP), allocatable :: rhsphi(:,:,:)
     real(WP) :: solution
     real(WP) :: x, y, z

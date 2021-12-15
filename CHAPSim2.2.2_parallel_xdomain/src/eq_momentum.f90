@@ -28,8 +28,8 @@ contains
 
     type(t_domain), intent(in) :: dm
     real(WP),    intent(inout) :: rhs(:, :, :)
-    integer(4),     intent(in) :: isub
-    integer(4),     intent(in) :: idriven
+    integer,     intent(in) :: isub
+    integer,     intent(in) :: idriven
     real(WP),       intent(in) :: drvf
     
     real(WP) :: rhs_bulk
@@ -74,15 +74,17 @@ contains
 !> \param[in]     rhs1_semi     the semi-implicit term
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, dt, isub, rhs1_semi)
+  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, dm, isub)
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
     real(WP), dimension(:, :, :), intent(in   ) :: rhs1_semi
     real(WP), dimension(:, :, :), intent(inout) :: rhs0, rhs1
-    integer(4),                   intent(in   ) :: isub
-    real(WP), intent(in) :: dt
+    integer,                   intent(in   ) :: isub
+    type(t_domain), intent(in) :: dm
+    
 
-    integer(4) :: n(3)
+    integer :: n(3)
     real(WP), allocatable :: rhs_dummy(:, :, :)
 
     n(1:3) = shape(rhs1)
@@ -90,16 +92,16 @@ contains
 
   ! add explicit terms
     rhs_dummy(:, :, :) = rhs1(:, :, :)
-    rhs1(:, :, :) = tGamma(isub) * rhs1(:, :, :) + &
-                    tZeta (isub) * rhs0(:, :, :)
+    rhs1(:, :, :) = dm%tGamma(isub) * rhs1(:, :, :) + &
+                    dm%tZeta (isub) * rhs0(:, :, :)
     rhs0(:, :, :) = rhs_dummy(:, :, :)
 
   ! add implicit
     rhs1(:, :, :) = rhs1(:, :, :) + &
-                    tAlpha(isub) * rhs1_semi(:, :, :)
+                    dm%tAlpha(isub) * rhs1_semi(:, :, :)
   
   ! times the time step 
-    rhs1(:, :, :) = dt * rhs1(:, :, :)
+    rhs1(:, :, :) = dm%dt * rhs1(:, :, :)
 
     deallocate (rhs_dummy)
 
@@ -126,7 +128,7 @@ contains
 
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(in   ) :: dm
-    integer(4),     intent(in   ) :: isub
+    integer,     intent(in   ) :: isub
 !-------------------------------------------------------------------------------
 ! common vars
 !-------------------------------------------------------------------------------
@@ -634,7 +636,7 @@ contains
 !-------------------------------------------------------------------------------
       call Get_y_midp_C2P_3D          (div_ypencil, acpc_ypencil, dm, dm%ibcy(2, :), dm%fbcy(2, :) )
       my_rhs_ypencil = my_rhs_ypencil - two_third_rre * dmdy_ycpc_ypencil * acpc_ypencil
-      call Get_y_1st_derivative_P2P_3D(dm%ibcy(2, :), dm%fbcy(2, :), dm, qy_ypencil,  acpc_ypencil )
+      call Get_y_1st_derivative_P2P_3D(qy_ypencil,  acpc_ypencil, dm, dm%ibcy(2, :), dm%fbcy(2, :) )
       my_rhs_ypencil = my_rhs_ypencil + two_rre       * dmdy_ycpc_ypencil * acpc_ypencil
 !-------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v4/7), d(mu^y)/dx * d(qx^x)/dy at (i, j', k)
@@ -795,15 +797,15 @@ contains
 !-------------------------------------------------------------------------------
     if(fl%idriven /= IDRVF_NO) &
     call Calculate_xmomentum_driven_source(isub, fl%idriven, fl%drvfc, dm, fl%mx_rhs) 
-    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm%dt, isub)
+    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm, isub)
 !-------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !-------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_implicit, dm%dt, isub)
+    call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_implicit, dm, isub)
 !-------------------------------------------------------------------------------
 ! x-pencil : z-momentum
 !-------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_implicit, dm%dt, isub)
+    call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_implicit, dm, isub)
  
     return
   end subroutine Compute_momentum_rhs
@@ -838,7 +840,7 @@ contains
     implicit none
 
     type(t_domain), intent(in   ) :: dm
-    integer(4),     intent(in   ) :: isub
+    integer,     intent(in   ) :: isub
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ), intent(inout) :: ux
     real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ), intent(inout) :: uy
     real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ), intent(inout) :: uz
@@ -901,7 +903,7 @@ contains
 
     type(t_flow), intent(inout) :: fl
     type(t_domain),  intent(in) :: dm
-    integer(4),      intent(in) :: isub
+    integer,      intent(in) :: isub
 
 !-------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method

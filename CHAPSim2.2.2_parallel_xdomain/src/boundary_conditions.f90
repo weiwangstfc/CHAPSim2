@@ -8,7 +8,7 @@ contains
   subroutine Apply_BC_thermo(dm, th)
     use parameters_constant_mod
     use udf_type_mod
-    use input_thermo_mod
+    use thermo_info_mod
     implicit none
     type(t_domain), intent(in )   :: dm
     type(t_thermo), intent(inout) :: th

@@ -26,7 +26,7 @@ contains
     real(WP), dimension(:, :, :), intent ( in  ) :: dDens, dDensm1, dDensm2
     real(WP), dimension(:, :, :), intent ( out ) :: drhodt
 
-    integer(4) :: i
+    integer :: i
 
     if(dm%iTimeScheme == ITIME_AB2) then
 
@@ -81,7 +81,7 @@ contains
     real(WP), dimension(:, :, :), intent (inout) :: div
 
     real(WP), allocatable :: div0(:, :, :)
-    integer(4) :: nx, ny, nz
+    integer :: nx, ny, nz
 
     nx = dm%nc(1)
     ny = dm%nc(2)
@@ -143,8 +143,8 @@ contains
     type(t_flow),   intent( inout ) :: fl                  
 
     real(WP), allocatable  :: div (:, :, :)
-    integer(4) :: nx, ny, nz
-    integer(4) :: loc3d(3)
+    integer :: nx, ny, nz
+    integer :: loc3d(3)
     real(WP)   :: divmax
 
     nx = size(fl%pcor, 1)
@@ -191,10 +191,10 @@ contains
 
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl                  
-    integer(4),     intent( in    ) :: isub
+    integer,     intent( in    ) :: isub
 
     real(WP), allocatable  :: div (:, :, :)
-    integer(4) :: nx, ny, nz
+    integer :: nx, ny, nz
 
     nx = dm%nc(1)
     ny = dm%nc(2)

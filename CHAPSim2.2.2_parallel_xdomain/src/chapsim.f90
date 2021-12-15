@@ -49,7 +49,7 @@ subroutine Initialize_chapsim
   use code_performance_mod
   use input_general_mod
   use geometry_mod
-  use input_thermo_mod
+  use thermo_info_mod
   use operations
   use domain_decomposition_mod
   use poisson_mod
@@ -108,7 +108,7 @@ subroutine Solve_eqs_iteration
   use continuity_eq_mod
   use poisson_mod
   use code_performance_mod
-  use var_dft_mod
+  use vars_df_mod
   implicit none
 
   logical :: is_flow   = .false.

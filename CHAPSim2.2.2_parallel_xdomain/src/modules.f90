@@ -114,6 +114,7 @@ module parameters_constant_mod
                         ITIME_RK3_CN = 2, &
                         ITIME_AB2    = 1
 
+  ! warning : Don't change below order for BC types.
   integer, parameter :: IBC_INTERIOR    = 0, &
                         IBC_PERIODIC    = 1, &
                         IBC_SYMMETRIC   = 2, &
@@ -123,7 +124,6 @@ module parameters_constant_mod
                         IBC_CONVECTIVE  = 6, &
                         IBC_TURBGEN     = 7, &
                         IBC_DATABASE    = 8, &
-                        IBC_UNKNOWN     = 9
 !                        IBC_INLET_MEAN  = 4, &
 !                        IBC_INLET_TG    = 5, &
 !                        IBC_INLET_MAP   = 6, &
@@ -237,7 +237,6 @@ end module wtformat_mod
 module udf_type_mod
   use precision_mod
   use mpi_mod
-  use input_thermo_mod
   implicit none
 !-------------------------------------------------------------------------------
 !  domain info
@@ -257,6 +256,7 @@ module udf_type_mod
     integer :: nvisu
     integer :: nIterStatsStart
     integer :: nfreqStats
+    integer :: nsubitr
     integer :: istret
     integer :: nc(3) ! geometric cell number
     integer :: np_geo(3) ! geometric points
@@ -279,6 +279,10 @@ module udf_type_mod
     real(wp) :: h(3) ! uniform dx
     real(wp) :: h1r(3) ! uniform (dx)^(-1)
     real(wp) :: h2r(3) ! uniform (dx)^(-2)
+    real(wp) :: tGamma(0:3)
+    real(wp) :: tZeta (0:3)
+    real(wp) :: tAlpha(0:3)
+    real(wp) :: sigma1p, sigma2p
 
     type(DECOMP_INFO) :: dpcc ! eg, ux
     type(DECOMP_INFO) :: dcpc ! eg, uy
@@ -288,13 +292,13 @@ module udf_type_mod
     type(DECOMP_INFO) :: dpcp ! eg, <ux>^z, <uz>^x
     type(DECOMP_INFO) :: dcpp ! eg, <uy>^z, <uz>^y
 
-    integer(4) :: ipnbr(4, 4) ! global index
-    integer(4) :: jpnbr(4, 4)
-    integer(4) :: kpnbr(4, 4)
+    integer :: ipnbr(4, 4) ! global index
+    integer :: jpnbr(4, 4)
+    integer :: kpnbr(4, 4)
 
-    integer(4) :: icnbr(4, 4) ! global index
-    integer(4) :: jcnbr(4, 4)
-    integer(4) :: kcnbr(4, 4)
+    integer :: icnbr(4, 4) ! global index
+    integer :: jcnbr(4, 4)
+    integer :: kcnbr(4, 4)
 
     ! node location, mapping 
     real(wp), allocatable :: yMappingpt(:, :) ! j = 1, first coefficient in first deriviation. 1/h'
@@ -352,44 +356,16 @@ module udf_type_mod
     real(WP), allocatable :: mz_rhs0(:, :, :)! last step rhs in z
 
   end type t_flow
-!-------------------------------------------------------------------------------
-!  thermo info
-!------------------------------------------------------------------------------- 
-  type t_thermo
-
-    integer  :: ifluid
-    integer  :: igravity
-    integer  :: nIterThermoStart
-    integer  :: nIterThermoEnd
-    real(WP) :: lenRef
-    real(WP) :: T0Ref
-    real(WP) :: Tini0
-    real(WP) :: time
-    real(WP) :: rPrRen
-    
-    type(thermoProperty_t) :: tpIni     ! undim, initial state
-    type(thermoProperty_t) :: tpbcx(2)  ! undim, xbc state
-    type(thermoProperty_t) :: tpbcy(2)  ! undim, ybc state
-    type(thermoProperty_t) :: tpbcz(2)  ! undim, zbc state
-
-    real(WP), allocatable :: dh(:, :, :)
-    real(WP), allocatable :: hEnth(:, :, :)
-    real(WP), allocatable :: kCond(:, :, :)
-    real(WP), allocatable :: tTemp(:, :, :)
-    real(WP), allocatable :: ene_rhs(:, :, :)  ! current step rhs
-    real(WP), allocatable :: ene_rhs0(:, :, :) ! last step rhs
-  end type t_thermo
 
 end module
 !===============================================================================
 !===============================================================================
-module var_dft_mod
+module vars_df_mod
   use udf_type_mod
   implicit none
 
   type(t_domain), allocatable, save :: domain(:)
   type(t_flow),   allocatable, save :: flow(:)
-  type(t_thermo), allocatable, save :: thermo(:)
 end module
 !===============================================================================
 !===============================================================================

@@ -22,7 +22,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Test_schemes()
-  use var_dft_mod, only : flow, domain
+  use vars_df_mod, only : flow, domain
   implicit none
 
   !call Test_TDMA_cyclic
@@ -58,7 +58,7 @@ end subroutine
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     real(WP) :: ref
-    integer(4) :: i, j, k
+    integer :: i, j, k
     real(WP) :: err(3), errmax
     logical :: dbg = .false.
     logical :: uix_p2c = .true.
@@ -288,7 +288,7 @@ end subroutine
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     real(WP) :: ref
-    integer(4) :: i, j, k
+    integer :: i, j, k
     real(WP) :: err(3), errmax
     logical :: dbg = .false.
 
@@ -708,7 +708,7 @@ end subroutine
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     real(WP) :: ref
-    integer(4) :: i, j, k
+    integer :: i, j, k
     real(WP) :: err(3), errmax
     logical :: dbg = .false.
 

@@ -24,10 +24,7 @@ contains
     use udf_type_mod,      only : t_domain
     use iso_fortran_env
     implicit none
-    type(t_domain), intent(in)   :: dm
-
-    type(DECOMP_INFO) :: dtmp
-    integer :: i
+    type(t_domain), intent(inout)   :: dm
 !-------------------------------------------------------------------------------
 ! basic 2D decompistion API
 ! limits: nrow <= min(nx, ny)
@@ -116,7 +113,7 @@ contains
 !> \param[in]     none          NA
 !===============================================================================
   subroutine Buildup_mpi_domain_decomposition
-    use var_dft_mod, only : domain
+    use vars_df_mod, only : domain
     implicit none
     integer :: i
 

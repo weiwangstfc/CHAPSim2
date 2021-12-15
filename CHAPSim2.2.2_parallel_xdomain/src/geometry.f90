@@ -25,12 +25,13 @@
 !>
 !===============================================================================
 module geometry_mod
-  use var_dft_mod, only : domain
+  use vars_df_mod, only : domain
   implicit none
 
   !private
   private :: Buildup_grid_mapping_1D
-  private :: Buildup_neibour_index
+  private :: Buildup_npneibour_index
+  private :: Buildup_ncneibour_index
   public  :: Buildup_geometry_mesh_info
   
 contains
@@ -51,25 +52,17 @@ contains
 !> \param[out]    y            the physical coordinate array
 !> \param[out]    mp           the mapping relations for 1st and 2nd deriviatives
 !_______________________________________________________________________________
-  subroutine Buildup_grid_mapping_1D (str, n, y, mp)
-!===============================================================================
-! Module files
-!===============================================================================
+  subroutine Buildup_grid_mapping_1D (str, n, y, dm, mp)
     use math_mod
-    use input_general_mod
+    use udf_type_mod
     use parameters_constant_mod
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
     character(len = *), intent(in) :: str
-    integer(4), intent( in )       :: n
+    integer, intent( in )          :: n
+    type(t_domain), intent(in)     :: dm
     real(WP), intent( out )        :: y(n)
     real(WP), intent( out )        :: mp(n, 3)
-!===============================================================================
-! Local Arguments
-!===============================================================================    
-    integer(4) :: j
+    integer :: j
     real(WP) :: eta_shift
     real(WP) :: eta_delta
     real(WP) :: alpha, beta, gamma, delta, cc, dd, ee, st1, st2, mm
@@ -99,23 +92,23 @@ contains
     ! and to build up the derivates based on Eq(53) and (47) in Leizet2009JCP
     gamma = ONE
     delta = ZERO
-    if (istret == ISTRET_NO) then
+    if (dm%istret == ISTRET_NO) then
       y(:) = eta(:)
-      y(:) = y(:) * (lyt - lyb) + lyb
+      y(:) = y(:) * (dm%lyt - dm%lyb) + dm%lyb
       mp(:, 1) = ONE
       mp(:, 2) = ONE
       mp(:, 3) = ONE
       return
-    else if (istret == ISTRET_CENTRE) then
+    else if (dm%istret == ISTRET_CENTRE) then
       gamma = ONE
       delta = ZERO
-    else if (istret == ISTRET_2SIDES) then
+    else if (dm%istret == ISTRET_2SIDES) then
       gamma = ONE
       delta = HALF
-    else if (istret == ISTRET_BOTTOM) then
+    else if (dm%istret == ISTRET_BOTTOM) then
       gamma = HALF
       delta = HALF
-    else if (istret == ISTRET_TOP) then
+    else if (dm%istret == ISTRET_TOP) then
       gamma = HALF
       delta = ZERO
     else
@@ -123,7 +116,7 @@ contains
       "Buildup_grid_mapping_1D")
     end if
 
-    beta = rstret
+    beta = dm%rstret
     alpha =  ( -ONE + sqrt_wp( ONE + FOUR * PI * PI * beta * beta ) ) / beta * HALF
 
     cc = sqrt_wp( alpha * beta + ONE ) / sqrt_wp( beta )
@@ -142,16 +135,16 @@ contains
             PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
       y(j) = ONE / (gamma * ee) * y(j)
       ! y \in [lyb, lyt]
-      y(j) = y(j) * (lyt - lyb) + lyb
+      y(j) = y(j) * (dm%lyt - dm%lyb) + dm%lyb
 
       ! 1/h'
-      mp(j, 1) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (lyt - lyb)
+      mp(j, 1) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (dm%lyt - dm%lyb)
 
       ! (1/h')^2
       mp(j, 2) = mp(j, 1) * mp(j, 1)
 
       ! -h"/(h'^3) = 1/h' * [ d(1/h') / d\eta]
-      mp(j, 3) = gamma / (lyt - lyb) / beta * sin_wp(TWO * mm) * mp(j, 1)
+      mp(j, 3) = gamma / (dm%lyt - dm%lyb) / beta * sin_wp(TWO * mm) * mp(j, 1)
 
     end do
 
@@ -178,15 +171,10 @@ contains
   subroutine Buildup_npneibour_index(n, ibc, nbr)
     use parameters_constant_mod
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
-    integer(4), intent(in)  :: n
-    integer(4), intent(in)  :: ibc
-    integer(4), intent(inout) :: nbr(4, 4)
-!===============================================================================
-! Local arguments
-!===============================================================================
+    integer, intent(in)  :: n
+    integer, intent(in)  :: ibc(2)
+    integer, intent(inout) :: nbr(4, 4)
+    integer :: i
 !-------------------------------------------------------------------------------
 ! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
 !  i -2       i - 1     i    i + 1      i + 2
@@ -235,15 +223,11 @@ contains
   subroutine Buildup_ncneibour_index(n, ibc, nbr)
     use parameters_constant_mod
     implicit none
-!===============================================================================
-! Arguments
-!===============================================================================
-    integer(4), intent(in)  :: n
-    integer(4), intent(in)  :: ibc
-    integer(4), intent(inout) :: nbr(4, 4)
-!===============================================================================
-! Local arguments
-!===============================================================================
+    integer, intent(in)  :: n
+    integer, intent(in)  :: ibc(2)
+    integer, intent(inout) :: nbr(4, 4)
+
+    integer :: i
 !-------------------------------------------------------------------------------
 ! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
 !  i -2       i - 1     i    i + 1      i + 2
@@ -291,18 +275,18 @@ contains
 !===============================================================================
   subroutine Buildup_geometry_mesh_info (dm)
     use mpi_mod
-    use input_general_mod
     use math_mod
-    use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR
+    use parameters_constant_mod
+    use udf_type_mod
     implicit none
     type(t_domain), intent(inout) :: dm
-    integer(4) :: i
+    integer :: i
     logical    :: dbg = .false.
 
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric inwrtfmt1ion ...")
     ! Build up domain info
 
-    dm%is_periodic(:) == .false.
+    dm%is_periodic(:) = .false.
     if(dm%ibcx(1, 1) == IBC_PERIODIC) dm%is_periodic(1) = .true.
     if(dm%ibcy(1, 1) == IBC_PERIODIC) dm%is_periodic(2) = .true.
     if(dm%ibcz(1, 1) == IBC_PERIODIC) dm%is_periodic(3) = .true.
@@ -349,8 +333,8 @@ contains
     allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) ); dm%yMappingpt(:, :) = ONE
     allocate ( dm%yMappingcc( dm%nc(2),     3 ) ); dm%yMappingcc(:, :) = ONE
 
-    call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm%yp(:), dm%yMappingPt(:, :))
-    call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm%yc(:), dm%yMappingcc(:, :))
+    call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm%yp(:), dm, dm%yMappingPt(:, :))
+    call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm%yc(:), dm, dm%yMappingcc(:, :))
 
     ! print out for debugging
     if(dbg) then

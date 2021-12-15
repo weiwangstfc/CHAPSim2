@@ -18,7 +18,7 @@
 ! Street, Fifth Floor, Boston, MA 02110-1301, USA.
 !-------------------------------------------------------------------------------
 module flow_thermo_initialiasation
-  use var_dft_mod
+  use vars_df_mod
   implicit none
 
   
@@ -53,7 +53,7 @@ contains
 !===============================================================================
   subroutine Initialize_flow_thermal_fields
     use mpi_mod
-    use var_dft_mod
+    use vars_df_mod
     use solver_tools_mod
     implicit none
 
@@ -303,12 +303,12 @@ contains
 !===============================================================================
   subroutine Initialize_thermal_variables (fl, tm)
     use parameters_constant_mod
-    use input_thermo_mod
+    use thermo_info_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     
-    type(thermoProperty_t) :: tp_ini
+    type(t_thermoProperty) :: tp_ini
 
 !-------------------------------------------------------------------------------
 !   given initialisation temperature
@@ -355,7 +355,7 @@ contains
     real(WP),       intent(out) :: ux_1c1(:)
     
     real(WP)   :: a, b, c, yy, ymax, ymin
-    integer(4) :: j
+    integer :: j
     
     ux_1c1 (:) = ZERO
 
@@ -409,9 +409,9 @@ contains
     real(WP),    intent(inout) :: uy(:, :, :)
     real(WP),    intent(inout) :: uz(:, :, :)
     real(WP),    intent(in)    :: lnoise
-    integer(4) :: seed
-    integer(4) :: i, j, k    ! local id
-    integer(4) :: ii, jj, kk ! global id
+    integer :: seed
+    integer :: i, j, k    ! local id
+    integer :: ii, jj, kk ! global id
     real(WP) :: rd(NVD)
     type(DECOMP_INFO) :: dtmp
 
@@ -585,7 +585,7 @@ contains
                                      p (:, :, :)
     real(WP) :: xc, yc
     real(WP) :: xp, yp
-    integer(4) :: i, j, ii, jj
+    integer :: i, j, ii, jj
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -640,6 +640,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
+    use iso_fortran_env
     implicit none
 
     type(t_domain), intent(in) :: dm
@@ -650,7 +651,6 @@ contains
     real(wp) :: uerrmax, verrmax, perrmax
 
     type(DECOMP_INFO) :: dtmp
-    integer :: output_unit
     character( len = 128) :: filename
     logical :: file_exists = .FALSE.
 
@@ -774,7 +774,7 @@ contains
                                      p (:, :, :)
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
-    integer(4) :: i, j, k
+    integer :: i, j, k
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -865,7 +865,7 @@ contains
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
-    integer(4) :: i, j, k
+    integer :: i, j, k
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------

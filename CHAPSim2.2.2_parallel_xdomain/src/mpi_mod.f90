@@ -1,14 +1,17 @@
 !##############################################################################
 module mpi_mod
-  include "mpif.h"
+  !include "mpif.h"
+  use MPI
   use decomp_2d
-
+  use iso_fortran_env
+  implicit none
   integer :: nrow
   integer :: ncol
   integer :: ierror
   integer :: nxdomain
 
-  public :: Initialize_mpi, Finalise_mpi
+  public :: Initialize_mpi
+  public :: Finalise_mpi
 
 contains 
 !===============================================================================
@@ -28,19 +31,15 @@ contains
 !> \param[in]     d          domain type
 !===============================================================================
   subroutine Initialize_mpi()
-    implicit none
-    
-    call MPI_INIT(ierr)
-    call MPI_COMM_RANK(MPI_COMM_WORLD, nrank, ierror)
-    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierror)
+    call MPI_INIT(IERROR)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, nrank, IERROR)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, IERROR)
     return
   end subroutine Initialize_mpi
 !===============================================================================
 !===============================================================================
   subroutine Finalise_mpi()  
-
-    CALL MPI_FINALIZE(IERROR)
-
+    call MPI_FINALIZE(IERROR)
   end subroutine Finalise_mpi
 
 end module mpi_mod

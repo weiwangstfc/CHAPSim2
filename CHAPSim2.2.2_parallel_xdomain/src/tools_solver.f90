@@ -27,10 +27,10 @@ contains
 !===============================================================================
   subroutine Update_Re(iter, fl)
     use parameters_constant_mod
-    use input_thermo_mod
+    use thermo_info_mod
     use udf_type_mod
     implicit none
-    integer(4),     intent(in   ) :: iter  
+    integer,     intent(in   ) :: iter  
     type(t_flow),   intent(inout) :: fl
     
 
@@ -48,7 +48,7 @@ contains
 
   subroutine Update_PrGr(fl, tm)
     use parameters_constant_mod
-    use input_thermo_mod, only : tpRef0
+    use thermo_info_mod, only : tpRef0
     use udf_type_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
@@ -110,9 +110,9 @@ contains
     real(WP),       intent(inout) :: varxz_work(:)
 
     real(wp) :: varxz( size(varxz_work) )
-    integer(4) :: jj, kk, ii, ny, i, j, k
-    integer(4) :: ist, ien, jst, jen, kst, ken
-    integer(4) :: xst(3), xen(3), xsz(3)
+    integer :: jj, kk, ii, ny, i, j, k
+    integer :: ist, ien, jst, jen, kst, ken
+    integer :: xst(3), xen(3), xsz(3)
 !-------------------------------------------------------------------------------
 !   Default X-pencil
 !-------------------------------------------------------------------------------
@@ -170,9 +170,9 @@ contains
     real(WP),           intent(in)    :: varxz(:)
     real(WP), optional, intent(in)    :: varxz_shift(:)
 
-    integer(4) :: jj, i, j, k
-    integer(4) :: ist, ien, jst, jen, kst, ken
-    integer(4) :: xst(3), xen(3), xsz(3)
+    integer :: jj, i, j, k
+    integer :: ist, ien, jst, jen, kst, ken
+    integer :: xst(3), xen(3), xsz(3)
 
 !-------------------------------------------------------------------------------
 !   Default X-pencil
@@ -256,7 +256,7 @@ contains
                          dm%dccc%zsz(2), &
                          dm%dccc%zsz(3)) ::   d_zpencil
     
-    integer(4) :: i, j, k
+    integer :: i, j, k
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -402,7 +402,7 @@ contains
                              dm%dccp%zsz(2), &
                              dm%dccp%zsz(3))
     real(WP)   :: cfl_convection, cfl_convection_work
-    integer(4) :: i, j, k
+    integer :: i, j, k
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -508,7 +508,7 @@ contains
     real(WP), allocatable   :: vcp_ypencil(:, :, :)
     real(WP), allocatable   :: var_ypencil(:, :, :)
     real(WP)   :: vol, fo, vol_work
-    integer(4) :: i, j, k, noy
+    integer :: i, j, k, noy
 
 !-------------------------------------------------------------------------------
 !   transpose to y pencil. Default is x-pencil.

@@ -7,14 +7,15 @@ module eq_energy_mod
   public  :: Solve_energy_eq
 contains
 !===============================================================================
-  subroutine Calculate_energy_fractional_step(rhs0, rhs1, dt, isub)
+  subroutine Calculate_energy_fractional_step(rhs0, rhs1, dm, isub)
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
     real(WP), dimension(:, :, :), intent(inout) :: rhs0, rhs1
-    integer(4),                   intent(in   ) :: isub
-    real(WP),                     intent(in   ) :: dt
+    integer,                   intent(in   ) :: isub
+    type(t_domain),               intent(in   ) :: dm
 
-    integer(4) :: n(3)
+    integer :: n(3)
     real(WP), allocatable :: rhs_dummy(:, :, :)
 
     n(1:3) = shape(rhs1)
@@ -22,12 +23,12 @@ contains
 
   ! add explicit terms
     rhs_dummy(:, :, :) = rhs1(:, :, :)
-    rhs1(:, :, :) = tGamma(isub) * rhs1(:, :, :) + &
-                    tZeta (isub) * rhs0(:, :, :)
+    rhs1(:, :, :) = dm%tGamma(isub) * rhs1(:, :, :) + &
+                    dm%tZeta (isub) * rhs0(:, :, :)
     rhs0(:, :, :) = rhs_dummy(:, :, :)
 
   ! times the time step 
-    rhs1(:, :, :) = dt * rhs1(:, :, :)
+    rhs1(:, :, :) = dm%dt * rhs1(:, :, :)
 
     deallocate (rhs_dummy)
 
@@ -121,7 +122,7 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if (dm%ibcx(5, i) == IBC_NEUMANN) then
-        ibc(i) = IBC_UNKNOWN
+        ibc(i) = IBC_INTERIOR
         fbc(i) = ZERO
       else
         ibc(i) = dm%ibcx(5, i)
@@ -160,7 +161,7 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if (dm%ibcy(5, i) == IBC_NEUMANN) then
-        ibc(i) = IBC_UNKNOWN
+        ibc(i) = IBC_INTERIOR
         fbc(i) = ZERO
       else
         ibc(i) = dm%ibcy(5, i)
@@ -201,7 +202,7 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if (dm%ibcz(5, i) == IBC_NEUMANN) then
-        ibc(i) = IBC_UNKNOWN
+        ibc(i) = IBC_INTERIOR
         fbc(i) = ZERO
       else
         ibc(i) = dm%ibcz(5, i)
@@ -232,21 +233,21 @@ contains
 !===============================================================================
 ! time approaching
 !===============================================================================
-    call Calculate_energy_fractional_step(tm%ene_rhs0, tm%ene_rhs, dm%dt, isub)
+    call Calculate_energy_fractional_step(tm%ene_rhs0, tm%ene_rhs, dm, isub)
 
     return
   end subroutine Compute_energy_rhs
 !===============================================================================
   subroutine Update_thermal_properties_from_dh(fl, tm, dm)
     use udf_type_mod
-    use input_thermo_mod
+    use thermo_info_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
 
     integer :: i, j, k
-    type(thermoProperty_t) :: tp
+    type(t_thermoProperty) :: tp
 !-------------------------------------------------------------------------------
 !   x-pencil
 !-------------------------------------------------------------------------------
