@@ -1,0 +1,293 @@
+ ===============================================================================
+ CHAPSim2.0 Starts ...
+ ===============================================================================
+ Reading General Parameters from input.ini ...
+ ===============================================================================
+ Reading [decomposition]
+                Processor in Row :                   1
+             Processor in Column :                   1
+ ===============================================================================
+ Reading [flowtype]
+                           Case : Taylor Green Vortex 
+                  Thermal field :                   No
+        Conjugate Heat Transfer :                   No
+ ===============================================================================
+ Reading [boundary]
+                        BC in x :             Periodic
+                        BC in y :             Periodic
+                        BC in z :             Periodic
+ ===============================================================================
+ Reading [flowparams]
+                Reynolds number :             100.0000
+                 Flow driven by :   Constant Mass Flux
+ ===============================================================================
+ Reading [geometry]
+                    length in x :               6.2832
+                    length in z :               6.2832
+                    length in y :               6.2832
+                    bottom in y :              -3.1416
+                       top in y :               3.1416
+ ===============================================================================
+ Reading [mesh]
+          Mesh Cell Number in x :                   32
+          Mesh Cell Number in y :                   32
+          Mesh Cell Number in z :                   32
+              Y mesh stretching :                   No
+ ===============================================================================
+ Reading [initialization]
+                     Start from :              Scratch
+            Initial Reynolds No :             100.0000
+         Initial Re lasts until :                 1000
+   Initial velocity perturbation :              0.2000
+ ===============================================================================
+ Reading [timestepping]
+             Physical Time Step :           0.1000E-02
+ ===============================================================================
+ Reading [schemes]
+          Spatial Accuracy Order:                    4
+                   Viscous Term :      Explicit Scheme
+ ===============================================================================
+ Reading [simcontrol]
+   Flow simulation lasts between :         1   1000000
+ ===============================================================================
+ Reading [ioparams]
+     Raw  data written at every :                  200
+     Vis  data written at every :                 1000
+         Stat data written from :                  500
+     Stat data written at every :                  100
+ ===============================================================================
+ Reading [thermohydraulics]
+ ... done.
+ ===============================================================================
+ Initializing domain geometric information ...
+ ... done.
+ ===============================================================================
+ Assigning coefficient matrix for the compact FD ...
+ ... done.
+ ===============================================================================
+ Preparing geometric matrix for the compact FD ...
+ ... done.
+ ===============================================================================
+ Initializing variables for Poisson Solver ...
+ ... done.
+ ===============================================================================
+ Allocating flow and thermal variables ...
+ ... done.
+ ===============================================================================
+ Initializing flow and thermal fields ...
+ Initializing thermal field ...
+ Initializing flow field ...
+   The maximum Ux, Uy, Uz are:
+     Umax :        9      16       1  9.90393E-01
+     Vmax :        1       9       1  9.90393E-01
+     Wmax :        1       1       1  0.00000E+00
+ ... done.
+ ===============================================================================
+ Time Step = 1/1000000
+   Diffusion number :
+               0.00155629
+   CFL (convection) :
+               0.00506843
+  
+ ***** Using the generic FFT engine *****
+  
+  Sub-iteration in RK = 1
+   The maximum value of mass conservation and loc are:
+                  32       1      18  3.22348E-09
+   The maximum Ux, Uy, Uz are:
+     Umax :        9      32       1  9.90387E-01
+     Vmax :        1       9       1  9.90387E-01
+     Wmax :       24      25      29  1.30772E-04
+   The bulk velocity is:
+     Ubulk :   4.99874E-19
+  Sub-iteration in RK = 2
+   The maximum value of mass conservation and loc are:
+                  16      32      18  8.08195E-10
+   The maximum Ux, Uy, Uz are:
+     Umax :       25      32      16  9.90386E-01
+     Vmax :        1      25      16  9.90386E-01
+     Wmax :       24      25      21  1.63461E-04
+   The bulk velocity is:
+     Ubulk :  -1.37775E-18
+  Sub-iteration in RK = 3
+   The maximum value of mass conservation and loc are:
+                   1      32       1  3.98566E-09
+   The maximum Ux, Uy, Uz are:
+     Umax :        9      32       1  9.90383E-01
+     Vmax :        1       9      16  9.90383E-01
+     Wmax :       24      25      29  2.45189E-04
+   The bulk velocity is:
+     Ubulk :  -3.82859E-19
+   The maximum value of mass conservation and loc are:
+                   1      32       1  3.98566E-09
+   Code Performance Info :
+     Time for this time step : 0.1729 s
+     Elaspsed Wallclock Time : 0 h 0 m 0.2065 s 
+     Remaning Wallclock Time : 57 h 20 m 53.7935 s 
+ ===============================================================================
+ Time Step = 2/1000000
+   Diffusion number :
+               0.00155629
+   CFL (convection) :
+               0.00506838
+  Sub-iteration in RK = 1
+   The maximum value of mass conservation and loc are:
+                  31      32       1  1.82884E-06
+   The maximum Ux, Uy, Uz are:
+     Umax :       25      32       1  9.90377E-01
+     Vmax :        1      25      16  9.90377E-01
+     Wmax :        1      32      21  3.75974E-04
+   The bulk velocity is:
+     Ubulk :   1.09250E-18
+  Sub-iteration in RK = 2
+   The maximum value of mass conservation and loc are:
+                  31      32       1  7.73472E-04
+   The maximum Ux, Uy, Uz are:
+     Umax :        9      32       1  9.90402E-01
+     Vmax :       16       9      16  9.90398E-01
+     Wmax :        1      32      29  4.19758E-04
+   The bulk velocity is:
+     Ubulk :  -5.60807E-19
+  Sub-iteration in RK = 3
+   The maximum value of mass conservation and loc are:
+                  31      30       1  1.51314E+00
+   The maximum Ux, Uy, Uz are:
+     Umax :       25      32       1  1.03830E+00
+     Vmax :       16      25       1  1.03397E+00
+     Wmax :       16      30      27  2.45577E-02
+   The bulk velocity is:
+     Ubulk :   5.78063E-19
+   The maximum value of mass conservation and loc are:
+                  31      30       1  1.51314E+00
+   Code Performance Info :
+     Time for this time step : 0.1609 s
+     Elaspsed Wallclock Time : 0 h 0 m 0.3674 s 
+     Remaning Wallclock Time : 51 h 1 m 46.6326 s 
+ ===============================================================================
+ Time Step = 3/1000000
+   Diffusion number :
+               0.00155629
+   CFL (convection) :
+               0.00507659
+  Sub-iteration in RK = 1
+   The maximum value of mass conservation and loc are:
+                  31      30       1  2.17697E+03
+   The maximum Ux, Uy, Uz are:
+     Umax :       21      30       1  6.60533E+01
+     Vmax :       31      24       1  6.82790E+01
+     Wmax :       31      30      25  3.56760E+01
+   The bulk velocity is:
+     Ubulk :  -3.25441E-17
+  Sub-iteration in RK = 2
+   The maximum value of mass conservation and loc are:
+                  15      14      17  1.13699E+06
+   The maximum Ux, Uy, Uz are:
+     Umax :       23      30       1  3.43530E+04
+     Vmax :       31      22       1  3.55301E+04
+     Wmax :       31      30      25  1.87677E+04
+   The bulk velocity is:
+     Ubulk :  -1.97548E-14
+  Sub-iteration in RK = 3
+   The maximum value of mass conservation and loc are:
+                  31      30       1  3.43752E+09
+   The maximum Ux, Uy, Uz are:
+     Umax :       32      30       1  9.54330E+07
+     Vmax :       31      31       1  9.43192E+07
+     Wmax :       31      30       1  6.99006E+07
+   The bulk velocity is:
+     Ubulk :   9.07315E-11
+   The maximum value of mass conservation and loc are:
+                  31      30       1  3.43752E+09
+   Code Performance Info :
+     Time for this time step : 0.1572 s
+     Elaspsed Wallclock Time : 0 h 0 m 0.5247 s 
+     Remaning Wallclock Time : 48 h 34 m 47.8087 s 
+ ===============================================================================
+ Time Step = 4/1000000
+   Diffusion number :
+               0.00155629
+ WARNNING: Warning: CFL is larger than 1. in processor = 
+   CFL (convection) :
+            *************
+  Sub-iteration in RK = 1
+   The maximum value of mass conservation and loc are:
+                  31      30       1  9.60377E+16
+   The maximum Ux, Uy, Uz are:
+     Umax :       28      14      17  2.10562E+15
+     Vmax :       31       3       1  2.37223E+15
+     Wmax :       15      14      32  2.82433E+15
+   The bulk velocity is:
+     Ubulk :   5.63415E-04
+  Sub-iteration in RK = 2
+   The maximum value of mass conservation and loc are:
+                  31      30       1  1.26679E+31
+   The maximum Ux, Uy, Uz are:
+     Umax :       32      30       1  3.59356E+29
+     Vmax :       31      31       1  3.51817E+29
+     Wmax :       31      30       2  2.45935E+29
+   The bulk velocity is:
+     Ubulk :  -1.43421E+11
+  Sub-iteration in RK = 3
+   The maximum value of mass conservation and loc are:
+                  31      30       1  1.66891E+60
+   The maximum Ux, Uy, Uz are:
+     Umax :        3      14      17  3.73694E+58
+     Vmax :       31      28       1  3.97071E+58
+     Wmax :       15      14      32  4.95708E+58
+   The bulk velocity is:
+     Ubulk :   3.12489E+40
+   The maximum value of mass conservation and loc are:
+                  31      30       1  1.66891E+60
+   Code Performance Info :
+     Time for this time step : 0.1561 s
+     Elaspsed Wallclock Time : 0 h 0 m 0.6808 s 
+     Remaning Wallclock Time : 47 h 16 m 32.3192 s 
+ ===============================================================================
+ Time Step = 5/1000000
+   Diffusion number :
+               0.00155629
+ WARNNING: Warning: CFL is larger than 1. in processor = 
+   CFL (convection) :
+            *************
+  Sub-iteration in RK = 1
+   The maximum value of mass conservation and loc are:
+                  31      30       1  5.36723+117
+   The maximum Ux, Uy, Uz are:
+     Umax :       32      30       1  1.52205+116
+     Vmax :       31      31       1  1.48759+116
+     Wmax :       31      30       2  1.04456+116
+   The bulk velocity is:
+     Ubulk :   6.92335E+97
+  Sub-iteration in RK = 2
+   The maximum value of mass conservation and loc are:
+                  31      30       1  1.59126+233
+   The maximum Ux, Uy, Uz are:
+     Umax :       29      30       1  3.57859+231
+     Vmax :       31      28       1  3.75417+231
+     Wmax :       15      14      32  4.73564+231
+   The bulk velocity is:
+     Ubulk :   2.79952+213
+
+Program received signal SIGFPE: Floating-point exception - erroneous arithmetic operation.
+
+Backtrace for this error:
+#0  0x7fc783279d21 in ???
+#1  0x7fc783278ef5 in ???
+#2  0x7fc782f4320f in ???
+#3  0x5653b7c2acea in compute_momentum_rhs
+	at src/eq_momentum.f90:309
+#4  0x5653b7c4d680 in __eq_momentum_mod_MOD_solve_momentum_eq
+	at src/eq_momentum.f90:633
+#5  0x5653b7c6d75d in solve_eqs_iteration_
+	at src/chapsim.f90:192
+#6  0x5653b7bd75c6 in chapsim
+	at src/chapsim.f90:32
+#7  0x5653b7bd75c6 in main
+	at src/chapsim.f90:35
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 0 with PID 0 on node weiwanghome exited on signal 8 (Floating point exception).
+--------------------------------------------------------------------------

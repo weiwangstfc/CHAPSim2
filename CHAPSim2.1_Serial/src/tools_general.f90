@@ -1,33 +1,33 @@
 !===============================================================================
-  subroutine Print_error_msg(msg, myid)
+  subroutine Print_error_msg(msg)
     implicit none
     character(len=*), intent(IN) :: msg
-    integer(4), intent(in) :: myid
+    !integer(4), intent(in) :: myid
     
     write(*,*) 'ERROR: ' // msg
 
-    write(*,*) 'Code is terminated in processor = ', myid
+    write(*,*) 'Code is terminated in processor = '!, myid
     STOP
 
     return
   end subroutine Print_error_msg
 !===============================================================================
-  subroutine Print_warning_msg(msg, myid)
+  subroutine Print_warning_msg(msg)
     implicit none
     character(len=*), intent(IN) :: msg
-    integer(4), intent(in) :: myid
+    !integer(4), intent(in) :: myid
     
-    write(*,*) 'WARNNING: ' // msg // ' in processor = ', myid
+    write(*,*) 'WARNNING: ' // msg // ' in processor = '!, myid
 
     return
   end subroutine Print_warning_msg
   !===============================================================================
   subroutine Print_debug_start_msg(msg)
-    use mpi_mod
+    !use mpi_mod
     implicit none
     character(len=*), intent(IN) :: msg
 
-    if(myid /= 0) return
+    !if(myid /= 0) return
     write(*,*) "==============================================================================="
     write(*,*) msg
 
@@ -35,25 +35,25 @@
   end subroutine Print_debug_start_msg
 !===============================================================================
   subroutine Print_debug_mid_msg(msg)
-    use mpi_mod
+    !use mpi_mod
     implicit none
     character(len=*), intent(IN) :: msg
-    if(myid /= 0) return
+    !if(myid /= 0) return
     write(*,*) msg
     return
   end subroutine Print_debug_mid_msg
 !===============================================================================
   subroutine Print_debug_end_msg
-    use mpi_mod
+    !use mpi_mod
     implicit none
-    if(myid /= 0) return
+    !if(myid /= 0) return
     write(*,*) "... done."
     return
   end subroutine Print_debug_end_msg
 
 !===============================================================================
   subroutine Print_3d_array(var, nx, ny, nz, str)
-    use mpi_mod
+    !use mpi_mod
     use precision_mod
     implicit none
     integer(4), intent(in) :: nx, ny, nz

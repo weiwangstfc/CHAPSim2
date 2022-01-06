@@ -618,7 +618,7 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Buildup_property_relations_from_table ( )
-    use mpi_mod
+    !use mpi_mod
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
     use parameters_constant_mod, only : ZERO
 

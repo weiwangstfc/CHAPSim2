@@ -209,13 +209,29 @@ contains
     end do
 
     if(is_peri) then
-      nbr(1, 1)   = n-1  ! -2, i = 1
-      nbr(1, 2)   = n    ! -2, i = 2
-      nbr(2, 1)   = n    ! -1, i = 1
-      
-      nbr(3, n)   = 1    ! +1, i = n
-      nbr(4, n)   = 2    ! +2, i = n
-      nbr(4, n-1) = 1    ! +2, i = n-1
+      if(n>2) then
+        nbr(1, 1)   = n-1  ! -2, i = 1
+        nbr(1, 2)   = n    ! -2, i = 2
+        nbr(2, 1)   = n    ! -1, i = 1
+        
+        nbr(3, n)   = 1    ! +1, i = n
+        nbr(4, n)   = 2    ! +2, i = n
+        nbr(4, n-1) = 1    ! +2, i = n-1
+      else if(n==2) then
+        nbr(1, 1)   = 1    ! -2, i = 1
+        nbr(1, 2)   = 2    ! -2, i = 2
+        nbr(2, 1)   = 2    ! -1, i = 1
+        
+        nbr(3, n)   = 1    ! +1, i = n
+        nbr(4, n)   = 2    ! +2, i = n
+        nbr(4, n-1) = 1    ! +2, i = n-1
+      else if(n==1) then
+        nbr(1, 1)   = 1    ! -2, i = 1
+        nbr(2, 1)   = 1    ! -1, i = 1
+        nbr(3, n)   = 1    ! +1, i = n
+        nbr(4, n)   = 1    ! +2, i = n
+      else
+      end if
     end if
 
     return
@@ -239,7 +255,7 @@ contains
 !===============================================================================
 ! Module files
 !===============================================================================
-    use mpi_mod
+    !use mpi_mod
     use input_general_mod
     use math_mod
     use parameters_constant_mod, only : ONE, HALF, ZERO, MAXP, MINP, TRUNCERR

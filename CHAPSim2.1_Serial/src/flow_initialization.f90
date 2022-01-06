@@ -55,7 +55,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
   subroutine Allocate_thermoflow_variables (domain, flow, thermo)
-    use domain_decomposition_mod
+    !use domain_decomposition_mod
     use input_general_mod,       only : ithermo
     use parameters_constant_mod, only : ZERO, ONE
     implicit none
@@ -69,54 +69,54 @@ contains
 !_______________________________________________________________________________
 ! x pencil
 !_______________________________________________________________________________
-    allocate ( flow%qx( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
-    allocate ( flow%qy( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
-    allocate ( flow%qz( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
+    allocate ( flow%qx( domain%np(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%qy( domain%nc(1), domain%np(2), domain%nc(3) ) )
+    allocate ( flow%qz( domain%nc(1), domain%nc(2), domain%np(3) ) )
     flow%qx = ZERO
     flow%qy = ZERO
     flow%qz = ZERO
 
-    allocate ( flow%gx( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
-    allocate ( flow%gy( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
-    allocate ( flow%gz( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
+    allocate ( flow%gx( domain%np(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%gy( domain%nc(1), domain%np(2), domain%nc(3) ) )
+    allocate ( flow%gz( domain%nc(1), domain%nc(2), domain%np(3) ) )
     flow%gx = ZERO
     flow%gy = ZERO
     flow%gz = ZERO
 
-    allocate ( flow%pres( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
-    allocate ( flow%pcor( physs%xst(1) : physs%xen(1), physv%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+    allocate ( flow%pres( domain%nc(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%pcor( domain%nc(1), domain%nc(2), domain%nc(3) ) )
     flow%pres = ZERO
     flow%pcor = ZERO
 
-    allocate ( flow%dDens( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
-    allocate ( flow%mVisc( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+    allocate ( flow%dDens( domain%nc(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%mVisc( domain%nc(1), domain%nc(2), domain%nc(3) ) )
     flow%dDens = ONE
     flow%mVisc = ONE
 
-    allocate ( flow%dDensm1( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
-    allocate ( flow%dDensm2( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+    allocate ( flow%dDensm1( domain%nc(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%dDensm2( domain%nc(1), domain%nc(2), domain%nc(3) ) )
     flow%dDensm1 = ONE
     flow%dDensm2 = ONE
 
-    allocate ( flow%m1_rhs( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
-    allocate ( flow%m2_rhs( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
-    allocate ( flow%m3_rhs( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
+    allocate ( flow%m1_rhs( domain%np(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%m2_rhs( domain%nc(1), domain%np(2), domain%nc(3) ) )
+    allocate ( flow%m3_rhs( domain%nc(1), domain%nc(2), domain%np(3) ) )
     flow%m1_rhs = ZERO
     flow%m2_rhs = ZERO
     flow%m3_rhs = ZERO
 
-    allocate ( flow%m1_rhs0( physu%xst(1) : physu%xen(1), physu%xst(2) : physu%xen(2), physu%xst(3) : physu%xen(3) ) )
-    allocate ( flow%m2_rhs0( physv%xst(1) : physv%xen(1), physv%xst(2) : physv%xen(2), physv%xst(3) : physv%xen(3) ) )
-    allocate ( flow%m3_rhs0( physw%xst(1) : physw%xen(1), physw%xst(2) : physw%xen(2), physw%xst(3) : physw%xen(3) ) )
+    allocate ( flow%m1_rhs0( domain%np(1), domain%nc(2), domain%nc(3) ) )
+    allocate ( flow%m2_rhs0( domain%nc(1), domain%np(2), domain%nc(3) ) )
+    allocate ( flow%m3_rhs0( domain%nc(1), domain%nc(2), domain%np(3) ) )
     flow%m1_rhs0 = ZERO
     flow%m2_rhs0 = ZERO
     flow%m3_rhs0 = ZERO
 
     if(ithermo == 1) then
-      allocate ( thermo%dh    ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
-      allocate ( thermo%hEnth ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
-      allocate ( thermo%kCond ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
-      allocate ( thermo%tTemp ( physs%xst(1) : physs%xen(1), physu%xst(2) : physs%xen(2), physs%xst(3) : physs%xen(3) ) )
+      allocate ( thermo%dh    ( domain%nc(1), domain%nc(2), domain%nc(3) ) )
+      allocate ( thermo%hEnth ( domain%nc(1), domain%nc(2), domain%nc(3) ) )
+      allocate ( thermo%kCond ( domain%nc(1), domain%nc(2), domain%nc(3) ) )
+      allocate ( thermo%tTemp ( domain%nc(1), domain%nc(2), domain%nc(3) ) )
       thermo%dh    = ZERO
       thermo%hEnth = ZERO
       thermo%kCond = ONE
@@ -655,6 +655,39 @@ contains
     return
   end subroutine Initialize_sinetest_flow
 
+  subroutine  Initialize_burgers_flow(ux, uy, uz, p, d)
+    use udf_type_mod, only : t_domain, t_flow
+    use math_mod, only : sin_wp
+    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    
+    implicit none
+
+    type(t_domain), intent(in )   :: d
+    real(WP),       intent(inout) :: ux(:, :, :), &
+                                     uy(:, :, :), &
+                                     uz(:, :, :), &
+                                     p (:, :, :)
+
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    integer(4) :: i, j, k
+
+    do k = 1, d%nc(3)
+      do j = 1, d%nc(2)
+        do i = 1, d%np(1)
+          xp = d%h(1) * real(i - 1, WP)
+          ux(i, j, k) =  sin_wp ( xp )
+        end do 
+      end do
+    end do
+
+    uy = ZERO
+    uz = ZERO
+    p  = ZERO
+    
+    return
+  end subroutine Initialize_burgers_flow
+
   subroutine Check_maximum_velocity(ux, uy, uz)
     use precision_mod
     use math_mod
@@ -746,7 +779,9 @@ contains
       call Initialize_vortexgreen_3dflow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_SINETEST) then
       call Initialize_sinetest_flow      (flow%qx, flow%qy, flow%qz, flow%pres, domain)
-    else 
+    else if (icase == ICASE_BURGERS) then
+      call Initialize_burgers_flow       (flow%qx, flow%qy, flow%qz, flow%pres, domain)
+    else
       call Print_error_msg("No such case defined" )
     end if
 !-------------------------------------------------------------------------------

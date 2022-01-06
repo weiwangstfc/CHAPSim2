@@ -52,7 +52,6 @@ OBJS= modules.o\
       input_general.o\
       input_thermo.o\
       geometry.o\
-      domain_decomposition.o\
       algorithms.o\
       operations.o\
       tools_solver.o\
@@ -64,6 +63,7 @@ OBJS= modules.o\
       test_algrithms.o\
       flow_initialization.o\
       display.o\
+      burgers_eq_1d.o\
       chapsim.o
 
 

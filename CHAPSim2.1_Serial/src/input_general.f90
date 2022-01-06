@@ -36,7 +36,10 @@ module input_general_mod
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
-                        ICASE_SINETEST= 6
+                        ICASE_SINETEST= 6, &
+                        ICASE_BURGERS = 7, &
+                        ICASE_INVSD_BURGERS = 8, &
+                        ICASE_HEATEQ  = 9
 
   integer, parameter :: ICARTESIAN   = 1, &
                         ICYLINDRICAL = 2
@@ -101,6 +104,7 @@ module input_general_mod
   integer :: icase
   integer :: ithermo
   integer :: icht
+  integer :: idir
 !-------------------------------------------------------------------------------
 ! boundary condition
 !-------------------------------------------------------------------------------
@@ -217,7 +221,7 @@ contains
 !===============================================================================
     use iso_fortran_env,         only : ERROR_UNIT, IOSTAT_END
     use parameters_constant_mod, only : ZERO, ONE, TWO, PI
-    use mpi_mod,                 only : p_col, p_row
+    !use mpi_mod,                 only : p_col, p_row
     implicit none
 !===============================================================================
 ! Local arguments
@@ -282,6 +286,8 @@ contains
           icoordinate = ICARTESIAN
         else if (icase == ICASE_TGV3D) then
           icoordinate = ICARTESIAN
+        else if (icase == ICASE_BURGERS) then
+          icoordinate = ICARTESIAN
         else 
           icoordinate = ICARTESIAN
         end if
@@ -291,6 +297,7 @@ contains
         if(icase == ICASE_ANNUAL)  write(*, formats) ' Case : ', "Annual flow"
         if(icase == ICASE_TGV2D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (2D)"
         if(icase == ICASE_TGV3D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (3D)"
+        if(icase == ICASE_BURGERS)   write(*, formats) ' Case : ', "Burgers Equation (1D - X)"
         if(ithermo == 0)           write(*, formats) ' Thermal field : ', 'No' 
         if(ithermo == 1)           write(*, formats) ' Thermal field : ', 'Yes' 
         if(icht    == 0)           write(*, formats) ' Conjugate Heat Transfer : ', 'No' 
@@ -392,6 +399,11 @@ contains
         else if (icase == ICASE_SINETEST) then
           if(istret /= ISTRET_NO) &
           call Print_warning_msg ("Grids are clustered.")
+          lxx = TWO * PI
+          lzz = TWO * PI
+          lyt =   PI
+          lyb = - PI
+        else if (icase == ICASE_BURGERS) then
           lxx = TWO * PI
           lzz = TWO * PI
           lyt =   PI
@@ -562,12 +574,12 @@ contains
     implicit none
 
     !option 1: to set up pressure treatment, for O(dt^2)
-    sigma1p = ONE
-    sigma2p = HALF
+    !sigma1p = ONE
+    !sigma2p = HALF
 
     !option 2: to set up pressure treatment, for O(dt)
-    !sigma1p = ONE
-    !sigma2p = ONE
+    sigma1p = ONE
+    sigma2p = ONE
 
     if(iTimeScheme == ITIME_RK3     .or. &
        iTimeScheme == ITIME_RK3_CN) then

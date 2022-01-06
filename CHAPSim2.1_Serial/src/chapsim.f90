@@ -48,7 +48,7 @@ end program
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Initialize_chapsim()
-  use domain_decomposition_mod
+  !use domain_decomposition_mod
   use input_general_mod, only : Initialize_general_input
   use input_thermo_mod,  only : Initialize_thermo_input
   use geometry_mod,      only : Initialize_geometry_variables
@@ -65,7 +65,7 @@ subroutine Initialize_chapsim()
   call Initialize_thermo_input ()
   call Initialize_geometry_variables ()
   call Prepare_coeffs_for_operations ()
-  call Initialize_domain_decompsition (domain)
+  !call Initialize_domain_decompsition (domain)
   call Initialize_decomp_poisson (domain)
 
   !call Test_poisson_solver
@@ -135,6 +135,7 @@ subroutine Solve_eqs_iteration
   use continuity_eq_mod
   use poisson_mod
   use code_performance_mod
+  use burgers_eq_mod
   implicit none
 
   logical    :: is_flow   = .false.
@@ -153,6 +154,11 @@ subroutine Solve_eqs_iteration
    integer(4), intent( in ) :: iter
   end subroutine Display_vtk_slice
 end interface
+
+  if(icase == ICASE_BURGERS) then
+    call Solve_burgers_eq_iteration
+    return
+  end if
   
   if(ithermo == 1) then
     niter = MAX(nIterFlowEnd, nIterThermoEnd)
@@ -238,16 +244,15 @@ end subroutine Solve_eqs_iteration
 !_______________________________________________________________________________
 subroutine Finalise_chapsim()
   use input_general_mod
-  use mpi_mod
+  !use mpi_mod
   use code_performance_mod
   implicit none
 
   !call Deallocate_all_variables
   call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
-  call Finalise_mpi()
+  !call Finalise_mpi()
   return
 end subroutine Finalise_chapsim
-
 
 
 

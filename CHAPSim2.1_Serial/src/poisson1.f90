@@ -120,18 +120,18 @@ contains
 
       do i = 1, nsz
         afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / &
-                          real(nsz,   kind = mytype) )
+                           real(nsz,   kind = mytype) )
         bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / &
-                          real(nsz,   kind = mytype) )
+                           real(nsz,   kind = mytype) )
       end do
 
     else
 
       do i = 1, nsz
         afsin(i) = sin_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                          real(nsz,   kind = mytype) )
+                           real(nsz,   kind = mytype) )
         bfcos(i) = cos_wp( real(i - 1, kind = mytype) * PI / TWO / &
-                          real(nsz,   kind = mytype))
+                           real(nsz,   kind = mytype))
       end do
     end if
 
@@ -165,7 +165,7 @@ contains
       alpha = d1fC2C(3, 1, IBC_PERIODIC)
       a     = d1rC2C(3, 1, IBC_PERIODIC) * TWO
       b     = d1rC2C(3, 2, IBC_PERIODIC) * FOUR
-
+      !write(*,*) 'alpha, a, b', alpha, a, b
       do l = 1, nc / 2 + 1
         w = aunit * REAL(l - 1, WP)
         tr = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
@@ -174,9 +174,9 @@ contains
         t2(l) = complex(- tr * tr, ZERO)
       end do
 
-      do l = nc / 2 + 2, nc
-        t2(l) = t2(nc - l + 2)
-      end do
+       do l = nc / 2 + 2, nc
+         t2(l) = t2(nc - l + 2)
+       end do
 
     else
 !_______________________________________________________________________________
@@ -268,7 +268,7 @@ contains
       t2(l) = tc * tc
     end if
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
     do l = 1, nc
       write(*, *) 'modified wavenumber = ', l, t2(l)
     end do
@@ -292,7 +292,7 @@ contains
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
   subroutine Initialize_decomp_poisson(d)
-    use udf_type_mod,            only : t_domain
+    use udf_type_mod!,            only : t_domain
     use parameters_constant_mod!, only : ZERO, MAXP, TRUNCERR
     implicit none
     type(t_domain), intent(in) :: d
@@ -304,7 +304,7 @@ contains
 ! set up boundary flags for periodic b.c.
 !_______________________________________________________________________________
     is_periodic(:) = d%is_periodic(:)
-    nw(:) = d%nc(:)
+    nw(:) = d%nc(:) ! only for periodic b.c.
 !_______________________________________________________________________________
 ! boundary conditions, periodic or not
 !   x    y     z
@@ -353,6 +353,21 @@ contains
       stop 'boundary condition not supported'
     end if
 !_______________________________________________________________________________
+! preparing sine and cosine factors
+!_______________________________________________________________________________
+    allocate ( ax( nw(1) ) ); ax = ZERO
+    allocate ( bx( nw(1) ) ); bx = ZERO
+
+    allocate ( ay( nw(2) ) ); ay = ZERO
+    allocate ( by( nw(2) ) ); by = ZERO
+
+    allocate ( az( nw(3) ) ); az = ZERO
+    allocate ( bz( nw(3) ) ); bz = ZERO
+
+    call Calculate_sine_cosine_unit(ax, bx, nw(1), is_periodic(1))
+    call Calculate_sine_cosine_unit(ay, by, nw(2), is_periodic(2))
+    call Calculate_sine_cosine_unit(az, bz, nw(3), is_periodic(3))
+!_______________________________________________________________________________
 ! initialise 2d-decomp library
 ! For FFT, by calling decomp_2d_fft_init(PHYSICAL_IN_Z, nx, ny, nz)
 !      the physical-space data is stored in Z pencil.
@@ -372,49 +387,36 @@ contains
 !                        physical-space data stored in x pencil format
 !                        spectral-space data stored in z pencil format
 !_______________________________________________________________________________
+    call decomp_2d_init(nw(1), nw(2), nw(3), 1, 1) ! serial
     call decomp_info_init(nw(1), nw(2), nw(3),         ph)
     call decomp_info_init(nw(1), nw(2), nw(3) / 2 + 1, sp)
 
-#ifdef DEBUG
-    if(myid == 0) write(*, *) 'Physical Domain (Poisson), 2D decompisiton : '
-    write(*, *) 'In x-pencil, rank = ', myid, ' size in x-dir = ', ph%xsz(1), ' x id from ', ph%xst(1), ph%xen(1)
-    write(*, *) 'In x-pencil, rank = ', myid, ' size in y-dir = ', ph%xsz(2), ' y id from ', ph%xst(2), ph%xen(2)
-    write(*, *) 'In x-pencil, rank = ', myid, ' size in z-dir = ', ph%xsz(3), ' z id from ', ph%xst(3), ph%xen(3)
-    write(*, *) 'In y-pencil, rank = ', myid, ' size in x-dir = ', ph%ysz(1), ' x id from ', ph%yst(1), ph%yen(1)
-    write(*, *) 'In y-pencil, rank = ', myid, ' size in y-dir = ', ph%ysz(2), ' y id from ', ph%yst(2), ph%yen(2)
-    write(*, *) 'In y-pencil, rank = ', myid, ' size in z-dir = ', ph%ysz(3), ' z id from ', ph%yst(3), ph%yen(3)
-    write(*, *) 'In z-pencil, rank = ', myid, ' size in x-dir = ', ph%zsz(1), ' x id from ', ph%zst(1), ph%zen(1)
-    write(*, *) 'In z-pencil, rank = ', myid, ' size in y-dir = ', ph%zsz(2), ' y id from ', ph%zst(2), ph%zen(2)
-    write(*, *) 'In z-pencil, rank = ', myid, ' size in z-dir = ', ph%zsz(3), ' z id from ', ph%zst(3), ph%zen(3)
+#ifdef DEBUGFFT
+    !if(myid == 0) write(*, *) 'Physical Domain (Poisson), 2D decompisiton : '
+    write(*, *) 'In x-pencil size in x-dir = ', ph%xsz(1), ' x id from ', ph%xst(1), ph%xen(1)
+    write(*, *) 'In x-pencil size in y-dir = ', ph%xsz(2), ' y id from ', ph%xst(2), ph%xen(2)
+    write(*, *) 'In x-pencil size in z-dir = ', ph%xsz(3), ' z id from ', ph%xst(3), ph%xen(3)
+    write(*, *) 'In y-pencil size in x-dir = ', ph%ysz(1), ' x id from ', ph%yst(1), ph%yen(1)
+    write(*, *) 'In y-pencil size in y-dir = ', ph%ysz(2), ' y id from ', ph%yst(2), ph%yen(2)
+    write(*, *) 'In y-pencil size in z-dir = ', ph%ysz(3), ' z id from ', ph%yst(3), ph%yen(3)
+    write(*, *) 'In z-pencil size in x-dir = ', ph%zsz(1), ' x id from ', ph%zst(1), ph%zen(1)
+    write(*, *) 'In z-pencil size in y-dir = ', ph%zsz(2), ' y id from ', ph%zst(2), ph%zen(2)
+    write(*, *) 'In z-pencil size in z-dir = ', ph%zsz(3), ' z id from ', ph%zst(3), ph%zen(3)
 #endif
 
-#ifdef DEBUG
-    if(myid == 0) write(*, *) 'Spectral domain (Poisson), 2D decompisiton : '
-    write(*, *) 'In x-pencil, rank = ', myid, ' size in x-dir = ', sp%xsz(1), ' x id from ', sp%xst(1), sp%xen(1)
-    write(*, *) 'In x-pencil, rank = ', myid, ' size in y-dir = ', sp%xsz(2), ' y id from ', sp%xst(2), sp%xen(2)
-    write(*, *) 'In x-pencil, rank = ', myid, ' size in z-dir = ', sp%xsz(3), ' z id from ', sp%xst(3), sp%xen(3)
-    write(*, *) 'In y-pencil, rank = ', myid, ' size in x-dir = ', sp%ysz(1), ' x id from ', sp%yst(1), sp%yen(1)
-    write(*, *) 'In y-pencil, rank = ', myid, ' size in y-dir = ', sp%ysz(2), ' y id from ', sp%yst(2), sp%yen(2)
-    write(*, *) 'In y-pencil, rank = ', myid, ' size in z-dir = ', sp%ysz(3), ' z id from ', sp%yst(3), sp%yen(3)
-    write(*, *) 'In z-pencil, rank = ', myid, ' size in x-dir = ', sp%zsz(1), ' x id from ', sp%zst(1), sp%zen(1)
-    write(*, *) 'In z-pencil, rank = ', myid, ' size in y-dir = ', sp%zsz(2), ' y id from ', sp%zst(2), sp%zen(2)
-    write(*, *) 'In z-pencil, rank = ', myid, ' size in z-dir = ', sp%zsz(3), ' z id from ', sp%zst(3), sp%zen(3)
+#ifdef DEBUGFFT
+    !if(myid == 0) write(*, *) 'Spectral domain (Poisson), 2D decompisiton : '
+    write(*, *) 'In x-pencil size in x-dir = ', sp%xsz(1), ' x id from ', sp%xst(1), sp%xen(1)
+    write(*, *) 'In x-pencil size in y-dir = ', sp%xsz(2), ' y id from ', sp%xst(2), sp%xen(2)
+    write(*, *) 'In x-pencil size in z-dir = ', sp%xsz(3), ' z id from ', sp%xst(3), sp%xen(3)
+    write(*, *) 'In y-pencil size in x-dir = ', sp%ysz(1), ' x id from ', sp%yst(1), sp%yen(1)
+    write(*, *) 'In y-pencil size in y-dir = ', sp%ysz(2), ' y id from ', sp%yst(2), sp%yen(2)
+    write(*, *) 'In y-pencil size in z-dir = ', sp%ysz(3), ' z id from ', sp%yst(3), sp%yen(3)
+    write(*, *) 'In z-pencil size in x-dir = ', sp%zsz(1), ' x id from ', sp%zst(1), sp%zen(1)
+    write(*, *) 'In z-pencil size in y-dir = ', sp%zsz(2), ' y id from ', sp%zst(2), sp%zen(2)
+    write(*, *) 'In z-pencil size in z-dir = ', sp%zsz(3), ' z id from ', sp%zst(3), sp%zen(3)
 #endif
-!_______________________________________________________________________________
-! preparing sine and cosine factors
-!_______________________________________________________________________________
-    allocate ( ax( nw(1) ) ); ax = ZERO
-    allocate ( bx( nw(1) ) ); bx = ZERO
 
-    allocate ( ay( nw(2) ) ); ay = ZERO
-    allocate ( by( nw(2) ) ); by = ZERO
-
-    allocate ( az( nw(3) ) ); az = ZERO
-    allocate ( bz( nw(3) ) ); bz = ZERO
-
-    call Calculate_sine_cosine_unit(ax, bx, nw(1), is_periodic(1))
-    call Calculate_sine_cosine_unit(ay, by, nw(2), is_periodic(2))
-    call Calculate_sine_cosine_unit(az, bz, nw(3), is_periodic(3))
 !_______________________________________________________________________________
 ! allocate space for wave-space variables
 !_______________________________________________________________________________
@@ -550,7 +552,7 @@ contains
     do k = it3s, it3e
       do j = it2s, it2e
         do i = it1s, it1e
-          t2xyz(i, j, k) = t2x(i) + t2y(j) + t2z(k)
+          t2xyz(i, j, k) = t2x(i) + t2y(j) + t2z(k) ! (spectral space)
         end do
       end do
     end do
@@ -584,7 +586,7 @@ contains
     real(wp), dimension(:,:,:), intent(INOUT) :: rhs
 
     integer :: i, j, k
-#ifdef DEBUG
+#ifdef DEBUGFFT
     integer :: nn
     real(wp), allocatable :: rhs0(:, :, :)
 
@@ -604,7 +606,7 @@ contains
 ! initialize FFT
 !_______________________________________________________________________________
     if (.not. fft_initialised) then
-      call decomp_2d_fft_init(PHYSICAL_IN_Z, nw(1), nw(2), nw(3))
+      call decomp_2d_fft_init(PHYSICAL_IN_Z)!, nw(1), nw(2), nw(3))
       fft_initialised = .true.
     end if
 !_______________________________________________________________________________
@@ -620,7 +622,7 @@ contains
                         real(nw(2), kind=wp) / &
                         real(nw(3), kind=wp)
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
 ! cw1 : x pencil format
     do k = sp%xst(3), sp%xen(3)
       do j = sp%xst(2), sp%xen(2)
@@ -637,7 +639,7 @@ contains
   do k = sp%xst(3), sp%xen(3)
     do j = sp%xst(2), sp%xen(2)
       do i = sp%xst(1), sp%xen(1)
-        if ( ( dabs( real(t2xyz(i, j, k))) < TRUNCERR ) .AND. &
+        if ( ( dabs( real(t2xyz(i, j, k), WP)) < TRUNCERR ) .AND. &
              ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
           cw_xpen(i, j, k) = complex(ZERO, ZERO)
         else 
@@ -647,7 +649,7 @@ contains
     end do
   end do
 !_______________________________________________________________________________
-#ifdef DEBUG
+#ifdef DEBUGFFT
 ! cw1 : x pencil format
     do k = sp%xst(3), sp%xen(3)
       do j = sp%xst(2), sp%xen(2)
@@ -664,7 +666,7 @@ contains
 !_______________________________________________________________________________
     call decomp_2d_fft_3d(cw_xpen, rhs)
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
     do k = ph%zst(3), ph%zen(3)
       do j = ph%zst(2), ph%zen(2)
         do i = ph%zst(1), ph%zen(1)
@@ -689,14 +691,14 @@ contains
     real(wp) :: aRe1, bRe1, aRe2, bRe2, &
                 aIm1, bIm1, aIm2, bIm2
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
     real(wp), allocatable :: rhs0(:, :, :)
 
     allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
     rhs0 = rhs
 #endif
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
 ! cw1 : x pencil format
     ! do k = sp%xst(3), sp%xen(3)
     !   do j = sp%xst(2), sp%xen(2)
@@ -753,7 +755,7 @@ contains
     cw_xpen = cw_xpen / real(nw(1), kind=wp) / &
                         real(nw(2), kind=wp) / &
                         real(nw(3), kind=wp)
-#ifdef DEBUG
+#ifdef DEBUGFFT
 ! cw1 : x pencil format
     ! do k = sp%xst(3), sp%xen(3)
     !   do j = sp%xst(2), sp%xen(2)
@@ -834,7 +836,7 @@ contains
     call transpose_x_to_y(rw_recons_xpen, rw_ypen, ph)
     call transpose_y_to_z(rw_ypen,        rhs,     ph)
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
         do i = ph%xst(1), ph%xen(1)
@@ -860,7 +862,7 @@ contains
     real(wp) :: aRe1, bRe1, aRe2, bRe2, &
                 aIm1, bIm1, aIm2, bIm2
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
     real(wp), allocatable :: rhs0(:, :, :)
 
     allocate (rhs0 (ph%xsz(1), ph%xsz(2), ph%xsz(3)))
@@ -991,7 +993,7 @@ contains
 
     call transpose_y_to_z(rw_ypen, rhs, ph)
 
-#ifdef DEBUG
+#ifdef DEBUGFFT
     do k = ph%xst(3), ph%xen(3)
       do j = ph%xst(2), ph%xen(2)
         do i = ph%xst(1), ph%xen(1)
@@ -1061,16 +1063,17 @@ contains
     write(*, *) ' Test Poisson Solver >>'
 
     allocate(rhsphi(ph%zst(1):ph%zen(1),ph%zst(2):ph%zen(2),ph%zst(3):ph%zen(3))); rhsphi = ZERO
-    
+    ! d^2(phi_i)/dx2_i = rhs
     do i = ph%zst(1),ph%zen(1)
       do j = ph%zst(2),ph%zen(2)
         do k = ph%zst(3),ph%zen(3)
           x = domain%h(1)*(real(i - 1, WP))
           y = domain%h(2)*(real(j - 1, WP))
           z = domain%h(3)*(real(k - 1, WP))
-          rhsphi(i, j, k) = -dsin(TWO*x + TWO*y + TWO*z)*FOUR &
-                            -dsin(TWO*x + TWO*y + TWO*z)*FOUR &
-                            -dsin(TWO*x + TWO*y + TWO*z)*FOUR
+          rhsphi(i, j, k) = -dsin(x+y+z)-dsin(x+y+z)-dsin(x+y+z)
+          !-dsin(TWO*x + TWO*y + TWO*z)*FOUR &
+          !                  -dsin(TWO*x + TWO*y + TWO*z)*FOUR &
+          !                  -dsin(TWO*x + TWO*y + TWO*z)*FOUR
         end do
       end do
     end do
@@ -1078,16 +1081,17 @@ contains
     call Solve_poisson(rhsphi)
 
     nn = 0
-    do i = ph%zst(1),ph%zen(1)
+    do k = ph%zst(3),ph%zen(3)
       do j = ph%zst(2),ph%zen(2)
-        do k = ph%zst(3),ph%zen(3)
+        do i = ph%zst(1),ph%zen(1)
           x = domain%h(1)*(real(i - 1, WP))
           y = domain%h(2)*(real(j - 1, WP))
           z = domain%h(3)*(real(k - 1, WP))
 
-          solution = dsin(TWO*x + TWO*y + TWO*z)
+          solution = dsin(x+y+z)
+          !dsin(TWO*x + TWO*y + TWO*z)
 
-          write(*, *) j, i, k, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)
+          write(*, *) k, j, i, solution, rhsphi(i,j,k), dabs(rhsphi(i,j,k)-solution)
         end do
       end do
     end do
