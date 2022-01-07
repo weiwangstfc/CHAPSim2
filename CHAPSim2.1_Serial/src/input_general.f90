@@ -274,6 +274,7 @@ contains
         read(inputUnit, *, iostat = ioerr) variableName, icase
         read(inputUnit, *, iostat = ioerr) variableName, ithermo
         read(inputUnit, *, iostat = ioerr) variableName, icht
+        read(inputUnit, *, iostat = ioerr) variableName, idir
 
         if (icase == ICASE_CHANNEL) then
           icoordinate = ICARTESIAN
@@ -286,7 +287,9 @@ contains
           icoordinate = ICARTESIAN
         else if (icase == ICASE_TGV3D) then
           icoordinate = ICARTESIAN
-        else if (icase == ICASE_BURGERS) then
+        else if(icase == ICASE_BURGERS .or. &
+          icase == ICASE_INVSD_BURGERS .or. &
+          icase == ICASE_HEATEQ) then
           icoordinate = ICARTESIAN
         else 
           icoordinate = ICARTESIAN
@@ -297,7 +300,10 @@ contains
         if(icase == ICASE_ANNUAL)  write(*, formats) ' Case : ', "Annual flow"
         if(icase == ICASE_TGV2D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (2D)"
         if(icase == ICASE_TGV3D)   write(*, formats) ' Case : ', "Taylor Green Vortex flow (3D)"
-        if(icase == ICASE_BURGERS)   write(*, formats) ' Case : ', "Burgers Equation (1D - X)"
+        if(icase == ICASE_BURGERS)         write(*, formats) ' Case : ', "Burgers Equation"
+        if(icase == ICASE_INVSD_BURGERS)   write(*, formats) ' Case : ', "Inviscid Burgers Equation"
+        if(icase == ICASE_HEATEQ)          write(*, formats) ' Case : ', "Heat Equation"
+
         if(ithermo == 0)           write(*, formats) ' Thermal field : ', 'No' 
         if(ithermo == 1)           write(*, formats) ' Thermal field : ', 'Yes' 
         if(icht    == 0)           write(*, formats) ' Conjugate Heat Transfer : ', 'No' 
@@ -403,11 +409,21 @@ contains
           lzz = TWO * PI
           lyt =   PI
           lyb = - PI
-        else if (icase == ICASE_BURGERS) then
-          lxx = TWO * PI
-          lzz = TWO * PI
-          lyt =   PI
-          lyb = - PI
+        ! else if (icase == ICASE_BURGERS) then
+        !   lxx = TWO * PI
+        !   lzz = TWO * PI
+        !   lyt =   PI
+        !   lyb = - PI
+        ! else if (icase == ICASE_INVSD_BURGERS) then
+        !   lxx = TWO * PI
+        !   lzz = TWO * PI
+        !   lyt =   PI
+        !   lyb = - PI
+        ! else if (icase == ICASE_HEATEQ) then
+        !   lxx = TWO * PI
+        !   lzz = TWO * PI
+        !   lyt =   PI
+        !   lyb = - PI
         else 
           ! do nothing...
         end if

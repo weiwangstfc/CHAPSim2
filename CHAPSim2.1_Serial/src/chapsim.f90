@@ -155,7 +155,9 @@ subroutine Solve_eqs_iteration
   end subroutine Display_vtk_slice
 end interface
 
-  if(icase == ICASE_BURGERS) then
+  if(icase == ICASE_BURGERS .or. &
+     icase == ICASE_INVSD_BURGERS .or. &
+     icase == ICASE_HEATEQ) then
     call Solve_burgers_eq_iteration
     return
   end if

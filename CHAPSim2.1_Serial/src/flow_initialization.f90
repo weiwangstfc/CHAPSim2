@@ -658,8 +658,8 @@ contains
   subroutine  Initialize_burgers_flow(ux, uy, uz, p, d)
     use udf_type_mod, only : t_domain, t_flow
     use math_mod, only : sin_wp
-    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
-    
+    use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
+    use input_general_mod
     implicit none
 
     type(t_domain), intent(in )   :: d
@@ -671,19 +671,33 @@ contains
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
+    real(WP),parameter :: alpha = ONE, beta = ZERO
 
-    do k = 1, d%nc(3)
-      do j = 1, d%nc(2)
-        do i = 1, d%np(1)
-          xp = d%h(1) * real(i - 1, WP)
-          ux(i, j, k) =  sin_wp ( xp )
-        end do 
-      end do
-    end do
-
+    ux = ZERO
     uy = ZERO
     uz = ZERO
     p  = ZERO
+
+ !===============================================================================
+ ! example 1 : input sin(x)
+ ! example 2 : input alpha * x + beta for inviscid Burgers' equation
+ !===============================================================================
+    if(icase == ICASE_HEATEQ .or. icase == ICASE_BURGERS) then
+      do i = 1, d%np(idir)
+        xp = d%h(idir) * real(i - 1, WP)
+        if(idir == 1) ux(i, :, :) =  sin_wp ( PI * xp )
+        if(idir == 2) uy(:, i, :) =  sin_wp ( PI * xp )
+        if(idir == 3) uz(:, :, i) =  sin_wp ( PI * xp )
+      end do 
+    else if (icase == ICASE_INVSD_BURGERS) then
+      do i = 1, d%np(idir)
+        xp = d%h(idir) * real(i - 1, WP)
+        if(idir == 1) ux(i, :, :) =  alpha * xp + beta
+        if(idir == 2) uy(:, i, :) =  alpha * xp + beta
+        if(idir == 3) uz(:, :, i) =  alpha * xp + beta
+      end do 
+    else
+    end if
     
     return
   end subroutine Initialize_burgers_flow
@@ -779,7 +793,9 @@ contains
       call Initialize_vortexgreen_3dflow (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else if (icase == ICASE_SINETEST) then
       call Initialize_sinetest_flow      (flow%qx, flow%qy, flow%qz, flow%pres, domain)
-    else if (icase == ICASE_BURGERS) then
+    else if(icase == ICASE_BURGERS .or. &
+      icase == ICASE_INVSD_BURGERS .or. &
+      icase == ICASE_HEATEQ) then
       call Initialize_burgers_flow       (flow%qx, flow%qy, flow%qz, flow%pres, domain)
     else
       call Print_error_msg("No such case defined" )
@@ -830,9 +846,9 @@ contains
     !call Display_vtk_slice(domain, 'zx', 'w', 3, qz)
     !call Display_vtk_slice(domain, 'zx', 'p', 0, pres)
 
-    call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, 0)
-    call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, 0)
-    call Display_vtk_slice(domain, 'xy', 'w', 0, flow%pres, 0)
+    !call Display_vtk_slice(domain, 'xy', 'u', 1, flow%qx, 0)
+    !call Display_vtk_slice(domain, 'xy', 'v', 2, flow%qy, 0)
+    !call Display_vtk_slice(domain, 'xy', 'w', 0, flow%pres, 0)
 
     call Print_debug_end_msg
     return
