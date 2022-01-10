@@ -3,14 +3,18 @@ bin/
 obj/
 .history/
 test_*/
+*.dat
+*.log
+*.png
 
 # Prerequisites
 *.d
 
 # Compiled Object files
+*.o
+*.mod
 *.slo
 *.lo
-*.o
 *.obj
 
 # Precompiled Headers
