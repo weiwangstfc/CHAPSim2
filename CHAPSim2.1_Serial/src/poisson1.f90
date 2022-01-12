@@ -7,7 +7,7 @@
 ! out[i] is the conjugate of out[n-i]
 ! (2)  DFT of real number :
 ! the 0th (the “DC”) and n/2-th (the “Nyquist” frequency, when n is even) 
-! elements of the cmplx output are purely real.
+! elements of the complex output are purely real.
 ! (3) For 2D and 3D FFTs, the FFT length along the innermost dimension is used 
 ! to compute the  value. This is because the FFT along the innermost dimension 
 ! is computed first and is logically a real-to-hermitian transform. 
@@ -46,8 +46,8 @@ module poisson_mod
 !_______________________________________________________________________________
 ! Transformation Matrix from \hat{f} to \hat{f''}
 !_______________________________________________________________________________
-  cmplx(wp),       allocatable, dimension(:)       :: t2x, t2y, t2z
-  cmplx(wp), save, allocatable, dimension(:, :, :) :: t2xyz
+  complex(wp),       allocatable, dimension(:)       :: t2x, t2y, t2z
+  complex(wp), save, allocatable, dimension(:, :, :) :: t2xyz
 !_______________________________________________________________________________
 ! boundary conditions and index
 !_______________________________________________________________________________
@@ -56,14 +56,14 @@ module poisson_mod
   integer(4), dimension(3), save :: nw
 !_______________________________________________________________________________
 ! work arrays, 
-! naming convention: cw (cmplx); rw (real); 
+! naming convention: cw (complex); rw (real); 
 !                    b =     ; c = 
 !                    1 = X-pencil; 2 = Y-pencil; 3 = Z-pencil
 !_______________________________________________________________________________
   real(wp),    allocatable, dimension(:, :, :) :: rw_xpen, rw_ypen, rw_zpen
   real(wp),    allocatable, dimension(:, :, :) :: rw_recons_xpen, rw_recons_ypen, rw_recons_zpen
-  cmplx(wp), allocatable, dimension(:, :, :) :: cw_xpen, cw_ypen, cw_zpen
-  cmplx(wp), allocatable, dimension(:, :, :) :: cw_recons_xpen, cw_recons_ypen, cw_recons_zpen
+  complex(wp), allocatable, dimension(:, :, :) :: cw_xpen, cw_ypen, cw_zpen
+  complex(wp), allocatable, dimension(:, :, :) :: cw_recons_xpen, cw_recons_ypen, cw_recons_zpen
 !_______________________________________________________________________________
 ! FFT library only needs to be initialised once
 !_______________________________________________________________________________
@@ -151,12 +151,12 @@ contains
     logical,  intent(in) :: is_peri
     real(wp), intent(in) :: dd ! dx
     integer,  intent(in) :: nc ! 
-    cmplx(wp),   intent(inout) :: t2(:)
+    complex(wp),   intent(inout) :: t2(:)
 
     real(wp) :: a, b, alpha
     real(wp) :: w, cosw, aunit
     real(wp) :: tr, ti
-    cmplx(wp) :: tc, ic
+    complex(wp) :: tc, ic
     integer(4) :: l
 
     if(is_peri) then
@@ -171,7 +171,7 @@ contains
         tr = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
         tr = tr / (ONE + TWO * alpha * cos_wp(w))
         tr = tr / dd
-        t2(l) = cmplx(- tr * tr, ZERO)
+        t2(l) = complex(- tr * tr, ZERO)
       end do
 
        do l = nc / 2 + 2, nc
@@ -184,7 +184,7 @@ contains
 !     for pressure stored at cell centre
 !     it could be represented by symmetric b.c. ? check!
 !_______________________________________________________________________________     
-      ic = cmplx(ZERO, ONE)
+      ic = complex(ZERO, ONE)
 
       aunit = PI / REAL(nc, WP)
 !_______________________________________________________________________________
@@ -232,7 +232,7 @@ contains
         tr = a * sin_wp(w) + b * HALF * sin_wp(TWO * w)
         tr = tr / (ONE + TWO * alpha * cos_wp(w))
         tr = tr / dd
-        t2(l) = cmplx(- tr * tr, ZERO)
+        t2(l) = complex(- tr * tr, ZERO)
       end do
 !_______________________________________________________________________________
 !     bc = n - 1
@@ -372,9 +372,9 @@ contains
 ! For FFT, by calling decomp_2d_fft_init(PHYSICAL_IN_Z, nx, ny, nz)
 !      the physical-space data is stored in Z pencil.
 !      the spectral-space data is stored in X pencil after FFT.
-! For FFT(real 2 cmplx)
+! For FFT(real 2 complex)
 !      For a 3D real input set of size (nx * ny * nz), the 
-!      the cmplx uotput can be held in an array of size (nx, ny, nz / 2 + 1)
+!      the complex uotput can be held in an array of size (nx, ny, nz / 2 + 1)
 !      for a x-pencil stored spectral data.
 !_______________________________________________________________________________
 !_______________________________________________________________________________
@@ -426,7 +426,7 @@ contains
     
       allocate (t2xyz( sp%xst(1) : sp%xen(1), &
                        sp%xst(2) : sp%xen(2), &
-                       sp%xst(3) : sp%xen(3))) ;  t2xyz = cmplx(ZERO, ZERO)
+                       sp%xst(3) : sp%xen(3))) ;  t2xyz = complex(ZERO, ZERO)
 
       allocate ( cw_xpen( sp%xst(1) : sp%xen(1), &
                           sp%xst(2) : sp%xen(2), &
@@ -438,7 +438,7 @@ contains
 
       allocate (t2xyz( sp%xst(1) : sp%xen(1), &
                        sp%xst(2) : sp%xen(2), &
-                       sp%xst(3) : sp%xen(3))) ;  t2xyz = cmplx(ZERO, ZERO)
+                       sp%xst(3) : sp%xen(3))) ;  t2xyz = complex(ZERO, ZERO)
 
       allocate ( rw_xpen( ph%xst(1) : ph%xen(1), &
                           ph%xst(2) : ph%xen(2), &
@@ -470,7 +470,7 @@ contains
 
       allocate (t2xyz( sp%yst(1) : sp%yen(1), &
                        sp%yst(2) : sp%yen(2), &
-                       sp%yst(3) : sp%yen(3))) ;  t2xyz = cmplx(ZERO, ZERO)
+                       sp%yst(3) : sp%yen(3))) ;  t2xyz = complex(ZERO, ZERO)
 
       allocate ( rw_ypen( ph%yst(1) : ph%yen(1), &
                           ph%yst(2) : ph%yen(2), &
@@ -523,9 +523,9 @@ contains
 ! prepare the transformation \hat{f"}_l = \hat{f}_l * t2x
 ! the operation of spetral data is in x-pencil (from PHYSICAL_IN_Z)
 !_______________________________________________________________________________
-    allocate ( t2x( nw(1) ) ) ;  t2x = cmplx(ZERO, ZERO)
-    allocate ( t2y( nw(2) ) ) ;  t2y = cmplx(ZERO, ZERO)
-    allocate ( t2z( nw(3) ) ) ;  t2z = cmplx(ZERO, ZERO)
+    allocate ( t2x( nw(1) ) ) ;  t2x = complex(ZERO, ZERO)
+    allocate ( t2y( nw(2) ) ) ;  t2y = complex(ZERO, ZERO)
+    allocate ( t2z( nw(3) ) ) ;  t2z = complex(ZERO, ZERO)
 
     call Calculate_compact_coef_in_spectral (is_periodic(1), d%h(1), nw(1), t2x)
     call Calculate_compact_coef_in_spectral (is_periodic(2), d%h(2), nw(2), t2y)
@@ -641,7 +641,7 @@ contains
       do i = sp%xst(1), sp%xen(1)
         if ( ( dabs( real(t2xyz(i, j, k), WP)) < TRUNCERR ) .AND. &
              ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
-          cw_xpen(i, j, k) = cmplx(ZERO, ZERO)
+          cw_xpen(i, j, k) = complex(ZERO, ZERO)
         else 
           cw_xpen(i, j, k) = cw_xpen(i, j, k) / t2xyz(i, j, k)
         end if
@@ -785,7 +785,7 @@ contains
         do i = sp%xst(1), sp%xen(1)
           if ( ( dabs( real(t2xyz(i, j, k))) < TRUNCERR ) .AND. &
                ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
-            cw_recons_xpen(i, j, k) = cmplx(ZERO, ZERO)
+            cw_recons_xpen(i, j, k) = complex(ZERO, ZERO)
           else 
             cw_recons_xpen(i, j, k) = cw_recons_xpen(i, j, k) / t2xyz(i, j, k)
           end if
@@ -939,7 +939,7 @@ contains
           do i = sp%yst(1), sp%yen(1)
             if ( ( dabs( real(t2xyz(i, j, k))) < TRUNCERR ) .AND. &
                  ( dabs(aimag(t2xyz(i, j, k))) < TRUNCERR )) then
-              cw_recons_ypen(i, j, k) = cmplx(ZERO, ZERO)
+              cw_recons_ypen(i, j, k) = complex(ZERO, ZERO)
             else 
               cw_recons_ypen(i, j, k) = cw_recons_ypen(i, j, k) / t2xyz(i, j, k)
             end if
