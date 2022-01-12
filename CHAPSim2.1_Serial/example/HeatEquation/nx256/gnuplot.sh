@@ -26,7 +26,7 @@
     set key right top
     set ylabel "u(x)"
     set xlabel "x"
-    plot for [i=0:180:20] 'Plot_Burgers_profile'.i.'.dat' using 1:2 with lp title 'iter='.i
+    plot for [i=0:30000:1000] 'Plot_Burgers_profile'.i.'.dat' using 1:2 with lp title 'iter='.i
     
     set output 'Validation.png'
     set key right top

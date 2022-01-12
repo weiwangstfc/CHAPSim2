@@ -6,6 +6,7 @@ module solver_tools_mod
   public  :: Calculate_massflux_from_velocity
   public  :: Check_cfl_convection
   public  :: Check_cfl_diffusion
+  public  :: Check_cfl_diffusion_1d
 
 contains
 !===============================================================================
@@ -79,6 +80,26 @@ contains
     return
   end subroutine Calculate_massflux_from_velocity
 
+  subroutine Check_cfl_diffusion_1d(x2r, rre)
+    use input_general_mod, only : dt
+    use parameters_constant_mod, only : TWO, ONE
+    use precision_mod
+    implicit none
+    real(WP), intent(in) :: x2r
+    real(WP), intent(in) :: rre
+    real(WP) :: cfl_diff
+
+    ! check, ours is two times of the one in xcompact3d.
+    cfl_diff = x2r * TWO * dt * rre
+
+    if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
+    write(*,*) "  Diffusion number :"
+    write(*,"(12X, F13.8)") cfl_diff
+    write(*,*) "  Suggested dt <= :", ONE/(x2r * TWO * rre)
+    
+    return
+  end subroutine
+
   subroutine Check_cfl_diffusion(x2r, rre)
     use input_general_mod, only : dt
     use parameters_constant_mod, only : TWO, ONE
@@ -94,6 +115,7 @@ contains
     if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
     write(*,*) "  Diffusion number :"
     write(*,"(12X, F13.8)") cfl_diff
+    write(*,*) "  Suggested dt <= :", ONE/(sum(x2r) * TWO * rre)
     
     return
   end subroutine
@@ -168,6 +190,7 @@ contains
     if(cfl_convection > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
     write(*,*) "  CFL (convection) :"
     write(*,"(12X, F13.8)") cfl_convection
+    write(*,*) "  Suggested dt <= :", ONE/udx*dt
     
     return
   end subroutine

@@ -268,6 +268,7 @@ contains
     use poisson_mod
     use code_performance_mod
     use parameters_constant_mod
+    use solver_tools_mod
     implicit none
 
     integer(4) :: iter, isub
@@ -278,6 +279,7 @@ contains
     flow%rre = ONE / ren
 
     call Plot_burgers_profile(flow, domain, 0)
+    call Check_cfl_diffusion_1d(domain%h2r(IDIR), flow%rre)
 
     do iter = nrsttckpt + 1, niter
       call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
