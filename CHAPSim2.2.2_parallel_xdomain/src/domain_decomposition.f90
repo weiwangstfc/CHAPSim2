@@ -25,6 +25,10 @@ contains
     use iso_fortran_env
     implicit none
     type(t_domain), intent(inout)   :: dm
+#ifdef DEBUG
+    type(DECOMP_INFO) :: dtmp
+    integer :: i
+#endif 
 !-------------------------------------------------------------------------------
 ! basic 2D decompistion API
 ! limits: nrow <= min(nx, ny)
@@ -72,7 +76,6 @@ contains
         dtmp = dm%dccc
         write (OUTPUT_UNIT, *) 'In the decomp - ccc grids (for rho, p) :'
       case(5)
-      case(4)
         dtmp = dm%dppc
         write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dy, duy/dx) :'
       case(6)

@@ -32,7 +32,7 @@ module operations
 !-------------------------------------------------------------------------------
 ! basic coefficients for TDMA of 1st deriviative  
 ! to store coefficients for TDMA
-! eg, d1fC2C(5, 3, 4)
+! eg, d1fC2C(5, 3, 5)
 !     First column: 1:2 for one side b.c.
 !                   4:5 for the other side b.c.
 !                   3   for interior
@@ -40,8 +40,6 @@ module operations
 !                    2 for coefficients of f^(1)_{i}
 !                    3 for coefficients of f^(1)_{i+1}
 !     Third column:  for b.c. flags
-!     Fourth Column (interpolation only): 1 for orthognal like u in y
-!                                         2 for parallel like v in y
 !     d1fC2C vs d1rC2C :
 !       f : coefficients in the LHS, unknown side.
 !       r : coefficients in the RHS, known side. 
@@ -50,40 +48,40 @@ module operations
 ! for 1st derivative
 !-------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), public :: d1fC2C(5, 3, 4)
-  real(WP), public :: d1rC2C(5, 3, 4)
+  real(WP), public :: d1fC2C(5, 3, 5)
+  real(WP), public :: d1rC2C(5, 3, 5)
   
   ! collocated P2P
-  real(WP) :: d1fP2P(5, 3, 4)
-  real(WP) :: d1rP2P(5, 3, 4)
+  real(WP) :: d1fP2P(5, 3, 5)
+  real(WP) :: d1rP2P(5, 3, 5)
 
   ! staggered C2P
-  real(WP) :: d1fC2P(5, 3, 4)
-  real(WP) :: d1rC2P(5, 3, 4)
+  real(WP) :: d1fC2P(5, 3, 5)
+  real(WP) :: d1rC2P(5, 3, 5)
 
   ! staggered P2C
-  real(WP) :: d1fP2C(5, 3, 4)
-  real(WP) :: d1rP2C(5, 3, 4)
+  real(WP) :: d1fP2C(5, 3, 5)
+  real(WP) :: d1rP2C(5, 3, 5)
 !-------------------------------------------------------------------------------
 ! for 2nd derivative
 !-------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), public :: d2fC2C(5, 3, 4)
+  real(WP), public :: d2fC2C(5, 3, 5)
   real(WP), public :: d2rC2C(5, 4, 4) ! one more value used. 
   
   ! collocated P2P
-  real(WP) :: d2fP2P(5, 3, 4)
+  real(WP) :: d2fP2P(5, 3, 5)
   real(WP) :: d2rP2P(5, 4, 4)
 !-------------------------------------------------------------------------------
 ! for iterpolation
 !-------------------------------------------------------------------------------
   ! interpolation P2C
-  real(WP) :: m1fP2C(5, 3, 4)
-  real(WP) :: m1rP2C(5, 3, 4)
+  real(WP) :: m1fP2C(5, 3, 5)
+  real(WP) :: m1rP2C(5, 3, 5)
 
   ! interpolation C2P
-  real(WP) :: m1fC2P(5, 3, 4)
-  real(WP) :: m1rC2P(5, 3, 4)
+  real(WP) :: m1fC2P(5, 3, 5)
+  real(WP) :: m1rC2P(5, 3, 5)
 
 !-------------------------------------------------------------------------------
 ! coefficients array for TDMA of 1st deriviative  
@@ -1203,7 +1201,7 @@ contains
 
     integer, intent(in) :: n
     logical,  intent(in)   :: is_periodic
-    real(WP), intent(in)   :: coeff(5, 3, 4)
+    real(WP), intent(in)   :: coeff(5, 3, 5)
     real(WP), intent(out)  :: a(n), b(n), c(n), d(n)
 
     a(1)         = coeff( 1, 1, ibc(1) )
@@ -1568,7 +1566,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 3, 4)
+    real(WP), intent(in ) :: coeff(5, 3, 5)
     integer,  intent(in ) :: ibc(2)
 
     integer :: i, m, l
@@ -1698,7 +1696,7 @@ contains
     integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
     integer,            intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
+    real(WP),           intent(in ) :: coeff(5, 3, 5)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
 
@@ -1838,7 +1836,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 3, 4)
+    real(WP), intent(in ) :: coeff(5, 3, 5)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
 
@@ -1979,7 +1977,7 @@ contains
     integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
     integer,            intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
+    real(WP),           intent(in ) :: coeff(5, 3, 5)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
@@ -2135,7 +2133,7 @@ contains
     integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
     integer,            intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 4)
+    real(WP),           intent(in ) :: coeff(5, 3, 5)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
@@ -2284,7 +2282,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 3, 4)
+    real(WP), intent(in ) :: coeff(5, 3, 5)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
 
