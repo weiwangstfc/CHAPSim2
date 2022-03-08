@@ -121,9 +121,10 @@ module parameters_constant_mod
                         IBC_ASYMMETRIC  = 3, &
                         IBC_DIRICHLET   = 4, &
                         IBC_NEUMANN     = 5, &
-                        IBC_CONVECTIVE  = 6, &
-                        IBC_TURBGEN     = 7, &
-                        IBC_DATABASE    = 8
+                        IBC_INTRPL      = 6, &
+                        IBC_CONVECTIVE  = 7, &
+                        IBC_TURBGEN     = 8, &
+                        IBC_DATABASE    = 9
 !                        IBC_INLET_MEAN  = 4, &
 !                        IBC_INLET_TG    = 5, &
 !                        IBC_INLET_MAP   = 6, &
