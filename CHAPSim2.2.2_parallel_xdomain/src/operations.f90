@@ -373,36 +373,35 @@ contains
     m1fP2C(:, :, :) = ZERO
     m1rP2C(:, :, :) = ZERO
 !===============================================================================
-! Set 1 : bulk & periodic & symmetric
+! Set 1 : P2P, C2P, periodic & symmetric & asymmetric
 !         1st derivative on collocated grids, C2C/P2P bulk coefficients
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
 !===============================================================================
+    alpha = ZERO
+        a = ZERO
+        b = ZERO
+        c = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
           b = ZERO
-          c = ZERO ! not used
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
           a = FOUR / THREE
           b = - ONE / THREE
-          c = ZERO ! not used
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / FOUR
           a = THREE / TWO
           b = ZERO
-          c = ZERO ! not used
     else if (iaccu == IACCU_CP6) then
       alpha = ONE / THREE
           a = FOURTEEN / NINE
           b = ONE / NINE
-          c = ZERO ! not used
     else ! default 2nd CD
       alpha = ZERO
           a = ONE
           b = ZERO
-          c = ZERO ! not used
     end if
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
@@ -424,6 +423,12 @@ contains
     d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
+! P2P : periodic b.c.  Same as C2C
+!-------------------------------------------------------------------------------
+    d1fP2P(:, :, IBC_PERIODIC) = d1fC2C(:, :, IBC_PERIODIC)
+    d1rP2P(:, :, IBC_PERIODIC) = d1rC2C(:, :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 1st-derivative : 
 ! C2C : symmetric b.c.
 ! [ 1-alpha  alpha                          ][f'_1]=[a/2 * (f_{2}   - f_{1})/h   + b/4 * (f_{3}   - f_{2})/h  ]
 ! [          alpha 1     alpha              ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{1})/h  ]
@@ -437,9 +442,10 @@ contains
     d1fC2C(5,   1, IBC_SYMMETRIC) = d1fC2C(1,   3, IBC_SYMMETRIC)
     d1fC2C(5,   2, IBC_SYMMETRIC) = d1fC2C(1,   2, IBC_SYMMETRIC)
     d1fC2C(5,   3, IBC_SYMMETRIC) = d1fC2C(1,   1, IBC_SYMMETRIC)
+
     d1fC2C(2:4, :, IBC_SYMMETRIC) = d1fC2C(2:4, :, IBC_PERIODIC )
 
-    d1rC2C(:,   :, IBC_SYMMETRIC) = d1rC2C(:, :, IBC_PERIODIC)
+    d1rC2C(:,   :, IBC_SYMMETRIC) = d1rC2C(:,   :, IBC_PERIODIC )
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2C : asymmetric b.c.
@@ -452,102 +458,14 @@ contains
     d1fC2C(1,   1, IBC_ASYMMETRIC) = ZERO        ! not used
     d1fC2C(1,   2, IBC_ASYMMETRIC) = ONE + alpha
     d1fC2C(1,   3, IBC_ASYMMETRIC) = alpha
+
     d1fC2C(5,   1, IBC_ASYMMETRIC) = d1fC2C(1,   3, IBC_ASYMMETRIC)
     d1fC2C(5,   2, IBC_ASYMMETRIC) = d1fC2C(1,   2, IBC_ASYMMETRIC)
     d1fC2C(5,   3, IBC_ASYMMETRIC) = d1fC2C(1,   1, IBC_ASYMMETRIC)
+
     d1fC2C(2:4, :, IBC_ASYMMETRIC) = d1fC2C(2:4, :, IBC_PERIODIC  )
 
-    d1rC2C(:,   :, IBC_ASYMMETRIC) = d1rC2C(:, :, IBC_PERIODIC)
-!===============================================================================
-! Set 2: no bc required
-!       C2C : no specified, Neumann
-!       P2P : no specified, Dirichlet B.C.
-! 1st derivative on collocated grids, C2C/P2P coefficients : Dirichlet B.C.
-! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
-!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
-!===============================================================================
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
-      alpha1 = ZERO
-          a1 = -THREE / TWO
-          b1 = TWO
-          c1 = -ONE / TWO
-      alpha2 = ZERO
-          a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
-    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
-      alpha1 = TWO
-          a1 = -FIVE / TWO
-          b1 = TWO
-          c1 = ONE / TWO
-      alpha2 = ONE / FOUR
-          a2 = THREE / TWO
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
-    else ! default 2nd CD
-      alpha1 = ZERO
-          a1 = -THREE / TWO
-          b1 = TWO
-          c1 = -ONE / TWO
-     alpha2 = ZERO
-          a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
-    end if
-!-------------------------------------------------------------------------------
-! 1st-derivative : 
-! C2C : no specified, Neumann
-! P2P : no specified, Dirichlet B.C.
-! [ 1     alpha1                            ][f'_1]=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
-! [alpha2 1      alpha2                     ][f'_2] [a2/2 * (f_{3} - f_{1})/h  ]
-! [       alpha  1      alpha               ][f'_i] [ a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
-! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
-! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
-!-------------------------------------------------------------------------------
-    d1fC2C(1, 1,   IBC_INTRPL) = ZERO ! not used
-    d1fC2C(1, 2,   IBC_INTRPL) = ONE
-    d1fC2C(1, 3,   IBC_INTRPL) = alpha1
-    d1fC2C(5, 1,   IBC_INTRPL) = d1fC2C(1, 3, IBC_INTRPL)
-    d1fC2C(5, 2,   IBC_INTRPL) = d1fC2C(1, 2, IBC_INTRPL)
-    d1fC2C(5, 3,   IBC_INTRPL) = d1fC2C(1, 1, IBC_INTRPL)
-  
-    d1fC2C(2, 1,   IBC_INTRPL) = alpha2
-    d1fC2C(2, 2,   IBC_INTRPL) = ONE
-    d1fC2C(2, 3,   IBC_INTRPL) = alpha2
-    d1fC2C(4, 1,   IBC_INTRPL) = d1fC2C(2, 3, IBC_INTRPL)
-    d1fC2C(4, 2,   IBC_INTRPL) = d1fC2C(2, 2, IBC_INTRPL)
-    d1fC2C(4, 3,   IBC_INTRPL) = d1fC2C(2, 1, IBC_INTRPL)
-
-    d1fC2C(3, 1:3, IBC_INTRPL) =  d1fC2C(3, 1:3, IBC_PERIODIC)
-    
-    
-    d1rC2C(1, 1,   IBC_INTRPL) = a1
-    d1rC2C(1, 2,   IBC_INTRPL) = b1
-    d1rC2C(1, 3,   IBC_INTRPL) = c1
-    d1rC2C(5, 1,   IBC_INTRPL) = - d1rC2C(1, 1, IBC_INTRPL)
-    d1rC2C(5, 2,   IBC_INTRPL) = - d1rC2C(1, 2, IBC_INTRPL)
-    d1rC2C(5, 3,   IBC_INTRPL) = - d1rC2C(1, 3, IBC_INTRPL)
-  
-    d1rC2C(2, 1,   IBC_INTRPL) = a2 / TWO
-    d1rC2C(2, 2,   IBC_INTRPL) = b2 / FOUR ! not used
-    d1rC2C(2, 3,   IBC_INTRPL) = c2    
-    d1rC2C(4, 1,   IBC_INTRPL) = d1rC2C(2, 1, IBC_INTRPL)
-    d1rC2C(4, 2,   IBC_INTRPL) = d1rC2C(2, 2, IBC_INTRPL)
-    d1rC2C(4, 3,   IBC_INTRPL) = d1rC2C(2, 3, IBC_INTRPL)
-    
-    d1rC2C(3, 1:3, IBC_INTRPL) = d1rC2C(3, 1:3, IBC_PERIODIC)
-!-------------------------------------------------------------------------------
-! 1st-derivative : 
-! C2C : neumann
-!-------------------------------------------------------------------------------
-    d1fC2C(:, :, IBC_NEUMANN) = d1fC2C(:, :, IBC_INTRPL)
-    d1rC2C(:, :, IBC_NEUMANN) = d1rC2C(:, :, IBC_INTRPL)
-!-------------------------------------------------------------------------------
-! 1st-derivative : 
-! P2P : periodic b.c.  Same as C2C
-!-------------------------------------------------------------------------------
-    d1fP2P(:, :, IBC_PERIODIC) = d1fC2C(:, :, IBC_PERIODIC)
-    d1rP2P(:, :, IBC_PERIODIC) = d1rC2C(:, :, IBC_PERIODIC)
+    d1rC2C(:,   :, IBC_ASYMMETRIC) = d1rC2C(:,   :, IBC_PERIODIC  )
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2P : symmetric b.c.
@@ -565,9 +483,9 @@ contains
     d1fP2P(5,   2, IBC_SYMMETRIC) = d1fP2P(1,   2, IBC_SYMMETRIC)
     d1fP2P(5,   3, IBC_SYMMETRIC) = d1fP2P(1,   1, IBC_SYMMETRIC)
 
-    d1fP2P(2:4, :, IBC_SYMMETRIC) = d1fP2P(2:4, :, IBC_PERIODIC)
+    d1fP2P(2:4, :, IBC_SYMMETRIC) = d1fP2P(2:4, :, IBC_PERIODIC )
 
-    d1rP2P(:,   :, IBC_SYMMETRIC) = d1rP2P(:, :, IBC_PERIODIC)
+    d1rP2P(:,   :, IBC_SYMMETRIC) = d1rP2P(:,   :, IBC_PERIODIC )
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2P : asymmetric b.c.
@@ -587,7 +505,94 @@ contains
 
     d1fP2P(2:4, :, IBC_ASYMMETRIC) = d1fP2P(2:4, :, IBC_PERIODIC)
 
-    d1rP2P(:,   :, IBC_ASYMMETRIC) = d1rP2P(:, :, IBC_PERIODIC)
+    d1rP2P(:,   :, IBC_ASYMMETRIC) = d1rP2P(:,   :, IBC_PERIODIC)
+!===============================================================================
+! Set 2: no bc required
+!       C2C : no specified, Neumann
+!       P2P : no specified, Dirichlet B.C.
+! 1st derivative on collocated grids, C2C/P2P coefficients : Dirichlet B.C.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+!===============================================================================
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+      alpha1 = ZERO
+          a1 = -THREE / TWO
+          b1 = TWO
+          c1 = -ONE / TWO
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+      alpha1 = TWO
+          a1 = -FIVE / TWO
+          b1 = TWO
+          c1 = ONE / TWO
+      alpha2 = ONE / FOUR
+          a2 = THREE / TWO
+          b2 = ZERO
+    else ! default 2nd CD
+      alpha1 = ZERO
+          a1 = -THREE / TWO
+          b1 = TWO
+          c1 = -ONE / TWO
+     alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO
+    end if
+!-------------------------------------------------------------------------------
+! 1st-derivative : 
+! C2C : no specified, Neumann
+! P2P : no specified, Dirichlet B.C.
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2/2 * (f_{3} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i] [ a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
+!-------------------------------------------------------------------------------
+    d1fC2C(1, 1,   IBC_INTRPL) = ZERO ! not used
+    d1fC2C(1, 2,   IBC_INTRPL) = ONE
+    d1fC2C(1, 3,   IBC_INTRPL) = alpha1
+    d1rC2C(1, 1,   IBC_INTRPL) = a1
+    d1rC2C(1, 2,   IBC_INTRPL) = b1
+    d1rC2C(1, 3,   IBC_INTRPL) = c1
+
+    d1fC2C(5, 1,   IBC_INTRPL) =   d1fC2C(1, 3, IBC_INTRPL)
+    d1fC2C(5, 2,   IBC_INTRPL) =   d1fC2C(1, 2, IBC_INTRPL)
+    d1fC2C(5, 3,   IBC_INTRPL) =   d1fC2C(1, 1, IBC_INTRPL)
+    d1rC2C(5, 1,   IBC_INTRPL) = - d1rC2C(1, 1, IBC_INTRPL)
+    d1rC2C(5, 2,   IBC_INTRPL) = - d1rC2C(1, 2, IBC_INTRPL)
+    d1rC2C(5, 3,   IBC_INTRPL) = - d1rC2C(1, 3, IBC_INTRPL)
+  
+    d1fC2C(2, 1,   IBC_INTRPL) = alpha2
+    d1fC2C(2, 2,   IBC_INTRPL) = ONE
+    d1fC2C(2, 3,   IBC_INTRPL) = alpha2
+    d1rC2C(2, 1,   IBC_INTRPL) = a2 / TWO
+    d1rC2C(2, 2,   IBC_INTRPL) = b2 / FOUR
+    d1rC2C(2, 3,   IBC_INTRPL) = c2  ! not used  
+
+    d1fC2C(4, 1,   IBC_INTRPL) = d1fC2C(2, 3, IBC_INTRPL)
+    d1fC2C(4, 2,   IBC_INTRPL) = d1fC2C(2, 2, IBC_INTRPL)
+    d1fC2C(4, 3,   IBC_INTRPL) = d1fC2C(2, 1, IBC_INTRPL)
+    d1rC2C(4, 1,   IBC_INTRPL) = d1rC2C(2, 1, IBC_INTRPL)
+    d1rC2C(4, 2,   IBC_INTRPL) = d1rC2C(2, 2, IBC_INTRPL)
+    d1rC2C(4, 3,   IBC_INTRPL) = d1rC2C(2, 3, IBC_INTRPL)
+
+    d1fC2C(3, 1:3, IBC_INTRPL) = d1fC2C(3, 1:3, IBC_PERIODIC)
+    d1rC2C(3, 1:3, IBC_INTRPL) = d1rC2C(3, 1:3, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 1st-derivative : 
+! C2C : neumann
+!-------------------------------------------------------------------------------
+    d1fC2C(:, :, IBC_NEUMANN) = d1fC2C(:, :, IBC_INTRPL)
+    d1rC2C(:, :, IBC_NEUMANN) = d1rC2C(:, :, IBC_INTRPL)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2P : no specified
@@ -612,33 +617,32 @@ contains
     d1fP2P(1, 1,   IBC_NEUMANN) = ZERO ! not used
     d1fP2P(1, 2,   IBC_NEUMANN) = ONE
     d1fP2P(1, 3,   IBC_NEUMANN) = ZERO
-    d1fP2P(5, 1,   IBC_NEUMANN) = d1fP2P(1, 3,   IBC_NEUMANN)
-    d1fP2P(5, 2,   IBC_NEUMANN) = d1fP2P(1, 2,   IBC_NEUMANN)
-    d1fP2P(5, 3,   IBC_NEUMANN) = d1fP2P(1, 1,   IBC_NEUMANN)
+    d1rP2P(1, 1,   IBC_NEUMANN) = ZERO
+    d1rP2P(1, 2,   IBC_NEUMANN) = ZERO
+    d1rP2P(1, 3,   IBC_NEUMANN) = ZERO
+
+    d1fP2P(5, 1,   IBC_NEUMANN) =   d1fP2P(1, 3, IBC_NEUMANN)
+    d1fP2P(5, 2,   IBC_NEUMANN) =   d1fP2P(1, 2, IBC_NEUMANN)
+    d1fP2P(5, 3,   IBC_NEUMANN) =   d1fP2P(1, 1, IBC_NEUMANN)
+    d1rP2P(5, 1,   IBC_NEUMANN) = - d1rP2P(1, 1, IBC_NEUMANN)
+    d1rP2P(5, 2,   IBC_NEUMANN) = - d1rP2P(1, 2, IBC_NEUMANN)
+    d1rP2P(5, 3,   IBC_NEUMANN) = - d1rP2P(1, 3, IBC_NEUMANN)
 
     d1fP2P(2, 1,   IBC_NEUMANN) = alpha2
     d1fP2P(2, 2,   IBC_NEUMANN) = ONE
     d1fP2P(2, 3,   IBC_NEUMANN) = alpha2
-    d1fP2P(4, 1,   IBC_NEUMANN) = d1fP2P(2, 3,   IBC_NEUMANN)
-    d1fP2P(4, 2,   IBC_NEUMANN) = d1fP2P(2, 2,   IBC_NEUMANN)
-    d1fP2P(4, 3,   IBC_NEUMANN) = d1fP2P(2, 1,   IBC_NEUMANN)
-
-    d1fP2P(3, 1:3, IBC_NEUMANN) = d1fP2P(3, 1:3, IBC_PERIODIC)
-    
-    d1rP2P(1, 1,   IBC_NEUMANN) = ZERO
-    d1rP2P(1, 2,   IBC_NEUMANN) = ZERO
-    d1rP2P(1, 3,   IBC_NEUMANN) = ZERO
-    d1rP2P(5, 1,   IBC_NEUMANN) = - d1rP2P(1, 1, IBC_NEUMANN)
-    d1rP2P(5, 2,   IBC_NEUMANN) = - d1rP2P(1, 2, IBC_NEUMANN)
-    d1rP2P(5, 3,   IBC_NEUMANN) = - d1rP2P(1, 3, IBC_NEUMANN)
-  
     d1rP2P(2, 1,   IBC_NEUMANN) = a2 / TWO
     d1rP2P(2, 2,   IBC_NEUMANN) = b2 / FOUR ! not used
     d1rP2P(2, 3,   IBC_NEUMANN) = c2    
+
+    d1fP2P(4, 1,   IBC_NEUMANN) = d1fP2P(2, 3, IBC_NEUMANN)
+    d1fP2P(4, 2,   IBC_NEUMANN) = d1fP2P(2, 2, IBC_NEUMANN)
+    d1fP2P(4, 3,   IBC_NEUMANN) = d1fP2P(2, 1, IBC_NEUMANN)
     d1rP2P(4, 1,   IBC_NEUMANN) = d1rP2P(2, 1, IBC_NEUMANN)
     d1rP2P(4, 2,   IBC_NEUMANN) = d1rP2P(2, 2, IBC_NEUMANN)
     d1rP2P(4, 3,   IBC_NEUMANN) = d1rP2P(2, 3, IBC_NEUMANN)
-    
+
+    d1fP2P(3, 1:3, IBC_NEUMANN) = d1fP2P(3, 1:3, IBC_PERIODIC)
     d1rP2P(3, 1:3, IBC_NEUMANN) = d1rP2P(3, 1:3, IBC_PERIODIC)
 !===============================================================================
 ! Set 3: Dirichlet for C2C (unique)
@@ -646,6 +650,15 @@ contains
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
 !===============================================================================
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+        d1 = ZERO
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
       alpha1 = ZERO
           a1 = -FOUR / THREE
@@ -654,8 +667,7 @@ contains
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
+          b2 = ZERO
     else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
       alpha1 = ONE / THREE
           a1 = - EIGHT / NINE
@@ -664,8 +676,7 @@ contains
           d1 = ZERO
       alpha2 = ONE / FOUR
           a2 = THREE / TWO
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
+          b2 = ZERO
     else if (iaccu == IACCU_CP6) then ! degrade to 4th CP
       alpha1 = TWO / THREE
           a1 = - THIRTYTWO / FORTYFIVE
@@ -674,8 +685,7 @@ contains
           d1 = ONE / TEN
       alpha2 = ONE / FOUR
           a2 = THREE / TWO
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
+          b2 = ZERO
     else ! default 2nd CD
       alpha1 = ZERO
           a1 = -FOUR / THREE
@@ -684,8 +694,7 @@ contains
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
+          b2 = ZERO
     end if
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
@@ -699,35 +708,34 @@ contains
     d1fC2C(1, 1,   IBC_DIRICHLET) = ZERO ! not used
     d1fC2C(1, 2,   IBC_DIRICHLET) = ONE
     d1fC2C(1, 3,   IBC_DIRICHLET) = alpha1
-    d1fC2C(5, 1,   IBC_DIRICHLET) = d1fC2C(1, 3, IBC_DIRICHLET)
-    d1fC2C(5, 2,   IBC_DIRICHLET) = d1fC2C(1, 2, IBC_DIRICHLET)
-    d1fC2C(5, 3,   IBC_DIRICHLET) = d1fC2C(1, 1, IBC_DIRICHLET)
-
-    d1fC2C(2, 1,   IBC_DIRICHLET) = alpha2
-    d1fC2C(2, 2,   IBC_DIRICHLET) = ONE
-    d1fC2C(2, 3,   IBC_DIRICHLET) = alpha2
-    d1fC2C(4, 1,   IBC_DIRICHLET) = d1fC2C(2, 3, IBC_DIRICHLET)
-    d1fC2C(4, 2,   IBC_DIRICHLET) = d1fC2C(2, 2, IBC_DIRICHLET)
-    d1fC2C(4, 3,   IBC_DIRICHLET) = d1fC2C(2, 1, IBC_DIRICHLET)
-
-    d1fC2C(3, 1:3, IBC_DIRICHLET) =  d1fC2C(3, 1:3, IBC_PERIODIC)
-
     d1rC2C(1, 1,   IBC_DIRICHLET) = a1
     d1rC2C(1, 2,   IBC_DIRICHLET) = b1
     d1rC2C(1, 3,   IBC_DIRICHLET) = c1
     d1rC2C(1, 4,   IBC_DIRICHLET) = d1
+
+    d1fC2C(5, 1,   IBC_DIRICHLET) =   d1fC2C(1, 3, IBC_DIRICHLET)
+    d1fC2C(5, 2,   IBC_DIRICHLET) =   d1fC2C(1, 2, IBC_DIRICHLET)
+    d1fC2C(5, 3,   IBC_DIRICHLET) =   d1fC2C(1, 1, IBC_DIRICHLET)
     d1rC2C(5, 1,   IBC_DIRICHLET) = - d1rC2C(1, 1, IBC_DIRICHLET)
     d1rC2C(5, 2,   IBC_DIRICHLET) = - d1rC2C(1, 2, IBC_DIRICHLET)
     d1rC2C(5, 3,   IBC_DIRICHLET) = - d1rC2C(1, 3, IBC_DIRICHLET)
     d1rC2C(5, 4,   IBC_DIRICHLET) = - d1rC2C(1, 4, IBC_DIRICHLET)
 
+    d1fC2C(2, 1,   IBC_DIRICHLET) = alpha2
+    d1fC2C(2, 2,   IBC_DIRICHLET) = ONE
+    d1fC2C(2, 3,   IBC_DIRICHLET) = alpha2
     d1rC2C(2, 1,   IBC_DIRICHLET) = a2 / TWO
     d1rC2C(2, 2,   IBC_DIRICHLET) = b2 / FOUR ! not used
     d1rC2C(2, 3,   IBC_DIRICHLET) = c2    
+
+    d1fC2C(4, 1,   IBC_DIRICHLET) = d1fC2C(2, 3, IBC_DIRICHLET)
+    d1fC2C(4, 2,   IBC_DIRICHLET) = d1fC2C(2, 2, IBC_DIRICHLET)
+    d1fC2C(4, 3,   IBC_DIRICHLET) = d1fC2C(2, 1, IBC_DIRICHLET)
     d1rC2C(4, 1,   IBC_DIRICHLET) = d1rC2C(2, 1, IBC_DIRICHLET)
     d1rC2C(4, 2,   IBC_DIRICHLET) = d1rC2C(2, 2, IBC_DIRICHLET)
     d1rC2C(4, 3,   IBC_DIRICHLET) = d1rC2C(2, 3, IBC_DIRICHLET)
 
+    d1fC2C(3, 1:3, IBC_DIRICHLET) = d1fC2C(3, 1:3, IBC_PERIODIC)
     d1rC2C(3, 1:3, IBC_DIRICHLET) = d1rC2C(3, 1:3, IBC_PERIODIC)
 !===============================================================================
 ! 1st derivative on staggered grids P2C and C2P : Periodic or Symmetric B.C.
@@ -738,35 +746,34 @@ contains
 ! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
 !                                                 b/(3h) * ( f_{i+1} - f_{i-2} )
 !===============================================================================
+    alpha = ZERO
+        a = ZERO
+        b = ZERO
+        c = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
           b = ZERO
-          c = ZERO ! not used
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
           a = NINE / EIGHT
           b = -ONE / EIGHT
-          c = ZERO ! not used
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / TWENTYTWO
           a = TWELVE / ELEVEN
           b = ZERO
-          c = ZERO ! not used
     else if (iaccu == IACCU_CP6) then
       alpha = NINE / SIXTYTWO
           a = SIXTYTHREE / SIXTYTWO
           b = SEVENTEEN / SIXTYTWO
-          c = ZERO ! not used
     else  ! default 2nd CD
       alpha = ZERO
           a = ONE
           b = ZERO
-          c = ZERO ! not used
     end if
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
-! C2P : periodic b.c. : staggered 
+! C2P, P2C: periodic b.c. : staggered 
 ! [ 1    alpha                   alpha][f'_1']=[a * (f_{1}   - f_{n})/h   + b/3 * (f_{2}   - f_{n-1})/h]
 ! [      alpha 1     alpha            ][f'_2'] [a * (f_{1}   - f_{1})/h   + b/3 * (f_{3}   - f_{n})/h  ]
 ! [            alpha 1     alpha      ][f'_i'] [a * (f_{i}   - f_{i-1})/h + b/3 * (f_{i+1} - f_{i-2})/h]
@@ -779,6 +786,12 @@ contains
     d1rC2P(1:5, 1, IBC_PERIODIC) = a         ! a
     d1rC2P(1:5, 2, IBC_PERIODIC) = b / THREE ! b/3
     d1rC2P(1:5, 3, IBC_PERIODIC) = c         ! not used
+!-------------------------------------------------------------------------------
+! 1st-derivative : 
+! P2C : periodic b.c.  Same as C2P
+!-------------------------------------------------------------------------------
+    d1fP2C(:, :, IBC_PERIODIC) = d1fC2P(:, :, IBC_PERIODIC)
+    d1rP2C(:, :, IBC_PERIODIC) = d1rC2P(:, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2P : symmetric b.c.
@@ -821,6 +834,46 @@ contains
     d1rC2P(:,   :, IBC_ASYMMETRIC) = d1rC2P(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
+! P2C : symmetric b.c.
+! [ 1-alpha  alpha                          ][f_1]=[a * (f_{2'}   - f_{1'})/h   + b/3 * (f_{3'}   - f_{2'})/h    ]
+! [          alpha 1     alpha              ][f_2] [a * (f_{3'}   - f_{2'})/h   + b/3 * (f_{4'}   - f_{1'})/h    ]
+! [                alpha 1     alpha        ][f_i] [a * (f_{i+1}  - f_{i-1})/h  + b/3 * (f_{i+2}  - f_{i-2})/h   ]
+! [                      alpha 1     alpha  ][f_4] [a * (f_{n'}   - f_{n'-1})/h + b/3 * (f_{n'+1} - f_{n'-2})/h  ]
+! [                            alpha 1-alpha][f_5] [a * (f_{n'+1} - f_{n'})/h   + b/3 * (f_{n'}   - f_{n'-1'})/h ]
+!-------------------------------------------------------------------------------
+    d1fP2C(1,   1, IBC_SYMMETRIC) = ZERO ! not used
+    d1fP2C(1,   2, IBC_SYMMETRIC) = ONE - alpha
+    d1fP2C(1,   3, IBC_SYMMETRIC) = alpha
+
+    d1fP2C(5,   1, IBC_SYMMETRIC) = d1fP2C(1,   3, IBC_SYMMETRIC)
+    d1fP2C(5,   2, IBC_SYMMETRIC) = d1fP2C(1,   2, IBC_SYMMETRIC)
+    d1fP2C(5,   3, IBC_SYMMETRIC) = d1fP2C(1,   1, IBC_SYMMETRIC)
+
+    d1fP2C(2:4, :, IBC_SYMMETRIC) = d1fP2C(2:4, :, IBC_PERIODIC)
+
+    d1rP2C(:,   :, IBC_SYMMETRIC) = d1rP2C(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 1st-derivative : 
+! P2C : asymmetric b.c.
+! [ 1+alpha  alpha                          ][f_1]=[a * (f_{2'}   - f_{1'})/h   + b/3 * (f_{3'}   + f_{2'})/h    ]
+! [          alpha 1     alpha              ][f_2] [a * (f_{3'}   - f_{2'})/h   + b/3 * (f_{4'}   - f_{1'})/h    ]
+! [                alpha 1     alpha        ][f_i] [a * (f_{i+1}  - f_{i-1})/h  + b/3 * (f_{i+2}  - f_{i-2})/h   ]
+! [                      alpha 1     alpha  ][f_4] [a * (f_{n'}   - f_{n'-1})/h + b/3 * (f_{n'+1} - f_{n'-2})/h  ]
+! [                            alpha 1+alpha][f_5] [a * (f_{n'+1} - f_{n'})/h   + b/3 * (-f_{n'}   - f_{n'-1'})/h ]
+!-------------------------------------------------------------------------------
+    d1fP2C(1,   1, IBC_ASYMMETRIC) = ZERO ! not used
+    d1fP2C(1,   2, IBC_ASYMMETRIC) = ONE + alpha
+    d1fP2C(1,   3, IBC_ASYMMETRIC) = alpha
+
+    d1fP2C(5,   1, IBC_ASYMMETRIC) = d1fP2C(1,   3, IBC_ASYMMETRIC)
+    d1fP2C(5,   2, IBC_ASYMMETRIC) = d1fP2C(1,   2, IBC_ASYMMETRIC)
+    d1fP2C(5,   3, IBC_ASYMMETRIC) = d1fP2C(1,   1, IBC_ASYMMETRIC)
+
+    d1fP2C(2:4, :, IBC_ASYMMETRIC) = d1fP2C(2:4, :, IBC_PERIODIC)
+
+    d1rP2C(:,   :, IBC_ASYMMETRIC) = d1rP2C(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 1st-derivative : 
 ! C2P : no specified, interpolation
 ! [ 1     alpha1                            ][f'_1']=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
 ! [alpha2 1      alpha2                     ][f'_2'] [a2 * (f_{2} - f_{1})/h  ]
@@ -828,6 +881,14 @@ contains
 ! [                     alpha2 1      alpha2][f'_4'] [a2 * (f_{n-1} - f_{n-2})/h]
 ! [                            alpha1 1     ][f'_5'] [-a1 * f_{n-1}/h  - b1 * f_{n-2}/h - c1 * f_{n-3}/h]
 !-------------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
@@ -868,40 +929,33 @@ contains
     d1fC2P(1, 1, IBC_INTRPL) = ZERO ! not used
     d1fC2P(1, 2, IBC_INTRPL) = ONE
     d1fC2P(1, 3, IBC_INTRPL) = alpha1
-
-    d1fC2P(5, 1, IBC_INTRPL) = d1fC2P(1, 3, IBC_INTRPL)
-    d1fC2P(5, 2, IBC_INTRPL) = d1fC2P(1, 2, IBC_INTRPL)
-    d1fC2P(5, 3, IBC_INTRPL) = d1fC2P(1, 1, IBC_INTRPL)
-
-    d1fC2P(2, 1, IBC_INTRPL) = alpha2
-    d1fC2P(2, 2, IBC_INTRPL) = ONE
-    d1fC2P(2, 3, IBC_INTRPL) = alpha2
-
-    d1fC2P(4, 1, IBC_INTRPL) = d1fC2P(2, 1, IBC_INTRPL)
-    d1fC2P(4, 2, IBC_INTRPL) = d1fC2P(2, 2, IBC_INTRPL)
-    d1fC2P(4, 3, IBC_INTRPL) = d1fC2P(2, 3, IBC_INTRPL)
-
-    d1fC2P(3, :, IBC_INTRPL) = d1fC2P(3, :, IBC_PERIODIC)
-
     d1rC2P(1, 1, IBC_INTRPL) = a1
     d1rC2P(1, 2, IBC_INTRPL) = b1
     d1rC2P(1, 3, IBC_INTRPL) = c1
 
+    d1fC2P(5, 1, IBC_INTRPL) = d1fC2P(1, 3, IBC_INTRPL)
+    d1fC2P(5, 2, IBC_INTRPL) = d1fC2P(1, 2, IBC_INTRPL)
+    d1fC2P(5, 3, IBC_INTRPL) = d1fC2P(1, 1, IBC_INTRPL)
     d1rC2P(5, 1, IBC_INTRPL) = - d1rC2P(1, 1, IBC_INTRPL)
     d1rC2P(5, 2, IBC_INTRPL) = - d1rC2P(1, 2, IBC_INTRPL)
     d1rC2P(5, 3, IBC_INTRPL) = - d1rC2P(1, 3, IBC_INTRPL)
 
+    d1fC2P(2, 1, IBC_INTRPL) = alpha2
+    d1fC2P(2, 2, IBC_INTRPL) = ONE
+    d1fC2P(2, 3, IBC_INTRPL) = alpha2
     d1rC2P(2, 1, IBC_INTRPL) = a2
     d1rC2P(2, 2, IBC_INTRPL) = b2 / THREE ! not used
     d1rC2P(2, 3, IBC_INTRPL) = c2 ! not used
 
+    d1fC2P(4, 1, IBC_INTRPL) = d1fC2P(2, 1, IBC_INTRPL)
+    d1fC2P(4, 2, IBC_INTRPL) = d1fC2P(2, 2, IBC_INTRPL)
+    d1fC2P(4, 3, IBC_INTRPL) = d1fC2P(2, 3, IBC_INTRPL)
     d1rC2P(4, 1, IBC_INTRPL) = d1rC2P(2, 1, IBC_INTRPL)
     d1rC2P(4, 2, IBC_INTRPL) = d1rC2P(2, 2, IBC_INTRPL)
     d1rC2P(4, 3, IBC_INTRPL) = d1rC2P(2, 3, IBC_INTRPL)
 
-    d1rC2P(3, 1, IBC_INTRPL) = a
-    d1rC2P(3, 2, IBC_INTRPL) = b / THREE ! not used
-    d1rC2P(3, 3, IBC_INTRPL) = c ! not used
+    d1fC2P(3, :, IBC_INTRPL) = d1fC2P(3, :, IBC_PERIODIC)
+    d1rC2P(3, :, IBC_INTRPL) = d1rC2P(3, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2P : neumann
@@ -914,40 +968,33 @@ contains
     d1fC2P(1, 1, IBC_NEUMANN) = ZERO ! not used
     d1fC2P(1, 2, IBC_NEUMANN) = ONE
     d1fC2P(1, 3, IBC_NEUMANN) = ZERO
-
-    d1fC2P(5, 1, IBC_NEUMANN) = d1fC2P(1, 3, IBC_NEUMANN)
-    d1fC2P(5, 2, IBC_NEUMANN) = d1fC2P(1, 2, IBC_NEUMANN)
-    d1fC2P(5, 3, IBC_NEUMANN) = d1fC2P(1, 1, IBC_NEUMANN)
-
-    d1fC2P(2, 1, IBC_NEUMANN) = alpha2
-    d1fC2P(2, 2, IBC_NEUMANN) = ONE
-    d1fC2P(2, 3, IBC_NEUMANN) = alpha2
-
-    d1fC2P(4, 1, IBC_NEUMANN) = d1fC2P(2, 1, IBC_NEUMANN)
-    d1fC2P(4, 2, IBC_NEUMANN) = d1fC2P(2, 2, IBC_NEUMANN)
-    d1fC2P(4, 3, IBC_NEUMANN) = d1fC2P(2, 3, IBC_NEUMANN)
-
-    d1fC2P(3, :, IBC_NEUMANN) = d1fC2P(3, :, IBC_PERIODIC)
-
     d1rC2P(1, 1, IBC_NEUMANN) = ZERO ! not used
     d1rC2P(1, 2, IBC_NEUMANN) = ZERO ! not used
     d1rC2P(1, 3, IBC_NEUMANN) = ZERO ! not used
 
+    d1fC2P(5, 1, IBC_NEUMANN) = d1fC2P(1, 3, IBC_NEUMANN)
+    d1fC2P(5, 2, IBC_NEUMANN) = d1fC2P(1, 2, IBC_NEUMANN)
+    d1fC2P(5, 3, IBC_NEUMANN) = d1fC2P(1, 1, IBC_NEUMANN)
     d1rC2P(5, 1, IBC_NEUMANN) = d1rC2P(1, 1, IBC_NEUMANN)
     d1rC2P(5, 2, IBC_NEUMANN) = d1rC2P(1, 2, IBC_NEUMANN)
     d1rC2P(5, 3, IBC_NEUMANN) = d1rC2P(1, 3, IBC_NEUMANN)
 
+    d1fC2P(2, 1, IBC_NEUMANN) = alpha2
+    d1fC2P(2, 2, IBC_NEUMANN) = ONE
+    d1fC2P(2, 3, IBC_NEUMANN) = alpha2
     d1rC2P(2, 1, IBC_NEUMANN) = a2
     d1rC2P(2, 2, IBC_NEUMANN) = b2 / THREE ! not used
     d1rC2P(2, 3, IBC_NEUMANN) = c2 ! not used
 
+    d1fC2P(4, 1, IBC_NEUMANN) = d1fC2P(2, 1, IBC_NEUMANN)
+    d1fC2P(4, 2, IBC_NEUMANN) = d1fC2P(2, 2, IBC_NEUMANN)
+    d1fC2P(4, 3, IBC_NEUMANN) = d1fC2P(2, 3, IBC_NEUMANN)
     d1rC2P(4, 1, IBC_NEUMANN) = d1rC2P(2, 1, IBC_NEUMANN)
     d1rC2P(4, 2, IBC_NEUMANN) = d1rC2P(2, 2, IBC_NEUMANN)
     d1rC2P(4, 3, IBC_NEUMANN) = d1rC2P(2, 3, IBC_NEUMANN)
 
-    d1rC2P(3, 1, IBC_NEUMANN) = a
-    d1rC2P(3, 2, IBC_NEUMANN) = b / THREE ! not used
-    d1rC2P(3, 3, IBC_NEUMANN) = c ! not used
+    d1fC2P(3, :, IBC_NEUMANN) = d1fC2P(3, :, IBC_PERIODIC)
+    d1rC2P(3, :, IBC_NEUMANN) = d1rC2P(3, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2P : Dirichlet
@@ -957,6 +1004,15 @@ contains
 ! [                     alpha2 1      alpha2][f'_4'] [a2 * (f_{n-1} - f_{n-2})/h]
 ! [                            alpha1 1     ][f'_5'] [-a1 * f_{n'}/h - b1 * f_{n-1}/h  - c1 * f_{n-2}/h - d1 * f_{n-3}/h]
 !-------------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+        d1 = ZERO
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
@@ -1009,88 +1065,35 @@ contains
     d1fC2P(1,   1, IBC_DIRICHLET) = ZERO ! not used
     d1fC2P(1,   2, IBC_DIRICHLET) = ONE
     d1fC2P(1,   3, IBC_DIRICHLET) = alpha1
-
-    d1fC2P(5,   1, IBC_DIRICHLET) = d1fC2P(1, 3, IBC_DIRICHLET)
-    d1fC2P(5,   2, IBC_DIRICHLET) = d1fC2P(1, 2, IBC_DIRICHLET)
-    d1fC2P(5,   3, IBC_DIRICHLET) = d1fC2P(1, 1, IBC_DIRICHLET)
-
-    d1fC2P(2,   1, IBC_DIRICHLET) = alpha2
-    d1fC2P(2,   2, IBC_DIRICHLET) = ONE
-    d1fC2P(2,   3, IBC_DIRICHLET) = alpha2
-
-    d1fC2P(4,   1, IBC_DIRICHLET) = d1fC2P(2, 1, IBC_DIRICHLET)
-    d1fC2P(4,   2, IBC_DIRICHLET) = d1fC2P(2, 2, IBC_DIRICHLET)
-    d1fC2P(4,   3, IBC_DIRICHLET) = d1fC2P(2, 3, IBC_DIRICHLET)
-
-    d1fC2P(3,   :, IBC_DIRICHLET) = d1fC2P(3, :, IBC_PERIODIC)
-
     d1rC2P(1,   1, IBC_DIRICHLET) = a1
     d1rC2P(1,   2, IBC_DIRICHLET) = b1
     d1rC2P(1,   3, IBC_DIRICHLET) = c1
     d1rC2P(1,   4, IBC_DIRICHLET) = d1
 
+    d1fC2P(5,   1, IBC_DIRICHLET) =   d1fC2P(1, 3, IBC_DIRICHLET)
+    d1fC2P(5,   2, IBC_DIRICHLET) =   d1fC2P(1, 2, IBC_DIRICHLET)
+    d1fC2P(5,   3, IBC_DIRICHLET) =   d1fC2P(1, 1, IBC_DIRICHLET)
     d1rC2P(5,   1, IBC_DIRICHLET) = - d1rC2P(1, 1, IBC_DIRICHLET)
     d1rC2P(5,   2, IBC_DIRICHLET) = - d1rC2P(1, 2, IBC_DIRICHLET)
     d1rC2P(5,   3, IBC_DIRICHLET) = - d1rC2P(1, 3, IBC_DIRICHLET)
     d1rC2P(5,   4, IBC_DIRICHLET) = - d1rC2P(1, 4, IBC_DIRICHLET)
 
-    d1rC2P(2, 1, IBC_DIRICHLET) = a2
-    d1rC2P(2, 2, IBC_DIRICHLET) = b2 / THREE ! not used
-    d1rC2P(2, 3, IBC_DIRICHLET) = c2 ! not used
+    d1fC2P(2,   1, IBC_DIRICHLET) = alpha2
+    d1fC2P(2,   2, IBC_DIRICHLET) = ONE
+    d1fC2P(2,   3, IBC_DIRICHLET) = alpha2
+    d1rC2P(2,   1, IBC_DIRICHLET) = a2
+    d1rC2P(2,   2, IBC_DIRICHLET) = b2 / THREE ! not used
+    d1rC2P(2,   3, IBC_DIRICHLET) = c2 ! not used
 
-    d1rC2P(4, 1, IBC_DIRICHLET) = d1rC2P(2, 1, IBC_DIRICHLET)
-    d1rC2P(4, 2, IBC_DIRICHLET) = d1rC2P(2, 2, IBC_DIRICHLET)
-    d1rC2P(4, 3, IBC_DIRICHLET) = d1rC2P(2, 3, IBC_DIRICHLET)
+    d1fC2P(4,   1, IBC_DIRICHLET) = d1fC2P(2, 1, IBC_DIRICHLET)
+    d1fC2P(4,   2, IBC_DIRICHLET) = d1fC2P(2, 2, IBC_DIRICHLET)
+    d1fC2P(4,   3, IBC_DIRICHLET) = d1fC2P(2, 3, IBC_DIRICHLET)
+    d1rC2P(4,   1, IBC_DIRICHLET) = d1rC2P(2, 1, IBC_DIRICHLET)
+    d1rC2P(4,   2, IBC_DIRICHLET) = d1rC2P(2, 2, IBC_DIRICHLET)
+    d1rC2P(4,   3, IBC_DIRICHLET) = d1rC2P(2, 3, IBC_DIRICHLET)
 
-    d1rC2P(3, 1, IBC_DIRICHLET) = a2
-    d1rC2P(3, 2, IBC_DIRICHLET) = b2 / THREE ! not used
-    d1rC2P(3, 3, IBC_DIRICHLET) = c2 ! not used
-!-------------------------------------------------------------------------------
-! 1st-derivative : 
-! P2C : periodic b.c.  Same as C2P
-!-------------------------------------------------------------------------------
-    d1fP2C(:, :, IBC_PERIODIC) = d1fC2P(:, :, IBC_PERIODIC)
-    d1rP2C(:, :, IBC_PERIODIC) = d1rC2P(:, :, IBC_PERIODIC)
-!-------------------------------------------------------------------------------
-! 1st-derivative : 
-! P2C : symmetric b.c.
-! [ 1-alpha  alpha                          ][f_1]=[a * (f_{2'}   - f_{1'})/h   + b/3 * (f_{3'}   - f_{2'})/h    ]
-! [          alpha 1     alpha              ][f_2] [a * (f_{3'}   - f_{2'})/h   + b/3 * (f_{4'}   - f_{1'})/h    ]
-! [                alpha 1     alpha        ][f_i] [a * (f_{i+1}  - f_{i-1})/h  + b/3 * (f_{i+2}  - f_{i-2})/h   ]
-! [                      alpha 1     alpha  ][f_4] [a * (f_{n'}   - f_{n'-1})/h + b/3 * (f_{n'+1} - f_{n'-2})/h  ]
-! [                            alpha 1-alpha][f_5] [a * (f_{n'+1} - f_{n'})/h   + b/3 * (f_{n'}   - f_{n'-1'})/h ]
-!-------------------------------------------------------------------------------
-    d1fP2C(1,   1, IBC_SYMMETRIC) = ZERO ! not used
-    d1fP2C(1,   2, IBC_SYMMETRIC) = ONE - alpha
-    d1fP2C(1,   3, IBC_SYMMETRIC) = alpha
-
-    d1fP2C(5,   1, IBC_SYMMETRIC) = d1fP2C(1,   3, IBC_SYMMETRIC)
-    d1fP2C(5,   2, IBC_SYMMETRIC) = d1fP2C(1,   2, IBC_SYMMETRIC)
-    d1fP2C(5,   3, IBC_SYMMETRIC) = d1fP2C(1,   1, IBC_SYMMETRIC)
-
-    d1fP2C(2:4, :, IBC_SYMMETRIC) = d1fP2C(2:4, :, IBC_PERIODIC)
-
-    d1rP2C(:,   :, IBC_SYMMETRIC) = d1rP2C(:,   :, IBC_PERIODIC)
-!-------------------------------------------------------------------------------
-! 1st-derivative : 
-! P2C : asymmetric b.c.
-! [ 1+alpha  alpha                          ][f_1]=[a * (f_{2'}   - f_{1'})/h   + b/3 * (f_{3'}   + f_{2'})/h    ]
-! [          alpha 1     alpha              ][f_2] [a * (f_{3'}   - f_{2'})/h   + b/3 * (f_{4'}   - f_{1'})/h    ]
-! [                alpha 1     alpha        ][f_i] [a * (f_{i+1}  - f_{i-1})/h  + b/3 * (f_{i+2}  - f_{i-2})/h   ]
-! [                      alpha 1     alpha  ][f_4] [a * (f_{n'}   - f_{n'-1})/h + b/3 * (f_{n'+1} - f_{n'-2})/h  ]
-! [                            alpha 1+alpha][f_5] [a * (f_{n'+1} - f_{n'})/h   + b/3 * (-f_{n'}   - f_{n'-1'})/h ]
-!-------------------------------------------------------------------------------
-    d1fP2C(1,   1, IBC_ASYMMETRIC) = ZERO ! not used
-    d1fP2C(1,   2, IBC_ASYMMETRIC) = ONE + alpha
-    d1fP2C(1,   3, IBC_ASYMMETRIC) = alpha
-
-    d1fP2C(5,   1, IBC_ASYMMETRIC) = d1fP2C(1,   3, IBC_ASYMMETRIC)
-    d1fP2C(5,   2, IBC_ASYMMETRIC) = d1fP2C(1,   2, IBC_ASYMMETRIC)
-    d1fP2C(5,   3, IBC_ASYMMETRIC) = d1fP2C(1,   1, IBC_ASYMMETRIC)
-
-    d1fP2C(2:4, :, IBC_ASYMMETRIC) = d1fP2C(2:4, :, IBC_PERIODIC)
-
-    d1rP2C(:,   :, IBC_ASYMMETRIC) = d1rP2C(:,   :, IBC_PERIODIC)
+    d1fC2P(3,   :, IBC_DIRICHLET) = d1fC2P(3, :, IBC_PERIODIC)
+    d1rC2P(3,   :, IBC_DIRICHLET) = d1rC2P(3, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2C : no specified = Dirichlet B.C.
@@ -1100,6 +1103,14 @@ contains
 ! [                     alpha2 1      alpha2][f'_4] [a2 * (f_{n'} - f_{n'-1})/h]
 ! [                            alpha1 1     ][f'_5] [-a1 * f_{n'+1}/h  - b1 * f_{n'}/h - c1 * f_{n'-1}/h]
 !-------------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+      alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then
       alpha1 = ZERO
           a1 = -ONE
@@ -1138,35 +1149,33 @@ contains
     d1fP2C(1, 1, IBC_INTRPL) = ZERO ! not used
     d1fP2C(1, 2, IBC_INTRPL) = ONE
     d1fP2C(1, 3, IBC_INTRPL) = alpha1
-    d1fP2C(5, 1, IBC_INTRPL) = d1fP2C(1, 3, IBC_INTRPL)
-    d1fP2C(5, 2, IBC_INTRPL) = d1fP2C(1, 2, IBC_INTRPL)
-    d1fP2C(5, 3, IBC_INTRPL) = d1fP2C(1, 1, IBC_INTRPL)
+    d1rP2C(1, 1, IBC_INTRPL) = a1
+    d1rP2C(1, 2, IBC_INTRPL) = b1
+    d1rP2C(1, 3, IBC_INTRPL) = c1
+
+    d1fP2C(5, 1, IBC_INTRPL) =   d1fP2C(1, 3, IBC_INTRPL)
+    d1fP2C(5, 2, IBC_INTRPL) =   d1fP2C(1, 2, IBC_INTRPL)
+    d1fP2C(5, 3, IBC_INTRPL) =   d1fP2C(1, 1, IBC_INTRPL)
+    d1rP2C(5, 1, IBC_INTRPL) = - d1rP2C(1, 1, IBC_INTRPL)
+    d1rP2C(5, 2, IBC_INTRPL) = - d1rP2C(1, 2, IBC_INTRPL)
+    d1rP2C(5, 3, IBC_INTRPL) = - d1rP2C(1, 3, IBC_INTRPL)
 
     d1fP2C(2, 1, IBC_INTRPL) = alpha2
     d1fP2C(2, 2, IBC_INTRPL) = ONE
     d1fP2C(2, 3, IBC_INTRPL) = alpha2
-    d1fP2C(4, 1, IBC_INTRPL) = d1fP2C(2, 1, IBC_INTRPL)
-    d1fP2C(4, 2, IBC_INTRPL) = d1fP2C(2, 2, IBC_INTRPL)
-    d1fP2C(4, 3, IBC_INTRPL) = d1fP2C(2, 3, IBC_INTRPL)
-
-    d1fP2C(3, 1:3, IBC_INTRPL) = d1fP2C(3, 1:3, IBC_PERIODIC)
-
-    d1rP2C(1, 1, IBC_INTRPL) = a1
-    d1rP2C(1, 2, IBC_INTRPL) = b1
-    d1rP2C(1, 3, IBC_INTRPL) = c1
-    d1rP2C(5, 1, IBC_INTRPL) = - d1rP2C(1, 1, IBC_INTRPL)
-    d1rP2C(5, 2, IBC_INTRPL) = - d1rP2C(1, 2, IBC_INTRPL)
-    d1rP2C(5, 3, IBC_INTRPL) = - d1rP2C(1, 3, IBC_INTRPL)
-    
     d1rP2C(2, 1, IBC_INTRPL) = a2
     d1rP2C(2, 2, IBC_INTRPL) = b2 / THREE ! not used
     d1rP2C(2, 3, IBC_INTRPL) = c2 ! not used
+
+    d1fP2C(4, 1, IBC_INTRPL) = d1fP2C(2, 1, IBC_INTRPL)
+    d1fP2C(4, 2, IBC_INTRPL) = d1fP2C(2, 2, IBC_INTRPL)
+    d1fP2C(4, 3, IBC_INTRPL) = d1fP2C(2, 3, IBC_INTRPL)
     d1rP2C(4, 1, IBC_INTRPL) = d1rP2C(2, 1, IBC_INTRPL)
     d1rP2C(4, 2, IBC_INTRPL) = d1rP2C(2, 2, IBC_INTRPL)
     d1rP2C(4, 3, IBC_INTRPL) = d1rP2C(2, 3, IBC_INTRPL)
-    
-    d1rP2C(3, 1, IBC_INTRPL) = d1rP2C(3, 1, IBC_PERIODIC)
-    
+
+    d1fP2C(3, :, IBC_INTRPL) = d1fP2C(3, :, IBC_PERIODIC)
+    d1rP2C(3, :, IBC_INTRPL) = d1rP2C(3, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2C : no specified = Dirichlet B.C. = Neumann
@@ -1185,31 +1194,30 @@ contains
 ! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
 !                                              b/2 * ( f_{i+1} + f_{i-2} )
 !===============================================================================
+    alpha = ZERO
+        a = ONE
+        b = ZERO
+        c = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
           b = ZERO
-          c = ZERO ! not used
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
           a = NINE / EIGHT
           b = -ONE / EIGHT
-          c = ZERO ! not used
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / SIX
           a = FOUR / THREE
           b = ZERO
-          c = ZERO ! not used
     else if (iaccu == IACCU_CP6) then
       alpha = THREE / TEN
           a = THREE / TWO
           b = ONE / TEN
-          c = ZERO ! not used
     else  ! default 2nd CD
       alpha = ZERO
           a = ONE
           b = ZERO
-          c = ZERO ! not used
     end if
 !-------------------------------------------------------------------------------
 ! interpolation. C2P: periodic & symmetric 
@@ -1228,7 +1236,6 @@ contains
     m1rC2P(1:5, 1, IBC_PERIODIC) = a / TWO
     m1rC2P(1:5, 2, IBC_PERIODIC) = b / TWO
     m1rC2P(1:5, 3, IBC_PERIODIC) = c ! not used
-
 !-------------------------------------------------------------------------------
 !interpolation. P2C for periodic b.c.
 !-------------------------------------------------------------------------------
@@ -1237,44 +1244,71 @@ contains
 !-------------------------------------------------------------------------------
 !interpolation. C2P. symmetric, orthogonal, eg. u in y direction.
 !-------------------------------------------------------------------------------
-    m1fC2P(1, 1, IBC_SYMMETRIC) = ZERO ! not used
-    m1fC2P(1, 2, IBC_SYMMETRIC) = ONE
-    m1fC2P(1, 3, IBC_SYMMETRIC) = alpha + alpha
+    m1fC2P(1,   1, IBC_SYMMETRIC) = ZERO ! not used
+    m1fC2P(1,   2, IBC_SYMMETRIC) = ONE
+    m1fC2P(1,   3, IBC_SYMMETRIC) = alpha + alpha
+    m1fC2P(5,   1, IBC_SYMMETRIC) = m1fC2P(1,   3, IBC_SYMMETRIC)
+    m1fC2P(5,   2, IBC_SYMMETRIC) = m1fC2P(1,   2, IBC_SYMMETRIC)
+    m1fC2P(5,   3, IBC_SYMMETRIC) = m1fC2P(1,   1, IBC_SYMMETRIC)
+    m1fC2P(2:4, 1, IBC_SYMMETRIC) = m1fC2P(2:4, 1, IBC_PERIODIC)
 
-    m1fC2P(2:4, 1, IBC_SYMMETRIC) = alpha
-    m1fC2P(2:4, 2, IBC_SYMMETRIC) = ONE
-    m1fC2P(2:4, 3, IBC_SYMMETRIC) = alpha
+    m1rC2P(:,   :, IBC_SYMMETRIC) = m1rC2P(:, :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+!interpolation. C2P. asymmetric, orthogonal, eg. v in y direction.
+!-------------------------------------------------------------------------------
+    m1fC2P(1,   1, IBC_ASYMMETRIC) = ZERO ! not used
+    m1fC2P(1,   2, IBC_ASYMMETRIC) = ONE
+    m1fC2P(1,   3, IBC_ASYMMETRIC) = ZERO
+    m1fC2P(5,   1, IBC_ASYMMETRIC) = m1fC2P(1,   3, IBC_ASYMMETRIC)
+    m1fC2P(5,   2, IBC_ASYMMETRIC) = m1fC2P(1,   2, IBC_ASYMMETRIC)
+    m1fC2P(5,   3, IBC_ASYMMETRIC) = m1fC2P(1,   1, IBC_ASYMMETRIC)
+    m1fC2P(2:4, 1, IBC_ASYMMETRIC) = m1fC2P(2:4, 1, IBC_PERIODIC)
 
-    m1fC2P(5, 1, IBC_SYMMETRIC) = alpha + alpha
-    m1fC2P(5, 2, IBC_SYMMETRIC) = ONE
-    m1fC2P(5, 3, IBC_SYMMETRIC) = ZERO ! not used.
-
-    m1rC2P(1:5, 1, IBC_SYMMETRIC) = a / TWO
-    m1rC2P(1:5, 2, IBC_SYMMETRIC) = b / TWO
-    m1rC2P(1:5, 3, IBC_SYMMETRIC) = ZERO ! not used. 
+    m1rC2P(:,   :, IBC_ASYMMETRIC) = m1rC2P(:, :, IBC_PERIODIC)
+    m1rC2P(1,   :, IBC_ASYMMETRIC) = ZERO ! double safe, not necessary
+    m1rC2P(5,   :, IBC_ASYMMETRIC) = ZERO
 !-------------------------------------------------------------------------------
 !interpolation. P2C. symmetric, orthogonal, eg. u in y direction.
 !-------------------------------------------------------------------------------
-    m1fP2C(1, 1, IBC_SYMMETRIC) = ZERO ! not used
-    m1fP2C(1, 2, IBC_SYMMETRIC) = ONE + alpha
-    m1fP2C(1, 3, IBC_SYMMETRIC) = alpha
+    m1fP2C(1,   1, IBC_SYMMETRIC) = ZERO ! not used
+    m1fP2C(1,   2, IBC_SYMMETRIC) = ONE + alpha
+    m1fP2C(1,   3, IBC_SYMMETRIC) = alpha
+    m1fP2C(5,   1, IBC_SYMMETRIC) = m1fP2C(1,   3, IBC_SYMMETRIC)
+    m1fP2C(5,   2, IBC_SYMMETRIC) = m1fP2C(1,   2, IBC_SYMMETRIC)
+    m1fP2C(5,   3, IBC_SYMMETRIC) = m1fP2C(1,   1, IBC_SYMMETRIC)
+    m1fP2C(2:4, 1, IBC_SYMMETRIC) = m1fP2C(2:4, 1, IBC_PERIODIC)
 
-    m1fP2C(2:4, 1, IBC_SYMMETRIC) = alpha
-    m1fP2C(2:4, 2, IBC_SYMMETRIC) = ONE
-    m1fP2C(2:4, 3, IBC_SYMMETRIC) = alpha
-
-    m1fP2C(5, 1, IBC_SYMMETRIC) = alpha
-    m1fP2C(5, 2, IBC_SYMMETRIC) = ONE + alpha
-    m1fP2C(5, 3, IBC_SYMMETRIC) = ZERO ! not used.
-
-    m1rP2C(1:5, 1, IBC_SYMMETRIC) = a / TWO
-    m1rP2C(1:5, 2, IBC_SYMMETRIC) = b / TWO
-    m1rP2C(1:5, 3, IBC_SYMMETRIC) = ZERO ! not used. 
-
+    m1rP2C(:,   :, IBC_SYMMETRIC) = m1rP2C(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
-!interpolation. P2C. Dirichlet B.C.
+!interpolation. P2C. asymmetric, orthogonal, eg. v in y direction.
 !-------------------------------------------------------------------------------
+    m1fP2C(1,   1, IBC_ASYMMETRIC) = ZERO ! not used
+    m1fP2C(1,   2, IBC_ASYMMETRIC) = ONE - alpha
+    m1fP2C(1,   3, IBC_ASYMMETRIC) = alpha
+    m1fP2C(5,   1, IBC_ASYMMETRIC) = m1fP2C(1,   3, IBC_ASYMMETRIC)
+    m1fP2C(5,   2, IBC_ASYMMETRIC) = m1fP2C(1,   2, IBC_ASYMMETRIC)
+    m1fP2C(5,   3, IBC_ASYMMETRIC) = m1fP2C(1,   1, IBC_ASYMMETRIC)
+    m1fP2C(2:4, 1, IBC_ASYMMETRIC) = m1fP2C(2:4, 1, IBC_PERIODIC)
+
+    m1rP2C(:,   :, IBC_ASYMMETRIC) = m1rP2C(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! interpolation. P2C: Dirichlet = no specified = Neumann
+! [ 1    alpha1                          ][f_1']=[a1 * f_{1'} + b1 * f_{2'} + c1 * f_{3'}  ]
+! [      alpha2 1     alpha2             ][f_2'] [a2/2 * (f_{2'}   + f_{3'})]
+! [             alpha 1      alpha       ][f_i'] [a/2  * (f_{i'}   + f_{i'+1}) + b/2 * (f_{i'+2} + f_{i'-1})]
+! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n'-1}   + f_{n'})]
+! [                          alpha1 1    ][f_5'] [a1   * f_{n'+1} + b1 * f_{n'} + c1 * f_{n'-1}]
+!-----------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+
       alpha1 = ZERO
           a1 = THREE / EIGHT
           b1 = THREE / FOUR
@@ -1309,49 +1343,62 @@ contains
           c2 = ZERO ! not used
     end if
     !P2C
-    m1fP2C(1, 1, IBC_DIRICHLET) = ZERO ! not used
-    m1fP2C(1, 2, IBC_DIRICHLET) = ONE
-    m1fP2C(1, 3, IBC_DIRICHLET) = alpha1
-    m1rP2C(1, 1, IBC_DIRICHLET) = a1
-    m1rP2C(1, 2, IBC_DIRICHLET) = b1
-    m1rP2C(1, 3, IBC_DIRICHLET) = c1
+    m1fP2C(1, 1, IBC_INTRPL) = ZERO ! not used
+    m1fP2C(1, 2, IBC_INTRPL) = ONE
+    m1fP2C(1, 3, IBC_INTRPL) = alpha1
+    m1rP2C(1, 1, IBC_INTRPL) = a1
+    m1rP2C(1, 2, IBC_INTRPL) = b1
+    m1rP2C(1, 3, IBC_INTRPL) = c1
 
-    m1fP2C(2, 1, IBC_DIRICHLET) = alpha2
-    m1fP2C(2, 2, IBC_DIRICHLET) = ONE
-    m1fP2C(2, 3, IBC_DIRICHLET) = alpha2
-    m1rP2C(2, 1, IBC_DIRICHLET) = a2 / TWO
-    m1rP2C(2, 2, IBC_DIRICHLET) = ZERO ! not used
-    m1rP2C(2, 3, IBC_DIRICHLET) = ZERO ! not used
+    m1fP2C(5, 1, IBC_INTRPL) = m1fP2C(1, 3, IBC_INTRPL)
+    m1fP2C(5, 2, IBC_INTRPL) = m1fP2C(1, 2, IBC_INTRPL)
+    m1fP2C(5, 3, IBC_INTRPL) = m1fP2C(1, 1, IBC_INTRPL)
+    m1rP2C(5, 1, IBC_INTRPL) = m1rP2C(1, 1, IBC_INTRPL)
+    m1rP2C(5, 2, IBC_INTRPL) = m1rP2C(1, 2, IBC_INTRPL)
+    m1rP2C(5, 3, IBC_INTRPL) = m1rP2C(1, 3, IBC_INTRPL)
 
-    m1fP2C(3, 1, IBC_DIRICHLET) = alpha
-    m1fP2C(3, 2, IBC_DIRICHLET) = ONE
-    m1fP2C(3, 3, IBC_DIRICHLET) = alpha
-    m1rP2C(3, 1, IBC_DIRICHLET) = a / TWO
-    m1rP2C(3, 2, IBC_DIRICHLET) = b / TWO
-    m1rP2C(3, 3, IBC_DIRICHLET) = ZERO ! not used
+    m1fP2C(2, 1, IBC_INTRPL) = alpha2
+    m1fP2C(2, 2, IBC_INTRPL) = ONE
+    m1fP2C(2, 3, IBC_INTRPL) = alpha2
+    m1rP2C(2, 1, IBC_INTRPL) = a2 / TWO
+    m1rP2C(2, 2, IBC_INTRPL) = ZERO 
+    m1rP2C(2, 3, IBC_INTRPL) = ZERO 
 
-    m1fP2C(4, 1, IBC_DIRICHLET) = alpha2
-    m1fP2C(4, 2, IBC_DIRICHLET) = ONE
-    m1fP2C(4, 3, IBC_DIRICHLET) = alpha2
-    m1rP2C(4, 1, IBC_DIRICHLET) = a2 / TWO
-    m1rP2C(4, 2, IBC_DIRICHLET) = ZERO ! not used
-    m1rP2C(4, 3, IBC_DIRICHLET) = ZERO ! not used
+    m1fP2C(4, 1, IBC_INTRPL) = m1fP2C(2, 1, IBC_INTRPL)
+    m1fP2C(4, 2, IBC_INTRPL) = m1fP2C(2, 2, IBC_INTRPL)
+    m1fP2C(4, 3, IBC_INTRPL) = m1fP2C(2, 3, IBC_INTRPL)
+    m1rP2C(4, 1, IBC_INTRPL) = m1rP2C(2, 1, IBC_INTRPL)
+    m1rP2C(4, 2, IBC_INTRPL) = m1rP2C(2, 2, IBC_INTRPL)
+    m1rP2C(4, 3, IBC_INTRPL) = m1rP2C(2, 3, IBC_INTRPL)
 
-    m1fP2C(5, 1, IBC_DIRICHLET) = alpha1
-    m1fP2C(5, 2, IBC_DIRICHLET) = ONE
-    m1fP2C(5, 3, IBC_DIRICHLET) = ZERO ! not used
-    m1rP2C(5, 1, IBC_DIRICHLET) = a1
-    m1rP2C(5, 2, IBC_DIRICHLET) = b1
-    m1rP2C(5, 3, IBC_DIRICHLET) = c1
-
+    m1fP2C(3, :, IBC_INTRPL) = m1fP2C(3, :, IBC_PERIODIC)
+    m1rP2C(3, :, IBC_INTRPL) = m1rP2C(3, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
-! interpolation. C2P: Dirichlet
+! interpolation. P2C: Dirichlet = no specified = Neumann
+!-------------------------------------------------------------------------------
+    m1fP2C(:, :, IBC_DIRICHLET) = m1fP2C(:, :, IBC_INTRPL)
+    m1rP2C(:, :, IBC_DIRICHLET) = m1rP2C(:, :, IBC_INTRPL)
+!-------------------------------------------------------------------------------
+! interpolation. P2C: Dirichlet = no specified = Neumann
+!-------------------------------------------------------------------------------
+    m1fP2C(:, :, IBC_NEUMANN) = m1fP2C(:, :, IBC_INTRPL)
+    m1rP2C(:, :, IBC_NEUMANN) = m1rP2C(:, :, IBC_INTRPL)
+!-------------------------------------------------------------------------------
+! interpolation. C2P: No specified = neumann
 ! [ 1    alpha1                          ][f_1']=[a1 * f_{1} + b1 * f_{2} + c1 * f_{3}  ]
 ! [      alpha2 1     alpha2             ][f_2'] [a2/2 * (f_{2}   + f_{1})]
 ! [             alpha 1      alpha       ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
 ! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n-1}   + f_{n-2})]
 ! [                          alpha1 1    ][f_5'] [a1 * f_{n-1} + b1 * f_{n-2} + c1 * f_{n-3}]
 !-----------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+      alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
@@ -1390,12 +1437,108 @@ contains
      
     end if
 
+    m1fC2P(1, 1, IBC_INTRPL) = ZERO ! not used
+    m1fC2P(1, 2, IBC_INTRPL) = ONE
+    m1fC2P(1, 3, IBC_INTRPL) = alpha1
+    m1rC2P(1, 1, IBC_INTRPL) = a1
+    m1rC2P(1, 2, IBC_INTRPL) = b1
+    m1rC2P(1, 3, IBC_INTRPL) = c1
+
+    m1fC2P(5, 1, IBC_INTRPL) = m1fC2P(1, 3, IBC_INTRPL)
+    m1fC2P(5, 2, IBC_INTRPL) = m1fC2P(1, 2, IBC_INTRPL)
+    m1fC2P(5, 3, IBC_INTRPL) = m1fC2P(1, 1, IBC_INTRPL)
+    m1rC2P(5, 1, IBC_INTRPL) = m1rC2P(1, 1, IBC_INTRPL)
+    m1rC2P(5, 2, IBC_INTRPL) = m1rC2P(1, 2, IBC_INTRPL)
+    m1rC2P(5, 3, IBC_INTRPL) = m1rC2P(1, 3, IBC_INTRPL)
+
+    m1fC2P(2, 1, IBC_INTRPL) = alpha2
+    m1fC2P(2, 2, IBC_INTRPL) = ONE
+    m1fC2P(2, 3, IBC_INTRPL) = alpha2
+    m1rC2P(2, 1, IBC_INTRPL) = a2 / TWO
+    m1rC2P(2, 2, IBC_INTRPL) = ZERO ! not used
+    m1rC2P(2, 3, IBC_INTRPL) = ZERO ! not used
+
+    m1fC2P(4, 1, IBC_INTRPL) = m1fC2P(2, 1, IBC_INTRPL)
+    m1fC2P(4, 2, IBC_INTRPL) = m1fC2P(2, 2, IBC_INTRPL)
+    m1fC2P(4, 3, IBC_INTRPL) = m1fC2P(2, 3, IBC_INTRPL)
+    m1rC2P(4, 1, IBC_INTRPL) = m1rC2P(2, 1, IBC_INTRPL)
+    m1rC2P(4, 2, IBC_INTRPL) = m1rC2P(2, 2, IBC_INTRPL)
+    m1rC2P(4, 3, IBC_INTRPL) = m1rC2P(2, 3, IBC_INTRPL)
+
+    m1fC2P(3, :, IBC_INTRPL) = m1fC2P(3, :, IBC_PERIODIC)
+    m1rC2P(3, :, IBC_INTRPL) = m1rC2P(3, :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! interpolation. C2P: No specified = neumann
+!-------------------------------------------------------------------------------
+    m1fC2P(:, :, IBC_NEUMANN) = m1fC2P(:, :, IBC_INTRPL)
+    m1rC2P(:, :, IBC_NEUMANN) = m1rC2P(:, :, IBC_INTRPL)
+!-------------------------------------------------------------------------------
+! interpolation. C2P: Dirichlet
+! [ 1    0                              ][f_1']=known
+! [      alpha2 1     alpha2             ][f_2'] [a2/2 * (f_{2}   + f_{1})]
+! [             alpha 1      alpha       ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
+! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n-1}   + f_{n-2})]
+! [                          0     1    ][f_5'] known
+!-----------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+      alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+
+      alpha1 = ZERO
+          a1 = ZERO ! not used
+          b1 = ZERO ! not used
+          c1 = ZERO ! not used
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+
+      alpha1 = ZERO
+          a1 = ZERO ! not used
+          b1 = ZERO ! not used
+          c1 = ZERO ! not used
+
+      alpha2 = ONE / SIX 
+          a2 = FOUR / THREE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+
+    else  ! default 2nd CD
+
+      alpha1 = ZERO
+          a1 = ZERO ! not used
+          b1 = ZERO ! not used
+          c1 = ZERO ! not used
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+     
+    end if
+
     m1fC2P(1, 1, IBC_DIRICHLET) = ZERO ! not used
     m1fC2P(1, 2, IBC_DIRICHLET) = ONE
     m1fC2P(1, 3, IBC_DIRICHLET) = alpha1
     m1rC2P(1, 1, IBC_DIRICHLET) = a1
     m1rC2P(1, 2, IBC_DIRICHLET) = b1
     m1rC2P(1, 3, IBC_DIRICHLET) = c1
+
+    m1fC2P(5, 1, IBC_DIRICHLET) = m1fC2P(1, 3, IBC_DIRICHLET)
+    m1fC2P(5, 2, IBC_DIRICHLET) = m1fC2P(1, 2, IBC_DIRICHLET)
+    m1fC2P(5, 3, IBC_DIRICHLET) = m1fC2P(1, 1, IBC_DIRICHLET)
+    m1rC2P(5, 1, IBC_DIRICHLET) = m1rC2P(1, 1, IBC_DIRICHLET)
+    m1rC2P(5, 2, IBC_DIRICHLET) = m1rC2P(1, 2, IBC_DIRICHLET)
+    m1rC2P(5, 3, IBC_DIRICHLET) = m1rC2P(1, 3, IBC_DIRICHLET)
 
     m1fC2P(2, 1, IBC_DIRICHLET) = alpha2
     m1fC2P(2, 2, IBC_DIRICHLET) = ONE
@@ -1404,62 +1547,47 @@ contains
     m1rC2P(2, 2, IBC_DIRICHLET) = ZERO ! not used
     m1rC2P(2, 3, IBC_DIRICHLET) = ZERO ! not used
 
-    m1fC2P(3, 1, IBC_DIRICHLET) = alpha
-    m1fC2P(3, 2, IBC_DIRICHLET) = ONE
-    m1fC2P(3, 3, IBC_DIRICHLET) = alpha
-    m1rC2P(3, 1, IBC_DIRICHLET) = a / TWO
-    m1rC2P(3, 2, IBC_DIRICHLET) = b / TWO
-    m1rC2P(3, 3, IBC_DIRICHLET) = ZERO ! not used
+    m1fC2P(4, 1, IBC_DIRICHLET) = m1fC2P(2, 1, IBC_DIRICHLET)
+    m1fC2P(4, 2, IBC_DIRICHLET) = m1fC2P(2, 2, IBC_DIRICHLET)
+    m1fC2P(4, 3, IBC_DIRICHLET) = m1fC2P(2, 3, IBC_DIRICHLET)
+    m1rC2P(4, 1, IBC_DIRICHLET) = m1rC2P(2, 1, IBC_DIRICHLET)
+    m1rC2P(4, 2, IBC_DIRICHLET) = m1rC2P(2, 2, IBC_DIRICHLET)
+    m1rC2P(4, 3, IBC_DIRICHLET) = m1rC2P(2, 3, IBC_DIRICHLET)
 
-    m1fC2P(4, 1, IBC_DIRICHLET) = alpha2
-    m1fC2P(4, 2, IBC_DIRICHLET) = ONE
-    m1fC2P(4, 3, IBC_DIRICHLET) = alpha2
-    m1rC2P(4, 1, IBC_DIRICHLET) = a2 / TWO
-    m1rC2P(4, 2, IBC_DIRICHLET) = ZERO ! not used
-    m1rC2P(4, 3, IBC_DIRICHLET) = ZERO ! not used
-
-    m1fC2P(5, 1, IBC_DIRICHLET) = alpha1
-    m1fC2P(5, 2, IBC_DIRICHLET) = ONE
-    m1fC2P(5, 3, IBC_DIRICHLET) = ZERO ! not used
-    m1rC2P(5, 1, IBC_DIRICHLET) = a1
-    m1rC2P(5, 2, IBC_DIRICHLET) = b1
-    m1rC2P(5, 3, IBC_DIRICHLET) = c1
+    m1fC2P(3, :, IBC_DIRICHLET) = m1fC2P(3, :, IBC_PERIODIC)
+    m1rC2P(3, :, IBC_DIRICHLET) = m1rC2P(3, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
-! 2nd diriviative P2P and C2C
+! 2nd diriviative P2P and C2C, periodic, symmetric, asymmetric
 !-------------------------------------------------------------------------------
+    alpha = ZERO
+        a = ONE
+        b = ZERO
+        c = ZERO ! not used
+        d = ZERO ! not used
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
-      d = ZERO ! not used
+          a = ONE
+          b = ZERO
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-      a = FOUR / THREE
-      b = -ONE / THREE
-      c = ZERO ! not used
-      d = ZERO ! not used
+          a = FOUR / THREE
+          b = -ONE / THREE
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / TEN
-      a = SIX / FIVE
-      b = ZERO
-      c = ZERO ! not used
-      d = ZERO ! not used
+          a = SIX / FIVE
+          b = ZERO
     else if (iaccu == IACCU_CP6) then
       alpha = TWO / ELEVEN
-      a = TWELVE / ELEVEN
-      b = THREE / ELEVEN
-      c = ZERO ! not used
-      d = ZERO ! not used
+          a = TWELVE / ELEVEN
+          b = THREE / ELEVEN
     else  ! default 2nd CD
       alpha = ZERO
-      a = ONE
-      b = ZERO
-      c = ZERO ! not used
-      d = ZERO ! not used
+          a = ONE
+          b = ZERO
     end if
-
-    !C2C for periodic b.c.
+!-------------------------------------------------------------------------------
+! 2nd diriviative C2C, periodic
+!-------------------------------------------------------------------------------
     d2fC2C(1:5, 1, IBC_PERIODIC) = alpha
     d2fC2C(1:5, 2, IBC_PERIODIC) = ONE
     d2fC2C(1:5, 3, IBC_PERIODIC) = alpha
@@ -1468,134 +1596,249 @@ contains
     d2rC2C(1:5, 2, IBC_PERIODIC) = b / FOUR
     d2rC2C(1:5, 3, IBC_PERIODIC) = c ! not used
     d2rC2C(1:5, 4, IBC_PERIODIC) = d ! not used
-
-    !P2P for periodic b.c.
+!-------------------------------------------------------------------------------
+! 2nd diriviative P2P , periodic
+!-------------------------------------------------------------------------------
     d2fP2P(:, :, IBC_PERIODIC) = d2fC2C(:, :, IBC_PERIODIC)
     d2rP2P(:, :, IBC_PERIODIC) = d2rC2C(:, :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 2nd diriviative C2C, symmetric
+!-------------------------------------------------------------------------------
+    d2fC2C(1,   1, IBC_SYMMETRIC) = ZERO ! not used
+    d2fC2C(1,   2, IBC_SYMMETRIC) = ONE + alpha
+    d2fC2C(1,   3, IBC_SYMMETRIC) = alpha
+    d2fC2C(5,   1, IBC_SYMMETRIC) = d2fC2C(1,   3, IBC_SYMMETRIC)
+    d2fC2C(5,   2, IBC_SYMMETRIC) = d2fC2C(1,   2, IBC_SYMMETRIC)
+    d2fC2C(5,   3, IBC_SYMMETRIC) = d2fC2C(1,   1, IBC_SYMMETRIC)
+    d2fC2C(2:4, 1, IBC_SYMMETRIC) = d2fC2C(2:4, 1, IBC_PERIODIC)
 
-    !P2C for Dirichlet B.C.
-    if (iaccu == IACCU_CD2) then
+    d2rC2C(:,   :, IBC_SYMMETRIC) = d2rC2C(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 2nd diriviative C2C, asymmetric
+!-------------------------------------------------------------------------------
+    d2fC2C(1,   1, IBC_ASYMMETRIC) = ZERO ! not used
+    d2fC2C(1,   2, IBC_ASYMMETRIC) = ONE - alpha
+    d2fC2C(1,   3, IBC_ASYMMETRIC) = alpha
+    d2fC2C(5,   1, IBC_ASYMMETRIC) = d2fC2C(1,   3, IBC_ASYMMETRIC)
+    d2fC2C(5,   2, IBC_ASYMMETRIC) = d2fC2C(1,   2, IBC_ASYMMETRIC)
+    d2fC2C(5,   3, IBC_ASYMMETRIC) = d2fC2C(1,   1, IBC_ASYMMETRIC)
+    d2fC2C(2:4, 1, IBC_ASYMMETRIC) = d2fC2C(2:4, 1, IBC_PERIODIC)
+
+    d2rC2C(:,   :, IBC_ASYMMETRIC) = d2rC2C(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 2nd diriviative P2P, symmetric
+!-------------------------------------------------------------------------------
+    d2fP2P(1,   1, IBC_SYMMETRIC) = ZERO ! not used
+    d2fP2P(1,   2, IBC_SYMMETRIC) = ONE
+    d2fP2P(1,   3, IBC_SYMMETRIC) = alpha + alpha
+    d2fP2P(5,   1, IBC_SYMMETRIC) = d2fP2P(1,   3, IBC_SYMMETRIC)
+    d2fP2P(5,   2, IBC_SYMMETRIC) = d2fP2P(1,   2, IBC_SYMMETRIC)
+    d2fP2P(5,   3, IBC_SYMMETRIC) = d2fP2P(1,   1, IBC_SYMMETRIC)
+    d2fP2P(2:4, 1, IBC_SYMMETRIC) = d2fP2P(2:4, 1, IBC_PERIODIC)
+    d2rP2P(:,   :, IBC_SYMMETRIC) = d2rP2P(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 2nd diriviative P2P, asymmetric
+!-------------------------------------------------------------------------------
+    d2fP2P(1,   1, IBC_ASYMMETRIC) = ZERO ! not used
+    d2fP2P(1,   2, IBC_ASYMMETRIC) = ONE
+    d2fP2P(1,   3, IBC_ASYMMETRIC) = ZERO
+    d2fP2P(5,   1, IBC_ASYMMETRIC) = d2fP2P(1,   3, IBC_ASYMMETRIC)
+    d2fP2P(5,   2, IBC_ASYMMETRIC) = d2fP2P(1,   2, IBC_ASYMMETRIC)
+    d2fP2P(5,   3, IBC_ASYMMETRIC) = d2fP2P(1,   1, IBC_ASYMMETRIC)
+    d2fP2P(2:4, 1, IBC_ASYMMETRIC) = d2fP2P(2:4, 1, IBC_PERIODIC)
+    d2rP2P(:,   :, IBC_ASYMMETRIC) = d2rP2P(:,   :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 2nd diriviative P2P, no specified = dirichlet = neumann 
+!-------------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+        d1 = ZERO
+
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
+        d2 = ZERO
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then
       alpha1 = ZERO
-      a1 = TWO
-      b1 = -FIVE
-      c1 = FOUR
-      d1 = -ONE
+          a1 = TWO
+          b1 = -FIVE
+          c1 = FOUR
+          d1 = -ONE
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO
-      c2 = ZERO ! not used
-      d2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
-      alpha1 = ZERO
-      a1 = TWO
-      b1 = -FIVE
-      c1 = FOUR
-      d1 = -ONE
-
-      alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO
-      c2 = ZERO ! not used
-      d2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
-
+          a2 = ONE
+          b2 = ZERO
+          c2 = ZERO ! not used
+          d2 = ZERO ! not used
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6 ) then ! degrade to 3rd CP
       alpha1 = ELEVEN
-      a1 = THIRTEEN
-      b1 = -TWENTYSEVEN
-      c1 = FIFTEEN
-      d1 = -ONE
+          a1 = THIRTEEN
+          b1 = -TWENTYSEVEN
+          c1 = FIFTEEN
+          d1 = -ONE
 
       alpha2 = ONE / TEN
-      a2 = SIX / FIVE
-      b2 = ZERO
-      c2 = ZERO ! not used
-      d2 = ZERO ! not used
-
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP
-
-      alpha1 = ELEVEN
-      a1 = THIRTEEN
-      b1 = -TWENTYSEVEN
-      c1 = FIFTEEN
-      d1 = -ONE
-
-      alpha2 = ONE / TEN
-      a2 = SIX / FIVE
-      b2 = ZERO
-      c2 = ZERO ! not used
-      d2 = ZERO ! not used
-      
+          a2 = SIX / FIVE
+          b2 = ZERO
+          c2 = ZERO ! not used
+          d2 = ZERO ! not used
     else  ! default 2nd CD
       alpha1 = ZERO
-      a1 = TWO
-      b1 = -FIVE
-      c1 = FOUR
-      d1 = -ONE
+          a1 = TWO
+          b1 = -FIVE
+          c1 = FOUR
+          d1 = -ONE
 
       alpha2 = ZERO
-      a2 = ONE
-      b2 = ZERO
-      c2 = ZERO ! not used
-      d2 = ZERO ! not used
-      
+          a2 = ONE
+          b2 = ZERO
+          c2 = ZERO ! not used
+          d2 = ZERO ! not used
     end if
 
-    !C2C i = 1
+    d2fP2P(1, 1, IBC_INTRPL) = ZERO ! not used
+    d2fP2P(1, 2, IBC_INTRPL) = ONE
+    d2fP2P(1, 3, IBC_INTRPL) = alpha1
+    d2rP2P(1, 1, IBC_INTRPL) = a1
+    d2rP2P(1, 2, IBC_INTRPL) = b1
+    d2rP2P(1, 3, IBC_INTRPL) = c1
+    d2rP2P(1, 4, IBC_INTRPL) = d1
+
+    d2fP2P(5, 1, IBC_INTRPL) = d2fP2P(1, 3, IBC_INTRPL)
+    d2fP2P(5, 2, IBC_INTRPL) = d2fP2P(1, 2, IBC_INTRPL)
+    d2fP2P(5, 3, IBC_INTRPL) = d2fP2P(1, 1, IBC_INTRPL)
+    d2rP2P(5, 1, IBC_INTRPL) = d2rP2P(1, 1, IBC_INTRPL)
+    d2rP2P(5, 2, IBC_INTRPL) = d2rP2P(1, 2, IBC_INTRPL)
+    d2rP2P(5, 3, IBC_INTRPL) = d2rP2P(1, 3, IBC_INTRPL)
+    d2rP2P(5, 4, IBC_INTRPL) = d2rP2P(1, 4, IBC_INTRPL)
+
+    d2fP2P(2, 1, IBC_INTRPL) = alpha2
+    d2fP2P(2, 2, IBC_INTRPL) = ONE
+    d2fP2P(2, 3, IBC_INTRPL) = alpha2
+    d2rP2P(2, 1, IBC_INTRPL) = a2
+    d2rP2P(2, 2, IBC_INTRPL) = ZERO ! not used
+    d2rP2P(2, 3, IBC_INTRPL) = ZERO ! not used
+    d2rP2P(2, 4, IBC_INTRPL) = ZERO ! not used
+
+    d2fP2P(4, 1, IBC_INTRPL) = d2fP2P(2, 1, IBC_INTRPL)
+    d2fP2P(4, 2, IBC_INTRPL) = d2fP2P(2, 2, IBC_INTRPL)
+    d2fP2P(4, 3, IBC_INTRPL) = d2fP2P(2, 3, IBC_INTRPL)
+    d2rP2P(4, 1, IBC_INTRPL) = d2rP2P(2, 1, IBC_INTRPL)
+    d2rP2P(4, 2, IBC_INTRPL) = d2rP2P(2, 2, IBC_INTRPL)
+    d2rP2P(4, 3, IBC_INTRPL) = d2rP2P(2, 3, IBC_INTRPL)
+    d2rP2P(4, 4, IBC_INTRPL) = d2rP2P(2, 4, IBC_INTRPL)
+
+    d2fP2P(3, :, IBC_INTRPL) = d2fP2P(3, :, IBC_PERIODIC)
+    d2rP2P(3, :, IBC_INTRPL) = d2rP2P(3, :, IBC_PERIODIC)
+!-------------------------------------------------------------------------------
+! 2nd diriviative P2P, no specified = dirichlet 
+!-------------------------------------------------------------------------------
+    d2fP2P(:, :, IBC_DIRICHLET) = d2fP2P(:, :, IBC_INTRPL)
+    d2rP2P(:, :, IBC_DIRICHLET) = d2rP2P(:, :, IBC_INTRPL)
+!-------------------------------------------------------------------------------
+! 2nd diriviative P2P, no specified = neumann 
+!-------------------------------------------------------------------------------
+    d2fP2P(:, :, IBC_NEUMANN) = d2fP2P(:, :, IBC_INTRPL)
+    d2rP2P(:, :, IBC_NEUMANN) = d2rP2P(:, :, IBC_INTRPL)
+!-------------------------------------------------------------------------------
+! 2nd diriviative C2C, no specified =  neumann = P2C unspecified
+!-------------------------------------------------------------------------------
+    d2fC2C(:, :, IBC_INTRPL) = d2fP2P(:, :, IBC_INTRPL)
+    d2rC2C(:, :, IBC_INTRPL) = d2rP2P(:, :, IBC_INTRPL)
+
+    d2fC2C(:, :, IBC_NEUMANN) = d2fC2C(:, :, IBC_INTRPL)
+    d2rC2C(:, :, IBC_NEUMANN) = d2rC2C(:, :, IBC_INTRPL)
+!-------------------------------------------------------------------------------
+! 2nd diriviative C2C, Dirchilet
+!-------------------------------------------------------------------------------
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO
+        c1 = ZERO
+        d1 = ZERO
+
+    alpha2 = ZERO
+        a2 = ZERO
+        b2 = ZERO
+        c2 = ZERO
+        d2 = ZERO
+    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then
+      alpha1 = ZERO
+          a1 = SIXTEEN / SEVEN
+          b1 = -TWENTYFIVE / SEVEN
+          c1 = TEN / SEVEN
+          d1 = -ONE / SEVEN
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO
+          c2 = ZERO ! not used
+          d2 = ZERO ! not used
+    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6 ) then ! degrade to 3rd CP
+      alpha1 = FIVE / FOURTEEN
+          a1 = SIXTEEN / SEVEN
+          b1 = -FOURTYFIVE / FOURTEEN
+          c1 = FIVE / SEVEN
+          d1 = THREE / FOURTEEN
+
+      alpha2 = ONE / TEN
+          a2 = SIX / FIVE
+          b2 = ZERO
+          c2 = ZERO ! not used
+          d2 = ZERO ! not used
+    else  ! default 2nd CD
+      alpha1 = ZERO
+          a1 = SIXTEEN / SEVEN
+          b1 = -TWENTYFIVE / SEVEN
+          c1 = TEN / SEVEN
+          d1 = -ONE / SEVEN
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO
+          c2 = ZERO ! not used
+          d2 = ZERO ! not used
+    end if
+
     d2fC2C(1, 1, IBC_DIRICHLET) = ZERO ! not used
     d2fC2C(1, 2, IBC_DIRICHLET) = ONE
     d2fC2C(1, 3, IBC_DIRICHLET) = alpha1
-
     d2rC2C(1, 1, IBC_DIRICHLET) = a1
     d2rC2C(1, 2, IBC_DIRICHLET) = b1
     d2rC2C(1, 3, IBC_DIRICHLET) = c1
     d2rC2C(1, 4, IBC_DIRICHLET) = d1
 
-    !C2C i = 2
+    d2fC2C(5, 1, IBC_DIRICHLET) = d2fC2C(1, 3, IBC_DIRICHLET)
+    d2fC2C(5, 2, IBC_DIRICHLET) = d2fC2C(1, 2, IBC_DIRICHLET)
+    d2fC2C(5, 3, IBC_DIRICHLET) = d2fC2C(1, 1, IBC_DIRICHLET)
+    d2rC2C(5, 1, IBC_DIRICHLET) = d2rC2C(1, 1, IBC_DIRICHLET)
+    d2rC2C(5, 2, IBC_DIRICHLET) = d2rC2C(1, 2, IBC_DIRICHLET)
+    d2rC2C(5, 3, IBC_DIRICHLET) = d2rC2C(1, 3, IBC_DIRICHLET)
+    d2rC2C(5, 4, IBC_DIRICHLET) = d2rC2C(1, 4, IBC_DIRICHLET)
+
     d2fC2C(2, 1, IBC_DIRICHLET) = alpha2
     d2fC2C(2, 2, IBC_DIRICHLET) = ONE
     d2fC2C(2, 3, IBC_DIRICHLET) = alpha2
-
     d2rC2C(2, 1, IBC_DIRICHLET) = a2
     d2rC2C(2, 2, IBC_DIRICHLET) = ZERO ! not used
     d2rC2C(2, 3, IBC_DIRICHLET) = ZERO ! not used
     d2rC2C(2, 4, IBC_DIRICHLET) = ZERO ! not used
 
-    !C2C i = bulk
-    d2fC2C(3, 1, IBC_DIRICHLET) = alpha
-    d2fC2C(3, 2, IBC_DIRICHLET) = ONE
-    d2fC2C(3, 3, IBC_DIRICHLET) = alpha
-    d2rC2C(3, 1, IBC_DIRICHLET) = a / ONE
-    d2rC2C(3, 2, IBC_DIRICHLET) = b / FOUR
-    d2rC2C(3, 3, IBC_DIRICHLET) = ZERO ! not used
-    d2rC2C(3, 4, IBC_DIRICHLET) = ZERO ! not used
+    d2fC2C(4, 1, IBC_DIRICHLET) = d2fC2C(2, 1, IBC_DIRICHLET)
+    d2fC2C(4, 2, IBC_DIRICHLET) = d2fC2C(2, 2, IBC_DIRICHLET)
+    d2fC2C(4, 3, IBC_DIRICHLET) = d2fC2C(2, 3, IBC_DIRICHLET)
+    d2rC2C(4, 1, IBC_DIRICHLET) = d2rC2C(2, 1, IBC_DIRICHLET)
+    d2rC2C(4, 2, IBC_DIRICHLET) = d2rC2C(2, 2, IBC_DIRICHLET)
+    d2rC2C(4, 3, IBC_DIRICHLET) = d2rC2C(2, 3, IBC_DIRICHLET)
+    d2rC2C(4, 4, IBC_DIRICHLET) = d2rC2C(2, 4, IBC_DIRICHLET)
+    
+    d2fC2C(3, :, IBC_DIRICHLET) = d2fC2C(3, :, IBC_PERIODIC)
+    d2rC2C(3, :, IBC_DIRICHLET) = d2rC2C(3, :, IBC_PERIODIC)
 
-    !C2C i = n - 1
-    d2fC2C(4, 1, IBC_DIRICHLET) = alpha2
-    d2fC2C(4, 2, IBC_DIRICHLET) = ONE
-    d2fC2C(4, 3, IBC_DIRICHLET) = alpha2
 
-    d2rC2C(4, 1, IBC_DIRICHLET) = a2
-    d2rC2C(4, 2, IBC_DIRICHLET) = ZERO ! not used
-    d2rC2C(4, 3, IBC_DIRICHLET) = ZERO ! not used
-    d2rC2C(4, 4, IBC_DIRICHLET) = ZERO ! not used
-
-    !C2C i = n
-    d2fC2C(5, 1, IBC_DIRICHLET) = alpha1
-    d2fC2C(5, 2, IBC_DIRICHLET) = ONE
-    d2fC2C(5, 3, IBC_DIRICHLET) = ZERO ! not used
-
-    d2rC2C(5, 1, IBC_DIRICHLET) = a1
-    d2rC2C(5, 2, IBC_DIRICHLET) = b1
-    d2rC2C(5, 3, IBC_DIRICHLET) = c1
-    d2rC2C(5, 4, IBC_DIRICHLET) = d1
-
-    ! P2P
-    d2fP2P(:, :, :) = d2fC2C(:, :, :)
-    d2rP2P(:, :, :) = d2rC2C(:, :, :)
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Prepare_compact_coefficients
