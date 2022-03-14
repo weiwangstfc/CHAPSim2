@@ -25,6 +25,11 @@ subroutine Test_schemes()
   use vars_df_mod, only : flow, domain
   implicit none
 
+  ! Please use below information for input file
+  ! x = 0, 2pi
+  ! y = 0, 2pi
+  ! z = 0, 2pi
+
   !call Test_TDMA_cyclic
   !call Test_TDMA_noncyclic
   call Test_interpolation (flow, domain)
@@ -65,6 +70,11 @@ end subroutine
     logical :: vix_c2p = .true.
     logical :: uiy_c2p = .true.
     logical :: viy_p2c = .true.
+
+    ! 
+
+
+    
 
     if(uix_p2c) then
       !test interpolation. u in x, P2C
