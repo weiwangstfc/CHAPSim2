@@ -98,49 +98,49 @@ module operations
 !-------------------------------------------------------------------------------
 !   x : pre-processed TDMA LHS Matrix for 1st deriviative
 !-------------------------------------------------------------------------------
-    real(WP), allocatable :: ad1x_P2P(:)
-    real(WP), allocatable :: bd1x_P2P(:)
-    real(WP), allocatable :: cd1x_P2P(:)
-    real(WP), allocatable :: dd1x_P2P(:)
+    real(WP), allocatable :: ad1x_P2P(:, :, :)
+    real(WP), allocatable :: bd1x_P2P(:, :, :)
+    real(WP), allocatable :: cd1x_P2P(:, :, :)
+    real(WP), allocatable :: dd1x_P2P(:, :, :)
 
-    real(WP), allocatable :: ad1x_C2C(:)
-    real(WP), allocatable :: bd1x_C2C(:)
-    real(WP), allocatable :: cd1x_C2C(:)
-    real(WP), allocatable :: dd1x_C2C(:)
+    real(WP), allocatable :: ad1x_C2C(:, :, :)
+    real(WP), allocatable :: bd1x_C2C(:, :, :)
+    real(WP), allocatable :: cd1x_C2C(:, :, :)
+    real(WP), allocatable :: dd1x_C2C(:, :, :)
 
-    real(WP), allocatable :: ad1x_P2C(:)
-    real(WP), allocatable :: bd1x_P2C(:)
-    real(WP), allocatable :: cd1x_P2C(:)
-    real(WP), allocatable :: dd1x_P2C(:)
+    real(WP), allocatable :: ad1x_P2C(:, :, :)
+    real(WP), allocatable :: bd1x_P2C(:, :, :)
+    real(WP), allocatable :: cd1x_P2C(:, :, :)
+    real(WP), allocatable :: dd1x_P2C(:, :, :)
 
-    real(WP), allocatable :: ad1x_C2P(:)
-    real(WP), allocatable :: bd1x_C2P(:)
-    real(WP), allocatable :: cd1x_C2P(:)
-    real(WP), allocatable :: dd1x_C2P(:)
+    real(WP), allocatable :: ad1x_C2P(:, :, :)
+    real(WP), allocatable :: bd1x_C2P(:, :, :)
+    real(WP), allocatable :: cd1x_C2P(:, :, :)
+    real(WP), allocatable :: dd1x_C2P(:, :, :)
 !-------------------------------------------------------------------------------
 !   x : pre-processed TDMA LHS Matrix for 2nd deriviative
 !-------------------------------------------------------------------------------
-    real(WP), allocatable :: ad2x_P2P(:)
-    real(WP), allocatable :: bd2x_P2P(:)
-    real(WP), allocatable :: cd2x_P2P(:)
-    real(WP), allocatable :: dd2x_P2P(:)
+    real(WP), allocatable :: ad2x_P2P(:, :, :)
+    real(WP), allocatable :: bd2x_P2P(:, :, :)
+    real(WP), allocatable :: cd2x_P2P(:, :, :)
+    real(WP), allocatable :: dd2x_P2P(:, :, :)
 
-    real(WP), allocatable :: ad2x_C2C(:)
-    real(WP), allocatable :: bd2x_C2C(:)
-    real(WP), allocatable :: cd2x_C2C(:)
-    real(WP), allocatable :: dd2x_C2C(:)
+    real(WP), allocatable :: ad2x_C2C(:, :, :)
+    real(WP), allocatable :: bd2x_C2C(:, :, :)
+    real(WP), allocatable :: cd2x_C2C(:, :, :)
+    real(WP), allocatable :: dd2x_C2C(:, :, :)
 !-------------------------------------------------------------------------------
 !   x : pre-processed TDMA LHS Matrix for mid-point interpolation
 !-------------------------------------------------------------------------------
-    real(WP), allocatable :: am1x_P2C(:)
-    real(WP), allocatable :: bm1x_P2C(:)
-    real(WP), allocatable :: cm1x_P2C(:)
-    real(WP), allocatable :: dm1x_P2C(:)
+    real(WP), allocatable :: am1x_P2C(:, :, :)
+    real(WP), allocatable :: bm1x_P2C(:, :, :)
+    real(WP), allocatable :: cm1x_P2C(:, :, :)
+    real(WP), allocatable :: dm1x_P2C(:, :, :)
 
-    real(WP), allocatable :: am1x_C2P(:)
-    real(WP), allocatable :: bm1x_C2P(:)
-    real(WP), allocatable :: cm1x_C2P(:)
-    real(WP), allocatable :: dm1x_C2P(:)
+    real(WP), allocatable :: am1x_C2P(:, :, :)
+    real(WP), allocatable :: bm1x_C2P(:, :, :)
+    real(WP), allocatable :: cm1x_C2P(:, :, :)
+    real(WP), allocatable :: dm1x_C2P(:, :, :)
   end type t_xtdma_lhs
 
   type(t_xtdma_lhs), allocatable :: xtdma_lhs(:) 
@@ -148,96 +148,96 @@ module operations
 !-------------------------------------------------------------------------------
 ! y : pre-processed TDMA LHS Matrix for 1st deriviative
 !-------------------------------------------------------------------------------
-  real(WP), allocatable :: ad1y_P2P(:)
-  real(WP), allocatable :: bd1y_P2P(:)
-  real(WP), allocatable :: cd1y_P2P(:)
-  real(WP), allocatable :: dd1y_P2P(:)
+  real(WP), allocatable :: ad1y_P2P(:, :, :)
+  real(WP), allocatable :: bd1y_P2P(:, :, :)
+  real(WP), allocatable :: cd1y_P2P(:, :, :)
+  real(WP), allocatable :: dd1y_P2P(:, :, :)
 
-  real(WP), allocatable :: ad1y_C2C(:)
-  real(WP), allocatable :: bd1y_C2C(:)
-  real(WP), allocatable :: cd1y_C2C(:)
-  real(WP), allocatable :: dd1y_C2C(:)
+  real(WP), allocatable :: ad1y_C2C(:, :, :)
+  real(WP), allocatable :: bd1y_C2C(:, :, :)
+  real(WP), allocatable :: cd1y_C2C(:, :, :)
+  real(WP), allocatable :: dd1y_C2C(:, :, :)
 
-  real(WP), allocatable :: ad1y_P2C(:)
-  real(WP), allocatable :: bd1y_P2C(:)
-  real(WP), allocatable :: cd1y_P2C(:)
-  real(WP), allocatable :: dd1y_P2C(:)
+  real(WP), allocatable :: ad1y_P2C(:, :, :)
+  real(WP), allocatable :: bd1y_P2C(:, :, :)
+  real(WP), allocatable :: cd1y_P2C(:, :, :)
+  real(WP), allocatable :: dd1y_P2C(:, :, :)
 
-  real(WP), allocatable :: ad1y_C2P(:)
-  real(WP), allocatable :: bd1y_C2P(:)
-  real(WP), allocatable :: cd1y_C2P(:)
-  real(WP), allocatable :: dd1y_C2P(:)
+  real(WP), allocatable :: ad1y_C2P(:, :, :)
+  real(WP), allocatable :: bd1y_C2P(:, :, :)
+  real(WP), allocatable :: cd1y_C2P(:, :, :)
+  real(WP), allocatable :: dd1y_C2P(:, :, :)
 !-------------------------------------------------------------------------------
 ! y : pre-processed TDMA LHS Matrix for 2nd deriviative
 !-------------------------------------------------------------------------------
-  real(WP), allocatable :: ad2y_P2P(:)
-  real(WP), allocatable :: bd2y_P2P(:)
-  real(WP), allocatable :: cd2y_P2P(:)
-  real(WP), allocatable :: dd2y_P2P(:)
+  real(WP), allocatable :: ad2y_P2P(:, :, :)
+  real(WP), allocatable :: bd2y_P2P(:, :, :)
+  real(WP), allocatable :: cd2y_P2P(:, :, :)
+  real(WP), allocatable :: dd2y_P2P(:, :, :)
 
-  real(WP), allocatable :: ad2y_C2C(:)
-  real(WP), allocatable :: bd2y_C2C(:)
-  real(WP), allocatable :: cd2y_C2C(:)
-  real(WP), allocatable :: dd2y_C2C(:)
+  real(WP), allocatable :: ad2y_C2C(:, :, :)
+  real(WP), allocatable :: bd2y_C2C(:, :, :)
+  real(WP), allocatable :: cd2y_C2C(:, :, :)
+  real(WP), allocatable :: dd2y_C2C(:, :, :)
 !-------------------------------------------------------------------------------
 ! y : pre-processed TDMA LHS Matrix for mid-point interpolation
 !-------------------------------------------------------------------------------
-  real(WP), allocatable :: am1y_P2C(:)
-  real(WP), allocatable :: bm1y_P2C(:)
-  real(WP), allocatable :: cm1y_P2C(:)
-  real(WP), allocatable :: dm1y_P2C(:)
+  real(WP), allocatable :: am1y_P2C(:, :, :)
+  real(WP), allocatable :: bm1y_P2C(:, :, :)
+  real(WP), allocatable :: cm1y_P2C(:, :, :)
+  real(WP), allocatable :: dm1y_P2C(:, :, :)
 
-  real(WP), allocatable :: am1y_C2P(:)
-  real(WP), allocatable :: bm1y_C2P(:)
-  real(WP), allocatable :: cm1y_C2P(:)
-  real(WP), allocatable :: dm1y_C2P(:)
+  real(WP), allocatable :: am1y_C2P(:, :, :)
+  real(WP), allocatable :: bm1y_C2P(:, :, :)
+  real(WP), allocatable :: cm1y_C2P(:, :, :)
+  real(WP), allocatable :: dm1y_C2P(:, :, :)
 
 !-------------------------------------------------------------------------------
 ! z : pre-processed TDMA LHS Matrix for 1st deriviative
 !-------------------------------------------------------------------------------
-  real(WP), allocatable :: ad1z_P2P(:)
-  real(WP), allocatable :: bd1z_P2P(:)
-  real(WP), allocatable :: cd1z_P2P(:)
-  real(WP), allocatable :: dd1z_P2P(:)
+  real(WP), allocatable :: ad1z_P2P(:, :, :)
+  real(WP), allocatable :: bd1z_P2P(:, :, :)
+  real(WP), allocatable :: cd1z_P2P(:, :, :)
+  real(WP), allocatable :: dd1z_P2P(:, :, :)
 
-  real(WP), allocatable :: ad1z_C2C(:)
-  real(WP), allocatable :: bd1z_C2C(:)
-  real(WP), allocatable :: cd1z_C2C(:)
-  real(WP), allocatable :: dd1z_C2C(:)
+  real(WP), allocatable :: ad1z_C2C(:, :, :)
+  real(WP), allocatable :: bd1z_C2C(:, :, :)
+  real(WP), allocatable :: cd1z_C2C(:, :, :)
+  real(WP), allocatable :: dd1z_C2C(:, :, :)
 
-  real(WP), allocatable :: ad1z_P2C(:)
-  real(WP), allocatable :: bd1z_P2C(:)
-  real(WP), allocatable :: cd1z_P2C(:)
-  real(WP), allocatable :: dd1z_P2C(:)
+  real(WP), allocatable :: ad1z_P2C(:, :, :)
+  real(WP), allocatable :: bd1z_P2C(:, :, :)
+  real(WP), allocatable :: cd1z_P2C(:, :, :)
+  real(WP), allocatable :: dd1z_P2C(:, :, :)
 
-  real(WP), allocatable :: ad1z_C2P(:)
-  real(WP), allocatable :: bd1z_C2P(:)
-  real(WP), allocatable :: cd1z_C2P(:)
-  real(WP), allocatable :: dd1z_C2P(:)
+  real(WP), allocatable :: ad1z_C2P(:, :, :)
+  real(WP), allocatable :: bd1z_C2P(:, :, :)
+  real(WP), allocatable :: cd1z_C2P(:, :, :)
+  real(WP), allocatable :: dd1z_C2P(:, :, :)
 !-------------------------------------------------------------------------------
 ! z : pre-processed TDMA LHS Matrix for 2nd deriviative
 !-------------------------------------------------------------------------------
-  real(WP), allocatable :: ad2z_P2P(:)
-  real(WP), allocatable :: bd2z_P2P(:)
-  real(WP), allocatable :: cd2z_P2P(:)
-  real(WP), allocatable :: dd2z_P2P(:)
+  real(WP), allocatable :: ad2z_P2P(:, :, :)
+  real(WP), allocatable :: bd2z_P2P(:, :, :)
+  real(WP), allocatable :: cd2z_P2P(:, :, :)
+  real(WP), allocatable :: dd2z_P2P(:, :, :)
 
-  real(WP), allocatable :: ad2z_C2C(:)
-  real(WP), allocatable :: bd2z_C2C(:)
-  real(WP), allocatable :: cd2z_C2C(:)
-  real(WP), allocatable :: dd2z_C2C(:)
+  real(WP), allocatable :: ad2z_C2C(:, :, :)
+  real(WP), allocatable :: bd2z_C2C(:, :, :)
+  real(WP), allocatable :: cd2z_C2C(:, :, :)
+  real(WP), allocatable :: dd2z_C2C(:, :, :)
 !-------------------------------------------------------------------------------
 ! z : pre-processed TDMA LHS Matrix for mid-point interpolation
 !-------------------------------------------------------------------------------
-  real(WP), allocatable :: am1z_P2C(:)
-  real(WP), allocatable :: bm1z_P2C(:)
-  real(WP), allocatable :: cm1z_P2C(:)
-  real(WP), allocatable :: dm1z_P2C(:)
+  real(WP), allocatable :: am1z_P2C(:, :, :)
+  real(WP), allocatable :: bm1z_P2C(:, :, :)
+  real(WP), allocatable :: cm1z_P2C(:, :, :)
+  real(WP), allocatable :: dm1z_P2C(:, :, :)
 
-  real(WP), allocatable :: am1z_C2P(:)
-  real(WP), allocatable :: bm1z_C2P(:)
-  real(WP), allocatable :: cm1z_C2P(:)
-  real(WP), allocatable :: dm1z_C2P(:)
+  real(WP), allocatable :: am1z_C2P(:, :, :)
+  real(WP), allocatable :: bm1z_C2P(:, :, :)
+  real(WP), allocatable :: cm1z_C2P(:, :, :)
+  real(WP), allocatable :: dm1z_C2P(:, :, :)
   
 !-------------------------------------------------------------------------------
 ! processures
@@ -679,7 +679,7 @@ contains
           b2 = ZERO
     else if (iaccu == IACCU_CP6) then ! degrade to 4th CP
       alpha1 = TWO / THREE
-          a1 = - THIRTYTWO / FORTYFIVE
+          a1 = - THIRTYTWO / FOURTYFIVE
           b1 = - SEVEN / FIVE
           c1 = TEN / NINE
           d1 = ONE / TEN
@@ -1863,36 +1863,46 @@ contains
 !-------------------------------------------------------------------------------
   subroutine Buildup_TDMA_LHS_array(n, is_periodic, coeff, a, b, c, d)
     use tridiagonal_matrix_algorithm
+    use parameters_constant_mod
     implicit none
 
     integer, intent(in) :: n
     logical,  intent(in)   :: is_periodic
-    real(WP), intent(in)   :: coeff(5, 3, 5)
-    real(WP), intent(out)  :: a(n), b(n), c(n), d(n)
+    real(WP), intent(in)   :: coeff(5, 3, 6)
+    real(WP), intent(out)  :: a(n, 6, 6), &
+                              b(n, 6, 6), &
+                              c(n, 6, 6), &
+                              d(n, 6, 6)
 
-    a(1)         = coeff( 1, 1, ibc(1) )
-    a(2)         = coeff( 2, 1, ibc(1) )
-    a(3 : n - 2) = coeff( 3, 1, ibc(1) )
-    a(n - 1)     = coeff( 4, 1, ibc(2) )
-    a(n)         = coeff( 5, 1, ibc(2) )
+    integer :: i, j
 
-    b(1)         = coeff( 1, 2, ibc(1) )
-    b(2)         = coeff( 2, 2, ibc(1) )
-    b(3 : n - 2) = coeff( 3, 2, ibc(1) )
-    b(n - 1)     = coeff( 4, 2, ibc(2) )
-    b(n)         = coeff( 5, 2, ibc(2) )
+    do j = 1, 6
+      do i = 1, 6
+        a(1,         i, j) = coeff( 1, 1, i )
+        a(2,         i, j) = coeff( 2, 1, i )
+        a(3 : n - 2, i, j) = coeff( 3, 1, IBC_PERIODIC )
+        a(n - 1,     i, j) = coeff( 4, 1, j )
+        a(n,         i, j) = coeff( 5, 1, j )
 
-    c(1)         = coeff( 1, 3, ibc(1) )
-    c(2)         = coeff( 2, 3, ibc(1) )
-    c(3 : n - 2) = coeff( 3, 3, ibc(1) )
-    c(n - 1)     = coeff( 4, 3, ibc(2) )
-    c(n)         = coeff( 5, 3, ibc(2) )
+        b(1,         i, j) = coeff( 1, 2, i )
+        b(2,         i, j) = coeff( 2, 2, i )
+        b(3 : n - 2, i, j) = coeff( 3, 2, IBC_PERIODIC )
+        b(n - 1,     i, j) = coeff( 4, 2, j )
+        b(n,         i, j) = coeff( 5, 2, j )
 
-    if (is_periodic) then
-      call Preprocess_TDMA_coeffs(a(1:n-1), b(1:n-1), c(1:n-1), d(1:n-1), n-1)
-    else 
-      call Preprocess_TDMA_coeffs(a(:), b(:), c(:), d(:), n)
-    end if 
+        c(1,         i, j) = coeff( 1, 3, i )
+        c(2,         i, j) = coeff( 2, 3, i )
+        c(3 : n - 2, i, j) = coeff( 3, 3, IBC_PERIODIC )
+        c(n - 1,     i, j) = coeff( 4, 3, j )
+        c(n,         i, j) = coeff( 5, 3, j )
+
+        if (is_periodic) then
+          call Preprocess_TDMA_coeffs(a(1:n-1, i, j), b(1:n-1, i, j), c(1:n-1, i, j), d(1:n-1, i, j), n-1)
+        else 
+          call Preprocess_TDMA_coeffs(a(:, i, j), b(:, i, j), c(:, i, j), d(:, i, j), n)
+        end if 
+      end do
+    end do
 
     return
   end subroutine Buildup_TDMA_LHS_array
@@ -1930,35 +1940,35 @@ contains
 !-------------------------------------------------------------------------------
 !   1st derivative in y direction with nc unknows
 !-------------------------------------------------------------------------------
-    allocate (ad1y_C2C ( nsz ) ); ad1y_C2C(:) = ZERO
-    allocate (bd1y_C2C ( nsz ) ); bd1y_C2C(:) = ZERO
-    allocate (cd1y_C2C ( nsz ) ); cd1y_C2C(:) = ZERO
-    allocate (dd1y_C2C ( nsz ) ); dd1y_C2C(:) = ZERO
+    allocate (ad1y_C2C ( nsz, 6, 6 ) ); ad1y_C2C(:, :, :) = ZERO
+    allocate (bd1y_C2C ( nsz, 6, 6 ) ); bd1y_C2C(:, :, :) = ZERO
+    allocate (cd1y_C2C ( nsz, 6, 6 ) ); cd1y_C2C(:, :, :) = ZERO
+    allocate (dd1y_C2C ( nsz, 6, 6 ) ); dd1y_C2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
           ad1y_C2C, bd1y_C2C, cd1y_C2C, dd1y_C2C)
 
-    allocate (ad1y_P2C ( nsz ) ); ad1y_P2C(:) = ZERO
-    allocate (bd1y_P2C ( nsz ) ); bd1y_P2C(:) = ZERO
-    allocate (cd1y_P2C ( nsz ) ); cd1y_P2C(:) = ZERO
-    allocate (dd1y_P2C ( nsz ) ); dd1y_P2C(:) = ZERO
+    allocate (ad1y_P2C ( nsz, 6, 6 ) ); ad1y_P2C(:, :, :) = ZERO
+    allocate (bd1y_P2C ( nsz, 6, 6 ) ); bd1y_P2C(:, :, :) = ZERO
+    allocate (cd1y_P2C ( nsz, 6, 6 ) ); cd1y_P2C(:, :, :) = ZERO
+    allocate (dd1y_P2C ( nsz, 6, 6 ) ); dd1y_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
           ad1y_P2C, bd1y_P2C, cd1y_P2C, dd1y_P2C)
 !-------------------------------------------------------------------------------
 !   mid-point interpolation in y direction with nc unknows
 !-------------------------------------------------------------------------------
-    allocate (am1y_P2C ( nsz ) ); am1y_P2C(:) = ZERO
-    allocate (bm1y_P2C ( nsz ) ); bm1y_P2C(:) = ZERO
-    allocate (cm1y_P2C ( nsz ) ); cm1y_P2C(:) = ZERO
-    allocate (dm1y_P2C ( nsz ) ); dm1y_P2C(:) = ZERO
+    allocate (am1y_P2C ( nsz, 6, 6 ) ); am1y_P2C(:, :, :) = ZERO
+    allocate (bm1y_P2C ( nsz, 6, 6 ) ); bm1y_P2C(:, :, :) = ZERO
+    allocate (cm1y_P2C ( nsz, 6, 6 ) ); cm1y_P2C(:, :, :) = ZERO
+    allocate (dm1y_P2C ( nsz, 6, 6 ) ); dm1y_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fP2C, &
           am1y_P2C, bm1y_P2C, cm1y_P2C, dm1y_P2C)
 !-------------------------------------------------------------------------------
 !   2nd order deriviative in y direction with nc unknows
 !-------------------------------------------------------------------------------
-    allocate (ad2y_C2C ( nsz ) ); ad2y_C2C(:) = ZERO
-    allocate (bd2y_C2C ( nsz ) ); bd2y_C2C(:) = ZERO
-    allocate (cd2y_C2C ( nsz ) ); cd2y_C2C(:) = ZERO
-    allocate (dd2y_C2C ( nsz ) ); dd2y_C2C(:) = ZERO
+    allocate (ad2y_C2C ( nsz, 6, 6 ) ); ad2y_C2C(:, :, :) = ZERO
+    allocate (bd2y_C2C ( nsz, 6, 6 ) ); bd2y_C2C(:, :, :) = ZERO
+    allocate (cd2y_C2C ( nsz, 6, 6 ) ); cd2y_C2C(:, :, :) = ZERO
+    allocate (dd2y_C2C ( nsz, 6, 6 ) ); dd2y_C2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fC2C, &
           ad2y_C2C, bd2y_C2C, cd2y_C2C, dd2y_C2C)
 !===============================================================================
@@ -1968,35 +1978,35 @@ contains
 !-------------------------------------------------------------------------------
 !   1st derivative in y direction with np unknows
 !-------------------------------------------------------------------------------
-    allocate (ad1y_P2P ( nsz ) ); ad1y_P2P(:) = ZERO
-    allocate (bd1y_P2P ( nsz ) ); bd1y_P2P(:) = ZERO
-    allocate (cd1y_P2P ( nsz ) ); cd1y_P2P(:) = ZERO
-    allocate (dd1y_P2P ( nsz ) ); dd1y_P2P(:) = ZERO
+    allocate (ad1y_P2P ( nsz, 6, 6 ) ); ad1y_P2P(:, :, :) = ZERO
+    allocate (bd1y_P2P ( nsz, 6, 6 ) ); bd1y_P2P(:, :, :) = ZERO
+    allocate (cd1y_P2P ( nsz, 6, 6 ) ); cd1y_P2P(:, :, :) = ZERO
+    allocate (dd1y_P2P ( nsz, 6, 6 ) ); dd1y_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
           ad1y_P2P, bd1y_P2P, cd1y_P2P, dd1y_P2P)
 
-    allocate (ad1y_C2P ( nsz ) ); ad1y_C2P(:) = ZERO
-    allocate (bd1y_C2P ( nsz ) ); bd1y_C2P(:) = ZERO
-    allocate (cd1y_C2P ( nsz ) ); cd1y_C2P(:) = ZERO
-    allocate (dd1y_C2P ( nsz ) ); dd1y_C2P(:) = ZERO
+    allocate (ad1y_C2P ( nsz, 6, 6 ) ); ad1y_C2P(:, :, :) = ZERO
+    allocate (bd1y_C2P ( nsz, 6, 6 ) ); bd1y_C2P(:, :, :) = ZERO
+    allocate (cd1y_C2P ( nsz, 6, 6 ) ); cd1y_C2P(:, :, :) = ZERO
+    allocate (dd1y_C2P ( nsz, 6, 6 ) ); dd1y_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
           ad1y_C2P, bd1y_C2P, cd1y_C2P, dd1y_C2P) 
 !-------------------------------------------------------------------------------
 !   mid-point interpolation in y direction with np unknows
 !-------------------------------------------------------------------------------
-    allocate (am1y_C2P ( nsz ) ); am1y_C2P(:) = ZERO
-    allocate (bm1y_C2P ( nsz ) ); bm1y_C2P(:) = ZERO
-    allocate (cm1y_C2P ( nsz ) ); cm1y_C2P(:) = ZERO
-    allocate (dm1y_C2P ( nsz ) ); dm1y_C2P(:) = ZERO
+    allocate (am1y_C2P ( nsz, 6, 6 ) ); am1y_C2P(:, :, :) = ZERO
+    allocate (bm1y_C2P ( nsz, 6, 6 ) ); bm1y_C2P(:, :, :) = ZERO
+    allocate (cm1y_C2P ( nsz, 6, 6 ) ); cm1y_C2P(:, :, :) = ZERO
+    allocate (dm1y_C2P ( nsz, 6, 6 ) ); dm1y_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fC2P, &
           am1y_C2P, bm1y_C2P, cm1y_C2P, dm1y_C2P)
 !-------------------------------------------------------------------------------
 ! 2nd order deriviative in y direction with np unknows
 !-------------------------------------------------------------------------------
-    allocate (ad2y_P2P ( nsz ) ); ad2y_P2P(:) = ZERO
-    allocate (bd2y_P2P ( nsz ) ); bd2y_P2P(:) = ZERO
-    allocate (cd2y_P2P ( nsz ) ); cd2y_P2P(:) = ZERO
-    allocate (dd2y_P2P ( nsz ) ); dd2y_P2P(:) = ZERO
+    allocate (ad2y_P2P ( nsz, 6, 6 ) ); ad2y_P2P(:, :, :) = ZERO
+    allocate (bd2y_P2P ( nsz, 6, 6 ) ); bd2y_P2P(:, :, :) = ZERO
+    allocate (cd2y_P2P ( nsz, 6, 6 ) ); cd2y_P2P(:, :, :) = ZERO
+    allocate (dd2y_P2P ( nsz, 6, 6 ) ); dd2y_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fP2P, &
           ad2y_P2P, bd2y_P2P, cd2y_P2P, dd2y_P2P)
 !===============================================================================
@@ -2007,35 +2017,35 @@ contains
 !-------------------------------------------------------------------------------
 !   1st derivative in z direction with nc unknows
 !-------------------------------------------------------------------------------
-    allocate (ad1z_C2C ( nsz ) ); ad1z_C2C(:) = ZERO
-    allocate (bd1z_C2C ( nsz ) ); bd1z_C2C(:) = ZERO
-    allocate (cd1z_C2C ( nsz ) ); cd1z_C2C(:) = ZERO
-    allocate (dd1z_C2C ( nsz ) ); dd1z_C2C(:) = ZERO
+    allocate (ad1z_C2C ( nsz, 6, 6 ) ); ad1z_C2C(:, : ,:) = ZERO
+    allocate (bd1z_C2C ( nsz, 6, 6 ) ); bd1z_C2C(:, : ,:) = ZERO
+    allocate (cd1z_C2C ( nsz, 6, 6 ) ); cd1z_C2C(:, : ,:) = ZERO
+    allocate (dd1z_C2C ( nsz, 6, 6 ) ); dd1z_C2C(:, : ,:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
           ad1z_C2C, bd1z_C2C, cd1z_C2C, dd1z_C2C)
 
-    allocate (ad1z_P2C ( nsz ) ); ad1z_P2C(:) = ZERO
-    allocate (bd1z_P2C ( nsz ) ); bd1z_P2C(:) = ZERO
-    allocate (cd1z_P2C ( nsz ) ); cd1z_P2C(:) = ZERO
-    allocate (dd1z_P2C ( nsz ) ); dd1z_P2C(:) = ZERO
+    allocate (ad1z_P2C ( nsz, 6, 6 ) ); ad1z_P2C(:, :, :) = ZERO
+    allocate (bd1z_P2C ( nsz, 6, 6 ) ); bd1z_P2C(:, :, :) = ZERO
+    allocate (cd1z_P2C ( nsz, 6, 6 ) ); cd1z_P2C(:, :, :) = ZERO
+    allocate (dd1z_P2C ( nsz, 6, 6 ) ); dd1z_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
           ad1z_P2C, bd1z_P2C, cd1z_P2C, dd1z_P2C)
 !-------------------------------------------------------------------------------
 !   mid-point interpolation in z direction with nc unknows
 !-------------------------------------------------------------------------------
-    allocate (am1z_P2C ( nsz ) ); am1z_P2C(:) = ZERO
-    allocate (bm1z_P2C ( nsz ) ); bm1z_P2C(:) = ZERO
-    allocate (cm1z_P2C ( nsz ) ); cm1z_P2C(:) = ZERO
-    allocate (dm1z_P2C ( nsz ) ); dm1z_P2C(:) = ZERO
+    allocate (am1z_P2C ( nsz, 6, 6 ) ); am1z_P2C(:, :, :) = ZERO
+    allocate (bm1z_P2C ( nsz, 6, 6 ) ); bm1z_P2C(:, :, :) = ZERO
+    allocate (cm1z_P2C ( nsz, 6, 6 ) ); cm1z_P2C(:, :, :) = ZERO
+    allocate (dm1z_P2C ( nsz, 6, 6 ) ); dm1z_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fP2C, &
           am1z_P2C, bm1z_P2C, cm1z_P2C, dm1z_P2C)
 !-------------------------------------------------------------------------------
 !   2nd order deriviative in z direction with nc unknows
 !-------------------------------------------------------------------------------
-    allocate (ad2z_C2C ( nsz ) ); ad2z_C2C(:) = ZERO
-    allocate (bd2z_C2C ( nsz ) ); bd2z_C2C(:) = ZERO
-    allocate (cd2z_C2C ( nsz ) ); cd2z_C2C(:) = ZERO
-    allocate (dd2z_C2C ( nsz ) ); dd2z_C2C(:) = ZERO
+    allocate (ad2z_C2C ( nsz, 6, 6 ) ); ad2z_C2C(:, :, :) = ZERO
+    allocate (bd2z_C2C ( nsz, 6, 6 ) ); bd2z_C2C(:, :, :) = ZERO
+    allocate (cd2z_C2C ( nsz, 6, 6 ) ); cd2z_C2C(:, :, :) = ZERO
+    allocate (dd2z_C2C ( nsz, 6, 6 ) ); dd2z_C2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fC2C, &
           ad2z_C2C, bd2z_C2C, cd2z_C2C, dd2z_C2C)
 !===============================================================================
@@ -2045,35 +2055,35 @@ contains
 !-------------------------------------------------------------------------------
 ! 1st derivative in z direction with np unknows
 !-------------------------------------------------------------------------------
-    allocate (ad1z_P2P ( nsz ) ); ad1z_P2P(:) = ZERO
-    allocate (bd1z_P2P ( nsz ) ); bd1z_P2P(:) = ZERO
-    allocate (cd1z_P2P ( nsz ) ); cd1z_P2P(:) = ZERO
-    allocate (dd1z_P2P ( nsz ) ); dd1z_P2P(:) = ZERO
+    allocate (ad1z_P2P ( nsz, 6, 6 ) ); ad1z_P2P(:, :, :) = ZERO
+    allocate (bd1z_P2P ( nsz, 6, 6 ) ); bd1z_P2P(:, :, :) = ZERO
+    allocate (cd1z_P2P ( nsz, 6, 6 ) ); cd1z_P2P(:, :, :) = ZERO
+    allocate (dd1z_P2P ( nsz, 6, 6 ) ); dd1z_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
           ad1z_P2P, bd1z_P2P, cd1z_P2P, dd1z_P2P)
 
-    allocate (ad1z_C2P ( nsz ) ); ad1z_C2P(:) = ZERO
-    allocate (bd1z_C2P ( nsz ) ); bd1z_C2P(:) = ZERO
-    allocate (cd1z_C2P ( nsz ) ); cd1z_C2P(:) = ZERO
-    allocate (dd1z_C2P ( nsz ) ); dd1z_C2P(:) = ZERO
+    allocate (ad1z_C2P ( nsz, 6, 6 ) ); ad1z_C2P(:, :, :) = ZERO
+    allocate (bd1z_C2P ( nsz, 6, 6 ) ); bd1z_C2P(:, :, :) = ZERO
+    allocate (cd1z_C2P ( nsz, 6, 6 ) ); cd1z_C2P(:, :, :) = ZERO
+    allocate (dd1z_C2P ( nsz, 6, 6 ) ); dd1z_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
           ad1z_C2P, bd1z_C2P, cd1z_C2P, dd1z_C2P)
 !-------------------------------------------------------------------------------
 ! mid-point interpolation in z direction with np unknows
 !-------------------------------------------------------------------------------
-    allocate (am1z_C2P ( nsz ) ); am1z_C2P(:) = ZERO
-    allocate (bm1z_C2P ( nsz ) ); bm1z_C2P(:) = ZERO
-    allocate (cm1z_C2P ( nsz ) ); cm1z_C2P(:) = ZERO
-    allocate (dm1z_C2P ( nsz ) ); dm1z_C2P(:) = ZERO
+    allocate (am1z_C2P ( nsz, 6, 6 ) ); am1z_C2P(:, :, :) = ZERO
+    allocate (bm1z_C2P ( nsz, 6, 6 ) ); bm1z_C2P(:, :, :) = ZERO
+    allocate (cm1z_C2P ( nsz, 6, 6 ) ); cm1z_C2P(:, :, :) = ZERO
+    allocate (dm1z_C2P ( nsz, 6, 6 ) ); dm1z_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fC2P, &
           am1z_C2P, bm1z_C2P, cm1z_C2P, dm1z_C2P)
 !-------------------------------------------------------------------------------
 ! 2nd order deriviative in z direction with np unknows
 !-------------------------------------------------------------------------------
-    allocate (ad2z_P2P ( nsz ) ); ad2z_P2P(:) = ZERO
-    allocate (bd2z_P2P ( nsz ) ); bd2z_P2P(:) = ZERO
-    allocate (cd2z_P2P ( nsz ) ); cd2z_P2P(:) = ZERO
-    allocate (dd2z_P2P ( nsz ) ); dd2z_P2P(:) = ZERO
+    allocate (ad2z_P2P ( nsz, 6, 6 ) ); ad2z_P2P(:, :, :) = ZERO
+    allocate (bd2z_P2P ( nsz, 6, 6 ) ); bd2z_P2P(:, :, :) = ZERO
+    allocate (cd2z_P2P ( nsz, 6, 6 ) ); cd2z_P2P(:, :, :) = ZERO
+    allocate (dd2z_P2P ( nsz, 6, 6 ) ); dd2z_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fP2P, &
         ad2z_P2P, bd2z_P2P, cd2z_P2P, dd2z_P2P)
 !===============================================================================
@@ -2088,20 +2098,20 @@ contains
 !-------------------------------------------------------------------------------
 ! 1st derivative in x direction with nc unknows
 !-------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad1x_C2C ( nsz ) ); xtdma_lhs(i)%ad1x_C2C(:) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_C2C ( nsz ) ); xtdma_lhs(i)%bd1x_C2C(:) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_C2C ( nsz ) ); xtdma_lhs(i)%cd1x_C2C(:) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_C2C ( nsz ) ); xtdma_lhs(i)%dd1x_C2C(:) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_C2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fC2C, &
             xtdma_lhs(i)%ad1x_C2C, &
             xtdma_lhs(i)%bd1x_C2C, &
             xtdma_lhs(i)%cd1x_C2C, &
             xtdma_lhs(i)%dd1x_C2C)
   
-      allocate (xtdma_lhs(i)%ad1x_P2C ( nsz ) ); xtdma_lhs(i)%ad1x_P2C(:) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_P2C ( nsz ) ); xtdma_lhs(i)%bd1x_P2C(:) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_P2C ( nsz ) ); xtdma_lhs(i)%cd1x_P2C(:) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_P2C ( nsz ) ); xtdma_lhs(i)%dd1x_P2C(:) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_P2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fP2C, &
             xtdma_lhs(i)%ad1x_P2C, &
             xtdma_lhs(i)%bd1x_P2C, &
@@ -2110,10 +2120,10 @@ contains
 !-------------------------------------------------------------------------------
 ! 2nd order deriviative in x direction with nc unknows
 !-------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad2x_C2C ( nsz ) ); xtdma_lhs(i)%ad2x_C2C(:) = ZERO
-      allocate (xtdma_lhs(i)%bd2x_C2C ( nsz ) ); xtdma_lhs(i)%bd2x_C2C(:) = ZERO
-      allocate (xtdma_lhs(i)%cd2x_C2C ( nsz ) ); xtdma_lhs(i)%cd2x_C2C(:) = ZERO
-      allocate (xtdma_lhs(i)%dd2x_C2C ( nsz ) ); xtdma_lhs(i)%dd2x_C2C(:) = ZERO
+      allocate (xtdma_lhs(i)%ad2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd2x_C2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array( nsz, domain(i)%is_periodic(1), d2fC2C, &
           xtdma_lhs(i)%ad2x_C2C, &
           xtdma_lhs(i)%bd2x_C2C, &
@@ -2122,10 +2132,10 @@ contains
 !-------------------------------------------------------------------------------
 ! mid-point interpolation in x direction with nc unknows
 !-------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%am1x_P2C ( nsz ) ); xtdma_lhs(i)%am1x_P2C(:) = ZERO
-      allocate (xtdma_lhs(i)%bm1x_P2C ( nsz ) ); xtdma_lhs(i)%bm1x_P2C(:) = ZERO
-      allocate (xtdma_lhs(i)%cm1x_P2C ( nsz ) ); xtdma_lhs(i)%cm1x_P2C(:) = ZERO
-      allocate (xtdma_lhs(i)%dm1x_P2C ( nsz ) ); xtdma_lhs(i)%dm1x_P2C(:) = ZERO
+      allocate (xtdma_lhs(i)%am1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%am1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bm1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bm1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cm1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cm1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dm1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dm1x_P2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), m1fP2C, &
           xtdma_lhs(i)%am1x_P2C, &
           xtdma_lhs(i)%bm1x_P2C, &
@@ -2138,20 +2148,20 @@ contains
 !-------------------------------------------------------------------------------
 ! 1st derivative in x direction with np unknows
 !-------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad1x_P2P ( nsz ) ); xtdma_lhs(i)%ad1x_P2P(:) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_P2P ( nsz ) ); xtdma_lhs(i)%bd1x_P2P(:) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_P2P ( nsz ) ); xtdma_lhs(i)%cd1x_P2P(:) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_P2P ( nsz ) ); xtdma_lhs(i)%dd1x_P2P(:) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_P2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fP2P, &
             xtdma_lhs(i)%ad1x_P2P, &
             xtdma_lhs(i)%bd1x_P2P, &
             xtdma_lhs(i)%cd1x_P2P, &
             xtdma_lhs(i)%dd1x_P2P)
   
-      allocate (xtdma_lhs(i)%ad1x_C2P ( nsz ) ); xtdma_lhs(i)%ad1x_C2P(:) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_C2P ( nsz ) ); xtdma_lhs(i)%bd1x_C2P(:) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_C2P ( nsz ) ); xtdma_lhs(i)%cd1x_C2P(:) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_C2P ( nsz ) ); xtdma_lhs(i)%dd1x_C2P(:) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_C2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fC2P, &
             xtdma_lhs(i)%ad1x_C2P, &
             xtdma_lhs(i)%bd1x_C2P, &
@@ -2160,10 +2170,10 @@ contains
 !-------------------------------------------------------------------------------
 ! 2nd order deriviative in x direction with np unknows
 !-------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad2x_P2P ( nsz ) ); xtdma_lhs(i)%ad2x_P2P(:) = ZERO
-      allocate (xtdma_lhs(i)%bd2x_P2P ( nsz ) ); xtdma_lhs(i)%bd2x_P2P(:) = ZERO
-      allocate (xtdma_lhs(i)%cd2x_P2P ( nsz ) ); xtdma_lhs(i)%cd2x_P2P(:) = ZERO
-      allocate (xtdma_lhs(i)%dd2x_P2P ( nsz ) ); xtdma_lhs(i)%dd2x_P2P(:) = ZERO
+      allocate (xtdma_lhs(i)%ad2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd2x_P2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array( nsz, domain(i)%is_periodic(1), d2fP2P, &
             xtdma_lhs(i)%ad2x_P2P, &
             xtdma_lhs(i)%bd2x_P2P, &
@@ -2172,10 +2182,10 @@ contains
 !-------------------------------------------------------------------------------
 ! mid-point interpolation in x direction with np unknows
 !-------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%am1x_C2P ( nsz ) ); xtdma_lhs(i)%am1x_C2P(:) = ZERO
-      allocate (xtdma_lhs(i)%bm1x_C2P ( nsz ) ); xtdma_lhs(i)%bm1x_C2P(:) = ZERO
-      allocate (xtdma_lhs(i)%cm1x_C2P ( nsz ) ); xtdma_lhs(i)%cm1x_C2P(:) = ZERO
-      allocate (xtdma_lhs(i)%dm1x_C2P ( nsz ) ); xtdma_lhs(i)%dm1x_C2P(:) = ZERO
+      allocate (xtdma_lhs(i)%am1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%am1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bm1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bm1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cm1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cm1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dm1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dm1x_C2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), m1fC2P, &
           xtdma_lhs(i)%am1x_C2P, &
           xtdma_lhs(i)%bm1x_C2P, &
@@ -2232,7 +2242,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 3, 5)
+    real(WP), intent(in ) :: coeff(5, 3, 6)
     integer,  intent(in ) :: ibc(2)
 
     integer :: i, j , m, l, k
@@ -2256,7 +2266,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       !im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -2279,7 +2290,7 @@ contains
           fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(k)      + &
                   coeff( l, 2, IBC_INTRPL ) * fi(k + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(k + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) + fi(i) )
         else
         end if
@@ -2291,7 +2302,7 @@ contains
 !-------------------------------------------------------------------------------
     l = 3
     do i = 3, n - 2
-      im2 = i - 2
+      !im2 = i - 2
       im1 = i - 1
       ip1 = i + 1
       ip2 = i + 2
@@ -2352,7 +2363,7 @@ contains
     integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
     integer,            intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 5)
+    real(WP),           intent(in ) :: coeff(5, 3, 6)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
 
@@ -2377,7 +2388,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -2397,7 +2409,7 @@ contains
         if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
         if(i == 1 .or. i == n) then
           fo(i) = fbc(m)
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i) + fi(im1) )
         else
         end if
@@ -2408,7 +2420,7 @@ contains
           fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)      + &
                   coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i) + fi(im1) )
         else
         end if
@@ -2423,7 +2435,7 @@ contains
       im2 = i - 2
       im1 = i - 1
       ip1 = i + 1
-      ip2 = i + 2
+      !ip2 = i + 2
       fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i  ) + fi(im1) ) + &
               coeff( l, 2, IBC_PERIODIC ) * ( fi(ip1) + fi(im2) )
     end do
@@ -2484,7 +2496,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 3, 5)
+    real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
@@ -2511,7 +2523,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -2534,7 +2547,7 @@ contains
                   coeff( l, 2, ibc(m) ) * fi(i)                 + &
                   coeff( l, 3, ibc(m) ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 4, ibc(m) ) * fi(i + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
         else
         end if
@@ -2543,7 +2556,7 @@ contains
           fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)                 + &
                   coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - fi(im1) )
         else
         end if
@@ -2620,12 +2633,12 @@ contains
     integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
     integer,            intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 5)
+    real(WP),           intent(in ) :: coeff(5, 3, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
 
-    integer :: m, l , i
+    integer :: m, l, i, j
     integer :: im1, im2, ip1, ip2
 
     fo(:) = ZERO
@@ -2646,7 +2659,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -2666,7 +2680,7 @@ contains
         if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
         if(i == 1 .or. i == n) then
           fo(i) = fbc(m)
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
         else
         end if
@@ -2675,7 +2689,7 @@ contains
           fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)                 + &
                   coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - fi(im1) )
         else
         end if
@@ -2753,7 +2767,7 @@ contains
     integer,            intent(in ) :: n ! unknow numbers
     real(WP),           intent(out) :: fo(n)
     integer,            intent(in ) :: inbr(4, 4)
-    real(WP),           intent(in ) :: coeff(5, 3, 5)
+    real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
@@ -2780,7 +2794,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -2800,7 +2815,7 @@ contains
         if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
         if(i == 1 .or. i == n) then
           fo(i) = fbc(m)
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i) - fi(im1) )
         else
         end if
@@ -2813,7 +2828,7 @@ contains
                   coeff( l, 2, ibc(m) ) * fi(k)                 + &
                   coeff( l, 3, ibc(m) ) * fi(k + SIGN(1, 1-m))  + &
                   coeff( l, 4, ibc(m) ) * fi(k + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i) - fi(im1) )
         else
         end if
@@ -2824,7 +2839,7 @@ contains
           fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(k)                 + &
                   coeff( l, 2, IBC_INTRPL ) * fi(k + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(k + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i) - fi(im1) )
         else
         end if
@@ -2839,7 +2854,7 @@ contains
       im2 = i - 2
       im1 = i - 1
       ip1 = i + 1
-      ip2 = i + 2
+      !ip2 = i + 2
       fo(i) = coeff( l, 1, ibc(1) ) * ( fi(i)   - fi(im1) ) + &
               coeff( l, 2, ibc(1) ) * ( fi(ip1) - fi(im2) )
     end do
@@ -2894,11 +2909,11 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 3, 5)
+    real(WP), intent(in ) :: coeff(5, 3, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
 
-    integer :: i, j, m, l
+    integer :: i, j, m, l, k
     integer :: im1, ip1, ip2
 
     fo(:) = ZERO
@@ -2920,7 +2935,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       !im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -2943,7 +2959,7 @@ contains
           fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(k)                 + &
                   coeff( l, 2, IBC_INTRPL ) * fi(k + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(k + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - fi(i) )
         else
         end if
@@ -2955,7 +2971,7 @@ contains
 !-------------------------------------------------------------------------------
     l = 3
     do i = 3, n - 2
-      im2 = i - 2
+      !im2 = i - 2
       im1 = i - 1
       ip1 = i + 1
       ip2 = i + 2
@@ -3006,7 +3022,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 4, 4)
+    real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
     real(WP), intent(in ), optional :: fbc(2)
@@ -3032,7 +3048,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -3057,7 +3074,7 @@ contains
                   coeff( l, 2, ibc(m) ) * fi(i)                 + &
                   coeff( l, 3, ibc(m) ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 4, ibc(m) ) * fi(i + SIGN(2, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
         else
         end if
@@ -3067,7 +3084,7 @@ contains
                   coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m))  + &
                   coeff( l, 4, IBC_INTRPL ) * fi(i + SIGN(3, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
         else
         end if
@@ -3130,7 +3147,7 @@ contains
     integer,  intent(in ) :: n ! unknow numbers
     real(WP), intent(out) :: fo(n)
     integer,  intent(in ) :: inbr(4, 4)
-    real(WP), intent(in ) :: coeff(5, 4, 4)
+    real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
 
@@ -3156,7 +3173,8 @@ contains
         m = 2
         l = 5
         i = n
-      else if
+      else
+      end if
       im2 = inbr(j, 1)
       im1 = inbr(j, 2)
       ip1 = inbr(j, 3)
@@ -3180,7 +3198,7 @@ contains
                   coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
                   coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m))  + &
                   coeff( l, 4, IBC_INTRPL ) * fi(i + SIGN(3, 1-m)) 
-        else if (i == 2 .or. i = n - 1) then
+        else if (i == 2 .or. i == n - 1) then
           fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
         else
         end if
@@ -3247,10 +3265,10 @@ contains
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:,:), m1rC2P(:, :, :), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%am1x_C2P(:), &
-          xtdma_lhs(ixsub)%bm1x_C2P(:), &
-          xtdma_lhs(ixsub)%cm1x_C2P(:), &
-          xtdma_lhs(ixsub)%dm1x_C2P(:), &
+          xtdma_lhs(ixsub)%am1x_C2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bm1x_C2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cm1x_C2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dm1x_C2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3274,10 +3292,10 @@ contains
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:,:), m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%am1x_P2C(:), &
-          xtdma_lhs(ixsub)%bm1x_P2C(:), &
-          xtdma_lhs(ixsub)%cm1x_P2C(:), &
-          xtdma_lhs(ixsub)%dm1x_P2C(:), &
+          xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bm1x_P2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cm1x_P2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dm1x_P2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3301,10 +3319,10 @@ contains
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:,:), m1rC2P(:, :, :), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          am1y_C2P(:), &
-          bm1y_C2P(:), &
-          cm1y_C2P(:), &
-          dm1y_C2P(:), &
+          am1y_C2P(:, ibc(1), ibc(2)), &
+          bm1y_C2P(:, ibc(1), ibc(2)), &
+          cm1y_C2P(:, ibc(1), ibc(2)), &
+          dm1y_C2P(:, ibc(1), ibc(2)), &
           nsz)
 ! stretching? No stretching conversion
     return
@@ -3327,10 +3345,10 @@ contains
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), m1rP2C(:, :, :), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          am1y_P2C(:), &
-          bm1y_P2C(:), &
-          cm1y_P2C(:), &
-          dm1y_P2C(:), &
+          am1y_P2C(:, ibc(1), ibc(2)), &
+          bm1y_P2C(:, ibc(1), ibc(2)), &
+          cm1y_P2C(:, ibc(1), ibc(2)), &
+          dm1y_P2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3354,10 +3372,10 @@ contains
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), m1rC2P(:, :, :), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          am1z_C2P(:), &
-          bm1z_C2P(:), &
-          cm1z_C2P(:), &
-          dm1z_C2P(:), &
+          am1z_C2P(:, ibc(1), ibc(2)), &
+          bm1z_C2P(:, ibc(1), ibc(2)), &
+          cm1z_C2P(:, ibc(1), ibc(2)), &
+          dm1z_C2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3380,10 +3398,10 @@ contains
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:, :), m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          am1z_P2C(:), &
-          bm1z_P2C(:), &
-          cm1z_P2C(:), &
-          dm1z_P2C(:), &
+          am1z_P2C(:, ibc(1), ibc(2)), &
+          bm1z_P2C(:, ibc(1), ibc(2)), &
+          cm1z_P2C(:, ibc(1), ibc(2)), &
+          dm1z_P2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3407,7 +3425,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !===============================================================================
-  subroutine Get_x_1st_derivative_C2C_1D (fi, fo, dm, ibc)
+  subroutine Get_x_1st_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3416,6 +3434,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
+    real(WP),           intent(in   ) :: fbc(2)
     integer :: ixsub, nsz
 
     ixsub = dm%idom
@@ -3425,10 +3444,10 @@ contains
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:, :), d1rC2C(:, :, :), dm%h1r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_C2C(:), &
-          xtdma_lhs(ixsub)%bd1x_C2C(:), &
-          xtdma_lhs(ixsub)%cd1x_C2C(:), &
-          xtdma_lhs(ixsub)%dd1x_C2C(:), &
+          xtdma_lhs(ixsub)%ad1x_C2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bd1x_C2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cd1x_C2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dd1x_C2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3454,10 +3473,10 @@ contains
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:, :), d1rP2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_P2P(:), &
-          xtdma_lhs(ixsub)%bd1x_P2P(:), &
-          xtdma_lhs(ixsub)%cd1x_P2P(:), &
-          xtdma_lhs(ixsub)%dd1x_P2P(:), &
+          xtdma_lhs(ixsub)%ad1x_P2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bd1x_P2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cd1x_P2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dd1x_P2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3484,10 +3503,10 @@ contains
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:, :), d1rC2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_C2P(:), &
-          xtdma_lhs(ixsub)%bd1x_C2P(:), &
-          xtdma_lhs(ixsub)%cd1x_C2P(:), &
-          xtdma_lhs(ixsub)%dd1x_C2P(:), &
+          xtdma_lhs(ixsub)%ad1x_C2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bd1x_C2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cd1x_C2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dd1x_C2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3512,10 +3531,10 @@ contains
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:, :), d1rP2C(:, :, :), dm%h1r(1), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_P2C(:), &
-          xtdma_lhs(ixsub)%bd1x_P2C(:), &
-          xtdma_lhs(ixsub)%cd1x_P2C(:), &
-          xtdma_lhs(ixsub)%dd1x_P2C(:), &
+          xtdma_lhs(ixsub)%ad1x_P2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bd1x_P2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cd1x_P2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dd1x_P2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3523,7 +3542,7 @@ contains
 !===============================================================================
 ! y - Get_1st_derivative_1D
 !===============================================================================
-  subroutine Get_y_1st_derivative_C2C_1D (fi, fo, dm, ibc)
+  subroutine Get_y_1st_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3532,6 +3551,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
+    real(WP),           intent(in   ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3540,10 +3560,10 @@ contains
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:, :), d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad1y_C2C(:), &
-          bd1y_C2C(:), &
-          cd1y_C2C(:), &
-          dd1y_C2C(:), &
+          ad1y_C2C(:, ibc(1), ibc(2)), &
+          bd1y_C2C(:, ibc(1), ibc(2)), &
+          cd1y_C2C(:, ibc(1), ibc(2)), &
+          dd1y_C2C(:, ibc(1), ibc(2)), &
           nsz)
 
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
@@ -3569,10 +3589,10 @@ contains
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad1y_P2P(:), &
-          bd1y_P2P(:), &
-          cd1y_P2P(:), &
-          dd1y_P2P(:), &
+          ad1y_P2P(:, ibc(1), ibc(2)), &
+          bd1y_P2P(:, ibc(1), ibc(2)), &
+          cd1y_P2P(:, ibc(1), ibc(2)), &
+          dd1y_P2P(:, ibc(1), ibc(2)), &
           nsz)
     
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
@@ -3598,10 +3618,10 @@ contains
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:, :), d1rC2P(:, :, :), dm%h1r(2), ibc(:), fbc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad1y_C2P(:), &
-          bd1y_C2P(:), &
-          cd1y_C2P(:), &
-          dd1y_C2P(:), &
+          ad1y_C2P(:, ibc(1), ibc(2)), &
+          bd1y_C2P(:, ibc(1), ibc(2)), &
+          cd1y_C2P(:, ibc(1), ibc(2)), &
+          dd1y_C2P(:, ibc(1), ibc(2)), &
           nsz)
   
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
@@ -3626,10 +3646,10 @@ contains
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), d1rP2C(:, :, :), dm%h1r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad1y_P2C(:), &
-          bd1y_P2C(:), &
-          cd1y_P2C(:), &
-          dd1y_P2C(:), &
+          ad1y_P2C(:, ibc(1), ibc(2)), &
+          bd1y_P2C(:, ibc(1), ibc(2)), &
+          cd1y_P2C(:, ibc(1), ibc(2)), &
+          dd1y_P2C(:, ibc(1), ibc(2)), &
           nsz)
 
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
@@ -3639,7 +3659,7 @@ contains
 !===============================================================================
 ! z - Get_1st_derivative_1D
 !===============================================================================
-  subroutine Get_z_1st_derivative_C2C_1D (fi, fo, dm, ibc)
+  subroutine Get_z_1st_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3648,6 +3668,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
+    real(WP),           intent(in   ) :: fbc(2)
 
     integer :: nsz
 
@@ -3657,10 +3678,10 @@ contains
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), d1rC2C(:, :, :), dm%h1r(3), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          ad1z_C2C(:), &
-          bd1z_C2C(:), &
-          cd1z_C2C(:), &
-          dd1z_C2C(:), &
+          ad1z_C2C(:, ibc(1), ibc(2)), &
+          bd1z_C2C(:, ibc(1), ibc(2)), &
+          cd1z_C2C(:, ibc(1), ibc(2)), &
+          dd1z_C2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3684,10 +3705,10 @@ contains
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), d1rP2P(:, :, :), dm%h1r(3), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          ad1z_P2P(:), &
-          bd1z_P2P(:), &
-          cd1z_P2P(:), &
-          dd1z_P2P(:), &
+          ad1z_P2P(:, ibc(1), ibc(2)), &
+          bd1z_P2P(:, ibc(1), ibc(2)), &
+          cd1z_P2P(:, ibc(1), ibc(2)), &
+          dd1z_P2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3711,10 +3732,10 @@ contains
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), d1rC2P(:, :, :), dm%h1r(3), ibc(:), fbc(:) )
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          ad1z_C2P(:), &
-          bd1z_C2P(:), &
-          cd1z_C2P(:), &
-          dd1z_C2P(:), &
+          ad1z_C2P(:, ibc(1), ibc(2)), &
+          bd1z_C2P(:, ibc(1), ibc(2)), &
+          cd1z_C2P(:, ibc(1), ibc(2)), &
+          dd1z_C2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3737,10 +3758,10 @@ contains
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), d1rP2C(:, :, :), dm%h1r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          ad1z_P2C(:), &
-          bd1z_P2C(:), &
-          cd1z_P2C(:), &
-          dd1z_P2C(:), &
+          ad1z_P2C(:, ibc(1), ibc(2)), &
+          bd1z_P2C(:, ibc(1), ibc(2)), &
+          cd1z_P2C(:, ibc(1), ibc(2)), &
+          dd1z_P2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3764,7 +3785,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !===============================================================================
-  subroutine Get_x_2nd_derivative_C2C_1D (fi, fo, dm, ibc)
+  subroutine Get_x_2nd_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3773,6 +3794,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
+    real(WP),           intent(in   ) :: fbc(2)
     integer :: nsz, ixsub
 
     nsz = size(fo)
@@ -3782,10 +3804,10 @@ contains
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%icnbr(:,:), d2rC2C(:, :, :), dm%h2r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad2x_C2C(:), &
-          xtdma_lhs(ixsub)%bd2x_C2C(:), &
-          xtdma_lhs(ixsub)%cd2x_C2C(:), &
-          xtdma_lhs(ixsub)%dd2x_C2C(:), &
+          xtdma_lhs(ixsub)%ad2x_C2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bd2x_C2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cd2x_C2C(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dd2x_C2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3809,10 +3831,10 @@ contains
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:,:), d2rP2P(:, :, :), dm%h2r(1), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad2x_P2P(:), &
-          xtdma_lhs(ixsub)%bd2x_P2P(:), &
-          xtdma_lhs(ixsub)%cd2x_P2P(:), &
-          xtdma_lhs(ixsub)%dd2x_P2P(:), &
+          xtdma_lhs(ixsub)%ad2x_P2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%bd2x_P2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%cd2x_P2P(:, ibc(1), ibc(2)), &
+          xtdma_lhs(ixsub)%dd2x_P2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3820,7 +3842,7 @@ contains
 !===============================================================================
 ! y - Get_2nd_derivative_1D
 !===============================================================================
-  subroutine Get_y_2nd_derivative_C2C_1D (fi, fo, dm, ibc)
+  subroutine Get_y_2nd_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3829,6 +3851,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
+    real(WP),           intent(in   ) :: fbc(2)
     integer :: nsz
     real(WP), allocatable :: fo1(:)
 
@@ -3838,20 +3861,20 @@ contains
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%jcnbr(:,:), d2rC2C(:, :, :), dm%h2r(2), ibc(:), fbc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad2y_C2C(:), &
-          bd2y_C2C(:), &
-          cd2y_C2C(:), &
-          dd2y_C2C(:), &
+          ad2y_C2C(:, ibc(1), ibc(2)), &
+          bd2y_C2C(:, ibc(1), ibc(2)), &
+          cd2y_C2C(:, ibc(1), ibc(2)), &
+          dd2y_C2C(:, ibc(1), ibc(2)), &
           nsz)
 
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
       call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo1(:), nsz, dm%jcnbr(:,:), d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
-           ad1y_C2C(:), &
-           bd1y_C2C(:), &
-           cd1y_C2C(:), &
-           dd1y_C2C(:), &
+           ad1y_C2C(:, ibc(1), ibc(2)), &
+           bd1y_C2C(:, ibc(1), ibc(2)), &
+           cd1y_C2C(:, ibc(1), ibc(2)), &
+           dd1y_C2C(:, ibc(1), ibc(2)), &
            nsz)
       fo(:) = fo(:) * dm%yMappingcc(:, 2) + fo1(:) * dm%yMappingcc(:, 3)
       deallocate (fo1)
@@ -3880,10 +3903,10 @@ contains
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:,:), d2rP2P(:, :, :), dm%h2r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad2y_P2P(:), &
-          bd2y_P2P(:), &
-          cd2y_P2P(:), &
-          dd2y_P2P(:), &
+          ad2y_P2P(:, ibc(1), ibc(2)), &
+          bd2y_P2P(:, ibc(1), ibc(2)), &
+          cd2y_P2P(:, ibc(1), ibc(2)), &
+          dd2y_P2P(:, ibc(1), ibc(2)), &
           nsz)
 
     if(dm%is_stretching(2)) then 
@@ -3892,10 +3915,10 @@ contains
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, dm%jpnbr(:,:), d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
 
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
-           ad1y_P2P(:), &
-           bd1y_P2P(:), &
-           cd1y_P2P(:), &
-           dd1y_P2P(:), &
+           ad1y_P2P(:, ibc(1), ibc(2)), &
+           bd1y_P2P(:, ibc(1), ibc(2)), &
+           cd1y_P2P(:, ibc(1), ibc(2)), &
+           dd1y_P2P(:, ibc(1), ibc(2)), &
            nsz)
       fo(:) = fo(:) * dm%yMappingpt(:, 2) + fo1(:) * dm%yMappingpt(:, 3)
       deallocate (fo1)
@@ -3906,7 +3929,7 @@ contains
 !===============================================================================
 ! z - Get_2nd_derivative_1D
 !===============================================================================
-  subroutine Get_z_2nd_derivative_C2C_1D (fi, fo, dm, ibc)
+  subroutine Get_z_2nd_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3915,6 +3938,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
+    real(WP),           intent(in   ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3923,10 +3947,10 @@ contains
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%kcnbr(:,:), d2rC2C(:, :, :), dm%h2r(3), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          ad2z_C2C(:), &
-          bd2z_C2C(:), &
-          cd2z_C2C(:), &
-          dd2z_C2C(:), &
+          ad2z_C2C(:, ibc(1), ibc(2)), &
+          bd2z_C2C(:, ibc(1), ibc(2)), &
+          cd2z_C2C(:, ibc(1), ibc(2)), &
+          dd2z_C2C(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -3949,10 +3973,10 @@ contains
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:,:), d2rP2P(:, :, :), dm%h2r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          ad2z_P2P(:), &
-          bd2z_P2P(:), &
-          cd2z_P2P(:), &
-          dd2z_P2P(:), &
+          ad2z_P2P(:, ibc(1), ibc(2)), &
+          bd2z_P2P(:, ibc(1), ibc(2)), &
+          cd2z_P2P(:, ibc(1), ibc(2)), &
+          dd2z_P2P(:, ibc(1), ibc(2)), &
           nsz)
 
     return
@@ -4169,7 +4193,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !===============================================================================
-  subroutine Get_x_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_x_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4178,6 +4202,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
+    real(WP),           intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
@@ -4189,7 +4214,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_1st_derivative_C2C_1D(fi, fo, dm, ibc)
+        call Get_x_1st_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4290,7 +4315,7 @@ contains
     return 
   end subroutine Get_x_1st_derivative_P2C_3D
 !===============================================================================
-  subroutine Get_y_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_y_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4299,6 +4324,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
+    real(WP),           intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -4308,7 +4334,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_1st_derivative_C2C_1D(fi, fo, dm, ibc)
+        call Get_y_1st_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -4405,7 +4431,7 @@ contains
     return 
   end subroutine Get_y_1st_derivative_P2C_3D
 !===============================================================================
-  subroutine Get_z_1st_derivative_C2C_3D (fi3d, fo3d, dm, ibc)
+  subroutine Get_z_1st_derivative_C2C_3D (fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4414,6 +4440,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
+    real(WP),           intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer :: j, i
@@ -4424,7 +4451,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_1st_derivative_C2C_1D(fi, fo, dm, ibc)
+        call Get_z_1st_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -4542,7 +4569,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !===============================================================================
-  subroutine Get_x_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_x_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4551,6 +4578,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
+    real(WP),           intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
@@ -4562,7 +4590,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_2nd_derivative_C2C_1D(fi, fo, dm, ibc)
+        call Get_x_2nd_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4598,7 +4626,7 @@ contains
     return
   end subroutine Get_x_2nd_derivative_P2P_3D
 !===============================================================================
-  subroutine Get_y_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_y_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4607,6 +4635,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
+    real(WP),           intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -4618,7 +4647,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_2nd_derivative_C2C_1D(fi, fo, dm, ibc)
+        call Get_y_2nd_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -4659,7 +4688,7 @@ contains
     return
   end subroutine Get_y_2nd_derivative_P2P_3D
 !===============================================================================
-  subroutine Get_z_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_z_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4668,6 +4697,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
+    real(WP),           intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
@@ -4679,7 +4709,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_2nd_derivative_C2C_1D(fi, fo, dm, ibc)
+        call Get_z_2nd_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
     end do

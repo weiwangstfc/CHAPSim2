@@ -7,7 +7,8 @@ module solver_tools_mod
   public  :: Check_cfl_convection
   public  :: Check_cfl_diffusion
 
-  public  :: Update_RePrGr
+  public  :: Update_Re
+  public  :: Update_PrGr
   public  :: Calculate_xz_mean
   public  :: Calculate_xzmean_perturbation
   public  :: Check_maximum_velocity
@@ -32,9 +33,7 @@ contains
     implicit none
     integer,     intent(in   ) :: iter  
     type(t_flow),   intent(inout) :: fl
-    
 
-    real(WP) :: u0, rtmp
   !-------------------------------------------------------------------------------
   !  1/Re                                   
   !-------------------------------------------------------------------------------
@@ -48,7 +47,7 @@ contains
 
   subroutine Update_PrGr(fl, tm)
     use parameters_constant_mod
-    use thermo_info_mod, only : tpRef0
+    use thermo_info_mod
     use udf_type_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
@@ -104,15 +103,17 @@ contains
   subroutine Calculate_xz_mean(var, dtmp, varxz_work)
     use mpi_mod
     use udf_type_mod
+    use parameters_constant_mod
     implicit none
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),       intent(inout) :: varxz_work(:)
 
     real(wp) :: varxz( size(varxz_work) )
-    integer :: jj, kk, ii, ny, i, j, k
+    integer :: jj, i, j, k
     integer :: ist, ien, jst, jen, kst, ken
     integer :: xst(3), xen(3), xsz(3)
+    integer :: nk, ni
 !-------------------------------------------------------------------------------
 !   Default X-pencil
 !-------------------------------------------------------------------------------
@@ -259,6 +260,9 @@ contains
     integer :: i, j, k
     type(DECOMP_INFO) :: dtmp
 
+    integer  :: ibc(2)
+    real(WP) :: fbc(2)
+
 !-------------------------------------------------------------------------------
 ! x-pencil : u1 -> g1
 !-------------------------------------------------------------------------------
@@ -288,7 +292,7 @@ contains
       do i = 1, dtmp%ysz(1)
         fiy(:) = d_ypencil(i, :, k)
         call Get_y_midp_C2P_1D (fiy, foy, dm, ibc, fbc)
-        duy_ypencil(i, :, k) = foy(:) * uy_ypencil
+        duy_ypencil(i, :, k) = foy(:) * uy_ypencil(i, :, k)
       end do
     end do
 !-------------------------------------------------------------------------------
@@ -334,13 +338,13 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]         
 !===============================================================================
-  subroutine Check_cfl_diffusion(x2r, rre)
-    use input_general_mod, only : dt
-    use parameters_constant_mod, only : TWO, ONE
-    use precision_mod
+  subroutine Check_cfl_diffusion(x2r, rre, dt)
+    use parameters_constant_mod
+    use iso_fortran_env
     implicit none
     real(WP), intent(in) :: x2r(3)
     real(WP), intent(in) :: rre
+    real(WP), intent(in) :: dt
     real(WP) :: cfl_diff
 
     ! check, ours is two times of the one in xcompact3d.
@@ -408,7 +412,7 @@ contains
 !-------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !-------------------------------------------------------------------------------
-    udx_pencil(:, :, :) = ZERO
+    udx_xpencil(:, :, :) = ZERO
 
     dtmp = dm%dpcc
     do k = 1, dtmp%xsz(3)
@@ -495,9 +499,10 @@ contains
   subroutine Get_volumetric_average_3d(is_ynp, ibc, fbc, dm, dtmp, var, fo_work)
     use mpi_mod
     use udf_type_mod
+    use parameters_constant_mod
     use operations
     implicit none
-    type(t_domainin),  intent(in) :: dm
+    type(t_domain),  intent(in) :: dm
     logical,           intent(in) :: is_ynp
     integer,           intent(in) :: ibc(2)
     real(WP),          intent(in) :: fbc(2)

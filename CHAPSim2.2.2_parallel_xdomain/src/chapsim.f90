@@ -137,7 +137,7 @@ subroutine Solve_eqs_iteration
       if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
         is_flow = .true.
         flow(i)%time = flow(i)%time + domain(i)%dt
-        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre)
+        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
         call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
 !===============================================================================

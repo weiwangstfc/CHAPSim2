@@ -20,30 +20,30 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
 
-      if( dm%ibcx(5, i) = IBC_DIRICHLET ) then
+      if( dm%ibcx(5, i) == IBC_DIRICHLET ) then
         dm%fbcx(5, i) = dm%fbcx(5, i) / th%t0Ref ! dimensional T --> undimensional T
-        tpbcx(i)%t = dm%fbcx(5, i)
-        call tpbcx(i)%Refresh_thermal_properties_from_T_undim
+        th%tpbcx(i)%t = dm%fbcx(5, i)
+        call th%tpbcx(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcx(5, i) = IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
         dm%fbcx(5, i) = dm%fbcx(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
       else
       end if
 
-      if( dm%ibcy(5, i) = IBC_DIRICHLET ) then
+      if( dm%ibcy(5, i) == IBC_DIRICHLET ) then
         dm%fbcy(5, i) = dm%fbcy(5, i) / th%t0Ref ! dimensional T --> undimensional T
-        tpbcy(i)%t = dm%fbcy(5, i)
-        call tpbcy(i)%Refresh_thermal_properties_from_T_undim
+        th%tpbcy(i)%t = dm%fbcy(5, i)
+        call th%tpbcy(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcy(5, i) = IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
         dm%fbcy(5, i) = dm%fbcy(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
       else
       end if
 
-      if( dm%ibcz(5, i) = IBC_DIRICHLET ) then
+      if( dm%ibcz(5, i) == IBC_DIRICHLET ) then
         dm%fbcz(5, i) = dm%fbcz(5, i) / th%t0Ref ! dimensional T --> undimensional T
-        tpbcz(i)%t = dm%fbcz(5, i)
-        call tpbcz(i)%Refresh_thermal_properties_from_T_undim
+        th%tpbcz(i)%t = dm%fbcz(5, i)
+        call th%tpbcz(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcz(5, i) = IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
         dm%fbcz(5, i) = dm%fbcz(5, i) * th%lenRef / tpRef0%k / tpRef0%t 

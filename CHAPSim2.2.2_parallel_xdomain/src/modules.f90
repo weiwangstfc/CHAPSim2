@@ -59,9 +59,14 @@ module parameters_constant_mod
   real(WP), parameter :: TWENTYSIX   = 26.0_WP
   real(WP), parameter :: TWENTYSEVEN = 27.0_WP
 
+  real(WP), parameter :: THIRTYTWO   = 32.0_WP
   real(WP), parameter :: THIRTYFIVE  = 35.0_WP
   real(WP), parameter :: THIRTYSIX   = 36.0_WP
   real(WP), parameter :: THIRTYSEVEN = 37.0_WP
+
+  real(WP), parameter :: FOURTYFIVE  = 45.0_WP
+
+  real(WP), parameter :: FIFTY       = 50.0_WP
 
   real(WP), parameter :: SIXTY       = 60.0_WP
   real(WP), parameter :: SIXTYTWO    = 62.0_WP
