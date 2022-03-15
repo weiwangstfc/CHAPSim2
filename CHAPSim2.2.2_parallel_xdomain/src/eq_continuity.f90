@@ -21,6 +21,7 @@ contains
 !_______________________________________________________________________________
   subroutine Calculate_drhodt(dm, dDens, dDensm1, dDensm2, drhodt)
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP), dimension(:, :, :), intent ( in  ) :: dDens, dDensm1, dDensm2
@@ -72,6 +73,7 @@ contains
 !_______________________________________________________________________________
   subroutine Get_divergence_vel(ux, uy, uz, div, dm)
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
 
     type(t_domain),               intent (in   ) :: dm
@@ -131,11 +133,11 @@ contains
 !> \param[in]     d            domain
 !_______________________________________________________________________________
   subroutine Check_mass_conservation(fl, dm)
-    use precision_mod,           only : WP
-    use udf_type_mod,            only : t_domain, t_flow
-    use input_general_mod,       only : ithermo
-    use parameters_constant_mod, only : ZERO
-    use math_mod,                only : abs_wp
+    use precision_mod
+    use udf_type_mod
+    use input_general_mod    
+    use parameters_constant_mod
+    use math_mod                
     use mpi_mod
     implicit none
 
@@ -157,16 +159,16 @@ contains
 !-------------------------------------------------------------------------------
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
-    if (ithermo == 1) then
+    if (dm%ithermo == 1) then
       call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
     end if
 !-------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
-    if (ithermo == 1) then
-      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, d)
+    if (dm%ithermo == 1) then
+      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
     else
-      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, d)
+      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
   
     divmax = MAXVAL( abs_wp( div ) )
@@ -187,6 +189,7 @@ contains
 !===============================================================================
   subroutine Calculate_continuity_constrains(fl, dm, isub)
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
 
     type(t_domain), intent( in    ) :: dm

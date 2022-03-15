@@ -38,6 +38,7 @@ contains
   subroutine Compute_energy_rhs(fl, tm, dm, isub)
     use operations
     use udf_type_mod
+    use thermo_info_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
@@ -61,10 +62,15 @@ contains
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: hEnth_zccp_zpencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: Ttemp_ypencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: ene_rhs_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: kCond_ycpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: kCond_zccp_zpencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: Ttemp_zpencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: kCond_zpencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_zpencil
-
+    
+    real(WP) :: fbc(2)
+    integer  :: ibc(2)
+    integer  :: i
 !===============================================================================
 !   preparation
 !===============================================================================
@@ -254,7 +260,7 @@ contains
     do k = dm%dccc%xst(3), dm%dccc%xen(3)
       do j = dm%dccc%xst(2), dm%dccc%xen(2)
         do i = dm%dccc%xst(1), dm%dccc%xen(1)
-          tp%dh = tm%dh
+          tp%dh = tm%dh(i, j, k)
           call tp%Refresh_thermal_properties_from_DH()
           tm%hEnth(i, j, k) = tp%h
           tm%tTemp(i, j, k) = tp%T
@@ -270,12 +276,12 @@ contains
 !===============================================================================
   subroutine Solve_energy_eq(fl, tm, dm, isub)
     use udf_type_mod
-    
+    use thermo_info_mod 
     implicit none
-    type(t_domain), intent(in) :: dm
-    type(t_flow),   intent(in) :: fl
+    type(t_domain), intent(in)    :: dm
+    type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
-    integer,        intent(in) :: isub
+    integer,        intent(in)    :: isub
 
 !-------------------------------------------------------------------------------
 !   calculate rhs of energy equation

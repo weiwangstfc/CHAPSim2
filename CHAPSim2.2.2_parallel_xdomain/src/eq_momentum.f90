@@ -24,6 +24,7 @@ contains
 !===============================================================================
   subroutine Calculate_xmomentum_driven_source(isub, idriven, drvf, dm, rhs)
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
 
     type(t_domain), intent(in) :: dm
@@ -123,6 +124,7 @@ contains
 !_______________________________________________________________________________
   subroutine Compute_momentum_rhs(fl, dm, isub)
     use parameters_constant_mod
+    use udf_type_mod
     use operations
     implicit none
 
@@ -139,11 +141,11 @@ contains
     real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: qy_zpencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_zpencil
 
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dcpc%ysz(2), dm%dpcc%ysz(3) ) :: qx_yppc_ypencil ! <ux>^y at (xp, yp, zc)
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dccp%zsz(3) ) :: qx_zpcp_zpencil ! <ux>^z at (xp, yc, zp)
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dccp%zsz(3) ) :: qy_zcpp_zpencil ! <uy>^z at (xc, yp, zp)
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: qz_xpcp         ! <uz>^x at (xp, yc, zp) 
-    real(WP), dimension( dm%dccp%ysz(1), dm%dcpc%ysz(2), dm%dccp%ysz(3) ) :: qz_ycpp_ypencil ! <uz>^y at (xc, yp, zp)
+    real(WP), dimension( dm%dpcc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qx_yppc_ypencil ! <ux>^y at (xp, yp, zc)
+    real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qx_zpcp_zpencil ! <ux>^z at (xp, yc, zp)
+    real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: qy_zcpp_zpencil ! <uy>^z at (xc, yp, zp)
+    real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qz_xpcp         ! <uz>^x at (xp, yc, zp) 
+    real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qz_ycpp_ypencil ! <uz>^y at (xc, yp, zp)
     
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: pres_ypencil ! p
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: pres_zpencil ! p
@@ -156,7 +158,7 @@ contains
     real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: my_rhs_zpencil ! 
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_zpencil ! 
  
-    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: mx_rhs_implicit ! 
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: mx_rhs_implicit ! 
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: my_rhs_implicit_ypencil ! 
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_implicit_zpencil ! 
 
@@ -172,14 +174,14 @@ contains
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil !
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil ! 
 
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dccp%ysz(3) ) :: apcp_ypencil ! 
+    real(WP), dimension( dm%dpcp%ysz(1), dm%dpcp%ysz(2), dm%dccp%ysz(3) ) :: apcp_ypencil ! 
     
 !-------------------------------------------------------------------------------
 ! thermal == 0 only
 !-------------------------------------------------------------------------------
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dccp%xsz(3) ) :: qx_zpcp ! <ux>^z at (xp, yc, zp)
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dcpc%xsz(2), dm%dpcc%xsz(3) ) :: qx_yppc ! <ux>^y at (xp, yp, zc)
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: qy_xppc ! <uy>^x at (xp, yp, zc)
+    real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qx_zpcp ! <ux>^z at (xp, yc, zp)
+    real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qx_yppc ! <ux>^y at (xp, yp, zc)
+    real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qy_xppc ! <uy>^x at (xp, yp, zc)
     real(WP), dimension( dm%dpcc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_xppc_ypencil ! <uy>^x at (xp, yp, zc)
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dccp%ysz(3) ) :: qy_zcpp_ypencil ! <uy>^z at (xc, yp, zp)
     real(WP), dimension( dm%dpcc%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_xpcp_zpencil ! <uz>^x at (xp, yc, zp)
@@ -230,11 +232,13 @@ contains
     real(WP), dimension( dm%dpcc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: dmdz_xpcc ! d(<mu>^x)/dz at (xp, yc, zc)
 
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccp%zsz(3) ) :: dmdx_zccp_zpencil ! d(<mu>^z)/dx at (xc, yc, zp)
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dmdy_zccp_zpencil ! d(<mu>^z)/dx at (xc, yc, zp)
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccp%ysz(3) ) :: dmdy_zccp_ypencil ! d(<mu>^z)/dy at (xc, yc, zp)
     real(WP), dimension( dm%dpcc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: dmdy_xpcc_ypencil ! d(<mu>^x)/dy at (xp, yc, zc)
     real(WP), dimension( dm%dpcc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: dmdz_xpcc_zpencil ! d(<mu>^x)/dz at (xp, yc, zc)
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccp%zsz(3) ) :: dmdz_zccp_zpencil ! d( mu   )/dz at (xc, yc, zp)
-
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dmdx_ycpc_ypencil ! d( mu   )/dx at (xc, yp, zc)
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dmdy_ycpc_ypencil ! d( mu   )/dy at (xc, yp, zc)
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: div_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: div_zpencil
@@ -441,7 +445,7 @@ contains
     
     if ( dm%ithermo == 0) then
       fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2)
-      call Get_x_1st_derivative_P2P_3D(-fl%qx * fl%qx, apcc, dm, dm%ibc(1, :), fbc(:) )
+      call Get_x_1st_derivative_P2P_3D(-fl%qx * fl%qx, apcc, dm, dm%ibcx(1, :), fbc(:) )
     end if
     if ( dm%ithermo == 1) then
       fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2) * dm%fbc_dend(1, 1:2)
@@ -834,8 +838,8 @@ contains
 !===============================================================================
 !===============================================================================
   subroutine Correct_massflux(ux, uy, uz, phi, dm, isub)
-    use udf_type_mod,      only : t_domain
-    use input_general_mod, only : tAlpha, dt, sigma2p
+    use udf_type_mod
+    use input_general_mod
     use operations
     implicit none
 
@@ -897,8 +901,9 @@ contains
     use udf_type_mod,      only : t_flow, t_domain
     use typeconvert_mod
     use continuity_eq_mod
-    use poisson_mod
+    !use poisson_mod
     use boundary_conditions_mod
+    use parameters_constant_mod
     implicit none
 
     type(t_flow), intent(inout) :: fl
@@ -913,7 +918,7 @@ contains
 ! to update intermediate (\hat{q}) or (\hat{g})
 !_______________________________________________________________________________
  
-    if(iviscous == IVIS_EXPLICIT) then
+    if(dm%iviscous == IVIS_EXPLICIT) then
 
       if ( dm%ithermo == 0) then 
         call Calculate_intermediate_mvar(fl%mx_rhs, fl%qx)
@@ -949,7 +954,7 @@ contains
 ! to solve Poisson equation
 !-------------------------------------------------------------------------------
   !call Print_debug_mid_msg("  Solving Poisson Equation ...")
-    call Solve_poisson(fl%pcor)
+    !call Solve_poisson(fl%pcor)
 !-------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !-------------------------------------------------------------------------------
