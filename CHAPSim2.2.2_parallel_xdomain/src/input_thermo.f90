@@ -49,7 +49,7 @@ module thermo_info_mod
     procedure, public :: Refresh_thermal_properties_from_DH
     procedure :: Print_debug
     generic :: Print => Print_debug
-    generic :: write(formatted) => Print_debug
+    !generic :: write(formatted) => Print_debug
   end type t_thermoProperty
 !-------------------------------------------------------------------------------
 ! udf_type : t_thermo
@@ -804,7 +804,7 @@ contains
       tp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
       call tp%Refresh_thermal_properties_from_DH()
       call tp%is_T_in_scope()
-      write(tp_unit, '(dt)') tp
+      write(tp_unit, '(8ES13.5)') tp%h, tp%t, tp%d, tp%m, tp%k, tp%cp, tp%b, tp%dh
     end do
     close (tp_unit)
     return

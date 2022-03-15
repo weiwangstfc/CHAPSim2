@@ -10,7 +10,7 @@ contains
     use udf_type_mod
     use thermo_info_mod
     implicit none
-    type(t_domain), intent(in )   :: dm
+    type(t_domain), intent(inout) :: dm
     type(t_thermo), intent(inout) :: th
 
     integer :: i 
@@ -24,7 +24,7 @@ contains
         dm%fbcx(5, i) = dm%fbcx(5, i) / th%t0Ref ! dimensional T --> undimensional T
         th%tpbcx(i)%t = dm%fbcx(5, i)
         call th%tpbcx(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcx(5, i) = IBC_NEUMANN) then
+      else if (dm%ibcx(5, i) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
         dm%fbcx(5, i) = dm%fbcx(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
       else
@@ -34,7 +34,7 @@ contains
         dm%fbcy(5, i) = dm%fbcy(5, i) / th%t0Ref ! dimensional T --> undimensional T
         th%tpbcy(i)%t = dm%fbcy(5, i)
         call th%tpbcy(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcy(5, i) = IBC_NEUMANN) then
+      else if (dm%ibcy(5, i) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
         dm%fbcy(5, i) = dm%fbcy(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
       else
@@ -44,7 +44,7 @@ contains
         dm%fbcz(5, i) = dm%fbcz(5, i) / th%t0Ref ! dimensional T --> undimensional T
         th%tpbcz(i)%t = dm%fbcz(5, i)
         call th%tpbcz(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcz(5, i) = IBC_NEUMANN) then
+      else if (dm%ibcz(5, i) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
         dm%fbcz(5, i) = dm%fbcz(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
       else

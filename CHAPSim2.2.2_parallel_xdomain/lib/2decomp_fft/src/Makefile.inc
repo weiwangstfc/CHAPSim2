@@ -59,7 +59,7 @@ F90=mpif90
 # enable preprocessing
 CPPFLAGS=-cpp
 # enable Cray pointer support if needed
-CRAYPTR=-fcray-pointer
+#CRAYPTR=-fcray-pointer
 # optimisation or debugging flags
 #OPTIM=-g -fcheck=all
 OPTIM=-O3

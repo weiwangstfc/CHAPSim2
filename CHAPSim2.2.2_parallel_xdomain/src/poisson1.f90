@@ -309,7 +309,7 @@ contains
     use udf_type_mod,            only : t_domain
     use parameters_constant_mod!, only : ZERO, MAXP, TRUNCERR
     implicit none
-    type(t_domain), intent(in) :: d
+    type(t_domain), intent(in) :: dm
     integer :: i, j, k
     integer :: it1s, it2s, it3s, it1e, it2e, it3e
 
