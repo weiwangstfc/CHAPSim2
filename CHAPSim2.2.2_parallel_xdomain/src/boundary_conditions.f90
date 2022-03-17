@@ -20,33 +20,33 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
 
-      if( dm%ibcx(5, i) == IBC_DIRICHLET ) then
-        dm%fbcx(5, i) = dm%fbcx(5, i) / th%t0Ref ! dimensional T --> undimensional T
-        th%tpbcx(i)%t = dm%fbcx(5, i)
+      if( dm%ibcx(i, 5) == IBC_DIRICHLET ) then
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) / th%t0Ref ! dimensional T --> undimensional T
+        th%tpbcx(i)%t = dm%fbcx(i, 5)
         call th%tpbcx(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcx(5, i) == IBC_NEUMANN) then
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-        dm%fbcx(5, i) = dm%fbcx(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) * th%lenRef / tpRef0%k / tpRef0%t 
       else
       end if
 
-      if( dm%ibcy(5, i) == IBC_DIRICHLET ) then
-        dm%fbcy(5, i) = dm%fbcy(5, i) / th%t0Ref ! dimensional T --> undimensional T
-        th%tpbcy(i)%t = dm%fbcy(5, i)
+      if( dm%ibcy(i, 5) == IBC_DIRICHLET ) then
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) / th%t0Ref ! dimensional T --> undimensional T
+        th%tpbcy(i)%t = dm%fbcy(i, 5)
         call th%tpbcy(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcy(5, i) == IBC_NEUMANN) then
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
-        dm%fbcy(5, i) = dm%fbcy(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) * th%lenRef / tpRef0%k / tpRef0%t 
       else
       end if
 
-      if( dm%ibcz(5, i) == IBC_DIRICHLET ) then
-        dm%fbcz(5, i) = dm%fbcz(5, i) / th%t0Ref ! dimensional T --> undimensional T
-        th%tpbcz(i)%t = dm%fbcz(5, i)
+      if( dm%ibcz(i, 5) == IBC_DIRICHLET ) then
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) / th%t0Ref ! dimensional T --> undimensional T
+        th%tpbcz(i)%t = dm%fbcz(i, 5)
         call th%tpbcz(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcz(5, i) == IBC_NEUMANN) then
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
-        dm%fbcz(5, i) = dm%fbcz(5, i) * th%lenRef / tpRef0%k / tpRef0%t 
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) * th%lenRef / tpRef0%k / tpRef0%t 
       else
       end if
 
@@ -84,18 +84,18 @@ contains
     dtmp = dm%dpcc
     m = 1
     n = 1
-    if(dm%ibcx(m, n) == IBC_DIRICHLET) then
+    if(dm%ibcx(n, m) == IBC_DIRICHLET) then
       if(dtmp%xst(m) == 1) then
-        ux(dtmp%xst(m), :, :) = dm%fbcx(m, n)
+        ux(dtmp%xst(m), :, :) = dm%fbcx(n, m)
       end if
     end if
 !-------------------------------------------------------------------------------
 !   ux at x-pencil , x-id = np
 !-------------------------------------------------------------------------------
     n = 2
-    if(dm%ibcx(m, n) == IBC_DIRICHLET) then
+    if(dm%ibcx(n, m) == IBC_DIRICHLET) then
       if(dtmp%xen(m) == dm%np(m)) then
-        ux(dtmp%xen(m), :, :) = dm%fbcx(m, n)
+        ux(dtmp%xen(m), :, :) = dm%fbcx(n, m)
       end if
     end if    
 !-------------------------------------------------------------------------------
@@ -104,18 +104,18 @@ contains
     dtmp = dm%dcpc
     m = 2
     n = 1
-    if(dm%ibcy(m, n) == IBC_DIRICHLET) then
+    if(dm%ibcy(n, m) == IBC_DIRICHLET) then
       if(dtmp%xst(m) == 1) then
-        uy(:, dtmp%xst(m), :) = dm%fbcy(m, n)
+        uy(:, dtmp%xst(m), :) = dm%fbcy(n, m)
       end if
     end if
 !-------------------------------------------------------------------------------
 !   uy at x-pencil , y-id = np
 !-------------------------------------------------------------------------------
     n = 2
-    if(dm%ibcy(m, n) == IBC_DIRICHLET) then
+    if(dm%ibcy(n, m) == IBC_DIRICHLET) then
       if(dtmp%xen(m) == dm%np(m)) then
-        uy(:, dtmp%xsz(m), :) = dm%fbcy(m, n)
+        uy(:, dtmp%xsz(m), :) = dm%fbcy(n, m)
       end if
     end if
 !-------------------------------------------------------------------------------
@@ -124,18 +124,18 @@ contains
     dtmp = dm%dccp
     m = 3
     n = 1
-    if(dm%ibcz(m, n) == IBC_DIRICHLET) then
+    if(dm%ibcz(n, m) == IBC_DIRICHLET) then
       if(dtmp%xst(m) == 1) then
-        uz(:, :, dtmp%xst(m)) = dm%fbcz(m, n)
+        uz(:, :, dtmp%xst(m)) = dm%fbcz(n, m)
       end if
     end if
 !-------------------------------------------------------------------------------
 !   uz at x-pencil , y-id = np
 !-------------------------------------------------------------------------------
     n = 2
-    if(dm%ibcz(m, n) == IBC_DIRICHLET) then
+    if(dm%ibcz(n, m) == IBC_DIRICHLET) then
       if(dtmp%xen(m) == dm%np(m)) then
-        uz(:, :, dtmp%xsz(m)) = dm%fbcz(m, n)
+        uz(:, :, dtmp%xsz(m)) = dm%fbcz(n, m)
       end if
     end if
 

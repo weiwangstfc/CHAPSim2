@@ -1,6 +1,7 @@
 !##############################################################################
 module domain_decomposition_mod
   use mpi_mod
+  use decomp_2d
   implicit none
 
   private :: Initialize_domain_decomposition
@@ -21,10 +22,11 @@ contains
 !> \param[in]     d          domain type
 !===============================================================================
   subroutine Initialize_domain_decomposition (dm)
-    use udf_type_mod,      only : t_domain
+    use udf_type_mod
     use iso_fortran_env
     implicit none
     type(t_domain), intent(inout)   :: dm
+    
 #ifdef DEBUG
     type(DECOMP_INFO) :: dtmp
     integer :: i
@@ -58,6 +60,8 @@ contains
     call decomp_info_init(dm%np(1), dm%np(2), dm%nc(3), dm%dppc)
     call decomp_info_init(dm%nc(1), dm%np(2), dm%np(3), dm%dcpp)
     call decomp_info_init(dm%np(1), dm%nc(2), dm%np(3), dm%dpcp)
+
+    call decomp_info_init(dm%np(1), dm%np(2), dm%np(3), dm%dppp) ! this is only used in test.
 
 #ifdef DEBUG
     call mpi_barrier(MPI_COMM_WORLD, ierror)
@@ -119,6 +123,8 @@ contains
     use vars_df_mod, only : domain
     implicit none
     integer :: i
+
+    call decomp_2d_init(domain(1)%nc(1), domain(1)%nc(2), domain(1)%nc(3), nrow, ncol)
 
     do i = 1, nxdomain
       call Initialize_domain_decomposition(domain(i))

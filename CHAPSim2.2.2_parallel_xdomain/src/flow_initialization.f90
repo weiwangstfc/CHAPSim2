@@ -57,9 +57,10 @@ contains
     use vars_df_mod
     use thermo_info_mod
     use boundary_conditions_mod
+    use test_algorithms_mod
     implicit none
 
-    logical :: itest = .false.
+    logical :: itest = .true.
     integer :: i, j, iter
     type(t_thermoProperty) :: tpx, tpy, tpz
 
@@ -78,12 +79,12 @@ contains
           tpy = thermo(i)%tpbcy(j)
           tpz = thermo(i)%tpbcz(j)
 
-          domain(i)%fbc_dend(1, j) = tpx%d
-          domain(i)%fbc_dend(2, j) = tpy%d
-          domain(i)%fbc_dend(3, j) = tpz%d
-          domain(i)%fbc_vism(1, j) = tpx%m
-          domain(i)%fbc_vism(2, j) = tpy%m
-          domain(i)%fbc_vism(3, j) = tpz%m
+          domain(i)%fbc_dend(j, 1) = tpx%d
+          domain(i)%fbc_dend(j, 2) = tpy%d
+          domain(i)%fbc_dend(j, 3) = tpz%d
+          domain(i)%fbc_vism(j, 1) = tpx%m
+          domain(i)%fbc_vism(j, 2) = tpy%m
+          domain(i)%fbc_vism(j, 3) = tpz%m
         end do
       end if
 !-------------------------------------------------------------------------------
@@ -547,11 +548,11 @@ contains
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Get_volumetric_average_3d(.false., dm%ibcx(1, :), dm%fbcx(1, :), &
+    call Get_volumetric_average_3d(.false., dm%ibcx( :, 1), dm%fbcx( :, 1), &
           dm, dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(.false., dm%ibcx(1, :), dm%fbcx(1, :), &
+    call Get_volumetric_average_3d(.false., dm%ibcx( :, 1), dm%fbcx( :, 1), &
           dm, dm%dpcc, ux, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil

@@ -1253,7 +1253,7 @@ contains
     m1fC2P(5,   1, IBC_SYMMETRIC) = m1fC2P(1,   3, IBC_SYMMETRIC)
     m1fC2P(5,   2, IBC_SYMMETRIC) = m1fC2P(1,   2, IBC_SYMMETRIC)
     m1fC2P(5,   3, IBC_SYMMETRIC) = m1fC2P(1,   1, IBC_SYMMETRIC)
-    m1fC2P(2:4, 1, IBC_SYMMETRIC) = m1fC2P(2:4, 1, IBC_PERIODIC)
+    m1fC2P(2:4, :, IBC_SYMMETRIC) = m1fC2P(2:4, :, IBC_PERIODIC)
 
     m1rC2P(:,   :, IBC_SYMMETRIC) = m1rC2P(:, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
@@ -1265,7 +1265,7 @@ contains
     m1fC2P(5,   1, IBC_ASYMMETRIC) = m1fC2P(1,   3, IBC_ASYMMETRIC)
     m1fC2P(5,   2, IBC_ASYMMETRIC) = m1fC2P(1,   2, IBC_ASYMMETRIC)
     m1fC2P(5,   3, IBC_ASYMMETRIC) = m1fC2P(1,   1, IBC_ASYMMETRIC)
-    m1fC2P(2:4, 1, IBC_ASYMMETRIC) = m1fC2P(2:4, 1, IBC_PERIODIC)
+    m1fC2P(2:4, :, IBC_ASYMMETRIC) = m1fC2P(2:4, :, IBC_PERIODIC)
 
     m1rC2P(:,   :, IBC_ASYMMETRIC) = m1rC2P(:, :, IBC_PERIODIC)
     m1rC2P(1,   :, IBC_ASYMMETRIC) = ZERO ! double safe, not necessary
@@ -1279,7 +1279,7 @@ contains
     m1fP2C(5,   1, IBC_SYMMETRIC) = m1fP2C(1,   3, IBC_SYMMETRIC)
     m1fP2C(5,   2, IBC_SYMMETRIC) = m1fP2C(1,   2, IBC_SYMMETRIC)
     m1fP2C(5,   3, IBC_SYMMETRIC) = m1fP2C(1,   1, IBC_SYMMETRIC)
-    m1fP2C(2:4, 1, IBC_SYMMETRIC) = m1fP2C(2:4, 1, IBC_PERIODIC)
+    m1fP2C(2:4, :, IBC_SYMMETRIC) = m1fP2C(2:4, :, IBC_PERIODIC)
 
     m1rP2C(:,   :, IBC_SYMMETRIC) = m1rP2C(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
@@ -1291,7 +1291,7 @@ contains
     m1fP2C(5,   1, IBC_ASYMMETRIC) = m1fP2C(1,   3, IBC_ASYMMETRIC)
     m1fP2C(5,   2, IBC_ASYMMETRIC) = m1fP2C(1,   2, IBC_ASYMMETRIC)
     m1fP2C(5,   3, IBC_ASYMMETRIC) = m1fP2C(1,   1, IBC_ASYMMETRIC)
-    m1fP2C(2:4, 1, IBC_ASYMMETRIC) = m1fP2C(2:4, 1, IBC_PERIODIC)
+    m1fP2C(2:4, :, IBC_ASYMMETRIC) = m1fP2C(2:4, :, IBC_PERIODIC)
 
     m1rP2C(:,   :, IBC_ASYMMETRIC) = m1rP2C(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
@@ -1613,7 +1613,7 @@ contains
     d2fC2C(5,   1, IBC_SYMMETRIC) = d2fC2C(1,   3, IBC_SYMMETRIC)
     d2fC2C(5,   2, IBC_SYMMETRIC) = d2fC2C(1,   2, IBC_SYMMETRIC)
     d2fC2C(5,   3, IBC_SYMMETRIC) = d2fC2C(1,   1, IBC_SYMMETRIC)
-    d2fC2C(2:4, 1, IBC_SYMMETRIC) = d2fC2C(2:4, 1, IBC_PERIODIC)
+    d2fC2C(2:4, :, IBC_SYMMETRIC) = d2fC2C(2:4, :, IBC_PERIODIC)
 
     d2rC2C(:,   :, IBC_SYMMETRIC) = d2rC2C(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
@@ -1625,7 +1625,7 @@ contains
     d2fC2C(5,   1, IBC_ASYMMETRIC) = d2fC2C(1,   3, IBC_ASYMMETRIC)
     d2fC2C(5,   2, IBC_ASYMMETRIC) = d2fC2C(1,   2, IBC_ASYMMETRIC)
     d2fC2C(5,   3, IBC_ASYMMETRIC) = d2fC2C(1,   1, IBC_ASYMMETRIC)
-    d2fC2C(2:4, 1, IBC_ASYMMETRIC) = d2fC2C(2:4, 1, IBC_PERIODIC)
+    d2fC2C(2:4, :, IBC_ASYMMETRIC) = d2fC2C(2:4, :, IBC_PERIODIC)
 
     d2rC2C(:,   :, IBC_ASYMMETRIC) = d2rC2C(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
@@ -1637,7 +1637,7 @@ contains
     d2fP2P(5,   1, IBC_SYMMETRIC) = d2fP2P(1,   3, IBC_SYMMETRIC)
     d2fP2P(5,   2, IBC_SYMMETRIC) = d2fP2P(1,   2, IBC_SYMMETRIC)
     d2fP2P(5,   3, IBC_SYMMETRIC) = d2fP2P(1,   1, IBC_SYMMETRIC)
-    d2fP2P(2:4, 1, IBC_SYMMETRIC) = d2fP2P(2:4, 1, IBC_PERIODIC)
+    d2fP2P(2:4, :, IBC_SYMMETRIC) = d2fP2P(2:4, :, IBC_PERIODIC)
     d2rP2P(:,   :, IBC_SYMMETRIC) = d2rP2P(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 2nd diriviative P2P, asymmetric
@@ -1648,7 +1648,7 @@ contains
     d2fP2P(5,   1, IBC_ASYMMETRIC) = d2fP2P(1,   3, IBC_ASYMMETRIC)
     d2fP2P(5,   2, IBC_ASYMMETRIC) = d2fP2P(1,   2, IBC_ASYMMETRIC)
     d2fP2P(5,   3, IBC_ASYMMETRIC) = d2fP2P(1,   1, IBC_ASYMMETRIC)
-    d2fP2P(2:4, 1, IBC_ASYMMETRIC) = d2fP2P(2:4, 1, IBC_PERIODIC)
+    d2fP2P(2:4, :, IBC_ASYMMETRIC) = d2fP2P(2:4, :, IBC_PERIODIC)
     d2rP2P(:,   :, IBC_ASYMMETRIC) = d2rP2P(:,   :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 2nd diriviative P2P, no specified = dirichlet = neumann 
@@ -1878,9 +1878,18 @@ contains
                               d(n, 6, 6)
 
     integer :: i, j
-write(*,*)  'n=', n ! test
-    do j = 1, 6
-      do i = 1, 6
+
+    a(:, :, :) =  ZERO
+    b(:, :, :) =  ZERO
+    c(:, :, :) =  ZERO
+    d(:, :, :) =  ZERO
+
+    do j = IBC_PERIODIC, IBC_INTRPL
+      do i = IBC_PERIODIC, IBC_INTRPL
+
+        if (j == IBC_PERIODIC .and. i /= IBC_PERIODIC) cycle
+        if (j /= IBC_PERIODIC .and. i == IBC_PERIODIC) cycle
+
         a(1,         i, j) = coeff( 1, 1, i )
         a(2,         i, j) = coeff( 2, 1, i )
         a(3 : n - 2, i, j) = coeff( 3, 1, IBC_PERIODIC )
@@ -1978,7 +1987,6 @@ write(*,*)  'n=', n ! test
 ! y-direction, with np unknows
 !===============================================================================
     nsz = domain(1)%np(i)
-write(*,*) 'nsz', nsz !test
 !-------------------------------------------------------------------------------
 !   1st derivative in y direction with np unknows
 !-------------------------------------------------------------------------------

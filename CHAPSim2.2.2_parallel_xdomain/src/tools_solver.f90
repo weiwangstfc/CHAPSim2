@@ -266,8 +266,8 @@ contains
 ! x-pencil : u1 -> g1
 !-------------------------------------------------------------------------------
     dtmp = dm%dpcc
-    ibc(:) = dm%ibcx(5, :)
-    fbc(:) = dm%fbc_dend(1, :)
+    ibc(:) = dm%ibcx(:, 5)
+    fbc(:) = dm%fbc_dend(:, 1)
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
         fix(:) = fl%dDens(:, j, k)
@@ -285,8 +285,8 @@ contains
 ! y-pencil : u2 -> g2
 !-------------------------------------------------------------------------------
     dtmp = dm%dcpc
-    ibc(:) = dm%ibcy(5, :)
-    fbc(:) = dm%fbc_dend(2, :)
+    ibc(:) = dm%ibcy(:, 5)
+    fbc(:) = dm%fbc_dend(:, 2)
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
         fiy(:) = d_ypencil(i, :, k)
@@ -303,8 +303,8 @@ contains
 ! Z-pencil : u3 -> g3
 !-------------------------------------------------------------------------------
     dtmp = dm%dcpc
-    ibc(:) = dm%ibcz(5, :)
-    fbc(:) = dm%fbc_dend(3, :)
+    ibc(:) = dm%ibcz(:, 5)
+    fbc(:) = dm%fbc_dend(:, 3)
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = d_zpencil(i, j, :)
@@ -417,7 +417,7 @@ contains
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
         fix(:) = u(:, j, k)
-        call Get_x_midp_P2C_1D (fix, fox, dm, dm%ibcx(1, :))
+        call Get_x_midp_P2C_1D (fix, fox, dm, dm%ibcx(:, 1))
         udx_xpencil(:, j, k) = fox(:) * dm%h1r(1) * dm%dt
       end do
     end do
@@ -434,7 +434,7 @@ contains
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
         fiy(:) = v(i, :, k)
-        call Get_y_midp_P2C_1D (fiy, foy, dm, dm%ibcy(2, :))
+        call Get_y_midp_P2C_1D (fiy, foy, dm, dm%ibcy(:, 2))
         udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + foy(:) * dm%h1r(2) * dm%dt
       end do
     end do
@@ -450,7 +450,7 @@ contains
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = w_zpencil(i, j, :)
-        call Get_z_midp_P2C_1D (fiz, foz, dm, dm%ibcz(3, :))
+        call Get_z_midp_P2C_1D (fiz, foz, dm, dm%ibcz(:, 3))
         udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
       end do
     end do

@@ -174,47 +174,64 @@ contains
     integer, intent(in)  :: n
     integer, intent(in)  :: ibc(2)
     integer, intent(inout) :: nbr(4, 4)
-    integer :: i
+    integer :: i, j
 !-------------------------------------------------------------------------------
-! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
-!  i -2       i - 1     i    i + 1      i + 2
+! nbr(i, j)
+!   i = 1, 2, 3, 4 : left two index, right two index
+!   j = 1, 2, 3, 4 : i - 2, i - 1, i + 1, i + 2
+!-------------------------------------------------------------------------------
+!   for non-periodic:
+!   ---(-1')---(0')---(|1')---(2')---(3')---(i')---(n'-1)---(n'|)--(n'+1)---(n'+2)---
+!   for periodic:
+!   ---(-1')---(0')---(|1')---(2')---(3')---(i')---(n'-1)---(n')--(n'+1|)---(n'+2)---
 !-------------------------------------------------------------------------------
     nbr(:, :) = huge(i)
+!-------------------------------------------------------------------------------
+! left
+!-------------------------------------------------------------------------------
+    do i = 1, 2
+      nbr(i, 1) = i - 2
+      nbr(i, 2) = i - 1
+      nbr(i, 3) = i + 1
+      nbr(i, 4) = i + 2
+    end do
 
-    nbr(1, 3) = 1 + 1
-    nbr(1, 4) = 1 + 2
-    nbr(2, 2) = 2 - 1
-    nbr(2, 3) = 2 + 1 
-    nbr(2, 4) = 2 + 2
-    if(ibc(1) == IBC_PERIODIC) then
-      nbr(1, 1) = n - 1 ! 1'-2' = -1'
-      nbr(1, 2) = n     ! 1'-1' = 0'
-      nbr(2, 1) = n     ! 2'-2' = 0'
-    else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
-      nbr(1, 1) = 3 ! 1'-2' = -1'
-      nbr(1, 2) = 2     ! 1'-1' = 0'
-      nbr(2, 1) = 2     ! 2'-2' = 0'
-    else
-      ! do nothing, should not be used. 
-    end if
-
-    nbr(n, 1) = n - 2
-    nbr(n, 2) = n - 1
-    nbr(n - 1, 1) = n - 1 - 2
-    nbr(n - 1, 2) = n - 1 - 1
-    nbr(n - 1, 3) = n - 1 + 1
-
-    if(ibc(2) == IBC_PERIODIC) then 
-      nbr(n, 3) = 1   ! n' + 1 
-      nbr(n, 4) = 2   ! n' + 2 
-      nbr(n - 1, 4) = 1 ! n' - 1 + 2 = n' + 1 
-    else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
-      nbr(n, 3) = n - 1   ! n' + 1 
-      nbr(n, 4) = n - 2   ! n' + 2 
-      nbr(n - 1, 4) = n - 1 ! n' - 1 + 2 = n' + 1 
-    else
-      ! do nothing, should not be used. 
-    end if
+    do i = 1, 2
+      do j = 1, 4
+        if(ibc(1) == IBC_PERIODIC) then
+          if( nbr(i, j) == -1 ) nbr(i, j) = n - 1
+          if( nbr(i, j) == 0  ) nbr(i, j) = n
+        else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
+          if( nbr(i, j) == -1 ) nbr(i, j) = 3
+          if( nbr(i, j) == 0  ) nbr(i, j) = 2
+        else
+        end if
+      end do
+    end do
+!-------------------------------------------------------------------------------
+! right
+!-------------------------------------------------------------------------------
+    do i = 3, 4
+      if (i == 3) j = n - 1
+      if (i == 4) j = n 
+      nbr(i, 1) = j - 2
+      nbr(i, 2) = j - 1
+      nbr(i, 3) = j + 1
+      nbr(i, 4) = j + 2
+    end do
+    
+    do i = 3, 4
+      do j = 1, 4
+        if(ibc(2) == IBC_PERIODIC) then
+          if( nbr(i, j) == n + 1 ) nbr(i, j) = 1
+          if( nbr(i, j) == n + 2 ) nbr(i, j) = 2
+        else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
+          if( nbr(i, j) == n + 1 ) nbr(i, j) = n - 1
+          if( nbr(i, j) == n + 2 ) nbr(i, j) = n - 2
+        else
+        end if
+      end do
+    end do
 
     return
   end subroutine
@@ -227,47 +244,64 @@ contains
     integer, intent(in)  :: ibc(2)
     integer, intent(inout) :: nbr(4, 4)
 
-    integer :: i
+    integer :: i, j
 !-------------------------------------------------------------------------------
-! nbr(1, i)  nbr(2, i)      nbr(2, i)   nbr(2, i)
-!  i -2       i - 1     i    i + 1      i + 2
+! nbr(i, j)
+!   i = 1, 2, 3, 4 : left two index, right two index
+!   j = 1, 2, 3, 4 : i - 2, i - 1, i + 1, i + 2
+!-------------------------------------------------------------------------------
+!   for non-periodic:
+!   ---(-1)---(0)--|--(1)---(2)---(3)---(i)---(n-1)---(n)--|--(n+1)---(n+2)---
+!   for periodic:
+!   ---(-1)---(0)--|--(1)---(2)---(3)---(i)---(n-1)---(n)--|--(n+1)---(n+2)---
 !-------------------------------------------------------------------------------
     nbr(:, :) = huge(i)
+!-------------------------------------------------------------------------------
+! left
+!-------------------------------------------------------------------------------
+    do i = 1, 2
+      nbr(i, 1) = i - 2
+      nbr(i, 2) = i - 1
+      nbr(i, 3) = i + 1
+      nbr(i, 4) = i + 2
+    end do
 
-    nbr(1, 3) = 1 + 1
-    nbr(1, 4) = 1 + 2
-    nbr(2, 2) = 2 - 1
-    nbr(2, 3) = 2 + 1 
-    nbr(2, 4) = 2 + 2
-    if(ibc(1) == IBC_PERIODIC) then
-      nbr(1, 1) = n - 1 ! 1-2 = -1
-      nbr(1, 2) = n     ! 1-1 = 0
-      nbr(2, 1) = n     ! 2-2 = 0
-    else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
-      nbr(1, 1) = 2     ! 1-2 = -1
-      nbr(1, 2) = 1     ! 1-1 = 0
-      nbr(2, 1) = 1     ! 2-2 = 0
-    else
-      ! do nothing, should not be used. 
-    end if
-
-    nbr(n, 1) = n - 2
-    nbr(n, 2) = n - 1
-    nbr(n - 1, 1) = n - 1 - 2
-    nbr(n - 1, 2) = n - 1 - 1
-    nbr(n - 1, 3) = n - 1 + 1
-
-    if(ibc(2) == IBC_PERIODIC) then 
-      nbr(n, 3) = 1   ! n + 1 
-      nbr(n, 4) = 2   ! n + 2 
-      nbr(n - 1, 4) = 1 ! n - 1 + 2 = n + 1 
-    else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
-      nbr(n, 3) = n   ! n + 1 
-      nbr(n, 4) = n - 1   ! n + 2 
-      nbr(n - 1, 4) = n ! n - 1 + 2 = n + 1 
-    else
-      ! do nothing, should not be used. 
-    end if
+    do i = 1, 2
+      do j = 1, 4
+        if(ibc(1) == IBC_PERIODIC) then
+          if( nbr(i, j) == -1 ) nbr(i, j) = n - 1
+          if( nbr(i, j) == 0  ) nbr(i, j) = n
+        else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
+          if( nbr(i, j) == -1 ) nbr(i, j) = 2
+          if( nbr(i, j) == 0  ) nbr(i, j) = 1
+        else
+        end if
+      end do
+    end do
+!-------------------------------------------------------------------------------
+! right
+!-------------------------------------------------------------------------------
+    do i = 3, 4
+      if (i == 3) j = n - 1
+      if (i == 4) j = n 
+      nbr(i, 1) = j - 2
+      nbr(i, 2) = j - 1
+      nbr(i, 3) = j + 1
+      nbr(i, 4) = j + 2
+    end do
+    
+    do i = 3, 4
+      do j = 1, 4
+        if(ibc(2) == IBC_PERIODIC) then
+          if( nbr(i, j) == n + 1 ) nbr(i, j) = 1
+          if( nbr(i, j) == n + 2 ) nbr(i, j) = 2
+        else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
+          if( nbr(i, j) == n + 1 ) nbr(i, j) = n
+          if( nbr(i, j) == n + 2 ) nbr(i, j) = n - 1
+        else
+        end if
+      end do
+    end do
 
     return
   end subroutine
@@ -281,9 +315,9 @@ contains
     implicit none
     type(t_domain), intent(inout) :: dm
     integer :: i
-    logical    :: dbg = .false.
+    logical    :: dbg = .true.
 
-    if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric inwrtfmt1ion ...")
+    if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
     ! Build up domain info
 
     dm%is_periodic(:) = .false.
@@ -318,13 +352,12 @@ contains
 
     !build up index sequence for boundary part
 
-    call Buildup_npneibour_index (dm%np(1), dm%ibcx(1,1:2), dm%ipnbr(:, :) )
-    call Buildup_npneibour_index (dm%np(2), dm%ibcy(1,1:2), dm%jpnbr(:, :) )
-    call Buildup_npneibour_index (dm%np(3), dm%ibcz(1,1:2), dm%kpnbr(:, :) )
-
-    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1,1:2), dm%icnbr(:, :) )
-    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1,1:2), dm%jcnbr(:, :) )
-    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1,1:2), dm%kcnbr(:, :) )
+    call Buildup_npneibour_index (dm%np(1), dm%ibcx(1:2,1), dm%ipnbr(:, :) )
+    call Buildup_npneibour_index (dm%np(2), dm%ibcy(1:2,1), dm%jpnbr(:, :) )
+    call Buildup_npneibour_index (dm%np(3), dm%ibcz(1:2,1), dm%kpnbr(:, :) )
+    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1:2,1), dm%icnbr(:, :) )
+    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1:2,1), dm%jcnbr(:, :) )
+    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1:2,1), dm%kcnbr(:, :) )
 
     ! allocate  variables for mapping physical domain to computational domain
     allocate ( dm%yp( dm%np_geo(2) ) ); dm%yp(:) = ZERO

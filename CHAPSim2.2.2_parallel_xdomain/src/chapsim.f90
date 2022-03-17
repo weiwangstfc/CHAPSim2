@@ -134,7 +134,9 @@ subroutine Solve_eqs_iteration
   do i = 1, nxdomain
      if( flow(i)%nrsttckpt < nrsttckpt) nrsttckpt = flow(i)%nrsttckpt
      if( flow(i)%nIterFlowEnd > niter)  niter     = flow(i)%nIterFlowEnd
-     if( is_any_energyeq .and. (thermo(i)%nIterThermoEnd > niter) ) niter = thermo(i)%nIterThermoEnd
+     if( is_any_energyeq) then
+       if (thermo(i)%nIterThermoEnd > niter) niter = thermo(i)%nIterThermoEnd
+     end if
   end do
 
   do iter = nrsttckpt + 1, niter

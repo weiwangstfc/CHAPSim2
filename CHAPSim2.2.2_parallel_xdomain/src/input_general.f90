@@ -108,7 +108,6 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, nxdomain
         read(inputUnit, *, iostat = ioerr) varname, nrow
         read(inputUnit, *, iostat = ioerr) varname, ncol
-
         allocate( domain (nxdomain) )
         allocate(   flow (nxdomain) )
 
@@ -147,9 +146,6 @@ contains
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
             write (OUTPUT_UNIT, wrtfmt1i) '  icase                  :', domain(i)%icase
-            write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in x-dir :', domain(i)%lxx
-            write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in y-dir :', domain(i)%lyt - domain(i)%lyb
-            write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-dir :', domain(i)%lzz
           end do
         end if
 !-------------------------------------------------------------------------------
@@ -158,13 +154,24 @@ contains
       else if ( secname(1:slen) == '[boundary]' ) then
 
         do i = 1, nxdomain
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:5, 1), domain(i)%fbcx(1:5, 1)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:5, 2), domain(i)%fbcx(1:5, 2)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 1), domain(i)%fbcx(1:2, 1)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5)
         end do
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:5, 1), domain(1)%fbcy(1:5, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:5, 2), domain(1)%fbcy(1:5, 2)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:5, 1), domain(1)%fbcz(1:5, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:5, 2), domain(1)%fbcz(1:5, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5)
+
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
+
         do i = 1, nxdomain
           domain(i)%ibcy(:, :) = domain(1)%ibcy(:, :)
           domain(i)%fbcy(:, :) = domain(1)%fbcy(:, :)
@@ -175,16 +182,16 @@ contains
         if(nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt2i) '  u-x-bc-type  :', domain(i)%ibcx(1, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2r) '  u-x-bc-value :', domain(i)%fbcx(1, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2i) '  v-x-bc-type  :', domain(i)%ibcx(2, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2r) '  v-x-bc-value :', domain(i)%fbcx(2, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2i) '  w-x-bc-type  :', domain(i)%ibcx(3, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2r) '  w-x-bc-value :', domain(i)%fbcx(3, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2i) '  p-x-bc-type  :', domain(i)%ibcx(4, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2r) '  p-x-bc-value :', domain(i)%fbcx(4, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2i) '  T-x-bc-type  :', domain(i)%ibcx(5, 1:2)
-            write (OUTPUT_UNIT, wrtfmt2r) '  T-x-bc-value :', domain(i)%fbcx(5, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2i) '  u-x-bc-type  :', domain(i)%ibcx(1:2, 1)
+            write (OUTPUT_UNIT, wrtfmt2r) '  u-x-bc-value :', domain(i)%fbcx(1:2, 1)
+            write (OUTPUT_UNIT, wrtfmt2i) '  v-x-bc-type  :', domain(i)%ibcx(1:2, 2)
+            write (OUTPUT_UNIT, wrtfmt2r) '  v-x-bc-value :', domain(i)%fbcx(1:2, 2)
+            write (OUTPUT_UNIT, wrtfmt2i) '  w-x-bc-type  :', domain(i)%ibcx(1:2, 3)
+            write (OUTPUT_UNIT, wrtfmt2r) '  w-x-bc-value :', domain(i)%fbcx(1:2, 3)
+            write (OUTPUT_UNIT, wrtfmt2i) '  p-x-bc-type  :', domain(i)%ibcx(1:2, 4)
+            write (OUTPUT_UNIT, wrtfmt2r) '  p-x-bc-value :', domain(i)%fbcx(1:2, 4)
+            write (OUTPUT_UNIT, wrtfmt2i) '  T-x-bc-type  :', domain(i)%ibcx(1:2, 5)
+            write (OUTPUT_UNIT, wrtfmt2r) '  T-x-bc-value :', domain(i)%fbcx(1:2, 5)
           end do
         end if
 !-------------------------------------------------------------------------------
@@ -249,8 +256,6 @@ contains
       else if ( secname(1:slen) == '[flow]' ) then
         read(inputUnit, *, iostat = ioerr) varname, is_any_energyeq
         if(is_any_energyeq) allocate( thermo(nxdomain) )
-        allocate ( itmpx(nxdomain) )
-        allocate ( rtmpx(nxdomain) )
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%ren
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%idriven
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%drvfc      
@@ -267,6 +272,8 @@ contains
 ! [thermo] 
 !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[thermo]' )  then 
+        allocate ( itmpx(nxdomain) ); itmpx = 0
+        allocate ( rtmpx(nxdomain) ); rtmpx = ZERO
 
         read(inputUnit, *, iostat = ioerr) varname, itmp
         if(is_any_energyeq) thermo(1 : nxdomain)%ifluid = itmp
@@ -419,8 +426,8 @@ contains
         call Print_warning_msg ("Grids are clustered.")
         domain(i)%lxx = TWO * PI
         domain(i)%lzz = TWO * PI
-        domain(i)%lyt =   PI
-        domain(i)%lyb = - PI
+        domain(i)%lyt = TWO * PI
+        domain(i)%lyb = ZERO
       else if (domain(i)%icase == ICASE_SINETEST) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")
@@ -431,21 +438,25 @@ contains
       else 
         ! do nothing...
       end if
+
+      write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in x-dir :', domain(i)%lxx
+      write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in y-dir :', domain(i)%lyt - domain(i)%lyb
+      write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-dir :', domain(i)%lzz
 !-------------------------------------------------------------------------------
 !     boundary
 !-------------------------------------------------------------------------------
       domain(i)%is_periodic(:) = .false.
       do j = 1, 5
-        if(domain(i)%ibcx(j, 1) == IBC_PERIODIC .or. domain(i)%ibcx(j, 2) == IBC_PERIODIC) then
-          domain(i)%ibcx(j, 1:2) = IBC_PERIODIC
+        if(domain(i)%ibcx(1, j) == IBC_PERIODIC .or. domain(i)%ibcx(2, j) == IBC_PERIODIC) then
+          domain(i)%ibcx(1:2, j) = IBC_PERIODIC
           domain(i)%is_periodic(1) = .true.
         end if
-        if(domain(i)%ibcy(j, 1) == IBC_PERIODIC .or. domain(i)%ibcy(j, 2) == IBC_PERIODIC) then
-          domain(i)%ibcy(j, 1:2) = IBC_PERIODIC
+        if(domain(i)%ibcy(1, j) == IBC_PERIODIC .or. domain(i)%ibcy(2, j) == IBC_PERIODIC) then
+          domain(i)%ibcy(1:2, j) = IBC_PERIODIC
           domain(i)%is_periodic(2) = .true.
         end if
-        if(domain(i)%ibcz(j, 1) == IBC_PERIODIC .or. domain(i)%ibcz(j, 2) == IBC_PERIODIC) then
-          domain(i)%ibcz(j, 1:2) = IBC_PERIODIC
+        if(domain(i)%ibcz(1, j) == IBC_PERIODIC .or. domain(i)%ibcz(2, j) == IBC_PERIODIC) then
+          domain(i)%ibcz(1:2, j) = IBC_PERIODIC
           domain(i)%is_periodic(3) = .true.
         end if
       end do

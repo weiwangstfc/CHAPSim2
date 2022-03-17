@@ -1,4 +1,4 @@
-module test_algrithms_mod
+module test_algorithms_mod
   use operations
 
   public   :: Test_schemes
@@ -22,7 +22,7 @@ contains
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Test_schemes()
-  use vars_df_mod, only : flow, domain
+  use vars_df_mod
   implicit none
 
   ! Please use below information for input file
@@ -32,7 +32,7 @@ subroutine Test_schemes()
 
   !call Test_TDMA_cyclic
   !call Test_TDMA_noncyclic
-  call Test_interpolation (flow(1), domain(1))
+  call Test_interpolation (domain(1))
   !call Test_1st_derivative(flow, domain)
   !call Test_2nd_derivative(flow, domain)
   return 
@@ -52,19 +52,19 @@ end subroutine
 !______________________________________________________________________________!
 !> \param[in]     d             domain
 !_______________________________________________________________________________
-  subroutine Test_interpolation(fl, dm)
+  subroutine Test_interpolation(dm)
     use operations
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    type(t_flow),   intent(in) :: fl
     integer :: i, j, k
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     real(WP) :: ref
     real(WP) :: err, err_Linf, err_L2
+    integer  :: wrt_unit
 
     real(WP) :: den_ccc (dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) )
     real(WP) :: den_ppp (dm%dppp%xsz(1), dm%dppp%xsz(2), dm%dppp%xsz(3) )
@@ -74,8 +74,10 @@ end subroutine
     real(WP) :: den_zccp(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) )
 
     real(WP) :: den_xcpp(dm%dcpp%xsz(1), dm%dcpp%xsz(2), dm%dcpp%xsz(3) )
-    !real(WP) :: den_ypcp(dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) )
-    !real(WP) :: den_zppc(dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) )
+    real(WP) :: den_ypcp(dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) )
+    real(WP) :: den_zppc(dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) )
+
+    open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
 
     ! initialise a 3d variable on cell-centre
     do k = 1, dm%nc(3)
@@ -90,7 +92,7 @@ end subroutine
     end do
 
     ! c2p in x
-    call Get_x_midp_C2P_3D(den_ccc, den_xpcc, dm, dm%ibcx(5, :), dm%fbcx(5, :) )
+    call Get_x_midp_C2P_3D(den_ccc, den_xpcc, dm, dm%ibcx(:, 5), dm%fbcx(:, 5) )
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -107,10 +109,10 @@ end subroutine
       end do
     end do
     err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%nc(2) * dm%np(1), WP) )
-    write (OUTPUT_UNIT,'(A, 2ES13.5)') '# interp_c2p_x', err_Linf, err_L2
+    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_x', dm%np(1), err_Linf, err_L2
 
     ! c2p in y
-    call Get_y_midp_C2P_3D(den_ccc, den_ycpc, dm, dm%ibcy(5, :), dm%fbcy(5, :) )
+    call Get_y_midp_C2P_3D(den_ccc, den_ycpc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5) )
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -127,13 +129,13 @@ end subroutine
       end do
     end do
     err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%np(2) * dm%nc(1), WP) )
-    write (OUTPUT_UNIT,'(A, 2ES13.5)') '# interp_c2p_z', err_Linf, err_L2
+    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_y', dm%np(2), err_Linf, err_L2
 
     ! c2p in z
-    call Get_z_midp_C2P_3D(den_ccc, den_zccp, dm, dm%ibcz(5, :), dm%fbcz(5, :) )
+    call Get_z_midp_C2P_3D(den_ccc, den_zccp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5) )
     err_Linf = ZERO
     err_L2   = ZERO
-    do k = 1, dm%nc(3)
+    do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
       do j = 1, dm%nc(2)
         yc = dm%yc(j)
@@ -147,7 +149,7 @@ end subroutine
       end do
     end do
     err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%nc(2) * dm%nc(1), WP) )
-    write (OUTPUT_UNIT,'(A, 2ES13.5)') '# interp_c2p_z', err_Linf, err_L2
+    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_z', dm%np(3), err_Linf, err_L2
 
     ! initialise a 3d variable on point based
     do k = 1, dm%np(3)
@@ -162,64 +164,66 @@ end subroutine
     end do
 
     ! p2c in x
-    call Get_x_midp_C2P_3D(den_ppp, den_xcpp, dm, dm%ibcx(5, :), dm%fbcx(5, :) )
+    call Get_x_midp_P2C_3D(den_ppp, den_xcpp, dm, dm%ibcx(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
-    do k = 1, dm%nc(3)
-      zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%nc(2)
-        yc = dm%yc(j)
-        do i = 1, dm%np(1)
-          xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp / FOUR ) + sin_wp(yc / FOUR) + sin_wp(zc / FOUR)
-          err = dabs(den_xpcc(i, j, k) - ref)
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      do j = 1, dm%np(2)
+        yp = dm%yp(j)
+        do i = 1, dm%nc(1)
+          xc = dm%h(1) * (real(i - 1, WP) + HALF)
+          ref = sin_wp ( xc / FOUR ) + sin_wp(yp / FOUR) + sin_wp(zp / FOUR)
+          err = dabs(den_xcpp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
         end do
       end do
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%nc(2) * dm%np(1), WP) )
-    write (OUTPUT_UNIT,'(A, 2ES13.5)') '# interp_c2p_x', err_Linf, err_L2
+    err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%np(2) * dm%nc(1), WP) )
+    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_x', dm%np(1), err_Linf, err_L2
 
     ! p2c in y
-    call Get_y_midp_C2P_3D(fl%dDens, den_ycpc, dm, dm%ibcy(5, :), dm%fbcy(5, :) )
+    call Get_y_midp_P2C_3D(den_ppp, den_ypcp, dm, dm%ibcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      do j = 1, dm%nc(2)
+        yc = dm%yc(j)
+        do i = 1, dm%np(1)
+          xp = dm%h(1) * real(i - 1, WP)
+          ref = sin_wp ( xp / FOUR ) + sin_wp(yc / FOUR) + sin_wp(zp / FOUR)
+          err = dabs(den_ypcp(i, j, k) - ref)
+          if(err > err_Linf) err_Linf = err
+          err_L2 = err_L2 + err**2
+        end do
+      end do
+    end do
+    err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%nc(2) * dm%np(1), WP) )
+    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_y', dm%np(2), err_Linf, err_L2
+
+    ! p2c in z
+    call Get_z_midp_P2C_3D(den_ppp, den_zppc, dm, dm%ibcz(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
       do j = 1, dm%np(2)
         yp = dm%yp(j)
-        do i = 1, dm%nc(1)
-          xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / FOUR ) + sin_wp(yp / FOUR) + sin_wp(zc / FOUR)
-          err = dabs(den_ycpc(i, j, k) - ref)
+        do i = 1, dm%np(1)
+          xp = dm%h(1) * real(i - 1, WP)
+          ref = sin_wp ( xp / FOUR ) + sin_wp(yp / FOUR) + sin_wp(zc / FOUR)
+          err = dabs(den_zppc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
         end do
       end do
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%np(2) * dm%nc(1), WP) )
-    write (OUTPUT_UNIT,'(A, 2ES13.5)') '# interp_c2p_z', err_Linf, err_L2
+    err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%np(2) * dm%np(1), WP) )
+    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_z', dm%np(3), err_Linf, err_L2
 
-    ! p2c in z
-    call Get_z_midp_C2P_3D(fl%dDens, den_zccp, dm, dm%ibcz(5, :), dm%fbcz(5, :) )
-    err_Linf = ZERO
-    err_L2   = ZERO
-    do k = 1, dm%nc(3)
-      zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%nc(2)
-        yc = dm%yc(j)
-        do i = 1, dm%nc(1)
-          xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / FOUR ) + sin_wp(yc / FOUR) + sin_wp(zp / FOUR)
-          err = dabs(den_zccp(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-        end do
-      end do
-    end do
-    err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%nc(2) * dm%nc(1), WP) )
-    write (OUTPUT_UNIT,'(A, 2ES13.5)') '# interp_c2p_z', err_Linf, err_L2
+    close(wrt_unit)
 
     return 
   end subroutine
@@ -270,8 +274,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# du/dx : P2C'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# du/dx : P2C'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do j = 1, dm%nc(2)
@@ -284,7 +288,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = 1, 3
 !             xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -292,7 +296,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = dm%nc(1)-2, dm%nc(1)
 !             xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -300,13 +304,13 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
 
 !     if(dudx_P2P) then
@@ -317,8 +321,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# du/dx : P2P'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# du/dx : P2P'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do j = 1, dm%nc(2)
@@ -331,7 +335,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = 1, 3
 !             xp = dm%h(1) * real(i - 1, WP)
@@ -339,7 +343,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = dm%np(1)-2, dm%np(1)
 !             xp = dm%h(1) * real(i - 1, WP)
@@ -347,13 +351,13 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
 
 !     if(dudy_C2P) then
@@ -364,8 +368,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# du/dy : C2P'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# du/dy : C2P'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do i = 1, dm%np(1)
@@ -378,7 +382,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = 1, 3
 !             yp = dm%yp(j)
@@ -386,7 +390,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = dm%np(2)-2, dm%np(2)
 !             yp = dm%yp(j)
@@ -394,13 +398,13 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)   
+!       write (wrt_unit, '(3ES15.7)') err(1:3)   
 !     end if
 
 !     if(dudy_C2C) then
@@ -411,8 +415,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# du/dy : C2C'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# du/dy : C2C'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do i = 1, dm%np(1)
@@ -425,7 +429,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = 1, 3
 !             yc = dm%yc(j)
@@ -433,7 +437,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = dm%nc(2)-2, dm%nc(2)
 !             yc = dm%yc(j)
@@ -441,13 +445,13 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
 
 !     if(dvdy_P2C) then
@@ -458,8 +462,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# dv/dy : P2C'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# dv/dy : P2C'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do i = 1, dm%nc(1)
@@ -472,7 +476,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = 1, 3
 !             yc = dm%yc(j)
@@ -480,7 +484,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = dm%nc(2)-2, dm%nc(2)
 !             yc = dm%yc(j)
@@ -488,13 +492,13 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3) 
+!       write (wrt_unit, '(3ES15.7)') err(1:3) 
 !     end if 
     
 !     if(dvdy_P2P) then
@@ -505,8 +509,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# dv/dy : P2P'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# dv/dy : P2P'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do i = 1, dm%nc(1)
@@ -519,7 +523,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = 1, 3
 !             yp = dm%yp(j)
@@ -527,7 +531,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = dm%np(2)-2, dm%np(2)
 !             yp = dm%yp(j)
@@ -535,13 +539,13 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3) 
+!       write (wrt_unit, '(3ES15.7)') err(1:3) 
 !     end if
 
 !     if(dvdx_C2C) then
@@ -552,8 +556,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# du/dx : P2C'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# du/dx : P2C'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do j = 1, dm%nc(2)
@@ -566,7 +570,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = 1, 3
 !             xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -574,7 +578,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = dm%nc(1)-2, dm%nc(1)
 !             xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -582,13 +586,13 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
 
 !     if(dvdx_C2P) then
@@ -599,8 +603,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# du/dx : P2P'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# du/dx : P2P'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do j = 1, dm%nc(2)
@@ -613,7 +617,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = 1, 3
 !             xp = dm%h(1) * real(i - 1, WP)
@@ -621,7 +625,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = dm%np(1)-2, dm%np(1)
 !             xp = dm%h(1) * real(i - 1, WP)
@@ -629,13 +633,13 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
     
     
@@ -687,8 +691,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# d2u/dx2 : P2P'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# d2u/dx2 : P2P'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do j = 1, dm%nc(2)
@@ -701,7 +705,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = 1, 3
 !             xp = dm%h(1) * real(i - 1, WP)
@@ -709,7 +713,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = dm%np(1)-2, dm%np(1)
 !             xp = dm%h(1) * real(i - 1, WP)
@@ -717,13 +721,13 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
 
 !     if(d2udy2_C2C) then
@@ -734,8 +738,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '# d2u/dy2 : C2C'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '# d2u/dy2 : C2C'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do i = 1, dm%np(1)
@@ -748,7 +752,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = 1, 3
 !             yc = dm%yc(j)
@@ -756,7 +760,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = dm%nc(2)-2, dm%nc(2)
 !             yc = dm%yc(j)
@@ -764,13 +768,13 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
     
 !     if(d2vdy2_P2P) then
@@ -781,8 +785,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '#  d2v/dy2 : P2P'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '#  d2v/dy2 : P2P'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do i = 1, dm%nc(1)
@@ -795,7 +799,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = 1, 3
 !             yp = dm%yp(j)
@@ -803,7 +807,7 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !           do j = dm%np(2)-2, dm%np(2)
 !             yp = dm%yp(j)
@@ -811,13 +815,13 @@ end subroutine
 !             errmax = dabs(fo(j)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3) 
+!       write (wrt_unit, '(3ES15.7)') err(1:3) 
 !     end if
 
 !     if(d2vdx2_C2C) then
@@ -828,8 +832,8 @@ end subroutine
 !       xc = ZERO; yc = ZERO; zc = ZERO
 !       xp = ZERO; yp = ZERO; zp = ZERO
 !       err = ZERO
-!       write (OUTPUT_UNIT,'(A)') '  '
-!       write (OUTPUT_UNIT,'(A)') '#  d2v/dx2 : C2C'
+!       write (wrt_unit,'(A)') '  '
+!       write (wrt_unit,'(A)') '#  d2v/dx2 : C2C'
 !       do k = 1, dm%nc(3)
 !         zc = dm%h(3) * (real(k - 1, WP) + HALF)
 !         do j = 1, dm%nc(2)
@@ -842,7 +846,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(2)) err(2) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = 1, 3
 !             xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -850,7 +854,7 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(1)) err(1) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !           do i = dm%nc(1)-2, dm%nc(1)
 !             xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -858,13 +862,13 @@ end subroutine
 !             errmax = dabs(fo(i)-ref)
 !             if (errmax > err(3)) err(3) = errmax
 !             if(dbg .and. errmax>0.1_WP) & 
-!             write (OUTPUT_UNIT,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
+!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
 !           end do
 !         end do
 !       end do
 !       deallocate (fi)
 !       deallocate (fo)
-!       write (OUTPUT_UNIT, '(3ES15.7)') err(1:3)
+!       write (wrt_unit, '(3ES15.7)') err(1:3)
 !     end if
 
 !     return 
