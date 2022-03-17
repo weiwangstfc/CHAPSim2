@@ -208,7 +208,7 @@ contains
         thermo(1 : nxdomain)%T0Ref = rtmp
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%ithermo
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
-        read(inputUnit, *, iostat = ioerr) varname, thermo(1 : nxdomain)%igravity
+        read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
         read(inputUnit, *, iostat = ioerr) varname, thermo(1 : nxdomain)%Tini0
 !-------------------------------------------------------------------------------
 ! [initialization]

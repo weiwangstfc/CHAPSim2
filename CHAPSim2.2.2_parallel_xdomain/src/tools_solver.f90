@@ -66,17 +66,17 @@ contains
     u0 = ONE / fl%rre * tpRef0%m / tpRef0%d / tm%lenRef
     rtmp = tm%lenRef / u0 / u0 * GRAVITY
     fl%fgravity(:) = ZERO
-    if (tm%igravity == 1 ) then ! flow/gravity same dirction - x
+    if (fl%igravity == 1 ) then ! flow/gravity same dirction - x
       fl%fgravity(1) =  rtmp
-    else if (tm%igravity == 2 ) then ! flow/gravity same dirction - y
+    else if (fl%igravity == 2 ) then ! flow/gravity same dirction - y
       fl%fgravity(2) =  rtmp
-    else if (tm%igravity == 3 ) then ! flow/gravity same dirction - z
+    else if (fl%igravity == 3 ) then ! flow/gravity same dirction - z
       fl%fgravity(3) =  rtmp
-    else if (tm%igravity == -1 ) then ! flow/gravity opposite dirction - x
+    else if (fl%igravity == -1 ) then ! flow/gravity opposite dirction - x
       fl%fgravity(1) =  - rtmp
-    else if (tm%igravity == -2 ) then ! flow/gravity opposite dirction - y
+    else if (fl%igravity == -2 ) then ! flow/gravity opposite dirction - y
       fl%fgravity(2) =  - rtmp
-    else if (tm%igravity == -3 ) then ! flow/gravity opposite dirction - z
+    else if (fl%igravity == -3 ) then ! flow/gravity opposite dirction - z
       fl%fgravity(3) =  - rtmp
     else ! no gravity
       fl%fgravity(:) = ZERO

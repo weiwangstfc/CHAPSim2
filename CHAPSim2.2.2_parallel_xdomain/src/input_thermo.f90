@@ -56,7 +56,6 @@ module thermo_info_mod
 !-------------------------------------------------------------------------------
   type t_thermo
     integer  :: ifluid
-    integer  :: igravity
     integer  :: nIterThermoStart
     integer  :: nIterThermoEnd
     real(WP) :: lenRef

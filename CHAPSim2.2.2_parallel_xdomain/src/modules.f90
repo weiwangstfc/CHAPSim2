@@ -290,13 +290,14 @@ module udf_type_mod
     real(wp) :: tAlpha(0:3)
     real(wp) :: sigma1p, sigma2p
 
+    type(DECOMP_INFO) :: dccc ! eg, p
     type(DECOMP_INFO) :: dpcc ! eg, ux
     type(DECOMP_INFO) :: dcpc ! eg, uy
     type(DECOMP_INFO) :: dccp ! eg, uz
-    type(DECOMP_INFO) :: dccc ! eg, p
     type(DECOMP_INFO) :: dppc ! eg, <ux>^y, <uy>^x
     type(DECOMP_INFO) :: dpcp ! eg, <ux>^z, <uz>^x
     type(DECOMP_INFO) :: dcpp ! eg, <uy>^z, <uz>^y
+    type(DECOMP_INFO) :: dppp
 
     integer :: ipnbr(4, 4) ! global index
     integer :: jpnbr(4, 4)
@@ -321,7 +322,6 @@ module udf_type_mod
 !  flow info
 !------------------------------------------------------------------------------- 
   type t_flow
-
     integer  :: idriven
     integer  :: igravity
     integer  :: irestart

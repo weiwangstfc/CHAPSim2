@@ -44,12 +44,12 @@ contains
       
     else if (idriven == IDRVF_SKINFRIC) then
 
-      rhs_bulk = - HALF * drvf * dm%tAlpha(isub) * dt
+      rhs_bulk = - HALF * drvf * dm%tAlpha(isub) * dm%dt
 
     else if (idriven == IDRVF_PRESLOSS ) then
 
     ! to check this part
-      rhs_bulk = - HALF * drvf * dm%tAlpha(isub) * dt
+      rhs_bulk = - HALF * drvf * dm%tAlpha(isub) * dm%dt
 
     else 
       return
@@ -135,46 +135,48 @@ contains
 ! common vars
 !-------------------------------------------------------------------------------
     real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: qx_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: qz_ypencil
     real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: qx_zpencil
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: qy_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_zpencil
+    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: mx_rhs_ypencil
+    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: mx_rhs_zpencil
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: mx_rhs_implicit
 
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qx_yppc_ypencil ! <ux>^y at (xp, yp, zc)
-    real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qx_zpcp_zpencil ! <ux>^z at (xp, yc, zp)
-    real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: qy_zcpp_zpencil ! <uy>^z at (xc, yp, zp)
-    real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qz_xpcp         ! <uz>^x at (xp, yc, zp) 
-    real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qz_ycpp_ypencil ! <uz>^y at (xc, yp, zp)
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_ypencil
+    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: qy_zpencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: my_rhs_ypencil ! 
+    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: my_rhs_zpencil ! 
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: my_rhs_implicit
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: my_rhs_implicit_ypencil ! 
+
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: qz_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_zpencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: mz_rhs_ypencil !
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_zpencil ! 
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: mz_rhs_implicit
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_implicit_zpencil ! 
+
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp ! 
+
+    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: apcc_ypencil
+    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc_zpencil
+    
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil !
+    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: acpc_zpencil !
+    
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil !
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil ! 
     
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: pres_ypencil ! p
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: pres_zpencil ! p
+    
+    real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qx_yppc_ypencil ! <ux>^y at (xp, yp, zc)
+    
+    real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: qy_zcpp_zpencil ! <uy>^z at (xc, yp, zp)
+    real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qz_ycpp_ypencil ! <uz>^y at (xc, yp, zp)
 
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: mx_rhs_ypencil ! 
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: my_rhs_ypencil ! 
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: mz_rhs_ypencil ! 
- 
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: mx_rhs_zpencil ! 
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: my_rhs_zpencil ! 
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_zpencil ! 
- 
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: mx_rhs_implicit ! 
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: my_rhs_implicit_ypencil ! 
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_implicit_zpencil ! 
-
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc ! 
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: apcc_ypencil ! 
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc_zpencil ! 
-
-    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc ! 
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil !
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: acpc_zpencil !  
-
-    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp ! 
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil !
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil ! 
-
-    real(WP), dimension( dm%dpcp%ysz(1), dm%dpcp%ysz(2), dm%dccp%ysz(3) ) :: apcp_ypencil ! 
+    real(WP), dimension( dm%dpcp%ysz(1), dm%dpcp%ysz(2), dm%dpcp%ysz(3) ) :: apcp_ypencil ! 
+    real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qz_xpcp         ! <uz>^x at (xp, yc, zp) 
+    real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qx_zpcp_zpencil ! <ux>^z at (xp, yc, zp)
     
 !-------------------------------------------------------------------------------
 ! thermal == 0 only
@@ -182,63 +184,67 @@ contains
     real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qx_zpcp ! <ux>^z at (xp, yc, zp)
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qx_yppc ! <ux>^y at (xp, yp, zc)
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qy_xppc ! <uy>^x at (xp, yp, zc)
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_xppc_ypencil ! <uy>^x at (xp, yp, zc)
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dccp%ysz(3) ) :: qy_zcpp_ypencil ! <uy>^z at (xc, yp, zp)
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_xpcp_zpencil ! <uz>^x at (xp, yc, zp)
-    real(WP), dimension( dm%dccp%zsz(1), dm%dcpc%zsz(2), dm%dccp%zsz(3) ) :: qz_ycpp_zpencil ! <uz>^y at (xc, yp, zp)
+    real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qy_xppc_ypencil ! <uy>^x at (xp, yp, zc)
+    real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qy_zcpp_ypencil ! <uy>^z at (xc, yp, zp)
+    real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qz_xpcp_zpencil ! <uz>^x at (xp, yc, zp)
+    real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: qz_ycpp_zpencil ! <uz>^y at (xc, yp, zp)
 !-------------------------------------------------------------------------------
 ! thermal == 1 only
 !-------------------------------------------------------------------------------
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dccp%xsz(3) ) :: apcp
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dccp%zsz(3) ) :: apcp_zpencil
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: appc_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dccp%ysz(3) ) :: acpp_ypencil
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dccp%zsz(3) ) :: acpp_zpencil
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc
+    real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: apcp
+    real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: apcp_zpencil
+    real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: appc_ypencil
+    real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: acpp_ypencil
+    real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: acpp_zpencil
     
-    real(WP), dimension( dm%dccc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: qx_xccc_ypencil   ! <ux>^x at (xc, yc, zc)
-    real(WP), dimension( dm%dccc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: qx_xccc_zpencil   ! <ux>^x at (xc, yc, zc)
-    real(WP), dimension( dm%dcpc%xsz(1), dm%dccc%xsz(2), dm%dcpc%xsz(3) ) :: qy_yccc           ! <uy>^y at (xc, yc, zc)
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dccc%zsz(2), dm%dcpc%zsz(3) ) :: qy_yccc_zpencil   ! <uy>^y at (xc, yc, zc)
-    real(WP), dimension( dm%dccp%xsz(1), dm%dccc%xsz(2), dm%dccp%xsz(3) ) :: qz_zccc           ! <uz>^z at (xc, yc, zc)
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccc%ysz(2), dm%dccp%ysz(3) ) :: qz_zccc_ypencil   ! <uz>^z at (xc, yc, zc), intermediate
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: qx_xccc_ypencil   ! <ux>^x at (xc, yc, zc)
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: qx_xccc_zpencil   ! <ux>^x at (xc, yc, zc)
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qy_yccc           ! <uy>^y at (xc, yc, zc)
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: qy_yccc_zpencil   ! <uy>^y at (xc, yc, zc)
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qz_zccc           ! <uz>^z at (xc, yc, zc)
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: qz_zccc_ypencil   ! <uz>^z at (xc, yc, zc), intermediate
 
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dcpc%xsz(2), dm%dpcc%xsz(3) ) :: gx_yppc           ! <gx>^y at (xp, yp, zc)
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dccp%xsz(3) ) :: gx_zpcp           ! <gx>^z at (xp, yc, zp)
+    real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: gx_yppc           ! <gx>^y at (xp, yp, zc)
+    real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: gx_zpcp           ! <gx>^z at (xp, yc, zp)
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: gy_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dccp%ysz(3) ) :: gy_zcpp_ypencil   ! <gy>^z at (xc, yp, zp)
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_xpcp_zpencil   ! <gz>^x at (xp, yc, zp)
-    real(WP), dimension( dm%dccp%zsz(1), dm%dcpc%zsz(2), dm%dccp%zsz(3) ) :: gz_ycpp_zpencil   ! <gz>^y at (xc, yp, zp)
+    real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: gy_zcpp_ypencil   ! <gy>^z at (xc, yp, zp)
+    real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: gy_xppc_ypencil
+    real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: gz_xpcp_zpencil   ! <gz>^x at (xp, yc, zp)
+    real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: gz_ycpp_zpencil   ! <gz>^y at (xc, yp, zp)
     
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: dDens_ypencil  ! d 
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: dDens_zpencil  ! d 
 
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: m_xpcc         ! <mu>^x       at (xp, yc, zc)  
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: m_xpcc_ypencil ! <mu>^x       at (xp, yc, zc)
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: m_xpcc_zpencil ! <mu>^x       at (xp, yc, zc)
-    real(WP), dimension( dm%dccc%xsz(1), dm%dcpc%xsz(2), dm%dccc%xsz(3) ) :: m_ycpc         ! <mu>^y       at (xc, yp, zc)
-    real(WP), dimension( dm%dccc%ysz(1), dm%dcpc%ysz(2), dm%dccc%ysz(3) ) :: m_ycpc_ypencil ! <mu>^y       at (xc, yp, zc)
-    real(WP), dimension( dm%dccc%zsz(1), dm%dcpc%zsz(2), dm%dccc%zsz(3) ) :: m_ycpc_zpencil ! <mu>^y       at (xc, yp, zc)
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccp%xsz(3) ) :: m_zccp         ! <mu>^z       at (xc, yc, zp)
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccp%ysz(3) ) :: m_zccp_ypencil ! <mu>^z       at (xc, yc, zp)
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccp%zsz(3) ) :: m_zccp_zpencil ! <mu>^z       at (xc, yc, zp)
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: m_xpcc         ! <mu>^x       at (xp, yc, zc)  
+    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: m_xpcc_ypencil ! <mu>^x       at (xp, yc, zc)
+    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: m_xpcc_zpencil ! <mu>^x       at (xp, yc, zc)
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: m_ycpc         ! <mu>^y       at (xc, yp, zc)
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: m_ycpc_ypencil ! <mu>^y       at (xc, yp, zc)
+    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: m_ycpc_zpencil ! <mu>^y       at (xc, yp, zc)
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: m_zccp         ! <mu>^z       at (xc, yc, zp)
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: m_zccp_ypencil ! <mu>^z       at (xc, yc, zp)
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: m_zccp_zpencil ! <mu>^z       at (xc, yc, zp)
     
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: dmdx_xpcc ! d( mu   )/dx at (xp, yc, zc)
-    real(WP), dimension( dm%dccc%xsz(1), dm%dcpc%xsz(2), dm%dccc%xsz(3) ) :: dmdx_ycpc ! d(<mu>^y)/dx at (xc, yp, zc)
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccp%xsz(3) ) :: dmdx_zccp ! d(<mu>^z)/dx at (xc, yc, zp)
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: dmdy_xpcc ! d(<mu>^x)/dy at (xp, yc, zc)
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: dmdz_xpcc ! d(<mu>^x)/dz at (xp, yc, zc)
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: dmdx_xpcc ! d( mu   )/dx at (xp, yc, zc)
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: dmdx_ycpc ! d(<mu>^y)/dx at (xc, yp, zc)
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: dmdx_zccp ! d(<mu>^z)/dx at (xc, yc, zp)
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: dmdy_xpcc ! d(<mu>^x)/dy at (xp, yc, zc)
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: dmdz_xpcc ! d(<mu>^x)/dz at (xp, yc, zc)
 
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccp%zsz(3) ) :: dmdx_zccp_zpencil ! d(<mu>^z)/dx at (xc, yc, zp)
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dmdy_zccp_zpencil ! d(<mu>^z)/dx at (xc, yc, zp)
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccp%ysz(3) ) :: dmdy_zccp_ypencil ! d(<mu>^z)/dy at (xc, yc, zp)
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: dmdy_xpcc_ypencil ! d(<mu>^x)/dy at (xp, yc, zc)
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: dmdz_xpcc_zpencil ! d(<mu>^x)/dz at (xp, yc, zc)
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccp%zsz(3) ) :: dmdz_zccp_zpencil ! d( mu   )/dz at (xc, yc, zp)
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dmdx_ycpc_ypencil ! d( mu   )/dx at (xc, yp, zc)
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dmdx_zccp_zpencil ! d(<mu>^z)/dx at (xc, yc, zp)
+    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: dmdy_xpcc_ypencil ! d(<mu>^x)/dy at (xp, yc, zc)
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dmdy_ycpc_ypencil ! d( mu   )/dy at (xc, yp, zc)
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: dmdy_zccp_ypencil ! d(<mu>^z)/dy at (xc, yc, zp)
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dmdy_zccp_zpencil ! d(<mu>^z)/dx at (xc, yc, zp)
+    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: dmdz_xpcc_zpencil ! d(<mu>^x)/dz at (xp, yc, zc)
+    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: dmdz_ycpc_zpencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dmdz_ycpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dmdz_zccp_zpencil ! d( mu   )/dz at (xc, yc, zp)
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: div_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: div_zpencil
@@ -247,8 +253,11 @@ contains
 !-------------------------------------------------------------------------------
     real(WP) :: one_third_rre, two_third_rre, two_rre
     real(WP) :: fbc(2)
-    integer  :: ibc(2)
     integer  :: i
+
+    one_third_rre = ONE / THREE * fl%rre
+    two_third_rre = TWO / THREE * fl%rre
+          two_rre = TWO * fl%rre
 !===============================================================================
 ! variable preparation
 ! In the comments: 
@@ -498,15 +507,15 @@ contains
 ! X-pencil : X-mom, pressure gradient in x direction, sigma_1*d(p)/dx
 !-------------------------------------------------------------------------------
     call Get_x_1st_derivative_C2P_3D(fl%pres, apcc, dm, dm%ibcx(4, :), dm%fbcx(4, :) )
-    mx_rhs_implicit =  mx_rhs_implicit - sigma1p * apcc
+    mx_rhs_implicit =  mx_rhs_implicit - dm%sigma1p * apcc
 
     if ( dm%ithermo == 1) then
 !-------------------------------------------------------------------------------
 ! x-pencil : X-mom, gravity force in x direction
 !-------------------------------------------------------------------------------
-      if(igravity == 1 .or. igravity == -1)  then
+      if(fl%igravity == 1 .or. fl%igravity == -1)  then
         call Get_x_midp_C2P_3D(fl%dDens, apcc, dm, dm%ibcx(5, :), dm%fbc_dend(1, :) )
-        mx_rhs_implicit =  mx_rhs_implicit + fl%fgravity * apcc
+        mx_rhs_implicit =  mx_rhs_implicit + fl%fgravity(1) * apcc
       end if
 !-------------------------------------------------------------------------------
 !   X-pencil : X-mom diffusion term (x-v2/7), \mu^x * 1/3 * d (div)/dx at (i', j, k)
@@ -614,15 +623,15 @@ contains
 ! Y-pencil : Y-mom pressure gradient in y direction, d(sigma_1 p)
 !-------------------------------------------------------------------------------
     call Get_y_1st_derivative_C2P_3D(pres_ypencil, acpc_ypencil, dm, dm%ibcy(4, :), dm%fbcy(4, :) )
-    my_rhs_implicit_ypencil =  my_rhs_implicit_ypencil - sigma1p * acpc_ypencil
+    my_rhs_implicit_ypencil =  my_rhs_implicit_ypencil - dm%sigma1p * acpc_ypencil
 
     if ( dm%ithermo == 1) then
 !-------------------------------------------------------------------------------
 ! Y-pencil : Y-mom gravity force in y direction
 !-------------------------------------------------------------------------------
-      if( igravity == 2 .or. igravity == -2) then
+      if(fl%igravity == 2 .or. fl%igravity == -2) then
         call Get_y_midp_C2P_3D(dDens_ypencil, acpc_ypencil, dm, dm%ibcy(5, :), dm%fbc_dend(2, 1:2) )
-        my_rhs_implicit_ypencil =  my_rhs_implicit_ypencil + fl%fgravity * acpc_ypencil
+        my_rhs_implicit_ypencil =  my_rhs_implicit_ypencil + fl%fgravity(2) * acpc_ypencil
       end if
 !-------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v6/7), d(mu^x)/dy * d(qx)/dy at (i', j, k)
@@ -697,7 +706,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * L33(ux) at (i', j, k)
 !-------------------------------------------------------------------------------
-    call Get_z_2nd_derivative_P2P_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(1, :), dm%fbcz(1, :) )
+    call Get_z_2nd_derivative_P2P_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(1, :))
     if ( dm%ithermo == 0) mx_rhs_zpencil = mx_rhs_zpencil +                  fl%rre * apcc_zpencil
     if ( dm%ithermo == 1) mx_rhs_zpencil = mx_rhs_zpencil + m_xpcc_zpencil * fl%rre * apcc_zpencil
 
@@ -716,28 +725,28 @@ contains
 !-------------------------------------------------------------------------------
 ! Z-pencil : Y-mom diffusion term (y-v1-3/7), \mu * L33(uy) at (i, j', k)
 !-------------------------------------------------------------------------------
-    call Get_z_2nd_derivative_P2P_3D(qy_zpencil, acpc_zpencil, dm, dm%ibcz(2, :), dm%fbcz(2, :) )
+    call Get_z_2nd_derivative_P2P_3D(qy_zpencil, acpc_zpencil, dm, dm%ibcz(2, :))
     if ( dm%ithermo == 0) my_rhs_zpencil = my_rhs_zpencil +                  fl%rre * acpc_zpencil
     if ( dm%ithermo == 1) my_rhs_zpencil = my_rhs_zpencil + m_ycpc_zpencil * fl%rre * acpc_zpencil
 !-------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v1/1), \mu * L33(uz) at (i, j, k')
 !-------------------------------------------------------------------------------
-    call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(3, :), dm%fbcz(3, :) )
+    call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(3, :))
     if ( dm%ithermo == 0) mz_rhs_zpencil = mz_rhs_zpencil +                  fl%rre * accp_zpencil
     if ( dm%ithermo == 1) mz_rhs_zpencil = mz_rhs_zpencil + m_zccp_zpencil * fl%rre * accp_zpencil
 !-------------------------------------------------------------------------------
 ! z-pencil : pressure gradient in z direction, d(sigma_1 p)
 !-------------------------------------------------------------------------------
     call Get_z_1st_derivative_C2P_3D(pres_zpencil, accp_zpencil, dm, dm%ibcz(4, :), dm%fbcz(4, :) )
-    mz_rhs_implicit_zpencil =  mz_rhs_implicit_zpencil - sigma1p * accp_zpencil
+    mz_rhs_implicit_zpencil =  mz_rhs_implicit_zpencil - dm%sigma1p * accp_zpencil
 
     if ( dm%ithermo == 1) then
 !-------------------------------------------------------------------------------
 ! z-pencil : gravity force in z direction
 !-------------------------------------------------------------------------------
-      if( igravity == 3 .or. igravity == -3) then
+      if( fl%igravity == 3 .or. fl%igravity == -3) then
         call Get_z_midp_C2P_3D(dDens_zpencil, accp_zpencil, dm, dm%ibcz(5, :), dm%fbc_dend(3, :) )
-        mz_rhs_implicit_zpencil =  mz_rhs_implicit_zpencil + fl%fgravity * accp_zpencil
+        mz_rhs_implicit_zpencil =  mz_rhs_implicit_zpencil + fl%fgravity(3) * accp_zpencil
       end if
 !-------------------------------------------------------------------------------
 ! Z-pencil : X-mom diffusion term (x-v7/7), d(mu^x)/dz * d(qx)/dz at (i', j, k)
@@ -930,7 +939,7 @@ contains
         call Calculate_intermediate_mvar(fl%mz_rhs, fl%gz)
       end if
 
-    else if(iviscous == IVIS_SEMIMPLT) then
+    else if(dm%iviscous == IVIS_SEMIMPLT) then
     !in order for a high order spacial accuracy
     ! to use Alternating direction implicit method
     ! ref: Cui2013: Convergence analysis of high-order compact 

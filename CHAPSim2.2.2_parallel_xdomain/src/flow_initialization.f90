@@ -55,10 +55,12 @@ contains
     use mpi_mod
     use vars_df_mod
     use solver_tools_mod
+    use thermo_info_mod
     implicit none
 
     logical :: itest = .false.
     integer :: i, j, iter
+    type(t_thermoProperty) :: tpx, tpy, tpz
 
     iter = 0
     do i = 1, nxdomain
@@ -71,12 +73,16 @@ contains
       else 
         call Apply_BC_thermo(flow(i), thermo(i))
         do j = 1, 2
-          domain(i)%fbc_dend(1, j) = thermo(i)%tpbcx(j)%d
-          domain(i)%fbc_dend(2, j) = thermo(i)%tpbcy(j)%d
-          domain(i)%fbc_dend(3, j) = thermo(i)%tpbcz(j)%d
-          domain(i)%fbc_vism(1, j) = thermo(i)%tpbcx(j)%m
-          domain(i)%fbc_vism(2, j) = thermo(i)%tpbcy(j)%m
-          domain(i)%fbc_vism(3, j) = thermo(i)%tpbcz(j)%m
+          tpx = thermo(i)%tpbcx(j)
+          tpy = thermo(i)%tpbcy(j)
+          tpz = thermo(i)%tpbcz(j)
+
+          domain(i)%fbc_dend(1, j) = tpx%d
+          domain(i)%fbc_dend(2, j) = tpy%d
+          domain(i)%fbc_dend(3, j) = tpz%d
+          domain(i)%fbc_vism(1, j) = tpx%m
+          domain(i)%fbc_vism(2, j) = tpy%m
+          domain(i)%fbc_vism(3, j) = tpz%m
         end do
       end if
 !-------------------------------------------------------------------------------
@@ -87,7 +93,7 @@ contains
 !-------------------------------------------------------------------------------
 ! to intialize variable
 !-------------------------------------------------------------------------------
-      if (irestart == INITIAL_RANDOM) then
+      if (flow(i)%irestart == INITIAL_RANDOM) then
         iter = 0
         call Update_Re(iter, flow(i))
         if(domain(i)%ithermo == 1) &
@@ -100,9 +106,9 @@ contains
         flow(i)%time = ZERO
         if(domain(i)%ithermo == 1) &
         thermo(i)%time = ZERO 
-      else if (irestart == INITIAL_RESTART) then
+      else if (flow(i)%irestart == INITIAL_RESTART) then
 
-      else if (irestart == INITIAL_INTERPL) then
+      else if (flow(i)%irestart == INITIAL_INTERPL) then
 
       else
         call Print_error_msg("Error in flow initialisation flag.")
@@ -180,6 +186,8 @@ contains
   subroutine Allocate_thermo_variables (dm, tm)
     use parameters_constant_mod
     use mpi_mod
+    use udf_type_mod
+    use thermo_info_mod
     implicit none
 
     type(t_domain), intent(in)    :: dm
@@ -216,6 +224,7 @@ contains
   subroutine Initialize_flow_variables( dm, fl)
     use udf_type_mod
     use solver_tools_mod
+    use parameters_constant_mod
     implicit none
     type(t_domain), intent(in   ) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -235,11 +244,11 @@ contains
          (dm%icase == ICASE_PIPE) .or. &
          (dm%icase == ICASE_ANNUAL) ) then
       call Initialize_poiseuille_flow    (dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%initNoise)
-    else if (icase == ICASE_TGV2D) then
+    else if (dm%icase == ICASE_TGV2D) then
       call Initialize_vortexgreen_2dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
-    else if (icase == ICASE_TGV3D) then
+    else if (dm%icase == ICASE_TGV3D) then
       call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
-    else if (icase == ICASE_SINETEST) then
+    else if (dm%icase == ICASE_SINETEST) then
       call Initialize_sinetest_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
     else 
       if(nrank == 0) call Print_error_msg("No such case defined" )
@@ -265,6 +274,7 @@ contains
   subroutine Initialize_thermo_variables( dm, fl, tm )
     use udf_type_mod
     use solver_tools_mod
+    use thermo_info_mod
     implicit none
     type(t_domain), intent(in   ) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -410,7 +420,8 @@ contains
     real(WP),    intent(inout) :: uz(:, :, :)
     real(WP),    intent(in)    :: lnoise
     integer :: seed
-    integer :: i, j, k    ! local id
+    integer :: i, j, k! local id
+    integer :: n, nx, ny, nz   
     integer :: ii, jj, kk ! global id
     real(WP) :: rd(NVD)
     type(DECOMP_INFO) :: dtmp
@@ -483,6 +494,7 @@ contains
     use input_general_mod
     use udf_type_mod
     use boundary_conditions_mod
+    use parameters_constant_mod
     implicit none
     type(t_domain), intent(in   ) :: dm
     real(WP),       intent(in   ) :: lnoise   
@@ -490,7 +502,9 @@ contains
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
                                      p (:, :, :)    
-    integer :: pf_unit    
+    integer :: pf_unit
+    integer :: j
+    real(WP) :: ubulk
     real(WP) :: ux_1c1(dm%nc(2))
     real(WP) :: rd
     real(WP) :: uxxza(dm%nc(2))
@@ -552,7 +566,7 @@ contains
               action  = 'write')
       write(pf_unit, '(A)') "# :yc, ux_laminar, ux, uy, uz"
       do j = 1, dm%nc(2)
-        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1), j, dm%dpcc%yen(3)) )
+        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1), j, dm%dpcc%yen(3))
       end do
       close(pf_unit)
     end if
@@ -640,19 +654,23 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
 
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
-    integer :: k, i, j
+    integer :: k, i, j, ii, jj, kk
     real(wp) :: uerr, ue, uc, verr, perr
     real(wp) :: xc, yc, xp, yp
     real(wp) :: uerrmax, verrmax, perrmax
+    real(wp) :: perr_work, perrmax_work
+    real(wp) :: uerr_work, uerrmax_work
+    real(wp) :: verr_work, verrmax_work
 
     type(DECOMP_INFO) :: dtmp
     character( len = 128) :: filename
     logical :: file_exists = .FALSE.
+    integer :: outputunit
 
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of ux
@@ -736,12 +754,12 @@ contains
       filename = 'Validation_TGV2d.dat'
       INQUIRE(FILE = trim(filename), exist = file_exists)
       if(.not.file_exists) then
-        open(newunit = output_unit, file = trim(filename), action = "write", status = "new")
+        open(newunit = outputunit, file = trim(filename), action = "write", status = "new")
         write(output_unit, '(A)') 'Time, SD(u), SD(v), SD(p)'
       else
-        open(newunit = output_unit, file = trim(filename), action = "write", status = "old", position="append")
+        open(newunit = outputunit, file = trim(filename), action = "write", status = "old", position="append")
       end if
-      write(output_unit, '(1F10.4, 6ES15.7)') tt, uerr_work, verr_work, perr_work, &
+      write(output_unit, '(1F10.4, 6ES15.7)') fl%time, uerr_work, verr_work, perr_work, &
             uerrmax_work, verrmax_work, perrmax_work
       close(output_unit)
     end if
@@ -774,7 +792,7 @@ contains
                                      p (:, :, :)
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
-    integer :: i, j, k
+    integer :: i, j, k, ii, jj, kk
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -865,7 +883,7 @@ contains
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
-    integer :: i, j, k
+    integer :: i, j, k, ii, jj, kk
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
