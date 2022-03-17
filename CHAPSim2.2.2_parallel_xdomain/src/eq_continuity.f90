@@ -1,5 +1,6 @@
 module continuity_eq_mod
-
+  use operations
+  use decomp_2d
   private :: Calculate_drhodt
   private :: Get_divergence_vel
   public  :: Calculate_continuity_constrains

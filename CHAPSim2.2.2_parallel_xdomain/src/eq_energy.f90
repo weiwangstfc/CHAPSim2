@@ -1,5 +1,6 @@
 module eq_energy_mod
-  use precision_mod, only : WP
+  use operations
+  use decomp_2d
   implicit none
 
   private :: Compute_energy_rhs

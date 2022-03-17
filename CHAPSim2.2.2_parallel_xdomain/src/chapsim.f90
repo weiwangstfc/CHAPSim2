@@ -29,7 +29,6 @@ program chapsim
 
   call Initialize_chapsim
   call Solve_eqs_iteration
-  call Finalise_chapsim
   
 end program
 !===============================================================================
@@ -52,9 +51,10 @@ subroutine Initialize_chapsim
   use thermo_info_mod
   use operations
   use domain_decomposition_mod
-  use poisson_mod
+  !use poisson_mod
   use flow_thermo_initialiasation
   implicit none
+  integer :: i
 
 !-------------------------------------------------------------------------------
 ! initialisation of mpi, nrank, nproc
@@ -65,6 +65,12 @@ subroutine Initialize_chapsim
 ! reading input parameters
 !-------------------------------------------------------------------------------
   call Read_input_parameters
+!-------------------------------------------------------------------------------
+! build up geometry information
+!-------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    call Buildup_geometry_mesh_info(domain(i)) 
+  end do
 !-------------------------------------------------------------------------------
 ! build up thermo_mapping_relations, independent of any domains
 !-------------------------------------------------------------------------------
@@ -106,21 +112,30 @@ end subroutine Initialize_chapsim
 subroutine Solve_eqs_iteration
   use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
   use continuity_eq_mod
-  use poisson_mod
+  !use poisson_mod
+  use eq_energy_mod
+  use eq_momentum_mod
+  use flow_thermo_initialiasation 
   use code_performance_mod
+  use thermo_info_mod
   use vars_df_mod
+  use input_general_mod
   implicit none
 
   logical :: is_flow   = .false.
   logical :: is_thermo = .false.
-  integer :: iter
+  integer :: i
+  integer :: iter, isub
   integer :: nrsttckpt
   integer :: niter
 
-  nrsttckpt = MIN(flow(:)%nrsttckpt)
-
-  niter = MAX(flow(:)%nIterFlowEnd)
-  if(is_any_energyeq) niter = MAX(niter, thermo(:)%nIterThermoEnd)
+  nrsttckpt = HUGE(0)
+  niter     = 0
+  do i = 1, nxdomain
+     if( flow(i)%nrsttckpt < nrsttckpt) nrsttckpt = flow(i)%nrsttckpt
+     if( flow(i)%nIterFlowEnd > niter)  niter     = flow(i)%nIterFlowEnd
+     if( is_any_energyeq .and. (thermo(i)%nIterThermoEnd > niter) ) niter = thermo(i)%nIterThermoEnd
+  end do
 
   do iter = nrsttckpt + 1, niter
     call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
@@ -144,7 +159,7 @@ subroutine Solve_eqs_iteration
 !     setting up thermo solver
 !===============================================================================
       if(domain(i)%ithermo == 1) then
-        if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <=thermo(i)%nIterThermoEnd)) then
+        if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
           is_thermo = .true.
           thermo(i)%time = thermo(i)%time  + domain(i)%dt
         end if
@@ -159,7 +174,6 @@ subroutine Solve_eqs_iteration
         write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
         call Check_mass_conservation(flow(i), domain(i)) 
         call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
-        call Get_volumetric_average_3d(flow(i)%qx, 'ux', domain(i), rtmp)   
 #endif
       end do
 !
@@ -170,13 +184,13 @@ subroutine Solve_eqs_iteration
 !     validation
 !===============================================================================
       call Check_mass_conservation(flow(i), domain(i)) 
-      if(icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
+      if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
 
       call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
 !===============================================================================
 !   visualisation
 !===============================================================================
-      if(MOD(iter, nvisu) == 0) then
+      if(MOD(iter, domain(i)%nvisu) == 0) then
         !call Display_vtk_slice(domain, 'xy', 'u', 1, flow(i)%qx, iter)
         !call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
         !call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
@@ -185,35 +199,8 @@ subroutine Solve_eqs_iteration
   end do
 
 
-  return
-end subroutine Solve_eqs_iteration
-
-!===============================================================================
-!===============================================================================
-!> \brief Finalising the flow solver
-!>
-!> This subroutine is called at the end of the main program
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     none          NA
-!> \param[out]    none          NA
-!_______________________________________________________________________________
-subroutine Finalise_chapsim
-  use input_general_mod
-  use mpi_mod
-  use code_performance_mod
-  implicit none
-
-  !call Deallocate_all_variables
   call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
   call Finalise_mpi()
   return
-end subroutine Finalise_chapsim
-
-
-
+end subroutine Solve_eqs_iteration
 

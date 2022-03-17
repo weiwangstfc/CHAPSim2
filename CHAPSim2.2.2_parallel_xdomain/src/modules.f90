@@ -138,10 +138,10 @@ module parameters_constant_mod
 !                        IBC_OUTLET_CONV = 9, &
 !                        IBC_INTERIOR    = 0, &
                         
-  integer, parameter :: IACCU_CD2 = 1, &
-                        IACCU_CD4 = 2, &
-                        IACCU_CP4 = 3, &
-                        IACCU_CP6 = 4
+  integer, parameter :: IACCU_CD2 = 2, &
+                        IACCU_CD4 = 3, &
+                        IACCU_CP4 = 4, &
+                        IACCU_CP6 = 6
 
   integer, parameter :: NDIM = 3
 

@@ -1,5 +1,7 @@
 module eq_momentum_mod
-  use precision_mod, only : WP
+  use operations
+  use precision_mod
+  use decomp_2d
   implicit none
   private :: Calculate_xmomentum_driven_source
   private :: Calculate_momentum_fractional_step
@@ -25,6 +27,7 @@ contains
   subroutine Calculate_xmomentum_driven_source(isub, idriven, drvf, dm, rhs)
     use parameters_constant_mod
     use udf_type_mod
+    use solver_tools_mod
     implicit none
 
     type(t_domain), intent(in) :: dm
@@ -670,13 +673,13 @@ contains
 !-------------------------------------------------------------------------------
 ! Data from Y-pencil to X-pencil
 !-------------------------------------------------------------------------------    
-    call transpose_from_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
-    call transpose_from_y_to_x (my_rhs_ypencil, acpc, dm%dcpc)
-    call transpose_from_y_to_x (mz_rhs_ypencil, accp, dm%dccp)
+    call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
+    call transpose_y_to_x (my_rhs_ypencil, acpc, dm%dcpc)
+    call transpose_y_to_x (mz_rhs_ypencil, accp, dm%dccp)
     fl%mx_rhs = fl%mx_rhs + apcc
     fl%my_rhs = fl%my_rhs + acpc
     fl%mz_rhs = fl%mz_rhs + accp
-    call transpose_from_y_to_x (my_rhs_implicit_ypencil, acpc, dm%dcpc)
+    call transpose_y_to_x (my_rhs_implicit_ypencil, acpc, dm%dcpc)
     my_rhs_implicit = my_rhs_implicit + acpc
 
 !===============================================================================
@@ -786,20 +789,20 @@ contains
 !-------------------------------------------------------------------------------
 ! Data from Z-pencil to X-pencil
 !-------------------------------------------------------------------------------    
-    call transpose_from_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
-    call transpose_from_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
-    call transpose_from_z_to_y (mz_rhs_zpencil, accp_ypencil, dm%dccp)
+    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
+    call transpose_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
+    call transpose_z_to_y (mz_rhs_zpencil, accp_ypencil, dm%dccp)
     
-    call transpose_from_y_to_x (apcc_ypencil, apcc, dm%dpcc)
-    call transpose_from_y_to_x (acpc_ypencil, acpc, dm%dcpc)
-    call transpose_from_y_to_x (accp_ypencil, accp, dm%dccp)
+    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
+    call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
+    call transpose_y_to_x (accp_ypencil, accp, dm%dccp)
 
     fl%mx_rhs = fl%mx_rhs + apcc
     fl%my_rhs = fl%my_rhs + acpc
     fl%mz_rhs = fl%mz_rhs + accp
 
-    call transpose_from_z_to_y (mz_rhs_implicit_zpencil, accp_ypencil, dm%dccp)
-    call transpose_from_y_to_x (accp_ypencil, accp, dm%dccp)
+    call transpose_z_to_y (mz_rhs_implicit_zpencil, accp_ypencil, dm%dccp)
+    call transpose_y_to_x (accp_ypencil, accp, dm%dccp)
 
     mz_rhs_implicit = mz_rhs_implicit + accp
 !===============================================================================
@@ -878,17 +881,17 @@ contains
 !-------------------------------------------------------------------------------
 !   y-pencil, uy = uy - dt * alpha * d(phi)/dy
 !_______________________________________________________________________________
-    call transpose_from_x_to_y (phi, phi_ypencil, dm%dccc)
+    call transpose_x_to_y (phi, phi_ypencil, dm%dccc)
     call Get_y_1st_derivative_C2P_3D(phi_ypencil, dphidy_ypencil, dm, dm%ibcy(4, :), dm%fbcy(4, :) )
-    call transpose_from_y_to_x (dphidy_ypencil, dphidy, dm%dcpc)
+    call transpose_y_to_x (dphidy_ypencil, dphidy, dm%dcpc)
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy
 !-------------------------------------------------------------------------------
 !   z-pencil, uz = uz - dt * alpha * d(phi)/dz
 !_______________________________________________________________________________
-    call transpose_from_y_to_z (phi_ypencil, phi_zpencil, dm%dccc)
+    call transpose_y_to_z (phi_ypencil, phi_zpencil, dm%dccc)
     call Get_z_1st_derivative_C2P_3D(phi_zpencil, dphidz_zpencil, dm, dm%ibcz(4, :), dm%fbcz(4, :) )
-    call transpose_from_z_to_y (dphidz_zpencil, dphidz_ypencil, dm%dccp)
-    call transpose_from_y_to_x (dphidz_ypencil, dphidz,         dm%dccp)
+    call transpose_z_to_y (dphidz_zpencil, dphidz_ypencil, dm%dccp)
+    call transpose_y_to_x (dphidz_ypencil, dphidz,         dm%dccp)
     uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz
 
     return

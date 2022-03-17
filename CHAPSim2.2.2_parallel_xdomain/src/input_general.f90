@@ -51,7 +51,7 @@ contains
     use thermo_info_mod
     implicit none
 
-    character(len = 18) :: flname = 'input_champsim.ini'
+    character(len = 18) :: flname = 'input_chapsim.ini'
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
     integer :: ioerr, inputUnit
@@ -61,6 +61,8 @@ contains
     character(len = 80) :: varname
     integer  :: itmp
     real(WP) :: rtmp
+    real(WP), allocatable :: rtmpx(:)
+    integer, allocatable  :: itmpx(:)
     integer :: i, j
     
     if(nrank == 0) call Print_debug_start_msg("CHAPSim2.0 Starts ...")
@@ -115,9 +117,12 @@ contains
         end do
 
         if(nrank == 0) then
-          write (OUTPUT_UNIT, wrtfmt1i) 'x-direction domain number:', nxdomain
-          write (OUTPUT_UNIT, wrtfmt1i) 'y-direction domain number (default Row)   :', nrow
-          write (OUTPUT_UNIT, wrtfmt1i) 'z-direction domain number (default Column):', ncol
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  x-dir domain number             :', nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) '  y-dir domain number (mpi Row)   :', nrow
+            write (OUTPUT_UNIT, wrtfmt1i) '  z-dir domain number (mpi Column):', ncol
+          end do
         end if
 !-------------------------------------------------------------------------------
 ! [flow]
@@ -138,6 +143,15 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         domain(:)%lzz = rtmp
 
+        if(nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  icase                  :', domain(i)%icase
+            write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in x-dir :', domain(i)%lxx
+            write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in y-dir :', domain(i)%lyt - domain(i)%lyb
+            write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-dir :', domain(i)%lzz
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [boundary] 
 !-------------------------------------------------------------------------------
@@ -157,6 +171,22 @@ contains
           domain(i)%ibcz(:, :) = domain(1)%ibcz(:, :)
           domain(i)%fbcz(:, :) = domain(1)%fbcz(:, :)
         end do
+
+        if(nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt2i) '  u-x-bc-type  :', domain(i)%ibcx(1, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2r) '  u-x-bc-value :', domain(i)%fbcx(1, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2i) '  v-x-bc-type  :', domain(i)%ibcx(2, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2r) '  v-x-bc-value :', domain(i)%fbcx(2, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2i) '  w-x-bc-type  :', domain(i)%ibcx(3, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2r) '  w-x-bc-value :', domain(i)%fbcx(3, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2i) '  p-x-bc-type  :', domain(i)%ibcx(4, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2r) '  p-x-bc-value :', domain(i)%fbcx(4, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2i) '  T-x-bc-type  :', domain(i)%ibcx(5, 1:2)
+            write (OUTPUT_UNIT, wrtfmt2r) '  T-x-bc-value :', domain(i)%fbcx(5, 1:2)
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [mesh] 
 !-------------------------------------------------------------------------------
@@ -170,6 +200,17 @@ contains
         domain(:)%istret = itmp
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         domain(:)%rstret = rtmp
+
+        if(nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  mesh cell number - x     :', domain(i)%nc(1)
+            write (OUTPUT_UNIT, wrtfmt1i) '  mesh cell number - y     :', domain(i)%nc(2)
+            write (OUTPUT_UNIT, wrtfmt1i) '  mesh cell number - z     :', domain(i)%nc(3)
+            write (OUTPUT_UNIT, wrtfmt1i) '  mesh y-stretching type   :', domain(i)%istret
+            write (OUTPUT_UNIT, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [timestepping]
 !-------------------------------------------------------------------------------
@@ -178,38 +219,79 @@ contains
         domain(:)%dt = rtmp
         read(inputUnit, *, iostat = ioerr) varname, itmp
         domain(:)%iTimeScheme = itmp
+
+        if(nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1r) '  physical time step(dt) :', domain(i)%dt
+            write (OUTPUT_UNIT, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [schemes]
 !-------------------------------------------------------------------------------
-      else if ( secname(1:slen) == '[schemes]' )  then 
-        read(inputUnit, *, iostat = ioerr) varname, itmp
-        domain(:)%iviscous = itmp
+      else if ( secname(1:slen) == '[schemes]' )  then
         read(inputUnit, *, iostat = ioerr) varname, itmp
         domain(:)%iAccuracy = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        domain(:)%iviscous = itmp
+
+        if(nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  spatial accuracy scheme :', domain(i)%iAccuracy
+            write (OUTPUT_UNIT, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [flow]
 !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[flow]' ) then
         read(inputUnit, *, iostat = ioerr) varname, is_any_energyeq
         if(is_any_energyeq) allocate( thermo(nxdomain) )
+        allocate ( itmpx(nxdomain) )
+        allocate ( rtmpx(nxdomain) )
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%ren
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%idriven
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%drvfc                                    
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%drvfc      
+        
+        if(nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1r) '  flow Reynolds number      :', flow(i)%ren
+            write (OUTPUT_UNIT, wrtfmt1i) '  flow driven force type    :', flow(i)%idriven
+            write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force         :', flow(i)%drvfc
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [thermo] 
 !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[thermo]' )  then 
 
         read(inputUnit, *, iostat = ioerr) varname, itmp
-        thermo(1 : nxdomain)%ifluid = itmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%ifluid = itmp
         read(inputUnit, *, iostat = ioerr) varname, rtmp
-        thermo(1 : nxdomain)%lenRef = rtmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%lenRef = rtmp
         read(inputUnit, *, iostat = ioerr) varname, rtmp
-        thermo(1 : nxdomain)%T0Ref = rtmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%T0Ref = rtmp
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%ithermo
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
-        read(inputUnit, *, iostat = ioerr) varname, thermo(1 : nxdomain)%Tini0
+        read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
+        if(is_any_energyeq)  thermo(1 : nxdomain)%Tini0 = rtmpx(1: nxdomain)
+
+        if(is_any_energyeq .and. nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  fluid medium               :', thermo(i)%ifluid
+            write (OUTPUT_UNIT, wrtfmt1r) '  reference length (m)       :', thermo(i)%lenRef
+            write (OUTPUT_UNIT, wrtfmt1r) '  reference temperature (K)  :', thermo(i)%T0Ref
+            write (OUTPUT_UNIT, wrtfmt1i) '  is thermal field solved    ?', domain(i)%ithermo
+            write (OUTPUT_UNIT, wrtfmt1i) '  is CHT solved              ?', domain(i)%icht
+            write (OUTPUT_UNIT, wrtfmt1i) '  gravity direction          :', flow(i)%igravity
+            write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)    :', thermo(i)%Tini0
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [initialization]
 !-------------------------------------------------------------------------------
@@ -219,14 +301,39 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%nIterIniRen
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%renIni
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%initNoise
+
+        if( nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  flow restart                           :', flow(i)%irestart
+            write (OUTPUT_UNIT, wrtfmt1i) '  restarting from iteration              :', flow(i)%nrsttckpt
+            write (OUTPUT_UNIT, wrtfmt1i) '  Iteration for initial Reynolds No.     :', flow(i)%nIterIniRen
+            write (OUTPUT_UNIT, wrtfmt1r) '  Initial Reynolds No.                   :', flow(i)%renIni
+            write (OUTPUT_UNIT, wrtfmt1r) '  Initial velocity perturbation itensity :', flow(i)%initNoise
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [simcontrol]
 !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[simcontrol]' ) then
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%nIterFlowStart
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%nIterFlowEnd
-        read(inputUnit, *, iostat = ioerr) varname, thermo(1 : nxdomain)%nIterThermoStart
-        read(inputUnit, *, iostat = ioerr) varname, thermo(1 : nxdomain)%nIterThermoEnd
+        read(inputUnit, *, iostat = ioerr) varname,   itmpx(1:nxdomain)
+        if(is_any_energyeq) thermo(1 : nxdomain)%nIterThermoStart = itmpx(1:nxdomain)
+        read(inputUnit, *, iostat = ioerr) varname,   itmpx(1:nxdomain)
+        if(is_any_energyeq) thermo(1 : nxdomain)%nIterThermoEnd = itmpx(1:nxdomain)
+
+        if( nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  flow simulation starting from iteration    :', flow(i)%nIterFlowStart
+            write (OUTPUT_UNIT, wrtfmt1i) '  flow simulation ending   at   iteration    :', flow(i)%nIterFlowEnd
+            if(is_any_energyeq) then
+            write (OUTPUT_UNIT, wrtfmt1i) '  thermal simulation starting from iteration :', thermo(i)%nIterThermoStart
+            write (OUTPUT_UNIT, wrtfmt1i) '  thermal simulation ending   at   iteration :', thermo(i)%nIterThermoEnd
+            end if
+          end do
+        end if
 !-------------------------------------------------------------------------------
 ! [ioparams]
 !-------------------------------------------------------------------------------
@@ -235,6 +342,16 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nvisu
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nIterStatsStart
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nfreqStats
+
+        if( nrank == 0) then
+          do i = 1, nxdomain
+            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1i) '  raw  data written freqency  :', domain(i)%nfreqckpt
+            write (OUTPUT_UNIT, wrtfmt1i) '  visu data written freqency  :', domain(i)%nvisu
+            write (OUTPUT_UNIT, wrtfmt1i) '  statistics written from     :', domain(i)%nIterStatsStart
+            write (OUTPUT_UNIT, wrtfmt1i) '  statistics written freqency :', domain(i)%nfreqStats
+          end do
+        end if
       else
         exit
       end if block_secname
@@ -256,20 +373,15 @@ contains
 !-------------------------------------------------------------------------------
       if (domain(i)%icase == ICASE_CHANNEL) then
         domain(i)%icoordinate = ICARTESIAN
-        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1s) ' Case : ', "Channel flow" 
       else if (domain(i)%icase == ICASE_PIPE) then
         domain(i)%icoordinate = ICYLINDRICAL
         domain(i)%ibcy(:, 1) = IBC_INTERIOR
-        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1s) ' Case : ', "Pipe flow"
       else if (domain(i)%icase == ICASE_ANNUAL) then
         domain(i)%icoordinate = ICYLINDRICAL
-        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1s) ' Case : ', "Annual flow"
       else if (domain(i)%icase == ICASE_TGV2D) then
         domain(i)%icoordinate = ICARTESIAN
-        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1s) ' Case : ', "Taylor Green Vortex flow (2D)"
       else if (domain(i)%icase == ICASE_TGV3D) then
         domain(i)%icoordinate = ICARTESIAN
-        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1s) ' Case : ', "Taylor Green Vortex flow (3D)"
       else 
         domain(i)%icoordinate = ICARTESIAN
       end if

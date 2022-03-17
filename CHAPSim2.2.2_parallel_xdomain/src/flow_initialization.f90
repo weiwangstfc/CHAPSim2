@@ -19,6 +19,7 @@
 !-------------------------------------------------------------------------------
 module flow_thermo_initialiasation
   use vars_df_mod
+  use solver_tools_mod
   implicit none
 
   
@@ -54,8 +55,8 @@ contains
   subroutine Initialize_flow_thermal_fields
     use mpi_mod
     use vars_df_mod
-    use solver_tools_mod
     use thermo_info_mod
+    use boundary_conditions_mod
     implicit none
 
     logical :: itest = .false.
@@ -71,7 +72,7 @@ contains
         domain(i)%fbc_dend(:, :) = ONE
         domain(i)%fbc_vism(:, :) = ONE
       else 
-        call Apply_BC_thermo(flow(i), thermo(i))
+        call Apply_BC_thermo(domain(i), thermo(i))
         do j = 1, 2
           tpx = thermo(i)%tpbcx(j)
           tpy = thermo(i)%tpbcy(j)
@@ -275,8 +276,9 @@ contains
     use udf_type_mod
     use solver_tools_mod
     use thermo_info_mod
+    use boundary_conditions_mod
     implicit none
-    type(t_domain), intent(in   ) :: dm
+    type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
 
@@ -286,7 +288,7 @@ contains
 !-------------------------------------------------------------------------------
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
     call Initialize_thermal_variables (fl, tm)
-    call Apply_BC_thermo(fl, tm)
+    call Apply_BC_thermo(dm, tm)
 
     call Calculate_massflux_from_velocity (dm, fl)
 !-------------------------------------------------------------------------------
@@ -423,7 +425,7 @@ contains
     integer :: i, j, k! local id
     integer :: n, nx, ny, nz   
     integer :: ii, jj, kk ! global id
-    real(WP) :: rd(NVD)
+    real(WP) :: rd
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -506,7 +508,6 @@ contains
     integer :: j
     real(WP) :: ubulk
     real(WP) :: ux_1c1(dm%nc(2))
-    real(WP) :: rd
     real(WP) :: uxxza(dm%nc(2))
     real(WP) :: uyxza(dm%np(2))
     real(WP) :: uzxza(dm%nc(2))
@@ -546,11 +547,11 @@ contains
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Get_volumetric_average_3d(.false., dm%ibcx(:), dm%fbcx(:), &
+    call Get_volumetric_average_3d(.false., dm%ibcx(1, :), dm%fbcx(1, :), &
           dm, dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(.false., dm%ibcx(:), dm%fbcx(:), &
+    call Get_volumetric_average_3d(.false., dm%ibcx(1, :), dm%fbcx(1, :), &
           dm, dm%dpcc, ux, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil
@@ -659,7 +660,7 @@ contains
 
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
-    integer :: k, i, j, ii, jj, kk
+    integer :: k, i, j, ii, jj!, kk
     real(wp) :: uerr, ue, uc, verr, perr
     real(wp) :: xc, yc, xp, yp
     real(wp) :: uerrmax, verrmax, perrmax
@@ -791,7 +792,7 @@ contains
                                      uz(:, :, :) , &
                                      p (:, :, :)
     real(WP) :: xc, yc, zc
-    real(WP) :: xp, yp, zp
+    real(WP) :: xp, yp!, zp
     integer :: i, j, k, ii, jj, kk
     type(DECOMP_INFO) :: dtmp
 
@@ -870,9 +871,9 @@ contains
 !> \param[out]    f             flow
 !_______________________________________________________________________________
   subroutine  Initialize_sinetest_flow(dm, ux, uy, uz, p)
-    use udf_type_mod, only : t_domain, t_flow
-    use math_mod, only : sin_wp
-    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    use udf_type_mod
+    use math_mod
+    use parameters_constant_mod
     
     implicit none
     type(t_domain), intent(in )   :: dm

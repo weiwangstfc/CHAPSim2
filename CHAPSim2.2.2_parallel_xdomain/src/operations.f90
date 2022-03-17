@@ -55,8 +55,8 @@ module operations
 ! for 1st derivative
 !-------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), public :: d1fC2C(5, 3, 6)
-  real(WP), public :: d1rC2C(5, 4, 6)
+  real(WP), save, public :: d1fC2C(5, 3, 6)
+  real(WP), save, public :: d1rC2C(5, 4, 6)
   
   ! collocated P2P
   real(WP) :: d1fP2P(5, 3, 6)
@@ -347,8 +347,11 @@ contains
     real(WP) :: alpha1, a1, b1, c1, d1
     real(WP) :: alpha2, a2, b2, c2, d2
 
-    if(nrank == 0) call Print_debug_start_msg &
+    if(nrank == 0) then
+       call Print_debug_start_msg &
          ("Assigning coefficient matrix for the compact FD ...")
+       write(*, *) "The given numerical accuracy =", iaccu
+    end if
 
 !-------------------------------------------------------------------------------
 !   initialisation
@@ -1875,7 +1878,7 @@ contains
                               d(n, 6, 6)
 
     integer :: i, j
-
+write(*,*)  'n=', n ! test
     do j = 1, 6
       do i = 1, 6
         a(1,         i, j) = coeff( 1, 1, i )
@@ -1975,6 +1978,7 @@ contains
 ! y-direction, with np unknows
 !===============================================================================
     nsz = domain(1)%np(i)
+write(*,*) 'nsz', nsz !test
 !-------------------------------------------------------------------------------
 !   1st derivative in y direction with np unknows
 !-------------------------------------------------------------------------------

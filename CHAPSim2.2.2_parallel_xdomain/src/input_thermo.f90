@@ -649,7 +649,6 @@ contains
   subroutine Buildup_property_relations_from_table(t0Ref)
     use mpi_mod
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
-    use parameters_constant_mod, only : ZERO
     real(WP), intent(in) :: t0Ref
 
     integer, parameter :: IOMSG_LEN = 200

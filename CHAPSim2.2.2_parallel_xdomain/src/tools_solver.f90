@@ -219,7 +219,6 @@ contains
 !> \param[in]     fm             flow
 !===============================================================================
   subroutine Calculate_massflux_from_velocity(dm, fl)
-    use parameters_constant_mod, only : ZERO
     use udf_type_mod
     use operations
     implicit none
