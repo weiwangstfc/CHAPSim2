@@ -1,6 +1,8 @@
 # folders
 bin/
 obj/
+mod/
+example/
 .history/
 test_*/
 *.dat
