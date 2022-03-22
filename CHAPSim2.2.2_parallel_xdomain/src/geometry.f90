@@ -168,13 +168,15 @@ contains
 !> \param[in]     is_peri      whether the given index array is of periodic b.c.
 !> \param[out]    nbr          the neibouring index in order of -2, -1, +1, +2
 !_______________________________________________________________________________
-  subroutine Buildup_npneibour_index(n, ibc, nbr)
+  subroutine Buildup_npneibour_index(n, ibc, nbr, str)
     use parameters_constant_mod
     implicit none
-    integer, intent(in)  :: n
+    integer, intent(in)  :: n ! np
     integer, intent(in)  :: ibc(2)
     integer, intent(inout) :: nbr(4, 4)
+    character(3), intent(in) :: str
     integer :: i, j
+    integer :: npmax
 !-------------------------------------------------------------------------------
 ! nbr(i, j)
 !   i = 1, 2, 3, 4 : left two index, right two index
@@ -186,6 +188,16 @@ contains
 !   ---(-1')---(0')---(|1')---(2')---(3')---(i')---(n'-1)---(n')--(n'+1|)---(n'+2)---
 !-------------------------------------------------------------------------------
     nbr(:, :) = huge(i)
+    if(str == 'p2p') then
+      npmax = n
+    else if(str == 'p2c')then
+      if(ibc(1) == IBC_PERIODIC .or. ibc(2) == IBC_PERIODIC) then
+        npmax = n
+      else
+        npmax = n + 1
+      end if
+    else
+    end if
 !-------------------------------------------------------------------------------
 ! left
 !-------------------------------------------------------------------------------
@@ -199,8 +211,8 @@ contains
     do i = 1, 2
       do j = 1, 4
         if(ibc(1) == IBC_PERIODIC) then
-          if( nbr(i, j) == -1 ) nbr(i, j) = n - 1
-          if( nbr(i, j) == 0  ) nbr(i, j) = n
+          if( nbr(i, j) == -1 ) nbr(i, j) = npmax - 1
+          if( nbr(i, j) == 0  ) nbr(i, j) = npmax
         else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
           if( nbr(i, j) == -1 ) nbr(i, j) = 3
           if( nbr(i, j) == 0  ) nbr(i, j) = 2
@@ -212,8 +224,8 @@ contains
 ! right
 !-------------------------------------------------------------------------------
     do i = 3, 4
-      if (i == 3) j = n - 1
-      if (i == 4) j = n 
+      if (i == 3) j = npmax - 1
+      if (i == 4) j = npmax 
       nbr(i, 1) = j - 2
       nbr(i, 2) = j - 1
       nbr(i, 3) = j + 1
@@ -223,11 +235,11 @@ contains
     do i = 3, 4
       do j = 1, 4
         if(ibc(2) == IBC_PERIODIC) then
-          if( nbr(i, j) == n + 1 ) nbr(i, j) = 1
-          if( nbr(i, j) == n + 2 ) nbr(i, j) = 2
+          if( nbr(i, j) == npmax + 1 ) nbr(i, j) = 1
+          if( nbr(i, j) == npmax + 2 ) nbr(i, j) = 2
         else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
-          if( nbr(i, j) == n + 1 ) nbr(i, j) = n - 1
-          if( nbr(i, j) == n + 2 ) nbr(i, j) = n - 2
+          if( nbr(i, j) == npmax + 1 ) nbr(i, j) = npmax - 1
+          if( nbr(i, j) == npmax + 2 ) nbr(i, j) = npmax - 2
         else
         end if
       end do
@@ -235,16 +247,16 @@ contains
 
     return
   end subroutine
-
 !_______________________________________________________________________________
-  subroutine Buildup_ncneibour_index(n, ibc, nbr)
+  subroutine Buildup_ncneibour_index(n, ibc, nbr, str)
     use parameters_constant_mod
     implicit none
-    integer, intent(in)  :: n
+    integer, intent(in)  :: n ! nc
     integer, intent(in)  :: ibc(2)
     integer, intent(inout) :: nbr(4, 4)
-
+    character(3), intent(in) :: str
     integer :: i, j
+    integer :: ncmax
 !-------------------------------------------------------------------------------
 ! nbr(i, j)
 !   i = 1, 2, 3, 4 : left two index, right two index
@@ -256,6 +268,16 @@ contains
 !   ---(-1)---(0)--|--(1)---(2)---(3)---(i)---(n-1)---(n)--|--(n+1)---(n+2)---
 !-------------------------------------------------------------------------------
     nbr(:, :) = huge(i)
+    if(str == 'c2c') then
+      ncmax = n
+    else if(str == 'c2p')then
+      if(ibc(1) == IBC_PERIODIC .or. ibc(2) == IBC_PERIODIC) then
+        ncmax = n
+      else
+        ncmax = n - 1
+      end if
+    else
+    end if
 !-------------------------------------------------------------------------------
 ! left
 !-------------------------------------------------------------------------------
@@ -269,8 +291,8 @@ contains
     do i = 1, 2
       do j = 1, 4
         if(ibc(1) == IBC_PERIODIC) then
-          if( nbr(i, j) == -1 ) nbr(i, j) = n - 1
-          if( nbr(i, j) == 0  ) nbr(i, j) = n
+          if( nbr(i, j) == -1 ) nbr(i, j) = ncmax - 1
+          if( nbr(i, j) == 0  ) nbr(i, j) = ncmax
         else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
           if( nbr(i, j) == -1 ) nbr(i, j) = 2
           if( nbr(i, j) == 0  ) nbr(i, j) = 1
@@ -282,8 +304,8 @@ contains
 ! right
 !-------------------------------------------------------------------------------
     do i = 3, 4
-      if (i == 3) j = n - 1
-      if (i == 4) j = n 
+      if (i == 3) j = ncmax - 1
+      if (i == 4) j = ncmax 
       nbr(i, 1) = j - 2
       nbr(i, 2) = j - 1
       nbr(i, 3) = j + 1
@@ -293,11 +315,11 @@ contains
     do i = 3, 4
       do j = 1, 4
         if(ibc(2) == IBC_PERIODIC) then
-          if( nbr(i, j) == n + 1 ) nbr(i, j) = 1
-          if( nbr(i, j) == n + 2 ) nbr(i, j) = 2
+          if( nbr(i, j) == ncmax + 1 ) nbr(i, j) = 1
+          if( nbr(i, j) == ncmax + 2 ) nbr(i, j) = 2
         else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
-          if( nbr(i, j) == n + 1 ) nbr(i, j) = n
-          if( nbr(i, j) == n + 2 ) nbr(i, j) = n - 1
+          if( nbr(i, j) == ncmax + 1 ) nbr(i, j) = ncmax
+          if( nbr(i, j) == ncmax + 2 ) nbr(i, j) = ncmax - 1
         else
         end if
       end do
@@ -306,7 +328,6 @@ contains
     return
   end subroutine
 !===============================================================================
-!===============================================================================
   subroutine Buildup_geometry_mesh_info (dm)
     use mpi_mod
     use math_mod
@@ -314,7 +335,7 @@ contains
     use udf_type_mod
     implicit none
     type(t_domain), intent(inout) :: dm
-    integer :: i
+    integer :: i, j
     logical    :: dbg = .true.
 
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
@@ -352,12 +373,22 @@ contains
 
     !build up index sequence for boundary part
 
-    call Buildup_npneibour_index (dm%np(1), dm%ibcx(1:2,1), dm%ipnbr(:, :) )
-    call Buildup_npneibour_index (dm%np(2), dm%ibcy(1:2,1), dm%jpnbr(:, :) )
-    call Buildup_npneibour_index (dm%np(3), dm%ibcz(1:2,1), dm%kpnbr(:, :) )
-    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1:2,1), dm%icnbr(:, :) )
-    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1:2,1), dm%jcnbr(:, :) )
-    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1:2,1), dm%kcnbr(:, :) )
+    call Buildup_npneibour_index (dm%np(1), dm%ibcx(1:2,1), dm%ipnbr_p2p(:, :), 'p2p')
+    call Buildup_npneibour_index (dm%np(2), dm%ibcy(1:2,1), dm%jpnbr_p2p(:, :), 'p2p' )
+    call Buildup_npneibour_index (dm%np(3), dm%ibcz(1:2,1), dm%kpnbr_p2p(:, :), 'p2p' )
+
+    call Buildup_npneibour_index (dm%nc(1), dm%ibcx(1:2,1), dm%ipnbr_p2c(:, :), 'p2c' )
+    call Buildup_npneibour_index (dm%nc(2), dm%ibcy(1:2,1), dm%jpnbr_p2c(:, :), 'p2c' )
+    call Buildup_npneibour_index (dm%nc(3), dm%ibcz(1:2,1), dm%kpnbr_p2c(:, :), 'p2c' )
+
+    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1:2,1), dm%icnbr_c2c(:, :), 'c2c' )
+    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1:2,1), dm%jcnbr_c2c(:, :), 'c2c' )
+    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1:2,1), dm%kcnbr_c2c(:, :), 'c2c' )
+
+    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1:2,1), dm%icnbr_c2p(:, :), 'c2p' )
+    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1:2,1), dm%jcnbr_c2p(:, :), 'c2p' )
+    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1:2,1), dm%kcnbr_c2p(:, :), 'c2p' )
+
 
     ! allocate  variables for mapping physical domain to computational domain
     allocate ( dm%yp( dm%np_geo(2) ) ); dm%yp(:) = ZERO
@@ -374,8 +405,43 @@ contains
       do i = 1, dm%np_geo(2)
         write (OUTPUT_UNIT, '(I5, 1F8.4)') i, dm%yp(i)
       end do
-    end if
+      
+      write (OUTPUT_UNIT, '(A)') 'For Point, p2p'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%np(1) - 1
+        if(i == 4) j = dm%np(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ip =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%ipnbr_p2p(i, 1), dm%ipnbr_p2p(i, 2), j, dm%ipnbr_p2p(i, 3), dm%ipnbr_p2p(i, 4)
+      end do
 
+      write (OUTPUT_UNIT, '(A)') 'For Point, p2c'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%np(1) - 1
+        if(i == 4) j = dm%np(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ip =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%ipnbr_p2c(i, 1), dm%ipnbr_p2c(i, 2), j, dm%ipnbr_p2c(i, 3), dm%ipnbr_p2c(i, 4)
+      end do
+
+      write (OUTPUT_UNIT, '(A)') 'For CC, c2c'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%nc(1) - 1
+        if(i == 4) j = dm%nc(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ic =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%icnbr_c2c(i, 1), dm%icnbr_c2c(i, 2), j, dm%icnbr_c2c(i, 3), dm%icnbr_c2c(i, 4)
+      end do
+
+      write (OUTPUT_UNIT, '(A)') 'For CC, c2p'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%nc(1) - 1
+        if(i == 4) j = dm%nc(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ic =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%icnbr_c2p(i, 1), dm%icnbr_c2p(i, 2), j, dm%icnbr_c2p(i, 3), dm%icnbr_c2p(i, 4)
+      end do
+    end if
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine  Buildup_geometry_mesh_info

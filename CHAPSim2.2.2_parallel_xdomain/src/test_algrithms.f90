@@ -58,7 +58,7 @@ end subroutine
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in) :: dm
+    type(t_domain), intent(inout) :: dm
     integer :: i, j, k
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
@@ -77,11 +77,38 @@ end subroutine
     real(WP) :: den_ypcp(dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) )
     real(WP) :: den_zppc(dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) )
 
-    real(WP) :: scale
+    real(WP) :: scale, shift
 
     open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
 
-    scale = ONE
+    if (dm%ibcx(1, 5) == IBC_PERIODIC) then
+      scale = ONE
+      shift = ZERO
+    else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
+      scale = ONE
+      shift = PI / TWO
+    else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
+      scale = TWO
+      shift = ZERO
+    else if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ZERO
+      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ONE / THREE * cos_wp(ZERO / THREE)
+      dm%fbcx(2, 5) = ONE / THREE * cos_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    else 
+      scale = THREE
+      shift = ZERO
+    end if
+
 
     ! initialise a 3d variable on cell-centre
     do k = 1, dm%nc(3)
@@ -90,7 +117,7 @@ end subroutine
         yc = dm%yc(j)
         do i = 1, dm%nc(1)
           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          den_ccc(i, j, k) = sin_wp ( xc / scale) + sin_wp(yc / scale) + sin_wp(zc / scale)
+          den_ccc(i, j, k) = sin_wp ( xc / scale + shift) + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
         end do
       end do
     end do
@@ -105,7 +132,7 @@ end subroutine
         yc = dm%yc(j)
         do i = 1, dm%np(1)
           xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp  / scale) + sin_wp(yc / scale) + sin_wp(zc / scale)
+          ref = sin_wp ( xp  / scale + shift) + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
           err = dabs(den_xpcc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -126,7 +153,7 @@ end subroutine
         yp = dm%yp(j)
         do i = 1, dm%nc(1)
           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale ) + sin_wp(yp / scale) + sin_wp(zc / scale)
+          ref = sin_wp ( xc / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
           err = dabs(den_ycpc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -146,7 +173,7 @@ end subroutine
         yc = dm%yc(j)
         do i = 1, dm%nc(1)
           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale ) + sin_wp(yc / scale) + sin_wp(zp / scale)
+          ref = sin_wp ( xc / scale + shift ) + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
           err = dabs(den_zccp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -163,7 +190,7 @@ end subroutine
         yp = dm%yp(j)
         do i = 1, dm%np(1)
           xp = dm%h(1) * real(i - 1, WP)
-          den_ppp(i, j, k) = sin_wp ( xp / scale ) + sin_wp(yp / scale) + sin_wp(zp / scale)
+          den_ppp(i, j, k) = sin_wp ( xp / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
         end do
       end do
     end do
@@ -178,7 +205,7 @@ end subroutine
         yp = dm%yp(j)
         do i = 1, dm%nc(1)
           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale ) + sin_wp(yp / scale) + sin_wp(zp / scale)
+          ref = sin_wp ( xc / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
           err = dabs(den_xcpp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -198,7 +225,7 @@ end subroutine
         yc = dm%yc(j)
         do i = 1, dm%np(1)
           xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp / scale ) + sin_wp(yc / scale) + sin_wp(zp / scale)
+          ref = sin_wp ( xp / scale + shift ) + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
           err = dabs(den_ypcp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -218,7 +245,7 @@ end subroutine
         yp = dm%yp(j)
         do i = 1, dm%np(1)
           xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp / scale ) + sin_wp(yp / scale) + sin_wp(zc / scale)
+          ref = sin_wp ( xp / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
           err = dabs(den_zppc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
