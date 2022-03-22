@@ -2,7 +2,7 @@
 bin/
 obj/
 mod/
-example/
+## example/
 .history/
 test_*/
 *.dat
