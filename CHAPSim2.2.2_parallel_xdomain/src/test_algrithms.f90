@@ -3,8 +3,8 @@ module test_algorithms_mod
 
   public   :: Test_schemes
   private  :: Test_interpolation
-  !private  :: Test_1st_derivative
-  !private  :: Test_2nd_derivative
+  private  :: Test_1st_derivative
+  private  :: Test_2nd_derivative
   
 contains
 !===============================================================================
@@ -33,8 +33,8 @@ subroutine Test_schemes()
   !call Test_TDMA_cyclic
   !call Test_TDMA_noncyclic
   call Test_interpolation (domain(1))
-  !call Test_1st_derivative(flow, domain)
-  !call Test_2nd_derivative(flow, domain)
+  call Test_1st_derivative(domain(1))
+  call Test_2nd_derivative(domain(1))
   return 
 end subroutine 
 
@@ -66,16 +66,10 @@ end subroutine
     real(WP) :: err, err_Linf, err_L2
     integer  :: wrt_unit
 
-    real(WP) :: den_ccc (dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) )
-    real(WP) :: den_ppp (dm%dppp%xsz(1), dm%dppp%xsz(2), dm%dppp%xsz(3) )
-
-    real(WP) :: den_xpcc(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) )
-    real(WP) :: den_ycpc(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) )
-    real(WP) :: den_zccp(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) )
-
-    real(WP) :: den_xcpp(dm%dcpp%xsz(1), dm%dcpp%xsz(2), dm%dcpp%xsz(3) )
-    real(WP) :: den_ypcp(dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) )
-    real(WP) :: den_zppc(dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) )
+    real(WP) :: fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3))
+    real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
+    real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
+    real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
 
     real(WP) :: scale, shift
 
@@ -114,204 +108,134 @@ end subroutine
     end if
 
 
-    ! initialise a 3d variable on cell-centre
-    do k = 1, dm%nc(3)
-      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%nc(2)
-        !yc = dm%yc(j)
-        do i = 1, dm%nc(1)
-          xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          den_ccc(i, j, k) = sin_wp ( xc / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
-        end do
-      end do
+! x direction, xc
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      fxc(i) = sin_wp ( xc / scale + shift)
     end do
-
-    ! c2p in x
-    call Get_x_midp_C2P_3D(den_ccc, den_xpcc, dm, dm%ibcx(:, 5), dm%fbcx(:, 5) )
+! x: c2p
+    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
-    do k = 1, dm%nc(3)
-      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%nc(2)
-       ! yc = dm%yc(j)
-        do i = 1, dm%np(1)
-          xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp  / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
-          err = dabs(den_xpcc(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-          if(k == 1 .and. j == 1) write(*,'(1I5.1,4ES13.5)') i, xp, ref, den_xpcc(i, j, k), err !test
-        end do
-      end do
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = sin_wp(xp / scale + shift)
+      err = dabs(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-interp-c2p ', i, xp, ref, fgxp(i), err !test
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%nc(2) * dm%np(1), WP) )
-    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_x', dm%np(1), err_Linf, err_L2
-    
-    ! initialise a 3d variable on cell-centre
-    do k = 1, dm%nc(3)
-      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%nc(2)
-        yc = dm%yc(j)
-        do i = 1, dm%nc(1)
-          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          den_ccc(i, j, k) = sin_wp ( yc / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
-        end do
-      end do
-    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    write(wrt_unit, *) 'x-interp-c2p ', dm%np(1), err_Linf, err_L2
 
-    ! c2p in y
-    call Get_y_midp_C2P_3D(den_ccc, den_ycpc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5) )
+! y direction, yc
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      fyc(j) = sin_wp ( yc / scale + shift)
+    end do
+! y: c2p
+    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
-    do k = 1, dm%nc(3)
-      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%np(2)
-        yp = dm%yp(j)
-        do i = 1, dm%nc(1)
-          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( yp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
-          err = dabs(den_ycpc(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-        end do
-      end do
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = sin_wp(yp / scale + shift)
+      err = dabs(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-interp-c2p ', j, yp, ref, fgyp(j), err !test
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%np(2) * dm%nc(1), WP) )
-    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_y', dm%np(2), err_Linf, err_L2
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    write(wrt_unit, *) 'y-interp-c2p ', dm%np(2), err_Linf, err_L2
 
-    ! initialise a 3d variable on cell-centre
+ ! z direction, zc
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%nc(2)
-        !yc = dm%yc(j)
-        do i = 1, dm%nc(1)
-          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          den_ccc(i, j, k) = sin_wp ( zc / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
-        end do
-      end do
+      fzc(k) = sin_wp ( zc / scale + shift)
     end do
-
-    ! c2p in z
-    call Get_z_midp_C2P_3D(den_ccc, den_zccp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5) )
+! z: c2p
+    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%nc(2)
-        !yc = dm%yc(j)
-        do i = 1, dm%nc(1)
-          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( zp / scale + shift )! + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
-          err = dabs(den_zccp(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-        end do
-      end do
+      ref = sin_wp(zp / scale + shift)
+      err = dabs(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-interp-c2p ', k, zp, ref, fgzp(k), err !test
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%nc(2) * dm%nc(1), WP) )
-    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_z', dm%np(3), err_Linf, err_L2
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    write(wrt_unit, *) 'z-interp-c2p ', dm%np(3), err_Linf, err_L2
 
-    ! initialise a 3d variable on point based
-    do k = 1, dm%np(3)
-      !zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%np(2)
-        !yp = dm%yp(j)
-        do i = 1, dm%np(1)
-          xp = dm%h(1) * real(i - 1, WP)
-          den_ppp(i, j, k) = sin_wp ( xp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
-        end do
-      end do
+! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
     end do
-
-    ! p2c in x
-    call Get_x_midp_P2C_3D(den_ppp, den_xcpp, dm, dm%ibcx(:, 5))
+! x: p2c
+    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
-    do k = 1, dm%np(3)
-      !zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%np(2)
-        !yp = dm%yp(j)
-        do i = 1, dm%nc(1)
-          xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
-          err = dabs(den_xcpp(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-        end do
-      end do
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = sin_wp(xc / scale + shift)
+      err = dabs(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-interp-p2c ', i, xc, ref, fgxc(i), err !test
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%np(2) * dm%nc(1), WP) )
-    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_x', dm%np(1), err_Linf, err_L2
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    write(wrt_unit, *) 'x-interp-p2c ', dm%nc(1), err_Linf, err_L2
 
-    do k = 1, dm%np(3)
-      !zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%np(2)
-        yp = dm%yp(j)
-        do i = 1, dm%np(1)
-          !xp = dm%h(1) * real(i - 1, WP)
-          den_ppp(i, j, k) = sin_wp ( yp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
-        end do
-      end do
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
     end do
-
-    ! p2c in y
-    call Get_y_midp_P2C_3D(den_ppp, den_ypcp, dm, dm%ibcy(:, 5))
+! y: p2c
+    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
-    do k = 1, dm%np(3)
-      !zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%nc(2)
-        yc = dm%yc(j)
-        do i = 1, dm%np(1)
-          !xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( yc / scale + shift )! + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
-          err = dabs(den_ypcp(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-        end do
-      end do
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = sin_wp(yc / scale + shift)
+      err = dabs(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-interp-p2c ', j, yc, ref, fgyc(j), err !test
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%nc(2) * dm%np(1), WP) )
-    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_y', dm%np(2), err_Linf, err_L2
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    write(wrt_unit, *) 'y-interp-p2c ', dm%nc(2), err_Linf, err_L2
 
+
+! z direction, zp
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
-      do j = 1, dm%np(2)
-        !yp = dm%yp(j)
-        do i = 1, dm%np(1)
-          !xp = dm%h(1) * real(i - 1, WP)
-          den_ppp(i, j, k) = sin_wp ( zp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
-        end do
-      end do
+      fzp(k) = sin_wp ( zp / scale + shift)
     end do
-
-    ! p2c in z
-    call Get_z_midp_P2C_3D(den_ppp, den_zppc, dm, dm%ibcz(:, 5))
+! z: p2c
+    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
-      do j = 1, dm%np(2)
-        !yp = dm%yp(j)
-        do i = 1, dm%np(1)
-          !xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( zc / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
-          err = dabs(den_zppc(i, j, k) - ref)
-          if(err > err_Linf) err_Linf = err
-          err_L2 = err_L2 + err**2
-        end do
-      end do
+      ref = sin_wp(zc / scale + shift)
+      err = dabs(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-interp-p2c ', k, zc, ref, fgzc(k), err !test
     end do
-    err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%np(2) * dm%np(1), WP) )
-    write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_z', dm%np(3), err_Linf, err_L2
-
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    write(wrt_unit, *) 'z-interp-p2c ', dm%nc(3), err_Linf, err_L2
     close(wrt_unit)
 
     return 
   end subroutine
+
 !===============================================================================
 !===============================================================================
-!> \brief To test this subroutine for 1st derivative.
+!> \brief To test this subroutine for mid-point interpolation.
 !>
 !> This subroutine is called in \ref Test_schemes. Define the logicals to choose
 !> which test section is required. 
@@ -323,636 +247,466 @@ end subroutine
 !______________________________________________________________________________!
 !> \param[in]     d             domain
 !_______________________________________________________________________________
-!   subroutine Test_1st_derivative(f, d)
-!     use parameters_constant_mod
-!     use udf_type_mod
-!     use math_mod
-!     implicit none
-!     type(t_flow)  , intent(in) :: f
-!     type(t_domain), intent(in) :: d
-!     real(WP), allocatable :: fi(:), fo(:)
-!     real(WP) :: xc, yc, zc
-!     real(WP) :: xp, yp, zp
-!     real(WP) :: ref
-!     integer :: i, j, k
-!     real(WP) :: err(3), errmax
-!     logical :: dbg = .false.
+  subroutine Test_1st_derivative(dm)
+    use operations
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    integer :: i, j, k
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    real(WP) :: ref
+    real(WP) :: err, err_Linf, err_L2
+    integer  :: wrt_unit
 
-!     logical :: dudx_P2C = .true.
-!     logical :: dudx_P2P = .true.
-!     logical :: dvdx_C2P = .true.
-!     logical :: dvdx_C2C = .true.
-
-!     logical :: dudy_C2P = .true.
-!     logical :: dudy_C2C = .true.
-!     logical :: dvdy_P2P = .true.
-!     logical :: dvdy_P2C = .true.
-
-!     if(dudx_P2C) then
-!       ! du / dx, P2C
-!       ! (i', j, k) --> (i, j, k)
-!       allocate ( fi( dm%np(1) ) ); fi = ZERO
-!       allocate ( fo( dm%nc(1) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# du/dx : P2C'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do j = 1, dm%nc(2)
-!           yc = dm%yc(j)
-!           fi(:) = f%qx(:, j, k)
-!           call Get_1st_derivative_1D('x', 'P2C', d, fi(:), fo(:))
-!           do i = 4, dm%nc(1)-3
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = cos_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = 1, 3
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = cos_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = dm%nc(1)-2, dm%nc(1)
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = cos_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
-
-!     if(dudx_P2P) then
-!     ! du / dx, P2P
-!     ! (i', j, k) --> (i', j, k)
-!       allocate ( fi( dm%np(1) ) ); fi = ZERO
-!       allocate ( fo( dm%np(1) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# du/dx : P2P'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do j = 1, dm%nc(2)
-!           yc = dm%yc(j)
-!           fi(:) = f%qx(:, j, k)
-!           call Get_1st_derivative_1D('x', 'P2P', d, fi(:), fo(:))
-!           do i = 4, dm%np(1)-3
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = cos_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = 1, 3
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = cos_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = dm%np(1)-2, dm%np(1)
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = cos_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
-
-!     if(dudy_C2P) then
-!       ! du / dy, C2P
-!       ! (i', j, k) --> (i', j', k)
-!       allocate ( fi( dm%nc(2) ) ); fi = ZERO
-!       allocate ( fo( dm%np(2) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# du/dy : C2P'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do i = 1, dm%np(1)
-!           xp = dm%h(1) * real(i - 1, WP)
-!           fi(:) = f%qx(i, :, k)
-!           call Get_1st_derivative_1D('y', 'C2P', d, fi(:), fo(:))
-!           do j = 4, dm%np(2)-3
-!             yp = dm%yp(j)
-!             ref = cos_wp(yp)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = 1, 3
-!             yp = dm%yp(j)
-!             ref = cos_wp(yp)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = dm%np(2)-2, dm%np(2)
-!             yp = dm%yp(j)
-!             ref = cos_wp(yp)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)   
-!     end if
-
-!     if(dudy_C2C) then
-!       ! du / dy, C2C
-!       ! (i', j, k) --> (i, j, k)
-!       allocate ( fi( dm%nc(2) ) ); fi = ZERO
-!       allocate ( fo( dm%nc(2) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# du/dy : C2C'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do i = 1, dm%np(1)
-!           xp = dm%h(1) * real(i - 1, WP)
-!           fi(:) = f%qx(i, :, k)
-!           call Get_1st_derivative_1D('y', 'C2C', d, fi(:), fo(:))
-!           do j = 4, dm%nc(2)-3
-!             yc = dm%yc(j)
-!             ref = cos_wp(yc)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = 1, 3
-!             yc = dm%yc(j)
-!             ref = cos_wp(yc)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = dm%nc(2)-2, dm%nc(2)
-!             yc = dm%yc(j)
-!             ref = cos_wp(yc)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
-
-!     if(dvdy_P2C) then
-!       ! dv / dy, P2C
-!       ! (i, j', k) --> (i, j, k)
-!       allocate ( fi( dm%np(2) ) ); fi = ZERO
-!       allocate ( fo( dm%nc(2) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# dv/dy : P2C'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do i = 1, dm%nc(1)
-!           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!           fi(:) = f%qy(i, :, k)
-!           call Get_1st_derivative_1D('y', 'P2C', d, fi(:), fo(:))
-!           do j = 4, dm%nc(2)-3
-!             yc = dm%yc(j)
-!             ref = cos_wp ( yc )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = 1, 3
-!             yc = dm%yc(j)
-!             ref = cos_wp ( yc )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = dm%nc(2)-2, dm%nc(2)
-!             yc = dm%yc(j)
-!             ref = cos_wp ( yc )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3) 
-!     end if 
+    real(WP) :: fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3))
+    real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
+    real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
+    real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
     
-!     if(dvdy_P2P) then
-!       ! dv / dy, P2P
-!       ! (i, j', k) --> (i, j', k)
-!       allocate ( fi( dm%np(2) ) ); fi = ZERO
-!       allocate ( fo( dm%np(2) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# dv/dy : P2P'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do i = 1, dm%nc(1)
-!           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!           fi(:) = f%qy(i, :, k)
-!           call Get_1st_derivative_1D('y', 'P2P', d, fi(:), fo(:))
-!           do j = 4, dm%np(2)-3
-!             yp = dm%yp(j)
-!             ref = cos_wp ( yp )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = 1, 3
-!             yp = dm%yp(j)
-!             ref = cos_wp ( yp )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = dm%np(2)-2, dm%np(2)
-!             yp = dm%yp(j)
-!             ref = cos_wp ( yp )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3) 
-!     end if
+    real(WP) :: scale, shift
 
-!     if(dvdx_C2C) then
-!       ! du / dx, P2C
-!       ! (i', j, k) --> (i, j, k)
-!       allocate ( fi( dm%nc(1) ) ); fi = ZERO
-!       allocate ( fo( dm%nc(1) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# du/dx : P2C'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do j = 1, dm%nc(2)
-!           yc = dm%yc(j)
-!           fi(:) = f%qy(:, j, k)
-!           call Get_1st_derivative_1D('x', 'C2C', d, fi(:), fo(:))
-!           do i = 4, dm%nc(1)-3
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = cos_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = 1, 3
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = cos_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = dm%nc(1)-2, dm%nc(1)
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = cos_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
+    if (dm%ibcx(1, 5) == IBC_PERIODIC) then
+      scale = ONE
+      shift = ZERO
+    else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
+      scale = ONE
+      shift = PI / TWO
+    else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
+      scale = TWO
+      shift = ZERO
+    else if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ZERO
+      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ONE / THREE * cos_wp(ZERO / THREE + shift)
+      dm%fbcx(2, 5) = ONE / THREE * cos_wp(TWO * PI / THREE + shift)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    else 
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ZERO
+      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    end if
 
-!     if(dvdx_C2P) then
-!     ! du / dx, P2P
-!     ! (i', j, k) --> (i', j, k)
-!       allocate ( fi( dm%np(1) ) ); fi = ZERO
-!       allocate ( fo( dm%np(1) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# du/dx : P2P'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do j = 1, dm%nc(2)
-!           yc = dm%yc(j)
-!           fi(:) = f%qx(:, j, k)
-!           call Get_1st_derivative_1D('x', 'P2P', d, fi(:), fo(:))
-!           do i = 4, dm%np(1)-3
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = cos_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = 1, 3
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = cos_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = dm%np(1)-2, dm%np(1)
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = cos_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
+    open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
+
+! x direction, xc
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      fxc(i) = sin_wp ( xc / scale + shift)
+    end do
+! x: c2c
+    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(xc / scale + shift)
+      err = dabs(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    write(wrt_unit, *) 'x-1stder-c2c ', dm%nc(1), err_Linf, err_L2
+
+! y direction, yc
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      fyc(j) = sin_wp ( yc / scale + shift)
+    end do
+! y: c2c
+    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = ONE/scale * cos_wp(yc / scale + shift)
+      err = dabs(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    write(wrt_unit, *) 'y-1stder-c2c ', dm%nc(2), err_Linf, err_L2
+
+! z direction, zc
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      fzc(k) = sin_wp ( zc / scale + shift)
+    end do
+! z: c2c
+    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(zc / scale + shift)
+      err = dabs(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    write(wrt_unit, *) 'z-1stder-c2c ', dm%nc(3), err_Linf, err_L2
+
+ ! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
+    end do
+! x: p2p
+    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = ONE/scale * cos_wp(xp / scale + shift)
+      err = dabs(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2p', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    write(wrt_unit, *) 'x-1stder-p2p ', dm%np(1), err_Linf, err_L2
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
+    end do
+! y: p2p
+    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = ONE/scale * cos_wp(yp / scale + shift)
+      err = dabs(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    write(wrt_unit, *) 'y-1stder-p2p ', dm%np(2), err_Linf, err_L2
+! z direction, zp
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      fzp(k) = sin_wp ( zp / scale + shift)
+    end do
+! z: p2p
+    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = ONE/scale * cos_wp(zp / scale + shift)
+      err = dabs(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    write(wrt_unit, *) 'z-1stder-p2p ', dm%np(3), err_Linf, err_L2
+
+! x: c2p
+    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = ONE/scale * cos_wp(xp / scale + shift)
+      err = dabs(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2p ', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    write(wrt_unit, *) 'x-1stder-c2p ', dm%np(1), err_Linf, err_L2
+
+! y: c2p
+    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = ONE/scale * cos_wp(yp / scale + shift)
+      err = dabs(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    write(wrt_unit, *) 'y-1stder-c2p ', dm%np(2), err_Linf, err_L2
+
+! z: c2p
+    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = ONE/scale * cos_wp(zp / scale + shift)
+      err = dabs(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    write(wrt_unit, *) 'z-1stder-c2p ', dm%np(3), err_Linf, err_L2
+
+! x: p2c
+    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(xc / scale + shift)
+      err = dabs(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    write(wrt_unit, *) 'x-1stder-p2c ', dm%nc(1), err_Linf, err_L2
+
+! y: p2c
+    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = ONE/scale * cos_wp(yc / scale + shift)
+      err = dabs(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    write(wrt_unit, *) 'y-1stder-p2c ', dm%nc(2), err_Linf, err_L2
+
+! z: p2c
+    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(zc / scale + shift)
+      err = dabs(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    write(wrt_unit, *) 'z-1stder-p2c ', dm%nc(3), err_Linf, err_L2
+
+    close(wrt_unit)
+
+    return 
+  end subroutine
+
+!===============================================================================
+!===============================================================================
+!> \brief To test this subroutine for mid-point interpolation.
+!>
+!> This subroutine is called in \ref Test_schemes. Define the logicals to choose
+!> which test section is required. 
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
+  subroutine Test_2nd_derivative(dm)
+    use operations
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    integer :: i, j, k
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    real(WP) :: ref
+    real(WP) :: err, err_Linf, err_L2
+    integer  :: wrt_unit
+
+    real(WP) :: fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3))
+    real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
+    real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
+    real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
     
-    
-!     return 
-!   end subroutine
+    real(WP) :: scale, shift
+
+    if (dm%ibcx(1, 5) == IBC_PERIODIC) then
+      scale = ONE
+      shift = ZERO
+    else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
+      scale = ONE
+      shift = PI / TWO
+    else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
+      scale = TWO
+      shift = ZERO
+    else if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ZERO
+      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ONE / THREE * cos_wp(ZERO / THREE)
+      dm%fbcx(2, 5) = ONE / THREE * cos_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    else 
+      scale = THREE
+      shift = ZERO
+      dm%fbcx(1, 5) = ZERO
+      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
+    end if
+
+    open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
+
+! x direction, xc
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      fxc(i) = sin_wp ( xc / scale + shift)
+    end do
+! x: c2c
+    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = - (ONE/scale)**2 * sin_wp(xc / scale + shift)
+      err = dabs(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-c2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    write(wrt_unit, *) 'x-2ndder-c2c ', dm%nc(1), err_Linf, err_L2
+
+! y direction, yc
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      fyc(j) = sin_wp ( yc / scale + shift)
+    end do
+! y: c2c
+    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = - (ONE/scale)**2 * sin_wp(yc / scale + shift)
+      err = dabs(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+     ! write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-c2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    write(wrt_unit, *) 'y-2ndder-c2c ', dm%nc(2), err_Linf, err_L2
+
+! z direction, zc
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      fzc(k) = sin_wp ( zc / scale + shift)
+    end do
+! z: c2c
+    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = - (ONE/scale)**2 * sin_wp(zc / scale + shift)
+      err = dabs(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-c2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    write(wrt_unit, *) 'z-2ndder-c2c ', dm%nc(3), err_Linf, err_L2
+
+! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
+    end do
+! x: p2p
+    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), dm%fbcx(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = - (ONE/scale)**2 * sin_wp(xp / scale + shift)
+      err = dabs(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-p2p ', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    write(wrt_unit, *) 'x-2ndder-p2p ', dm%np(1), err_Linf, err_L2
 
 
-!   !===============================================================================
-! !===============================================================================
-! !> \brief To test this subroutine for 1st derivative.
-! !>
-! !> This subroutine is called in \ref Test_schemes. Define the logicals to choose
-! !> which test section is required. 
-! !>
-! !-------------------------------------------------------------------------------
-! ! Arguments
-! !______________________________________________________________________________.
-! !  mode           name          role                                           !
-! !______________________________________________________________________________!
-! !> \param[in]     d             domain
-! !_______________________________________________________________________________
-!   subroutine Test_2nd_derivative(f, d)
-!     use parameters_constant_mod
-!     use udf_type_mod
-!     use math_mod
-!     implicit none
-!     type(t_flow),   intent(in) :: f
-!     type(t_domain), intent(in) :: d
-!     real(WP), allocatable :: fi(:), fo(:)
-!     real(WP) :: xc, yc, zc
-!     real(WP) :: xp, yp, zp
-!     real(WP) :: ref
-!     integer :: i, j, k
-!     real(WP) :: err(3), errmax
-!     logical :: dbg = .false.
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
+    end do
+! y: p2p
+    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), dm%fbcy(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = - (ONE/scale)**2 * sin_wp(yp / scale + shift)
+      err = dabs(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-p2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    write(wrt_unit, *) 'y-2ndder-p2p ', dm%np(2), err_Linf, err_L2
 
-!     logical :: d2udx2_P2P = .true.
-!     logical :: d2vdy2_P2P = .true.
-    
-!     logical :: d2udy2_C2C = .true.
-!     logical :: d2vdx2_C2C = .true.
 
-    
-!     if(d2udx2_P2P) then
-!     ! d2u / dx2, P2P
-!     ! (i', j, k) --> (i', j, k)
-!       allocate ( fi( dm%np(1) ) ); fi = ZERO
-!       allocate ( fo( dm%np(1) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# d2u/dx2 : P2P'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do j = 1, dm%nc(2)
-!           yc = dm%yc(j)
-!           fi(:) = f%qx(:, j, k)
-!           call Get_2nd_derivative_1D('x', 'P2P', d, fi(:), fo(:))
-!           do i = 4, dm%np(1)-3
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = -sin_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = 1, 3
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = -sin_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = dm%np(1)-2, dm%np(1)
-!             xp = dm%h(1) * real(i - 1, WP)
-!             ref = -sin_wp ( xp )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
+! z direction, zp
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      fzp(k) = sin_wp ( zp / scale + shift)
+    end do
+! z: p2p
+    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5))
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = - (ONE/scale)**2 * sin_wp(zp / scale + shift)
+      err = dabs(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-p2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    write(wrt_unit, *) 'z-2ndder-p2p ', dm%np(3), err_Linf, err_L2
+    close(wrt_unit)
 
-!     if(d2udy2_C2C) then
-!       ! C2C
-!       ! (i', j, k) --> (i, j, k)
-!       allocate ( fi( dm%nc(2) ) ); fi = ZERO
-!       allocate ( fo( dm%nc(2) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '# d2u/dy2 : C2C'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do i = 1, dm%np(1)
-!           xp = dm%h(1) * real(i - 1, WP)
-!           fi(:) = f%qx(i, :, k)
-!           call Get_2nd_derivative_1D('y', 'C2C', d, fi(:), fo(:))
-!           do j = 4, dm%nc(2)-3
-!             yc = dm%yc(j)
-!             ref = -sin_wp(yc)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = 1, 3
-!             yc = dm%yc(j)
-!             ref = -sin_wp(yc)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = dm%nc(2)-2, dm%nc(2)
-!             yc = dm%yc(j)
-!             ref = -sin_wp(yc)
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, i, j, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
-    
-!     if(d2vdy2_P2P) then
-!       ! dv / dy, P2P
-!       ! (i, j', k) --> (i, j', k)
-!       allocate ( fi( dm%np(2) ) ); fi = ZERO
-!       allocate ( fo( dm%np(2) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '#  d2v/dy2 : P2P'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do i = 1, dm%nc(1)
-!           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!           fi(:) = f%qy(i, :, k)
-!           call Get_2nd_derivative_1D('y', 'P2P', d, fi(:), fo(:))
-!           do j = 4, dm%np(2)-3
-!             yp = dm%yp(j)
-!             ref = -sin_wp ( yp )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = 1, 3
-!             yp = dm%yp(j)
-!             ref = -sin_wp ( yp )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!           do j = dm%np(2)-2, dm%np(2)
-!             yp = dm%yp(j)
-!             ref = -sin_wp ( yp )
-!             errmax = dabs(fo(j)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(j), ref, dabs(ref-fo(j))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3) 
-!     end if
-
-!     if(d2vdx2_C2C) then
-!       ! du / dx, P2C
-!       ! (i', j, k) --> (i, j, k)
-!       allocate ( fi( dm%nc(1) ) ); fi = ZERO
-!       allocate ( fo( dm%nc(1) ) ); fo = ZERO
-!       xc = ZERO; yc = ZERO; zc = ZERO
-!       xp = ZERO; yp = ZERO; zp = ZERO
-!       err = ZERO
-!       write (wrt_unit,'(A)') '  '
-!       write (wrt_unit,'(A)') '#  d2v/dx2 : C2C'
-!       do k = 1, dm%nc(3)
-!         zc = dm%h(3) * (real(k - 1, WP) + HALF)
-!         do j = 1, dm%nc(2)
-!           yc = dm%yc(j)
-!           fi(:) = f%qy(:, j, k)
-!           call Get_2nd_derivative_1D('x', 'C2C', d, fi(:), fo(:))
-!           do i = 4, dm%nc(1)-3
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = -sin_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(2)) err(2) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = 1, 3
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = -sin_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(1)) err(1) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!           do i = dm%nc(1)-2, dm%nc(1)
-!             xc = dm%h(1) * (real(i - 1, WP) + HALF)
-!             ref = -sin_wp ( xc )
-!             errmax = dabs(fo(i)-ref)
-!             if (errmax > err(3)) err(3) = errmax
-!             if(dbg .and. errmax>0.1_WP) & 
-!             write (wrt_unit,'(3I5, 2F8.4, 1ES15.7)') k, j, i, fo(i), ref, dabs(ref-fo(i))
-!           end do
-!         end do
-!       end do
-!       deallocate (fi)
-!       deallocate (fo)
-!       write (wrt_unit, '(3ES15.7)') err(1:3)
-!     end if
-
-!     return 
-!   end subroutine
+    return 
+  end subroutine
 end module
