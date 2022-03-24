@@ -107,17 +107,21 @@ end subroutine
     else 
       scale = THREE
       shift = ZERO
+      dm%fbcx(1, 5) = ZERO
+      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcy(:, 5) = dm%fbcx(:, 5)
+      dm%fbcz(:, 5) = dm%fbcx(:, 5)
     end if
 
 
     ! initialise a 3d variable on cell-centre
     do k = 1, dm%nc(3)
-      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
       do j = 1, dm%nc(2)
-        yc = dm%yc(j)
+        !yc = dm%yc(j)
         do i = 1, dm%nc(1)
           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          den_ccc(i, j, k) = sin_wp ( xc / scale + shift) + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
+          den_ccc(i, j, k) = sin_wp ( xc / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
         end do
       end do
     end do
@@ -127,33 +131,45 @@ end subroutine
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
-      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
       do j = 1, dm%nc(2)
-        yc = dm%yc(j)
+       ! yc = dm%yc(j)
         do i = 1, dm%np(1)
           xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp  / scale + shift) + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
+          ref = sin_wp ( xp  / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
           err = dabs(den_xpcc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
-          !if(k == 1 .and. j == 1) write(*,'(1I5.1,3ES13.5)') i, ref, den_xpcc(i, j, k), err !test
+          if(k == 1 .and. j == 1) write(*,'(1I5.1,4ES13.5)') i, xp, ref, den_xpcc(i, j, k), err !test
         end do
       end do
     end do
     err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%nc(2) * dm%np(1), WP) )
     write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_x', dm%np(1), err_Linf, err_L2
+    
+    ! initialise a 3d variable on cell-centre
+    do k = 1, dm%nc(3)
+      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, dm%nc(2)
+        yc = dm%yc(j)
+        do i = 1, dm%nc(1)
+          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
+          den_ccc(i, j, k) = sin_wp ( yc / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
+        end do
+      end do
+    end do
 
     ! c2p in y
     call Get_y_midp_C2P_3D(den_ccc, den_ycpc, dm, dm%ibcy(:, 5), dm%fbcy(:, 5) )
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
-      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      !zc = dm%h(3) * (real(k - 1, WP) + HALF)
       do j = 1, dm%np(2)
         yp = dm%yp(j)
         do i = 1, dm%nc(1)
-          xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
+          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
+          ref = sin_wp ( yp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
           err = dabs(den_ycpc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -163,6 +179,18 @@ end subroutine
     err_L2 = dsqrt ( err_L2 / real(dm%nc(3) * dm%np(2) * dm%nc(1), WP) )
     write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_c2p_y', dm%np(2), err_Linf, err_L2
 
+    ! initialise a 3d variable on cell-centre
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      do j = 1, dm%nc(2)
+        !yc = dm%yc(j)
+        do i = 1, dm%nc(1)
+          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
+          den_ccc(i, j, k) = sin_wp ( zc / scale + shift)! + sin_wp(yc / scale + shift) + sin_wp(zc / scale + shift)
+        end do
+      end do
+    end do
+
     ! c2p in z
     call Get_z_midp_C2P_3D(den_ccc, den_zccp, dm, dm%ibcz(:, 5), dm%fbcz(:, 5) )
     err_Linf = ZERO
@@ -170,10 +198,10 @@ end subroutine
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
       do j = 1, dm%nc(2)
-        yc = dm%yc(j)
+        !yc = dm%yc(j)
         do i = 1, dm%nc(1)
-          xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale + shift ) + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
+          !xc = dm%h(1) * (real(i - 1, WP) + HALF)
+          ref = sin_wp ( zp / scale + shift )! + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
           err = dabs(den_zccp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -185,12 +213,12 @@ end subroutine
 
     ! initialise a 3d variable on point based
     do k = 1, dm%np(3)
-      zp = dm%h(3) * real(k - 1, WP)
+      !zp = dm%h(3) * real(k - 1, WP)
       do j = 1, dm%np(2)
-        yp = dm%yp(j)
+        !yp = dm%yp(j)
         do i = 1, dm%np(1)
           xp = dm%h(1) * real(i - 1, WP)
-          den_ppp(i, j, k) = sin_wp ( xp / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
+          den_ppp(i, j, k) = sin_wp ( xp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
         end do
       end do
     end do
@@ -200,12 +228,12 @@ end subroutine
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
-      zp = dm%h(3) * real(k - 1, WP)
+      !zp = dm%h(3) * real(k - 1, WP)
       do j = 1, dm%np(2)
-        yp = dm%yp(j)
+        !yp = dm%yp(j)
         do i = 1, dm%nc(1)
           xc = dm%h(1) * (real(i - 1, WP) + HALF)
-          ref = sin_wp ( xc / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
+          ref = sin_wp ( xc / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
           err = dabs(den_xcpp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -215,17 +243,28 @@ end subroutine
     err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%np(2) * dm%nc(1), WP) )
     write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_x', dm%np(1), err_Linf, err_L2
 
+    do k = 1, dm%np(3)
+      !zp = dm%h(3) * real(k - 1, WP)
+      do j = 1, dm%np(2)
+        yp = dm%yp(j)
+        do i = 1, dm%np(1)
+          !xp = dm%h(1) * real(i - 1, WP)
+          den_ppp(i, j, k) = sin_wp ( yp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
+        end do
+      end do
+    end do
+
     ! p2c in y
     call Get_y_midp_P2C_3D(den_ppp, den_ypcp, dm, dm%ibcy(:, 5))
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
-      zp = dm%h(3) * real(k - 1, WP)
+      !zp = dm%h(3) * real(k - 1, WP)
       do j = 1, dm%nc(2)
         yc = dm%yc(j)
         do i = 1, dm%np(1)
-          xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp / scale + shift ) + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
+          !xp = dm%h(1) * real(i - 1, WP)
+          ref = sin_wp ( yc / scale + shift )! + sin_wp(yc / scale + shift) + sin_wp(zp / scale + shift)
           err = dabs(den_ypcp(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2
@@ -235,6 +274,17 @@ end subroutine
     err_L2 = dsqrt ( err_L2 / real(dm%np(3) * dm%nc(2) * dm%np(1), WP) )
     write (wrt_unit,'(A, 1I5.1, 2ES13.5)') '# interp_p2c_y', dm%np(2), err_Linf, err_L2
 
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      do j = 1, dm%np(2)
+        !yp = dm%yp(j)
+        do i = 1, dm%np(1)
+          !xp = dm%h(1) * real(i - 1, WP)
+          den_ppp(i, j, k) = sin_wp ( zp / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zp / scale + shift)
+        end do
+      end do
+    end do
+
     ! p2c in z
     call Get_z_midp_P2C_3D(den_ppp, den_zppc, dm, dm%ibcz(:, 5))
     err_Linf = ZERO
@@ -242,10 +292,10 @@ end subroutine
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
       do j = 1, dm%np(2)
-        yp = dm%yp(j)
+        !yp = dm%yp(j)
         do i = 1, dm%np(1)
-          xp = dm%h(1) * real(i - 1, WP)
-          ref = sin_wp ( xp / scale + shift ) + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
+          !xp = dm%h(1) * real(i - 1, WP)
+          ref = sin_wp ( zc / scale + shift )! + sin_wp(yp / scale + shift) + sin_wp(zc / scale + shift)
           err = dabs(den_zppc(i, j, k) - ref)
           if(err > err_Linf) err_Linf = err
           err_L2 = err_L2 + err**2

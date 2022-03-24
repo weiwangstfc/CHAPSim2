@@ -63,7 +63,7 @@ contains
     real(WP) :: rtmp
     real(WP), allocatable :: rtmpx(:)
     integer, allocatable  :: itmpx(:)
-    integer :: i, j
+    integer :: i, j, k
     
     if(nrank == 0) call Print_debug_start_msg("CHAPSim2.0 Starts ...")
 !-------------------------------------------------------------------------------
@@ -177,6 +177,17 @@ contains
           domain(i)%fbcy(:, :) = domain(1)%fbcy(:, :)
           domain(i)%ibcz(:, :) = domain(1)%ibcz(:, :)
           domain(i)%fbcz(:, :) = domain(1)%fbcz(:, :)
+        end do
+
+        ! below for temporary fix
+        do i = 1, nxdomain
+          do j = 1, 2
+            do k = 1, 5
+              if(domain(i)%ibcx(j, k) > IBC_INTRPL) domain(i)%ibcx(j, k) = IBC_INTRPL
+              if(domain(i)%ibcy(j, k) > IBC_INTRPL) domain(i)%ibcy(j, k) = IBC_INTRPL
+              if(domain(i)%ibcz(j, k) > IBC_INTRPL) domain(i)%ibcz(j, k) = IBC_INTRPL
+            end do
+          end do
         end do
 
         if(nrank == 0) then

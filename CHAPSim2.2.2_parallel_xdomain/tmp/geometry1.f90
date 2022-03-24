@@ -30,6 +30,8 @@ module geometry_mod
 
   !private
   private :: Buildup_grid_mapping_1D
+  private :: Buildup_npneibour_index
+  private :: Buildup_ncneibour_index
   public  :: Buildup_geometry_mesh_info
   
 contains
@@ -149,6 +151,131 @@ contains
     return
   end subroutine Buildup_grid_mapping_1D
 !===============================================================================
+!===============================================================================
+!> \brief Building up the neibouring index of a given index array.   
+!>
+!> This subroutine is used locally for the bulk part of the grids. The two points
+!> near the boundary are not considered except periodic b.c.
+!> The neibouring index reduces the repeated calculation of index increase
+!> /decrease for a 5-point stencil. 
+!>
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     n            number of the given index range
+!> \param[in]     is_peri      whether the given index array is of periodic b.c.
+!> \param[out]    nbr          the neibouring index in order of -2, -1, +1, +2
+!_______________________________________________________________________________
+  subroutine Buildup_npneibour_index(np, ibc, ipnbr)
+    use parameters_constant_mod
+    implicit none
+    integer, intent(in)  :: np ! np
+    integer, intent(in)  :: ibc(2)
+    integer, intent(inout) :: ipnbr(4, np)
+    integer :: i, j
+!-------------------------------------------------------------------------------
+! nbr(j, i)
+!   i = 1, 2, 3, 4 : left two index, right two index
+!   j = 1, 2, 3, 4 : i - 2, i - 1, i + 1, i + 2
+!-------------------------------------------------------------------------------
+!   for non-periodic:
+!   ---(-1')---(0')---(|1')---(2')---(3')---(i')---(np'-1)---(np'|)--(np'+1)---(np'+2)---
+!   for periodic:
+!   ---(-1')---(0')---(|1')---(2')---(3')---(i')---(np'-1)---(np')--(np'+1|)---(np'+2)---
+!-------------------------------------------------------------------------------
+    nbr(:, :) = huge(1)
+!-------------------------------------------------------------------------------
+!
+!-------------------------------------------------------------------------------
+    do j = 1, np
+      ipnbr(1, j) = j - 2
+      ipnbr(2, j) = j - 1
+      ipnbr(3, j) = j + 1
+      ipnbr(4, j) = j + 2
+    end do
+
+    do i = 1, 4
+      do j = 1, 2
+        if(ibc(1) == IBC_PERIODIC) then
+          if( ipnbr(i, j) == -1 ) ipnbr(i, j) = np - 1
+          if( ipnbr(i, j) == 0  ) ipnbr(i, j) = np
+        else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
+          if( ipnbr(i, j) == -1 ) ipnbr(i, j) = 3
+          if( ipnbr(i, j) == 0  ) ipnbr(i, j) = 2
+        else
+        end if
+      end do
+      do j = np - 1, np
+        if(ibc(2) == IBC_PERIODIC) then
+          if( ipnbr(i, j) == np + 1 ) ipnbr(i, j) = 1
+          if( ipnbr(i, j) == np + 2 ) ipnbr(i, j) = 2
+        else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
+          if( ipnbr(i, j) == np + 1 ) ipnbr(i, j) = np - 1
+          if( ipnbr(i, j) == np + 2 ) ipnbr(i, j) = np - 2
+        else
+        end if
+      end do
+    end do
+
+    return
+  end subroutine
+!_______________________________________________________________________________
+  subroutine Buildup_ncneibour_index(nc, ibc, icnbr)
+    use parameters_constant_mod
+    implicit none
+    integer, intent(in)  :: nc ! nc
+    integer, intent(in)  :: ibc(2)
+    integer, intent(inout) :: icnbr(4, 5)
+    integer :: i, j
+!-------------------------------------------------------------------------------
+! nbr(j, i)
+!   j = 1, 2, 3, 4 : left two index, right two index
+!   i = 1, 2, 3, 4 : i - 2, i - 1, i + 1, i + 2
+!-------------------------------------------------------------------------------
+!   for non-periodic:
+!   ---(-1)---(0)--|--(1)---(2)---(3)---(i)---(n-1)---(n)--|--(n+1)---(n+2)---
+!   for periodic:
+!   ---(-1)---(0)--|--(1)---(2)---(3)---(i)---(n-1)---(n)--|--(n+1)---(n+2)---
+!-------------------------------------------------------------------------------
+    nbr(:, :) = huge(1)
+!-------------------------------------------------------------------------------
+! left
+!-------------------------------------------------------------------------------
+    do j = 1, nc
+      icnbr(1, j) = j - 2
+      icnbr(2, j) = j - 1
+      icnbr(3, j) = j + 1
+      icnbr(4, j) = j + 2
+    end do
+
+    do i = 1, 4
+      do j = 1, 2
+        if(ibc(1) == IBC_PERIODIC) then
+          if( icnbr(i, j) == -1 ) icnbr(i, j) = nc - 1
+          if( icnbr(i, j) == 0  ) icnbr(i, j) = nc
+        else if (ibc(1) == IBC_SYMMETRIC .or. ibc(1) == IBC_ASYMMETRIC) then
+          if( icnbr(i, j) == -1 ) icnbr(i, j) = 2
+          if( icnbr(i, j) == 0  ) icnbr(i, j) = 1
+        else
+        end if
+      end do
+      do j = nc - 1, nc
+        if(ibc(2) == IBC_PERIODIC) then
+          if( icnbr(i, j) == nc + 1 ) icnbr(i, j) = 1
+          if( icnbr(i, j) == nc + 2 ) icnbr(i, j) = 2
+        else if (ibc(2) == IBC_SYMMETRIC .or. ibc(2) == IBC_ASYMMETRIC) then
+          if( icnbr(i, j) == nc + 1 ) icnbr(i, j) = nc
+          if( icnbr(i, j) == nc + 2 ) icnbr(i, j) = nc - 1
+        else
+        end if
+      end do
+    end do
+
+    return
+  end subroutine
+!===============================================================================
   subroutine Buildup_geometry_mesh_info (dm)
     use mpi_mod
     use math_mod
@@ -192,6 +319,16 @@ contains
     dm%h2r(:) = ONE / dm%h(:) / dm%h(:)
     dm%h1r(:) = ONE / dm%h(:)
 
+    !build up index sequence for boundary part
+
+    call Buildup_npneibour_index (dm%np(1), dm%ibcx(1:2,1), dm%ipnbr(:, :))
+    call Buildup_npneibour_index (dm%np(2), dm%ibcy(1:2,1), dm%jpnbr(:, :))
+    call Buildup_npneibour_index (dm%np(3), dm%ibcz(1:2,1), dm%kpnbr(:, :))
+
+    call Buildup_ncneibour_index (dm%nc(1), dm%ibcx(1:2,1), dm%icnbr(:, :))
+    call Buildup_ncneibour_index (dm%nc(2), dm%ibcy(1:2,1), dm%jcnbr(:, :))
+    call Buildup_ncneibour_index (dm%nc(3), dm%ibcz(1:2,1), dm%kcnbr(:, :))
+
     ! allocate  variables for mapping physical domain to computational domain
     allocate ( dm%yp( dm%np_geo(2) ) ); dm%yp(:) = ZERO
     allocate ( dm%yc( dm%nc(2) ) ); dm%yc(:) = ZERO
@@ -206,6 +343,42 @@ contains
     if(dbg) then
       do i = 1, dm%np_geo(2)
         write (OUTPUT_UNIT, '(I5, 1F8.4)') i, dm%yp(i)
+      end do
+      
+      write (OUTPUT_UNIT, '(A)') 'For Point, p2p'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%np(1) - 1
+        if(i == 4) j = dm%np(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ip =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%ipnbr_p2p(i, 1), dm%ipnbr_p2p(i, 2), j, dm%ipnbr_p2p(i, 3), dm%ipnbr_p2p(i, 4)
+      end do
+
+      write (OUTPUT_UNIT, '(A)') 'For Point, p2c'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%np(1) - 1
+        if(i == 4) j = dm%np(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ip =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%ipnbr_p2c(i, 1), dm%ipnbr_p2c(i, 2), j, dm%ipnbr_p2c(i, 3), dm%ipnbr_p2c(i, 4)
+      end do
+
+      write (OUTPUT_UNIT, '(A)') 'For CC, c2c'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%nc(1) - 1
+        if(i == 4) j = dm%nc(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ic =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%icnbr_c2c(i, 1), dm%icnbr_c2c(i, 2), j, dm%icnbr_c2c(i, 3), dm%icnbr_c2c(i, 4)
+      end do
+
+      write (OUTPUT_UNIT, '(A)') 'For CC, c2p'
+      do i = 1, 4
+        j = i
+        if(i == 3) j = dm%nc(1) - 1
+        if(i == 4) j = dm%nc(1)
+        write (OUTPUT_UNIT, '(A, I4.1, A)') 'For ic =', j, ' its neighbours at given bc'
+        write (OUTPUT_UNIT, '(5I7.1)') dm%icnbr_c2p(i, 1), dm%icnbr_c2p(i, 2), j, dm%icnbr_c2p(i, 3), dm%icnbr_c2p(i, 4)
       end do
     end if
     if(nrank == 0) call Print_debug_end_msg

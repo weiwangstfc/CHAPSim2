@@ -299,6 +299,14 @@ module udf_type_mod
     type(DECOMP_INFO) :: dcpp ! eg, <uy>^z, <uz>^y
     type(DECOMP_INFO) :: dppp
 
+
+    integer :: ipnbr(4, 5) ! global index
+    integer :: jpnbr(4, 5)
+    integer :: kpnbr(4, 5)
+    integer :: icnbr(4, 5) ! global index
+    integer :: jcnbr(4, 5)
+    integer :: kcnbr(4, 5)
+
     ! node location, mapping 
     real(wp), allocatable :: yMappingpt(:, :) ! j = 1, first coefficient in first deriviation. 1/h'
                                               ! j = 2, first coefficient in second deriviation 1/h'^2

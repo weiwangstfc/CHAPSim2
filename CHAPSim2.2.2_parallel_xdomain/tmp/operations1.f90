@@ -59,36 +59,36 @@ module operations
   real(WP), save, public :: d1rC2C(5, 4, 6)
   
   ! collocated P2P
-  real(WP), save :: d1fP2P(5, 3, 6)
-  real(WP), save :: d1rP2P(5, 4, 6)
+  real(WP) :: d1fP2P(5, 3, 6)
+  real(WP) :: d1rP2P(5, 4, 6)
 
   ! staggered C2P
-  real(WP), save :: d1fC2P(5, 3, 6)
-  real(WP), save :: d1rC2P(5, 4, 6)
+  real(WP) :: d1fC2P(5, 3, 6)
+  real(WP) :: d1rC2P(5, 4, 6)
 
   ! staggered P2C
-  real(WP), save :: d1fP2C(5, 3, 6)
-  real(WP), save :: d1rP2C(5, 4, 6)
+  real(WP) :: d1fP2C(5, 3, 6)
+  real(WP) :: d1rP2C(5, 4, 6)
 !-------------------------------------------------------------------------------
 ! for 2nd derivative
 !-------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), save, public :: d2fC2C(5, 3, 6)
-  real(WP), save, public :: d2rC2C(5, 4, 6) ! one more value used. 
+  real(WP), public :: d2fC2C(5, 3, 6)
+  real(WP), public :: d2rC2C(5, 4, 6) ! one more value used. 
   
   ! collocated P2P
-  real(WP), save :: d2fP2P(5, 3, 6)
-  real(WP), save :: d2rP2P(5, 4, 6)
+  real(WP) :: d2fP2P(5, 3, 6)
+  real(WP) :: d2rP2P(5, 4, 6)
 !-------------------------------------------------------------------------------
 ! for iterpolation
 !-------------------------------------------------------------------------------
   ! interpolation P2C
-  real(WP), save :: m1fP2C(5, 3, 6)
-  real(WP), save :: m1rP2C(5, 4, 6)
+  real(WP) :: m1fP2C(5, 3, 6)
+  real(WP) :: m1rP2C(5, 4, 6)
 
   ! interpolation C2P
-  real(WP), save :: m1fC2P(5, 3, 6)
-  real(WP), save :: m1rC2P(5, 4, 6)
+  real(WP) :: m1fC2P(5, 3, 6)
+  real(WP) :: m1rC2P(5, 4, 6)
 
 !-------------------------------------------------------------------------------
 ! coefficients array for TDMA of 1st deriviative  
@@ -1865,10 +1865,10 @@ contains
 
     integer :: i, j
 
-    a(:, :, :) =  HUGE(real(0.0, WP))
-    b(:, :, :) =  HUGE(real(0.0, WP))
-    c(:, :, :) =  HUGE(real(0.0, WP))
-    d(:, :, :) =  HUGE(real(0.0, WP))
+    a(:, :, :) =  ZERO
+    b(:, :, :) =  ZERO
+    c(:, :, :) =  ZERO
+    d(:, :, :) =  ZERO
 
     do j = IBC_PERIODIC, IBC_INTRPL
       do i = IBC_PERIODIC, IBC_INTRPL
@@ -1895,17 +1895,9 @@ contains
         c(n,         i, j) = coeff( 5, 3, j )
 
         if (is_periodic) then
-          call Preprocess_TDMA_coeffs( a(1:n-1, i, j), &
-                                       b(1:n-1, i, j), &
-                                       c(1:n-1, i, j), &
-                                       d(1:n-1, i, j), &
-                                       n-1)
+          call Preprocess_TDMA_coeffs(a(1:n-1, i, j), b(1:n-1, i, j), c(1:n-1, i, j), d(1:n-1, i, j), n-1)
         else 
-          call Preprocess_TDMA_coeffs( a(:, i, j), &
-                                       b(:, i, j), &
-                                       c(:, i, j), &
-                                       d(:, i, j), &
-                                       n)
+          call Preprocess_TDMA_coeffs(a(:, i, j), b(:, i, j), c(:, i, j), d(:, i, j), n)
         end if 
       end do
     end do
@@ -1928,7 +1920,7 @@ contains
     use mpi_mod
     use parameters_constant_mod
     implicit none
-    integer :: i, nsz, j, k
+    integer :: i, nsz
 
 !===============================================================================
 !   building up the basic lhs coeffients for compact schemes, based on the given
@@ -2045,28 +2037,6 @@ contains
     allocate (dm1z_P2C ( nsz, 6, 6 ) ); dm1z_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fP2C, &
           am1z_P2C, bm1z_P2C, cm1z_P2C, dm1z_P2C)
-
-    do j = 1, 6
-      write(*, *) 'bc type= ', j
-      do k = 1, 5
-        write(*,*) k, m1fP2C(k, 1, j), m1fP2C(k, 2, j), m1fP2C(k, 3, j)
-      end do
-    end do
-
-    do j = 1, nsz
-      write(*, *) 'periodic', j, am1z_P2C ( j, 1, 1 ), &
-                                 bm1z_P2C ( j, 1, 1 ), &
-                                 cm1z_P2C ( j, 1, 1 ), &
-                                 dm1z_P2C ( j, 1, 1 )
-      write(*, *) 'symmetry', j, am1z_P2C ( j, 2, 2 ), &
-                                 bm1z_P2C ( j, 2, 2 ), &
-                                 cm1z_P2C ( j, 2, 2 ), &
-                                 dm1z_P2C ( j, 2, 2 )
-      write(*, *) 'dirichle', j, am1z_P2C ( j, 4, 4 ), &
-                                 bm1z_P2C ( j, 4, 4 ), &
-                                 cm1z_P2C ( j, 4, 4 ), &
-                                 dm1z_P2C ( j, 4, 4 )
-    end do
 !-------------------------------------------------------------------------------
 !   2nd order deriviative in z direction with nc unknows
 !-------------------------------------------------------------------------------
@@ -2278,10 +2248,9 @@ contains
 !-------------------------------------------------------------------------------
 !   i = bulk
 !-------------------------------------------------------------------------------
-    l = 3
     do i = 3, nc - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i + 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i - 1) + fi(i + 2) )
+      fo(i) = coeff( 3, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i + 1) ) + &
+              coeff( 3, 2, IBC_PERIODIC ) * ( fi(i - 1) + fi(i + 2) )
     end do
 !-------------------------------------------------------------------------------
 !   for either perirodic or non-periodic of nc
@@ -2418,13 +2387,12 @@ contains
 !-------------------------------------------------------------------------------
 !   i = bulk
 !-------------------------------------------------------------------------------
-    l = 3
     do i = 3, np - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 1) + fi(i - 2) )
+      fo(i) = coeff( 3, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i - 1) ) + &
+              coeff( 3, 2, IBC_PERIODIC ) * ( fi(i + 1) + fi(i - 2) )
     end do
 !-------------------------------------------------------------------------------
-!   for non-periodic: 
+!   for non-periodic:
 !   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np'|)-(np)-(np'+1)-(np+1)-(np'+2)---
 !   for periodic:
 !   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np')-(np)-(np'+1|)-(np+1)-(np'+2)---
@@ -2446,8 +2414,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fi(2) )
     else if (ibc(m) == IBC_ASYMMETRIC) then
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(2) )
+      fo(i) = ZERO
     else if (ibc(m) == IBC_DIRICHLET) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
       fo(i) = fbc(m)
@@ -2476,7 +2443,7 @@ contains
     else if (ibc(m) == IBC_DIRICHLET) then
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i - 1) )
     else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i    ) + fi(i - 1) )
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i - 1) )
     end if
 !-------------------------------------------------------------------------------
 !   i = np - 1
@@ -2485,7 +2452,6 @@ contains
     m = 2
     l = 4
     if ( ibc(m) == IBC_PERIODIC) then
-      !
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1 ) + fi(i - 2 ) )
     else if (ibc(m) == IBC_SYMMETRIC ) then
@@ -2498,7 +2464,7 @@ contains
     else if (ibc(m) == IBC_DIRICHLET) then
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) + fi(i - 1) )
     else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i     ) + fi(i - 1) )
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) + fi(i - 1) )
     end if
 !-------------------------------------------------------------------------------
 !   i = np
@@ -2516,8 +2482,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(np - 1) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(np - 2) + fi(i - 2) )
     else if (ibc(m) == IBC_ASYMMETRIC) then
-      fo(i) = coeff( l, 1, ibc(m) ) * (-fi(np - 1) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np - 2) + fi(i - 2) )
+      fo(i) = ZERO
     else if (ibc(m) == IBC_DIRICHLET) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
       fo(i) = fbc(m)
@@ -2576,144 +2541,92 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_1deri_C2C_RHS_array(fi, fo, nc, coeff, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_C2C_RHS_array(fi, fo, n, inbr, coeff, dd, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
-    integer,  intent(in ) :: nc ! unknow numbers
-    real(WP), intent(out) :: fo(nc)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
 
-    integer :: i, m, l
+    integer :: i, j, m, l
+    integer :: im2, im1, ip1, ip2
 
     fo(:) = ZERO
 
+!-------------------------------------------------------------------------------
+!   boundaries
+!-------------------------------------------------------------------------------
+    do j = 1, 4
+      ! preparation
+      if(j < 3) then
+        m = 1
+        l = j
+        i = j
+      else if (j == 3) then
+        m = 2
+        l = 4
+        i = n - 1
+      else if (j == 4) then
+        m = 2
+        l = 5
+        i = n
+      else
+      end if
+      im2 = inbr(j, 1)
+      im1 = inbr(j, 2)
+      ip1 = inbr(j, 3)
+      ip2 = inbr(j, 4)
 
-!-------------------------------------------------------------------------------
-!   i = bulk
-!-------------------------------------------------------------------------------
-    l = 3
-    do i = 3, nc - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - fi(i - 2) )
+      ! assign to different bc
+      if ( ibc(m) == IBC_PERIODIC  .or. &
+           ibc(m) == IBC_SYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fi(ip2) - fi(im2) )
+      else if ( ibc(m) == IBC_ASYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( SIGN(ONE, real(n - i - 1, wp) ) * fi(ip1) - &
+                                          SIGN(ONE, real(i - 1 - 1, wp) ) * fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( SIGN(ONE, real(n - i - 2, wp) ) * fi(ip2) - &
+                                          SIGN(ONE, real(i - 2 - 1, wp) ) * fi(im2) )
+      else if (ibc(m) == IBC_DIRICHLET) then
+        if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)                + &
+                  coeff( l, 2, ibc(m) ) * fi(i)                 + &
+                  coeff( l, 3, ibc(m) ) * fi(i + SIGN(1, 1-m))  + &
+                  coeff( l, 4, ibc(m) ) * fi(i + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
+        else
+        end if
+      else! all other b.c. = interpolation = no specified bc = neumann
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)                 + &
+                  coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
+                  coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - fi(im1) )
+        else
+        end if
+      end if
+      
     end do
 !-------------------------------------------------------------------------------
-!   for non-periodic or periodic
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(nc'-1)-(nc-1)-(nc')-(nc)-(nc'+1|)-(nc+1)-(nc'+2)---
+!   bulk area
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
-!   i = 1
-!-------------------------------------------------------------------------------
-    i = 1
-    m = 1
-    l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0 = nc
-      !-1 = nc - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(nc   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(nc -1) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0 = 1
-      !-1 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(1   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(2   ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0 = 1
-      !-1 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) + fi(1   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(2   ) )
-    else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
-              coeff( l, 2, ibc(m) ) * fi(i  )  + &
-              coeff( l, 3, ibc(m) ) * fi(i+1)  + &
-              coeff( l, 4, ibc(m) ) * fi(i+2) 
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
-    end if
-!-------------------------------------------------------------------------------
-!   i = 2
-!-------------------------------------------------------------------------------
-    i = 2
-    m = 1
-    l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0 = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(nc   ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(1    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(1    ) )
-    else if (ibc(m) == IBC_DIRICHLET) then
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np - 1
-!-------------------------------------------------------------------------------
-    i = nc - 1
-    m = 2
-    l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
-      !i + 2 = nc + 1 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      !i + 2 = nc + 1 = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(nc   ) - fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      !i + 2 = nc + 1 = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(nc   ) - fi(i - 2) )
-    else if (ibc(m) == IBC_DIRICHLET) then
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = nc
-!-------------------------------------------------------------------------------
-    i = nc
-    m = 2
-    l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! nc + 1 = 1
-      ! nc + 2 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(2    ) - fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! nc + 1 = nc
-      ! nc + 2 = nc - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(nc   ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(nc -1) - fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! nc + 1 = nc
-      ! nc + 2 = nc - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(nc -1) - fi(i - 2) )
-    else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
-              coeff( l, 2, ibc(m) ) * fi(i    ) + &
-              coeff( l, 3, ibc(m) ) * fi(i - 1) + &
-              coeff( l, 4, ibc(m) ) * fi(i - 2) 
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 2) 
-    end if
+    l = 3
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(ip1) - fi(im1) ) + &
+              coeff( l, 2, IBC_PERIODIC ) * ( fi(ip2) - fi(im2) )
+    end do
 !-------------------------------------------------------------------------------
 !   mesh-based scaling
 !-------------------------------------------------------------------------------
@@ -2765,135 +2678,88 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_1deri_P2P_RHS_array(fi, fo, np,coeff, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_P2P_RHS_array(fi, fo, n, inbr, coeff, dd, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP),           intent(in ) :: fi(:)
-    integer,            intent(in ) :: np ! unknow numbers
-    real(WP),           intent(out) :: fo(np)
+    integer,            intent(in ) :: n ! unknow numbers
+    real(WP),           intent(out) :: fo(n)
+    integer,            intent(in ) :: inbr(4, 4)
     real(WP),           intent(in ) :: coeff(5, 3, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
 
-    integer :: m, l, i
+    integer :: m, l, i, j
+    integer :: im1, im2, ip1, ip2
 
     fo(:) = ZERO
+!-------------------------------------------------------------------------------
+!   boundaries
+!-------------------------------------------------------------------------------
+    do j = 1, 4
+      ! preparation
+      if(j < 3) then
+        m = 1
+        l = j
+        i = j
+      else if (j == 3) then
+        m = 2
+        l = 4
+        i = n - 1
+      else if (j == 4) then
+        m = 2
+        l = 5
+        i = n
+      else
+      end if
+      im2 = inbr(j, 1)
+      im1 = inbr(j, 2)
+      ip1 = inbr(j, 3)
+      ip2 = inbr(j, 4)
 
-!-------------------------------------------------------------------------------
-!   i = bulk
-!-------------------------------------------------------------------------------
-    l = 3
-    do i = 3, np - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - fi(i - 2) )
+      ! assign to different bc
+      if ( ibc(m) == IBC_PERIODIC  .or. &
+           ibc(m) == IBC_SYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fi(ip2) - fi(im2) )
+      else if ( ibc(m) == IBC_ASYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( SIGN(ONE, real(n - i - 1, wp) ) * fi(ip1) - &
+                                          SIGN(ONE, real(i - 1 - 1, wp) ) * fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( SIGN(ONE, real(n - i - 2, wp) ) * fi(ip2) - &
+                                          SIGN(ONE, real(i - 2 - 1, wp) ) * fi(im2) )
+      else if (ibc(m) == IBC_NEUMANN) then
+        if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
+        if(i == 1 .or. i == n) then
+          fo(i) = fbc(m)
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(im1) )
+        else
+        end if
+      else! all other b.c. = interpolation = no specified bc = dirichlet
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)                 + &
+                  coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
+                  coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - fi(im1) )
+        else
+        end if
+      end if
+      
     end do
 !-------------------------------------------------------------------------------
-!   for periodic
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np')-(np)-(np'+1|)-(np+1)-(np'+2)---
-!   for non-periodic
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np'|)-(np)-(np'+1)-(np+1)-(np'+2)---
+!   bulk area
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
-!   i = 1
-!-------------------------------------------------------------------------------
-    i = 1
-    m = 1
-    l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0' = np'
-      !-1' = np' - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(np   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(np -1) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0' = 2'
-      !-1' = 3'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(2   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(3   ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0' = 2'
-      !-1' = 3'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) + fi(2   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(3   ) )
-    else if (ibc(m) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
-      fo(i) = fbc(m)
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
-    end if
-!-------------------------------------------------------------------------------
-!   i = 2
-!-------------------------------------------------------------------------------
-    i = 2
-    m = 1
-    l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0' = np'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(np   ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0' = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(2    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0' = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(2    ) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np - 1
-!-------------------------------------------------------------------------------
-    i = np - 1
-    m = 2
-    l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
-      !np' + 1 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      !np' + 1 = np' - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(np- 1) - fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      !np' + 1 = np' - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np- 1) - fi(i - 2) )
-    else 
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np
-!-------------------------------------------------------------------------------
-    i = np
-    m = 2
-    l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! np' + 1 = 1'
-      ! np' + 2 = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(2    ) - fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! np' + 1 = np' - 1
-      ! np' + 2 = np' - 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(np -1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(np -2) - fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! np' + 1 = np' - 1
-      ! np' + 2 = np' - 2
-      fo(i) = coeff( l, 1, ibc(m) ) * (-fi(np -1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np -2) - fi(i - 2) )
-    else if (ibc(m) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
-      fo(i) = fbc(m)
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 2) 
-    end if
+    l = 3
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(ip1) - fi(im1) ) + &
+              coeff( l, 2, IBC_PERIODIC ) * ( fi(ip2) - fi(im2) )
+    end do
 !-------------------------------------------------------------------------------
 !   mesh-based scaling
 !-------------------------------------------------------------------------------
@@ -2946,139 +2812,110 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_1deri_C2P_RHS_array(fi, fo, np, coeff, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_C2P_RHS_array(fi, fo, n, inbr, coeff, dd, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP),           intent(in ) :: fi(:)
-    integer,            intent(in ) :: np ! unknow numbers, np
-    real(WP),           intent(out) :: fo(np)
+    integer,            intent(in ) :: n ! unknow numbers, np
+    real(WP),           intent(out) :: fo(n)
+    integer,            intent(in ) :: inbr(4, 4)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
 
-    integer :: i, m, l
+    integer :: i, j, k, m, l, ncmax
+    integer :: im1, im2, ip1
 
     fo(:) = ZERO
+
 !-------------------------------------------------------------------------------
-!   i = bulk
+!   boundaries
 !-------------------------------------------------------------------------------
-    l = 3
-    do i = 3, np - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 2) )
+    if(ibc(1) == IBC_PERIODIC .or. ibc(2) == IBC_PERIODIC) then
+      ncmax = n
+    else
+      ncmax = n - 1
+    end if
+
+    do j = 1, 4
+      ! preparation
+      if(j < 3) then
+        m = 1
+        l = j
+        i = j
+      else if (j == 3) then
+        m = 2
+        l = 4
+        i = n - 1
+      else if (j == 4) then
+        m = 2
+        l = 5
+        i = n
+      else
+      end if
+      im2 = inbr(j, 1)
+      im1 = inbr(j, 2)
+      ip1 = inbr(j, 3)
+      !ip2 = inbr(j, 4)
+
+      ! assign to different bc
+      if ( ibc(m) == IBC_PERIODIC  .or. &
+           ibc(m) == IBC_SYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i  ) - fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fi(ip1) - fi(im2) )
+      else if ( ibc(m) == IBC_ASYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * (                                       fi(i  ) - &
+                                          SIGN(ONE, real(i     - 1 - 1, wp) ) * fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( SIGN(ONE, real(ncmax - i - 1, wp) ) * fi(ip1) - &
+                                          SIGN(ONE, real(i     - 2 - 1, wp) ) * fi(im2) )
+      else if (ibc(m) == IBC_NEUMANN) then
+        if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
+        if(i == 1 .or. i == n) then
+          fo(i) = fbc(m)
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i) - fi(im1) )
+        else
+        end if
+      else if (ibc(m) == IBC_DIRICHLET) then
+        if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+        if (i == 1) k = i
+        if (i == n) k = ncmax
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)                + &
+                  coeff( l, 2, ibc(m) ) * fi(k)                 + &
+                  coeff( l, 3, ibc(m) ) * fi(k + SIGN(1, 1-m))  + &
+                  coeff( l, 4, ibc(m) ) * fi(k + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i) - fi(im1) )
+        else
+        end if
+      else! all other b.c. = interpolation = no specified bc = dirichlet
+        if(i == 1 .or. i == n) then
+          if (i == 1) k = i
+          if (i == n) k = ncmax
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(k)                 + &
+                  coeff( l, 2, IBC_INTRPL ) * fi(k + SIGN(1, 1-m))  + &
+                  coeff( l, 3, IBC_INTRPL ) * fi(k + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i) - fi(im1) )
+        else
+        end if
+      end if
+      
     end do
 !-------------------------------------------------------------------------------
-!   for non-periodic: 
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np'|)-(np)-(np'+1)-(np+1)-(np'+2)---
-!   for periodic:
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np')-(np)-(np'+1|)-(np+1)-(np'+2)---
+!   bulk area
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
-!   i = 1
-!-------------------------------------------------------------------------------
-    i = 1
-    m = 1
-    l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0 = np
-      !-1 = np - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(np    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(np - 1) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0 = 1
-      !-1 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fi(2) )
-    else if (ibc(m) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
-      fo(i) = fbc(m)
-    else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
-              coeff( l, 2, ibc(m) ) * fi(i    ) + &
-              coeff( l, 3, ibc(m) ) * fi(i + 1) + &
-              coeff( l, 4, ibc(m) ) * fi(i + 2) 
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
-    end if
-!-------------------------------------------------------------------------------
-!   i = 2
-!-------------------------------------------------------------------------------
-    i = 2
-    m = 1
-    l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0 = np
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(np   ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(1    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fi(1    ) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i    ) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np - 1
-!-------------------------------------------------------------------------------
-    i = np - 1
-    m = 2
-    l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
-      !
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 1 ) - fi(i - 2 ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! np     = np - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(np - 1) - fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np - 1) - fi(i - 2) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i     ) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np
-!-------------------------------------------------------------------------------
-    i = np
-    m = 2
-    l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! np + 1 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1 ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! np     = np - 1
-      ! np + 1 = np - 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(np - 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(np - 2) - fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      fo(i) = coeff( l, 1, ibc(m) ) * (-fi(np - 1) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np - 2) - fi(i - 2) )
-    else if (ibc(m) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
-      fo(i) = fbc(m)
-    else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
-      fo(i) = coeff( l, 1, ibc(m)) * fbc(m)    + &
-              coeff( l, 2, ibc(m)) * fi(i - 1) + &
-              coeff( l, 3, ibc(m)) * fi(i - 2) + &
-              coeff( l, 4, ibc(m)) * fi(i - 3) 
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 2) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 3) 
-    end if
+    l = 3
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      !ip2 = i + 2
+      fo(i) = coeff( l, 1, ibc(1) ) * ( fi(i)   - fi(im1) ) + &
+              coeff( l, 2, ibc(1) ) * ( fi(ip1) - fi(im2) )
+    end do
 !-------------------------------------------------------------------------------
 !   mesh-based scaling
 !-------------------------------------------------------------------------------
@@ -3123,99 +2960,89 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, dd, ibc)
+  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, n, inbr, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
-    integer,  intent(in ) :: nc ! unknow numbers, nc
-    real(WP), intent(out) :: fo(nc)
+    integer,  intent(in ) :: n ! unknow numbers, nc
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
     real(WP), intent(in ) :: coeff(5, 3, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
 
-    integer :: i, l, m
+    integer :: i, j, m, l, k, npmax
+    integer :: im1, ip1, ip2
 
     fo(:) = ZERO
+
 !-------------------------------------------------------------------------------
-!   i = bulk
+!   boundaries
 !-------------------------------------------------------------------------------
-    l = 3
-    do i = 3, nc - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - fi(i - 1) )
+    if(ibc(1) == IBC_PERIODIC .or. ibc(2) == IBC_PERIODIC) then
+      npmax = n
+    else
+      npmax = n + 1
+    end if
+
+    do j = 1, 4
+      ! preparation
+      if(j < 3) then
+        m = 1
+        l = j
+        i = j
+      else if (j == 3) then
+        m = 2
+        l = 4
+        i = n - 1
+      else if (j == 4) then
+        m = 2
+        l = 5
+        i = n
+      else
+      end if
+      !im2 = inbr(j, 1)
+      im1 = inbr(j, 2)
+      ip1 = inbr(j, 3)
+      ip2 = inbr(j, 4)
+
+      ! assign to different bc
+      if ( ibc(m) == IBC_PERIODIC  .or. &
+           ibc(m) == IBC_SYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - fi(i  ) ) + &
+                coeff( l, 2, ibc(m) ) * ( fi(ip2) - fi(im1) )
+      else if ( ibc(m) == IBC_ASYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( SIGN(ONE, real(npmax - i - 1, wp) ) * fi(ip1) - &
+                                                                                fi(i  ) ) + &
+                coeff( l, 2, ibc(m) ) * ( SIGN(ONE, real(npmax - i - 2, wp) ) * fi(ip2) - &
+                                          SIGN(ONE, real(i     - 1 - 1, wp) ) * fi(im1) )
+      else! all other b.c. = interpolation = no specified bc = dirichlet
+        if(i == 1 .or. i == n) then
+          if (i == 1) k = i
+          if (i == n) k = npmax
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(k)                 + &
+                  coeff( l, 2, IBC_INTRPL ) * fi(k + SIGN(1, 1-m))  + &
+                  coeff( l, 3, IBC_INTRPL ) * fi(k + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - fi(i  ) ) + &
+                  coeff( l, 2, IBC_INTRPL ) * ( fi(ip2) - fi(im1) )
+        else
+        end if
+      end if
+      
     end do
 !-------------------------------------------------------------------------------
-!   for either perirodic or non-periodic of nc
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(nc'-1)-(nc-1)-(nc')-(nc)-(nc'+1)|-(nc+1)-(nc'+2)---
+!   bulk area
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
-!   i = 1
-!-------------------------------------------------------------------------------
-    i = 1
-    m = 1
-    l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0' = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(nc   ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0' = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(2    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0' = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) -  fi(i    )) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) +  fi(2    ))
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
-    end if
-!-------------------------------------------------------------------------------
-!   i = 2
-!-------------------------------------------------------------------------------
-    i = 2
-    l = 2
-    fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
-            coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - fi(i - 1) )
-!-------------------------------------------------------------------------------
-!   i = nc - 1
-!-------------------------------------------------------------------------------
-    i = nc - 1
-    m = 2
-    l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! i + 2 = nc' + 1 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 1) )
-    else
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = nc
-!-------------------------------------------------------------------------------
-    i = nc
-    m = 2
-    l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! i + 1 = nc' + 1 = 1
-      ! i + 2 = nc' + 2 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - fi(i    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(2    ) - fi(i - 1) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! i + 2 = nc' + 2 = nc'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(nc   ) - fi(i - 1) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! i + 2 = nc' + 2 = nc'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(nc   ) - fi(i - 1) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 1) 
-    end if
+    l = 3
+    do i = 3, n - 2
+      !im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(ip1) - fi(i  ) ) + &
+              coeff( l, 2, IBC_PERIODIC ) * ( fi(ip2) - fi(im1) )
+    end do
 !-------------------------------------------------------------------------------
 !   mesh-based scaling
 !-------------------------------------------------------------------------------
@@ -3253,141 +3080,94 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_2deri_C2C_RHS_array(fi, fo, nc, coeff, dd, ibc, fbc)
+  subroutine Prepare_TDMA_2deri_C2C_RHS_array(fi, fo, n, inbr, coeff, dd, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
-    integer,  intent(in ) :: nc ! unknow numbers
-    real(WP), intent(out) :: fo(nc)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
     real(WP), intent(in ), optional :: fbc(2)
 
-    integer :: i, l, m
+    integer :: i, l, m, j
+    integer :: im2, im1, ip1, ip2
 
     fo(:) = ZERO
 !-------------------------------------------------------------------------------
-!   i = bulk
+!   boundaries
 !-------------------------------------------------------------------------------
-    l = 3
-    do i = 3, nc - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fi(i - 2) )
+    do j = 1, 4
+      ! preparation
+      if(j < 3) then
+        m = 1
+        l = j
+        i = j
+      else if (j == 3) then
+        m = 2
+        l = 4
+        i = n - 1
+      else if (j == 4) then
+        m = 2
+        l = 5
+        i = n
+      else
+      end if
+      im2 = inbr(j, 1)
+      im1 = inbr(j, 2)
+      ip1 = inbr(j, 3)
+      ip2 = inbr(j, 4)
+
+      ! assign to different bc
+      if ( ibc(m) == IBC_PERIODIC  .or. &
+           ibc(m) == IBC_SYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
+      else if ( ibc(m) == IBC_ASYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( SIGN(ONE, real(n - i - 1, wp) ) * fi(ip1) - &
+                                                                      TWO * fi(i  ) + &
+                                          SIGN(ONE, real(i - 1 - 1, wp) ) * fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( SIGN(ONE, real(n - i - 2, wp) ) * fi(ip2) - &
+                                                                      TWO * fi(i  ) + &
+                                          SIGN(ONE, real(i - 2 - 1, wp) ) * fi(im2) )
+      else if (ibc(m) == IBC_DIRICHLET) then
+        if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)                + &
+                  coeff( l, 2, ibc(m) ) * fi(i)                 + &
+                  coeff( l, 3, ibc(m) ) * fi(i + SIGN(1, 1-m))  + &
+                  coeff( l, 4, ibc(m) ) * fi(i + SIGN(2, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+        else
+        end if
+      else! all other b.c. = interpolation = no specified bc = neumann
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)                 + &
+                  coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
+                  coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m))  + &
+                  coeff( l, 4, IBC_INTRPL ) * fi(i + SIGN(3, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+        else
+        end if
+      end if
+      
     end do
 !-------------------------------------------------------------------------------
-!   for non-periodic or periodic
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(nc'-1)-(nc-1)-(nc')-(nc)-(nc'+1|)-(nc+1)-(nc'+2)---
+!   bulk area
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
-!   i = 1
-!-------------------------------------------------------------------------------
-    i = 1
-    m = 1
-    l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0 = nc
-      !-1 = nc - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(nc   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(nc- 1) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0 = 1
-      !-1 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(1    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(2    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0 = 1
-      !-1 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) - fi(1    ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) - fi(2    ) )
-    else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
-              coeff( l, 2, ibc(m) ) * fi(i  )  + &
-              coeff( l, 3, ibc(m) ) * fi(i+1)  + &
-              coeff( l, 4, ibc(m) ) * fi(i+2) 
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) + &
-              coeff( l, 4, IBC_INTRPL) * fi(i + 3) 
-    end if
-!-------------------------------------------------------------------------------
-!   i = 2
-!-------------------------------------------------------------------------------
-    i = 2
-    m = 1
-    l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0 = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(nc   ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(1    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) - fi(1    ) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np - 1
-!-------------------------------------------------------------------------------
-    i = nc - 1
-    m = 2
-    l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
-      !nc + 1 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(1    ) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      !i + 2 = nc + 1 = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(nc   ) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      !i + 2 = nc + 1 = nc
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(nc   ) - TWO * fi(i) + fi(i - 2) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = nc
-!-------------------------------------------------------------------------------
-    i = nc
-    m = 2
-    l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! nc + 1 = 1
-      ! nc + 2 = 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(2    ) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! nc + 1 = nc
-      ! nc + 2 = nc - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(nc   ) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(nc- 1) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! nc + 1 = nc
-      ! nc + 2 = nc - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(nc- 1) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
-              coeff( l, 2, ibc(m) ) * fi(i    ) + &
-              coeff( l, 3, ibc(m) ) * fi(i - 1) + &
-              coeff( l, 4, ibc(m) ) * fi(i - 2) 
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 2) + &
-              coeff( l, 4, IBC_INTRPL) * fi(i - 3)  
-    end if
-
+    l = 3
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
+    end do
 !-------------------------------------------------------------------------------
 !   mesh-based scaling
 !-------------------------------------------------------------------------------
@@ -3425,131 +3205,83 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc)
+  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, n, inbr, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
-    integer,  intent(in ) :: np ! unknow numbers
-    real(WP), intent(out) :: fo(np)
+    integer,  intent(in ) :: n ! unknow numbers
+    real(WP), intent(out) :: fo(n)
+    integer,  intent(in ) :: inbr(4, 4)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
 
-    integer  :: i, l, m
+    integer  :: im2, im1, ip1, ip2
+    integer  :: i, j, l, m
 
     fo(:) = ZERO
 
+!-------------------------------------------------------------------------------
+!   boundaries
+!-------------------------------------------------------------------------------
+    do j = 1, 4
+      ! preparation
+      if(j < 3) then
+        m = 1
+        l = j
+        i = j
+      else if (j == 3) then
+        m = 2
+        l = 4
+        i = n - 1
+      else if (j == 4) then
+        m = 2
+        l = 5
+        i = n
+      else
+      end if
+      im2 = inbr(j, 1)
+      im1 = inbr(j, 2)
+      ip1 = inbr(j, 3)
+      ip2 = inbr(j, 4)
 
-!-------------------------------------------------------------------------------
-!   i = bulk
-!-------------------------------------------------------------------------------
-    l = 3
-    do i = 3, np - 2
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fi(i - 2) )
+      ! assign to different bc
+      if ( ibc(m) == IBC_PERIODIC  .or. &
+           ibc(m) == IBC_SYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
+      else if ( ibc(m) == IBC_ASYMMETRIC ) then
+        fo(i) = coeff( l, 1, ibc(m) ) * ( SIGN(ONE, real(n - i - 1, wp) ) * fi(ip1) - &
+                                                                      TWO * fi(i  ) + &
+                                          SIGN(ONE, real(i - 1 - 1, wp) ) * fi(im1) ) + &
+                coeff( l, 2, ibc(m) ) * ( SIGN(ONE, real(n - i - 2, wp) ) * fi(ip2) - &
+                                                                      TWO * fi(i  ) + &
+                                          SIGN(ONE, real(i - 2 - 1, wp) ) * fi(im2) )
+      else! all other b.c. = interpolation = no specified bc = neumann
+        if(i == 1 .or. i == n) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * fi(i)                 + &
+                  coeff( l, 2, IBC_INTRPL ) * fi(i + SIGN(1, 1-m))  + &
+                  coeff( l, 3, IBC_INTRPL ) * fi(i + SIGN(2, 1-m))  + &
+                  coeff( l, 4, IBC_INTRPL ) * fi(i + SIGN(3, 1-m)) 
+        else if (i == 2 .or. i == n - 1) then
+          fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(ip1) - TWO * fi(i) + fi(im1) )
+        else
+        end if
+      end if
+      
     end do
 !-------------------------------------------------------------------------------
-!   for periodic
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np')-(np)-(np'+1|)-(np+1)-(np'+2)---
-!   for non-periodic
-!   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(np'-1)-(np-1)-(np'|)-(np)-(np'+1)-(np+1)-(np'+2)---
+!   bulk area
 !-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
-!   i = 1
-!-------------------------------------------------------------------------------
-    i = 1
-    m = 1
-    l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0' = np'
-      !-1' = np' - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(np   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(np- 1) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0' = 2'
-      !-1' = 3'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(2   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(3   ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0' = 2'
-      !-1' = 3'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) - fi(2   ) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) - fi(3   ) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) + &
-              coeff( l, 4, IBC_INTRPL) * fi(i + 3)  
-    end if
-!-------------------------------------------------------------------------------
-!   i = 2
-!-------------------------------------------------------------------------------
-    i = 2
-    m = 1
-    l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! 0' = np'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(np   ) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! 0' = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(2    ) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! 0' = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) - fi(2    ) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np - 1
-!-------------------------------------------------------------------------------
-    i = np - 1
-    m = 2
-    l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
-      !np' + 1 = 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(1    ) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      !np' + 1 = np' - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(np- 1) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      !i + 2 = np + 1 = np - 1
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np- 1) - TWO * fi(i) + fi(i - 2) )
-    else 
-      fo(i) = coeff( l, 1, IBC_INTRPL ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!-------------------------------------------------------------------------------
-!   i = np
-!-------------------------------------------------------------------------------
-    i = np
-    m = 2
-    l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
-      ! np' + 1 = 1'
-      ! np' + 2 = 2'
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1   ) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(2   ) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_SYMMETRIC ) then
-      ! np' + 1 = np' - 1
-      ! np' + 2 = np' - 2
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(np- 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fi(np- 2) - TWO * fi(i) + fi(i - 2) )
-    else if (ibc(m) == IBC_ASYMMETRIC) then
-      ! np' + 1 = nc' - 1
-      ! np' + 2 = nc' - 2
-      fo(i) = coeff( l, 1, ibc(m) ) * (-fi(np- 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * (-fi(np- 2) - TWO * fi(i) + fi(i - 2) )
-    else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 2) + &
-              coeff( l, 4, IBC_INTRPL) * fi(i - 3) 
-    end if
+    l = 3
+    do i = 3, n - 2
+      im2 = i - 2
+      im1 = i - 1
+      ip1 = i + 1
+      ip2 = i + 2
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(ip1) - TWO * fi(i) + fi(im1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(ip2) - TWO * fi(i) + fi(im2) )
+    end do
 !-------------------------------------------------------------------------------
 !   mesh-based scaling
 !-------------------------------------------------------------------------------
@@ -3595,7 +3327,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr_c2p(:,:), m1rC2P(:, :, :), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_C2P(:, ibc(1), ibc(2)), &
@@ -3622,7 +3354,7 @@ contains
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%ipnbr(:,:), m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2)), &
@@ -3649,7 +3381,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr_c2p(:,:), m1rC2P(:, :, :), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           am1y_C2P(:, ibc(1), ibc(2)), &
@@ -3675,7 +3407,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:) )
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%jpnbr(:, :), m1rP2C(:, :, :), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           am1y_P2C(:, ibc(1), ibc(2)), &
@@ -3697,12 +3429,12 @@ contains
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
     real(WP), optional, intent(in   ) :: fbc(2)
-    integer :: nsz, i
+    integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
     
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr_c2p(:,:), m1rC2P(:, :, :), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_C2P(:, ibc(1), ibc(2)), &
@@ -3728,7 +3460,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, dm%kpnbr(:, :), m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_P2C(:, ibc(1), ibc(2)), &
@@ -3774,7 +3506,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :), dm%h1r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%icnbr_c2c(:, :), d1rC2C(:, :, :), dm%h1r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_C2C(:, ibc(1), ibc(2)), &
@@ -3803,7 +3535,7 @@ contains
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr_p2p(:, :), d1rP2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2P(:, ibc(1), ibc(2)), &
@@ -3833,7 +3565,7 @@ contains
 
     ixsub = dm%idom
 
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%icnbr_c2p(:, :), d1rC2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_C2P(:, ibc(1), ibc(2)), &
@@ -3861,7 +3593,7 @@ contains
 
     ixsub = dm%idom
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(1), ibc(:) )
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%ipnbr_p2c(:, :), d1rP2C(:, :, :), dm%h1r(1), ibc(:) )
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2C(:, ibc(1), ibc(2)), &
@@ -3890,7 +3622,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%jcnbr_c2c(:, :), d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_C2C(:, ibc(1), ibc(2)), &
@@ -3919,7 +3651,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr_p2p(:, :), d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2P(:, ibc(1), ibc(2)), &
@@ -3948,7 +3680,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(2), ibc(:), fbc(:) )
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%jcnbr_c2p(:, :), d1rC2P(:, :, :), dm%h1r(2), ibc(:), fbc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_C2P(:, ibc(1), ibc(2)), &
@@ -3976,7 +3708,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(2), ibc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%jpnbr_p2c(:, :), d1rP2C(:, :, :), dm%h1r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2C(:, ibc(1), ibc(2)), &
@@ -4008,7 +3740,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :), dm%h1r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%kcnbr_c2c(:,:), d1rC2C(:, :, :), dm%h1r(3), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_C2C(:, ibc(1), ibc(2)), &
@@ -4035,7 +3767,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :), dm%h1r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr_p2p(:,:), d1rP2P(:, :, :), dm%h1r(3), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2P(:, ibc(1), ibc(2)), &
@@ -4062,7 +3794,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(3), ibc(:), fbc(:) )
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, dm%kcnbr_c2p(:,:), d1rC2P(:, :, :), dm%h1r(3), ibc(:), fbc(:) )
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_C2P(:, ibc(1), ibc(2)), &
@@ -4088,7 +3820,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(3), ibc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, dm%kpnbr_p2c(:,:), d1rP2C(:, :, :), dm%h1r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2C(:, ibc(1), ibc(2)), &
@@ -4134,7 +3866,7 @@ contains
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, d2rC2C(:, :, :), dm%h2r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%icnbr_c2c(:,:), d2rC2C(:, :, :), dm%h2r(1), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_C2C(:, ibc(1), ibc(2)), &
@@ -4161,7 +3893,7 @@ contains
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(1), ibc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%ipnbr_p2p(:,:), d2rP2P(:, :, :), dm%h2r(1), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_P2P(:, ibc(1), ibc(2)), &
@@ -4191,7 +3923,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, d2rC2C(:, :, :), dm%h2r(2), ibc(:), fbc(:) )
+    call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%jcnbr_c2c(:,:), d2rC2C(:, :, :), dm%h2r(2), ibc(:), fbc(:) )
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_C2C(:, ibc(1), ibc(2)), &
@@ -4202,7 +3934,7 @@ contains
 
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
-      call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo1(:), nsz, d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+      call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo1(:), nsz, dm%jcnbr_c2c(:,:), d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_C2C(:, ibc(1), ibc(2)), &
            bd1y_C2C(:, ibc(1), ibc(2)), &
@@ -4233,7 +3965,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(2), ibc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%jpnbr_p2p(:,:), d2rP2P(:, :, :), dm%h2r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_P2P(:, ibc(1), ibc(2)), &
@@ -4245,7 +3977,7 @@ contains
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
 
-      call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+      call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, dm%jpnbr_p2p(:,:), d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
 
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_P2P(:, ibc(1), ibc(2)), &
@@ -4277,7 +4009,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, d2rC2C(:, :, :), dm%h2r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, dm%kcnbr_c2c(:,:), d2rC2C(:, :, :), dm%h2r(3), ibc(:), fbc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_C2C(:, ibc(1), ibc(2)), &
@@ -4303,7 +4035,7 @@ contains
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(3), ibc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, dm%kpnbr_p2p(:,:), d2rP2P(:, :, :), dm%h2r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_P2P(:, ibc(1), ibc(2)), &
@@ -4352,7 +4084,11 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+        if(ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+          call Get_x_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+        else
+          call Get_x_midp_C2P_1D (fi, fo, dm, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
