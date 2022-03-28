@@ -256,7 +256,7 @@ contains
 !-------------------------------------------------------------------------------
     real(WP) :: one_third_rre, two_third_rre, two_rre
     real(WP) :: fbc(2)
-    integer  :: i
+    integer  :: i, j, m
 
     one_third_rre = ONE / THREE * fl%rre
     two_third_rre = TWO / THREE * fl%rre
@@ -281,12 +281,12 @@ contains
 !-------------------------------------------------------------------------------
     i = 1 
     call transpose_x_to_y (fl%qx, qx_ypencil, dm%dpcc)  
-    call Get_y_midp_C2P_3D(qx_ypencil, qx_yppc_ypencil, dm, dm%ibcy(:,i), dm%fbcy(i, :)) ! y-pencil : x-mom, w+o thermal
+    call Get_y_midp_C2P_3D(qx_ypencil, qx_yppc_ypencil, dm, dm%ibcy(:, i), dm%fbcy(:, i)) ! y-pencil : x-mom, w+o thermal
     if(dm%ithermo == 0) &
     call transpose_y_to_x (qx_yppc_ypencil, qx_yppc, dm%dppc)                    ! x-pencil : y-mom, o   thermal
   
     call transpose_y_to_z (qx_ypencil, qx_zpencil, dm%dpcc)                    ! z-pencil : x-mom, w+o thermal
-    call Get_z_midp_C2P_3D(qx_zpencil, qx_zpcp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(i, :)) ! z-pencil : x-mom, w+o thermal
+    call Get_z_midp_C2P_3D(qx_zpencil, qx_zpcp_zpencil, dm, dm%ibcz(:, i), dm%fbcz(:, i)) ! z-pencil : x-mom, w+o thermal
     if(dm%ithermo == 0) then
     call transpose_z_to_y (qx_zpcp_zpencil, apcp_ypencil,    dm%dpcp)                    ! intermediate, apcp_ypencil = qx_zpcp_ypencil
     call transpose_y_to_x (apcp_ypencil,    qx_zpcp,         dm%dpcp)                    ! x-pencil : z-mom,  o  thermal
@@ -303,13 +303,13 @@ contains
 !                                              | --> qy_yccc_zpencil(W)              
 !-------------------------------------------------------------------------------
     i = 2 
-    call Get_x_midp_C2P_3D(fl%qy, qy_xppc, dm, dm%ibcx(:,i), dm%fbcx(i, :)) ! xpencil : y-mom, w+o thermal
+    call Get_x_midp_C2P_3D(fl%qy, qy_xppc, dm, dm%ibcx(:,i), dm%fbcx(:,i)) ! xpencil : y-mom, w+o thermal
     if(dm%ithermo == 0) &
     call transpose_x_to_y (qy_xppc,         qy_xppc_ypencil, dm%dppc)                    ! ypencil : x-mom, o thermal
 
     call transpose_x_to_y (fl%qy,           qy_ypencil,      dm%dcpc)                    ! y-pencil : y-mom, w+o thermal
     call transpose_y_to_z (qy_ypencil,      qy_zpencil,      dm%dcpc)                    ! z-pencil : y-mom, w+o thermal
-    call Get_z_midp_C2P_3D(qy_zpencil, qy_zcpp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(i, :)) ! z-pencil : y-mom, w+o thermal
+    call Get_z_midp_C2P_3D(qy_zpencil, qy_zcpp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(:,i)) ! z-pencil : y-mom, w+o thermal
     if(dm%ithermo == 0) &
     call transpose_z_to_y (qy_zcpp_zpencil, qy_zcpp_ypencil, dm%dcpp)                    ! y-pencil : z-mom, o thermal
 
@@ -324,14 +324,14 @@ contains
 !                       |  --> qz_zpencil(WO) --> qz_zccc_zpencil(I) --> qz_zccc_ypencil(W) --> qz_zccc(W)
 !-------------------------------------------------------------------------------
     i = 3 
-    call Get_x_midp_C2P_3D(fl%qz, qz_xpcp, dm, dm%ibcx(:,i), dm%fbcx(i, :) ) ! x-pencil : z-mom, w+o   thermal
+    call Get_x_midp_C2P_3D(fl%qz, qz_xpcp, dm, dm%ibcx(:,i), dm%fbcx(:,i) ) ! x-pencil : z-mom, w+o   thermal
     if ( dm%ithermo == 0) then
     call transpose_x_to_y (qz_xpcp,         apcp_ypencil,    dm%dpcp)                    ! intermediate, apcp_ypencil = qz_xpcp_ypencil
     call transpose_y_to_z (apcp_ypencil,    qz_xpcp_zpencil, dm%dpcp)                    ! z-pencil : x-mom, o   thermal
     end if
   
     call transpose_x_to_y (fl%qz,           qz_ypencil,      dm%dccp)                    ! y-pencil : z-mom, w+o   thermal
-    call Get_y_midp_C2P_3D(qz_ypencil, qz_ycpp_ypencil, dm, dm%ibcy(:,i), dm%fbcy(i, :)) ! y-pencil : z-mom, w+o   thermal
+    call Get_y_midp_C2P_3D(qz_ypencil, qz_ycpp_ypencil, dm, dm%ibcy(:,i), dm%fbcy(:,i)) ! y-pencil : z-mom, w+o   thermal
     if ( dm%ithermo == 0) &
     call transpose_y_to_z (qz_ycpp_ypencil, qz_ycpp_zpencil, dm%dcpp)                    ! z-pencil : y-mom, o   thermal
   
@@ -349,11 +349,11 @@ contains
 !-------------------------------------------------------------------------------
     i = 1 
     call transpose_x_to_y (fl%gx,        apcc_ypencil,       dm%dpcc)                   ! intermediate, apcc_ypencil = gx_ypencil
-    call Get_y_midp_C2P_3D(apcc_ypencil, appc_ypencil, dm, dm%ibcy(:,i), dm%fbcy(i, :) ) ! intermediate, appc_ypencil = gx_yppc_ypencil
+    call Get_y_midp_C2P_3D(apcc_ypencil, appc_ypencil, dm, dm%ibcy(:,i), dm%fbcy(:,i) ) ! intermediate, appc_ypencil = gx_yppc_ypencil
     call transpose_y_to_x (appc_ypencil, gx_yppc,            dm%dppc)                   ! x-pencil : y-mom, w   thermal
   
     call transpose_y_to_z (apcc_ypencil, apcc_zpencil,       dm%dpcc)                   ! intermediate, apcc_zpencil = gx_zpencil
-    call Get_z_midp_C2P_3D(apcc_zpencil, apcp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(i, :) ) ! intermediate, apcp_zpencil = gx_zpcp_zpencil
+    call Get_z_midp_C2P_3D(apcc_zpencil, apcp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(:,i) ) ! intermediate, apcp_zpencil = gx_zpcp_zpencil
     call transpose_z_to_y (apcp_zpencil, apcp_ypencil,       dm%dpcp)                   ! intermediate, apcp_ypencil = gx_zpcp_ypencil
     call transpose_y_to_x (apcp_ypencil, gx_zpcp,            dm%dpcp)                   ! x-pencil : z-mom, wo  thermal
 !-------------------------------------------------------------------------------
@@ -362,19 +362,22 @@ contains
     i = 2
     call transpose_x_to_y (fl%gy,        gy_ypencil,        dm%dcpc)                    ! y-pencil : y-mom, w   thermal
     call transpose_y_to_z (gy_ypencil,   acpc_zpencil,      dm%dcpc)                    ! intermediate, acpc_zpencil = gy_zpencil
-    call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(i, :) ) ! intermediate, acpp_zpencil = gy_zcpp_zpencil
+    call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(:,i) ) ! intermediate, acpp_zpencil = gy_zcpp_zpencil
     call transpose_z_to_y (acpp_zpencil, gy_zcpp_ypencil,   dm%dcpp)                    ! y-pencil : z-mom, w   thermal
 !-------------------------------------------------------------------------------
 !    gz --> gz_xpcp(I)    --> gz_xpcp_ypencil(I) --> gz_xpcp_zpencil(W)
 !     | --> gz_ypencil(I) --> gz_ycpp_ypencil(I) --> gz_ycpp_zpencil(W)
 !-------------------------------------------------------------------------------
-    i = 3 
-    call Get_x_midp_C2P_3D(fl%gz, apcp, dm, dm%ibcx(:,i), dm%fbcx(i, :) ) ! intermediate, apcp = gz_xpcp
+    i = 3
+    do m = 1, 2
+      fbc(m) = dm%fbcx(m,3) * dm%fbc_dend(m,3)
+    end do 
+    call Get_x_midp_C2P_3D(fl%gz, apcp, dm, dm%ibcx(:,i), fbc(:) ) ! intermediate, apcp = gz_xpcp
     call transpose_x_to_y (apcp,         apcp_ypencil,      dm%dpcp)                    ! intermediate  apcp_ypencil = gz_xpcp_ypencil
     call transpose_y_to_z (apcp_ypencil, gz_xpcp_zpencil,   dm%dpcp)                    ! z-pencil : x-mom, w   thermal
   
     call transpose_x_to_y (fl%gz,        accp,              dm%dccp)                    ! intermediate, accp = gz_ypencil
-    call Get_y_midp_C2P_3D(accp,         acpp_ypencil, dm, dm%ibcy(:,i), dm%fbcy(i, :) ) ! intermediate, acpp_ypencil = gz_ycpp_ypencil
+    call Get_y_midp_C2P_3D(accp,         acpp_ypencil, dm, dm%ibcy(:,i), dm%fbcy(:,i) ) ! intermediate, acpp_ypencil = gz_ycpp_ypencil
     call transpose_y_to_z (acpp_ypencil, gz_ycpp_zpencil,   dm%dcpp)                    ! z-pencil : y-mom, w   thermal
 !-------------------------------------------------------------------------------
 !   d --> d_ypencil --> d_zpencil
@@ -407,14 +410,14 @@ contains
     call Get_y_midp_C2P_3D(accc_ypencil, m_ycpc_ypencil, dm, dm%ibcy(:,i), dm%fbc_vism(:, 2) )              ! y-pencil : y-mom, w thermal
     call transpose_y_to_z (m_ycpc_ypencil,    m_ycpc_zpencil,    dm%dcpc)                            ! z-pencil : y-mom, w thermal
     call transpose_y_to_x (m_ycpc_ypencil,    m_ycpc,            dm%dcpc)                            ! x-pencil : y-mom, w thermal
-    call Get_x_1st_derivative_C2C_3D(m_ycpc,  dmdx_ycpc, dm, dm%ibcx(:,i), dm%fbcx(:,i))                ! x-pencil : y-mom, w thermal
+    call Get_x_1st_derivative_C2C_3D(m_ycpc,  dmdx_ycpc, dm, dm%ibcx(:,i), dm%fbc_vism(:, 1))                ! x-pencil : y-mom, w thermal
       
     call transpose_y_to_z (accc_ypencil,      accc_zpencil,      dm%dccc)                             ! intermediate, accc_zpencil = m_zpencil
     call Get_z_1st_derivative_C2P_3D(accc_zpencil, dmdz_zccp_zpencil, dm, dm%ibcz(:,i), dm%fbc_vism(:, 3) )   ! z-pencil : z-mom, w thermal
     call Get_z_midp_C2P_3D(accc_zpencil, m_zccp_zpencil, dm, dm%ibcz(:,i), dm%fbc_vism(:, 3) )              ! z-pencil : z-mom, w thermal
     call transpose_z_to_y (m_zccp_zpencil,    m_zccp_ypencil,    dm%dccp)                             ! y-pencil : z-mom, w thermal
     call transpose_y_to_x (m_zccp_ypencil,    m_zccp,            dm%dccp)                             ! x-pencil : z-mom, w thermal
-    call Get_x_1st_derivative_C2C_3D(m_zccp,  dmdx_zccp, dm, dm%ibcx(:,i), dm%fbcx(:,i) )                ! x-pencil : z-mom, w thermal
+    call Get_x_1st_derivative_C2C_3D(m_zccp,  dmdx_zccp, dm, dm%ibcx(:,i), dm%fbc_vism(:, 1) )                ! x-pencil : z-mom, w thermal
     call transpose_x_to_y (dmdx_zccp,         accp_ypencil,      dm%dccp)                             ! intermidate, accp_ypencil = dmdx_zccp_ypencil
     call transpose_y_to_z (accp_ypencil,      dmdx_zccp_zpencil, dm%dccp)                             ! z-pencil : z-mom, w thermal
     call Get_y_1st_derivative_C2C_3D(m_zccp_ypencil, dmdy_zccp_ypencil, dm, dm%ibcy(:,i), dm%fbc_vism(:, 2) )   ! y-pencil : z-mom, w thermal
@@ -456,11 +459,15 @@ contains
 !-------------------------------------------------------------------------------
     
     if ( dm%ithermo == 0) then
-      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2)
+      do m = 1, 2
+        fbc(m) = dm%fbcx(m, 1) * dm%fbcx(m, 1)
+      end do
       call Get_x_1st_derivative_P2P_3D(-fl%qx * fl%qx, apcc, dm, dm%ibcx(:,1), fbc(:) )
     end if
     if ( dm%ithermo == 1) then
-      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(1, 1:2) * dm%fbc_dend(:, 1)
+      do m = 1, 2
+        fbc(m) = dm%fbcx(m, 1) * dm%fbcx(m, 1) * dm%fbc_dend(m, 1)
+      end do
       call Get_x_1st_derivative_P2P_3D(-fl%gx * fl%qx, apcc, dm, dm%ibcx(:,1), fbc(:) )
     end if
     fl%mx_rhs = fl%mx_rhs + apcc
@@ -474,11 +481,15 @@ contains
 ! X-pencil : Y-mom convection term (y-c1/3), d(gx^y * qy^x)/dx at (i, j', k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbc(1:2) = dm%fbcx(1, 1:2) * dm%fbcx(2, 1:2)
+      do m = 1, 2
+        fbc(m) = dm%fbcx(m, 1) * dm%fbcx(m, 2)
+      end do
       call Get_x_1st_derivative_P2C_3D( -qx_yppc * qy_xppc, acpc, dm, dm%ibcx(:,1) )
     end if
     if ( dm%ithermo == 1) then
-      fbc(1:2) = dm%fbcx(2, 1:2) * dm%fbcx(1, 1:2) * dm%fbc_dend(:, 1)
+      do m = 1, 2
+        fbc(m) = dm%fbcx(m, 2) * dm%fbcx(m, 1) * dm%fbc_dend(m, 1)
+      end do
       call Get_x_1st_derivative_P2C_3D( -gx_yppc * qy_xppc, acpc, dm, dm%ibcx(:,1) )
     end if
     fl%my_rhs = fl%my_rhs + acpc
@@ -515,7 +526,7 @@ contains
 ! x-pencil : X-mom, gravity force in x direction
 !-------------------------------------------------------------------------------
       if(fl%igravity == 1 .or. fl%igravity == -1)  then
-        call Get_x_midp_C2P_3D(fl%dDens, apcc, dm, dm%ibcx(:,5), dm%fbc_dend(1, :) )
+        call Get_x_midp_C2P_3D(fl%dDens, apcc, dm, dm%ibcx(:,5), dm%fbc_dend(:, 1) )
         mx_rhs_implicit =  mx_rhs_implicit + fl%fgravity(1) * apcc
       end if
 !-------------------------------------------------------------------------------
@@ -569,29 +580,37 @@ contains
 ! Y-pencil : X-mom convection term (x-c2/3): d(<gy>^x * <qx>^y)/dy at (i', j, k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbc(1:2) = dm%fbcy(1, 1:2) * dm%fbcy(2, 1:2)
+      do m = 1, 2
+        fbc(m) = dm%fbcy(m, 1) * dm%fbcy(m, 2)
+      end do
       call Get_y_1st_derivative_P2C_3D( -qy_xppc_ypencil * qx_yppc_ypencil, apcc_ypencil, dm, dm%ibcy(:,2) )
     end if
     if ( dm%ithermo == 1) then
-      fbc(1:2) = dm%fbcy(1, 1:2) * dm%fbcy(2, 1:2) * dm%fbc_dend(:, 2)
+      do m = 1, 2
+        fbc(m) = dm%fbcy(m, 1) * dm%fbcy(m, 2) * dm%fbc_dend(m, 2)
+      end do
       call Get_y_1st_derivative_P2C_3D( -gy_xppc_ypencil * qx_yppc_ypencil, apcc_ypencil, dm, dm%ibcy(:,2) )
     end if
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
 !-------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * L22(ux) at (i', j, k)
 !-------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_P2P_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:,1), dm%fbcy(:,1) )
+    call Get_y_2nd_derivative_P2P_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:,1))
     if ( dm%ithermo == 0) mx_rhs_ypencil = mx_rhs_ypencil +                  fl%rre * apcc_ypencil
     if ( dm%ithermo == 1) mx_rhs_ypencil = mx_rhs_ypencil + m_xpcc_ypencil * fl%rre * apcc_ypencil
 !-------------------------------------------------------------------------------
 ! Y-pencil : Y-mom convection term (y-c2/3), d(gy * qy)/dy at (i, j', k)
 !-------------------------------------------------------------------------------
     if ( dm%ithermo == 0) then
-      fbc(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(2, 1:2)
+      do m = 1, 2
+        fbc(m) = dm%fbcy(m, 2) * dm%fbcy(m, 2)
+      end do
       call Get_y_1st_derivative_P2P_3D(-qy_ypencil * qy_ypencil, acpc_ypencil, dm, dm%ibcy(:,2), fbc(:) )
     end if
     if ( dm%ithermo == 1) then
-      fbc(1:2) = dm%fbcy(2, 1:2) * dm%fbcy(2, 1:2) * dm%fbc_dend(:, 2)
+      do m = 1, 2
+        fbc(m) = dm%fbcy(m, 2) * dm%fbcy(m, 2) * dm%fbc_dend(m, 2)
+      end do
       call Get_y_1st_derivative_P2P_3D(-gy_ypencil * qy_ypencil, acpc_ypencil, dm, dm%ibcy(:,2), fbc(:) )
     end if
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
@@ -599,7 +618,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v1-2/1), \mu * L22(uy) at (i, j', k)
 !-------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:,2), dm%fbcy(:,2) )
+    call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:,2))
     if ( dm%ithermo == 0) my_rhs_ypencil = my_rhs_ypencil +                  fl%rre * acpc_ypencil
     if ( dm%ithermo == 1) my_rhs_ypencil = my_rhs_ypencil + m_ycpc_ypencil * fl%rre * acpc_ypencil
 !-------------------------------------------------------------------------------
@@ -615,7 +634,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Y-pencil : Z-mom diffusion term (z-v1-2/1), \mu * L22(uz) at (i, j, k')
 !-------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_P2P_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:,3), dm%fbcy(:,3) )
+    call Get_y_2nd_derivative_P2P_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:,3))
     if ( dm%ithermo == 0) mz_rhs_ypencil = mz_rhs_ypencil +                  fl%rre * accp_ypencil
     if ( dm%ithermo == 1) mz_rhs_ypencil = mz_rhs_ypencil + m_zccp_ypencil * fl%rre * accp_ypencil
 !-------------------------------------------------------------------------------

@@ -245,15 +245,15 @@ module operations
   private :: Prepare_compact_coefficients
   private :: Buildup_TDMA_LHS_array
 
-  private :: Prepare_TDMA_interp_P2C_RHS_array
+  private :: Prepare_TDMA_interp_P2C_RHS_array ! no fbc
   private :: Prepare_TDMA_interp_C2P_RHS_array ! need fbc for Dirichlet
 
-  private :: Prepare_TDMA_1deri_C2C_RHS_array
+  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc to reconstruction
   private :: Prepare_TDMA_1deri_P2P_RHS_array ! need fbc for Neumann
   private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc for Neumann
-  private :: Prepare_TDMA_1deri_P2C_RHS_array
+  private :: Prepare_TDMA_1deri_P2C_RHS_array ! no fbc
 
-  private :: Prepare_TDMA_2deri_C2C_RHS_array
+  private :: Prepare_TDMA_2deri_C2C_RHS_array ! need fbc to reconstruction
   private :: Prepare_TDMA_2deri_P2P_RHS_array ! need fbc for Neumann
 
   public  :: Prepare_LHS_coeffs_for_operations
@@ -1149,7 +1149,7 @@ contains
           c2 = ZERO ! not used
     end if
 
-    d1fP2C(1, 1, IBC_INTRPL) = ZERO ! not used
+    d1fP2C(1, 1, IBC_INTRPL) = alpha1 ! not used
     d1fP2C(1, 2, IBC_INTRPL) = ONE
     d1fP2C(1, 3, IBC_INTRPL) = alpha1
     d1rP2C(1, 1, IBC_INTRPL) = a1
@@ -1163,22 +1163,8 @@ contains
     d1rP2C(5, 2, IBC_INTRPL) = - d1rP2C(1, 2, IBC_INTRPL)
     d1rP2C(5, 3, IBC_INTRPL) = - d1rP2C(1, 3, IBC_INTRPL)
 
-    d1fP2C(2, 1, IBC_INTRPL) = alpha2
-    d1fP2C(2, 2, IBC_INTRPL) = ONE
-    d1fP2C(2, 3, IBC_INTRPL) = alpha2
-    d1rP2C(2, 1, IBC_INTRPL) = a2
-    d1rP2C(2, 2, IBC_INTRPL) = b2 / THREE ! not used
-    d1rP2C(2, 3, IBC_INTRPL) = c2 ! not used
-
-    d1fP2C(4, 1, IBC_INTRPL) = d1fP2C(2, 1, IBC_INTRPL)
-    d1fP2C(4, 2, IBC_INTRPL) = d1fP2C(2, 2, IBC_INTRPL)
-    d1fP2C(4, 3, IBC_INTRPL) = d1fP2C(2, 3, IBC_INTRPL)
-    d1rP2C(4, 1, IBC_INTRPL) = d1rP2C(2, 1, IBC_INTRPL)
-    d1rP2C(4, 2, IBC_INTRPL) = d1rP2C(2, 2, IBC_INTRPL)
-    d1rP2C(4, 3, IBC_INTRPL) = d1rP2C(2, 3, IBC_INTRPL)
-
-    d1fP2C(3, :, IBC_INTRPL) = d1fP2C(3, :, IBC_PERIODIC)
-    d1rP2C(3, :, IBC_INTRPL) = d1rP2C(3, :, IBC_PERIODIC)
+    d1fP2C(2:4, :, IBC_INTRPL) = d1fP2C(2:4, :, IBC_PERIODIC)
+    d1rP2C(2:4, :, IBC_INTRPL) = d1rP2C(2:4, :, IBC_PERIODIC)
 !-------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2C : no specified = Dirichlet B.C. = Neumann
@@ -2263,15 +2249,15 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, nc, coeff, ibc, fbc)
+  subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, nc, coeff, ibc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 3, 6)
+    real(WP), intent(in ) :: coeff(5, 4, 6)
     integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: i, m, l
 
@@ -2409,7 +2395,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 3, 6)
+    real(WP),           intent(in ) :: coeff(5, 4, 6)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
 
@@ -2772,7 +2758,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 3, 6)
+    real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
@@ -2836,6 +2822,8 @@ contains
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(np   ) )
     else if (ibc(m) == IBC_SYMMETRIC ) then
       ! 0' = 2'
+      !write(*,*) 'bcp2p1', coeff( l, 1:2, ibc(m) )
+      !write(*,*) coeff( l, 1, ibc(m) ), fi(i + 1), fi(i - 1), coeff( l, 2, ibc(m) ), fi(i + 2), fi(2    )
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(2    ) )
     else if (ibc(m) == IBC_ASYMMETRIC) then
@@ -3145,16 +3133,16 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 3, 6)
+    real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: i, l, m
 
@@ -3448,7 +3436,7 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !===============================================================================
-  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc, fbc)
+  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
@@ -3457,7 +3445,7 @@ contains
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
 
     integer  :: i, l, m
 
@@ -3631,7 +3619,7 @@ contains
     return
   end subroutine Get_x_midp_C2P_1D
 !===============================================================================
-  subroutine Get_x_midp_P2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_midp_P2C_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3640,14 +3628,14 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: ixsub, nsz
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2)), &
@@ -3686,7 +3674,7 @@ contains
     return
   end subroutine Get_y_midp_C2P_1D
 !===============================================================================
-  subroutine Get_y_midp_P2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_midp_P2C_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3695,7 +3683,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz
     
     nsz = size(fo)
@@ -3740,7 +3728,7 @@ contains
     return
   end subroutine Get_z_midp_C2P_1D
 !===============================================================================
-  subroutine Get_z_midp_P2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_midp_P2C_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3749,13 +3737,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_P2C(:, ibc(1), ibc(2)), &
@@ -3872,7 +3860,7 @@ contains
     return
   end subroutine Get_x_1st_derivative_C2P_1D
 !===============================================================================
-  subroutine Get_x_1st_derivative_P2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_P2C_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3881,7 +3869,7 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz, ixsub
 
     nsz = size(fo)
@@ -3990,7 +3978,7 @@ contains
     return
   end subroutine Get_y_1st_derivative_C2P_1D
 !===============================================================================
-  subroutine Get_y_1st_derivative_P2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_P2C_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3999,13 +3987,13 @@ contains
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2C(:, ibc(1), ibc(2)), &
@@ -4092,11 +4080,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(3), ibc(:), fbc(:) )
-write(*,*) 'fo1', fo(1)
-write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
-                      bd1z_C2P(1, ibc(1), ibc(2)), &
-                      cd1z_C2P(1, ibc(1), ibc(2)), &
-                      dd1z_C2P(1, ibc(1), ibc(2))
+
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_C2P(:, ibc(1), ibc(2)), &
           bd1z_C2P(:, ibc(1), ibc(2)), &
@@ -4107,7 +4091,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_z_1st_derivative_C2P_1D
 !===============================================================================
-  subroutine Get_z_1st_derivative_P2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_P2C_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4116,13 +4100,13 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2C(:, ibc(1), ibc(2)), &
@@ -4180,7 +4164,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_x_2nd_derivative_C2C_1D
 !===============================================================================
-  subroutine Get_x_2nd_derivative_P2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_2nd_derivative_P2P_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4189,14 +4173,14 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz, ixsub
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(1), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_P2P(:, ibc(1), ibc(2)), &
@@ -4251,7 +4235,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_y_2nd_derivative_C2C_1D
 !===============================================================================
-  subroutine Get_y_2nd_derivative_P2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_2nd_derivative_P2P_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4260,7 +4244,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
 
     integer :: nsz
     real(WP), allocatable :: fo1(:)
@@ -4268,7 +4252,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(2), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_P2P(:, ibc(1), ibc(2)), &
@@ -4280,7 +4264,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
 
-      call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+      call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:))
 
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_P2P(:, ibc(1), ibc(2)), &
@@ -4324,7 +4308,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_z_2nd_derivative_C2C_1D
 !===============================================================================
-  subroutine Get_z_2nd_derivative_P2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_2nd_derivative_P2P_1D (fi, fo, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4333,13 +4317,13 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(inout) :: fo(:)
     type(t_domain),     intent(in   ) :: dm
     integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    !real(WP), optional, intent(in   ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(3), ibc(:))
 
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_P2P(:, ibc(1), ibc(2)), &
@@ -4396,7 +4380,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return 
   end subroutine Get_x_midp_C2P_3D
 !===============================================================================
-  subroutine Get_x_midp_P2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_midp_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4405,7 +4389,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j
@@ -4416,7 +4400,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_midp_P2C_1D (fi, fo, dm, ibc, fbc)
+        call Get_x_midp_P2C_1D (fi, fo, dm, ibc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4452,7 +4436,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return 
   end subroutine Get_y_midp_C2P_3D
 !===============================================================================
-  subroutine Get_y_midp_P2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_midp_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4461,7 +4445,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
     integer :: k, i
@@ -4472,7 +4456,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_midp_P2C_1D (fi, fo, dm, ibc, fbc)
+        call Get_y_midp_P2C_1D (fi, fo, dm, ibc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -4508,7 +4492,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return 
   end subroutine Get_z_midp_C2P_3D
 !===============================================================================
-  subroutine Get_z_midp_P2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_midp_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4517,7 +4501,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer :: j, i
@@ -4528,7 +4512,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_midp_P2C_1D (fi, fo, dm, ibc, fbc)
+        call Get_z_midp_P2C_1D (fi, fo, dm, ibc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -4639,7 +4623,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return 
   end subroutine Get_x_1st_derivative_C2P_3D
 !===============================================================================
-  subroutine Get_x_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4648,7 +4632,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
@@ -4660,7 +4644,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_1st_derivative_P2C_1D(fi, fo, dm, ibc, fbc)
+        call Get_x_1st_derivative_P2C_1D(fi, fo, dm, ibc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4752,7 +4736,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
   end subroutine Get_y_1st_derivative_C2P_3D
 
 !===============================================================================
-  subroutine Get_y_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4761,7 +4745,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -4773,7 +4757,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_1st_derivative_P2C_1D(fi, fo, dm, ibc, fbc)
+        call Get_y_1st_derivative_P2C_1D(fi, fo, dm, ibc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -4866,7 +4850,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return 
   end subroutine Get_z_1st_derivative_C2P_3D
   !===============================================================================
-  subroutine Get_z_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4875,7 +4859,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
@@ -4887,7 +4871,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_1st_derivative_P2C_1D(fi, fo, dm, ibc, fbc)
+        call Get_z_1st_derivative_P2C_1D(fi, fo, dm, ibc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -4941,7 +4925,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_x_2nd_derivative_C2C_3D
   !===============================================================================
-  subroutine Get_x_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4950,7 +4934,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
@@ -4962,7 +4946,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_2nd_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
+        call Get_x_2nd_derivative_P2P_1D(fi, fo, dm, ibc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4999,7 +4983,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_y_2nd_derivative_C2C_3D
 !===============================================================================
-  subroutine Get_y_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5008,7 +4992,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
@@ -5020,7 +5004,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_2nd_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
+        call Get_y_2nd_derivative_P2P_1D(fi, fo, dm, ibc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -5057,7 +5041,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     return
   end subroutine Get_z_2nd_derivative_C2C_3D
 !===============================================================================
-  subroutine Get_z_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5066,7 +5050,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    !real(WP), optional, intent(in) :: fbc(2)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
@@ -5078,7 +5062,7 @@ write(*,*) 'a,b,c,d', ad1z_C2P(1, ibc(1), ibc(2)), &
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_2nd_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
+        call Get_z_2nd_derivative_P2P_1D(fi, fo, dm, ibc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
