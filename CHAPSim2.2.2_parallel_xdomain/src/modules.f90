@@ -104,7 +104,7 @@ module parameters_constant_mod
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
-                        ICASE_SINETEST= 6
+                        ICASE_BURGERS = 6
 
   integer, parameter :: ICARTESIAN   = 1, &
                         ICYLINDRICAL = 2

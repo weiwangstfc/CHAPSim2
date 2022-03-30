@@ -1,52 +1,11 @@
-module test_algorithms_mod
+module test_operations_mod
   use operations
 
-  public   :: Test_algorithms
-  private  :: Test_interpolation
-  private  :: Test_1st_derivative
-  private  :: Test_2nd_derivative
+  public  :: Test_interpolation
+  public  :: Test_1st_derivative
+  public  :: Test_2nd_derivative
   
 contains
-!===============================================================================
-!===============================================================================
-!> \brief In-code independent test code for algorithms and schemes
-!>
-!> This subroutine is only called in the main program for testing.
-!> Please select the test options which you are interested in.
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     none          NA
-!> \param[out]    none          NA
-!_______________________________________________________________________________
-subroutine Test_algorithms()
-  use vars_df_mod
-  implicit none
-
-  logical is_TDMA = .false.
-  logical is_operations = .false.
-  logical is_burgers = .true.
-
-  if(is_TDMA) then
-    call Test_TDMA_cyclic
-    call Test_TDMA_noncyclic
-  end if
-  
-  if(is_operations) then
-    call Test_interpolation (domain(1))
-    call Test_1st_derivative(domain(1))
-    call Test_2nd_derivative(domain(1))
-  end if
-
-  if (is_burgers) then
-  end if
-
-  call 
-  return 
-end subroutine 
-
 !===============================================================================
 !===============================================================================
 !> \brief To test this subroutine for mid-point interpolation.
@@ -720,120 +679,230 @@ end subroutine
   end subroutine
 end module
 
-!===============================================================================
-!===============================================================================
-
 module burgers_eq_mod
+  use precision_mod
+  use parameters_constant_mod
+
+  integer, parameter :: ICASE_HEATEQ = 12
+  integer, parameter :: ICASE_INVSD_BURGERS = 13
+  real(WP),parameter :: alpha = ONE, beta = ZERO
+
+  ! udf variables
+  integer :: icase = 12 ! which case
+  integer :: idir = 1   ! which direction to test!
 
   private :: Compute_burgers_rhs
   private :: Validate_burgers_error
+  public  :: Initialize_burgers_flow
   public  :: Solve_burgers_eq_iteration
   public  :: Plot_burgers_profile
 
 contains
+  subroutine  Initialize_burgers_flow(dm, ux, uy, uz, p)
+    use udf_type_mod, only : t_domain, t_flow
+    use math_mod, only : sin_wp
+    use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
+    use input_general_mod
+    implicit none
+
+    type(t_domain), intent(inout)   :: dm
+    real(WP),       intent(inout) :: ux(:, :, :), &
+                                     uy(:, :, :), &
+                                     uz(:, :, :), &
+                                     p (:, :, :)
+
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    integer(4) :: i, j, k
+    
+    ux = ZERO
+    uy = ZERO
+    uz = ZERO
+    p  = ZERO
+
+    dm%icase = icase
+
+  !==============================================================================
+  ! example 1 : input sin(x)
+  ! example 2 : input alpha * x + beta for inviscid Burgers' equation
+  !===============================================================================
+    if(icase == ICASE_HEATEQ .or. icase == ICASE_BURGERS) then
+      ! bc
+      dm%ibcx(:,:) = IBC_PERIODIC
+      dm%ibcy(:,:) = IBC_PERIODIC
+      dm%ibcz(:,:) = IBC_PERIODIC
+      do i = 1, dm%np(idir)
+        xp = dm%h(idir) * real(i - 1, WP)
+        if(idir == 1) ux(i, :, :) =  sin_wp ( PI * xp )
+        if(idir == 2) uy(:, i, :) =  sin_wp ( PI * xp )
+        if(idir == 3) uz(:, :, i) =  sin_wp ( PI * xp )
+      end do 
+    else if (icase == ICASE_INVSD_BURGERS) then
+      
+      do i = 1, dm%np(idir)
+        xp = dm%h(idir) * real(i - 1, WP)
+        if(idir == 1) ux(i, :, :) =  alpha * xp + beta
+        if(idir == 2) uy(:, i, :) =  alpha * xp + beta
+        if(idir == 3) uz(:, :, i) =  alpha * xp + beta
+      end do 
+      if(idir == 1) then
+        dm%ibcx(:,:) = IBC_DIRICHLET
+        dm%fbcx(1, idir) = beta / (ONE)
+        dm%fbcx(2, idir) = (alpha * dm%lxx + beta) / (ONE)
+      else if(idir == 2) then
+        dm%ibcy(:,:) = IBC_DIRICHLET
+        dm%fbcy(1, idir) = beta / (ONE)
+        dm%fbcy(2, idir) = (alpha * dm%lyt + beta) / (ONE)
+      else if(idir == 3) then
+        dm%ibcz(:,:) = IBC_DIRICHLET
+        dm%fbcz(1, idir) = beta / (ONE)
+        dm%fbcz(2, idir) = (alpha * dm%lzz + beta) / (ONE)
+      else
+      end if 
+    else
+    end if
+    
+    return
+  end subroutine Initialize_burgers_flow
+
   subroutine Compute_burgers_rhs(fl, dm, isub)
     use udf_type_mod
     use parameters_constant_mod
     use operations
     use input_general_mod
     use boundary_conditions_mod
-    use nvtx
+    use decomp_2d
     implicit none
 
     type(t_flow),   intent(inout) :: fl
-    type(t_domain), intent(in   ) :: m
+    type(t_domain), intent(in   ) :: dm
     integer(4),     intent(in   ) :: isub  
 
-    real(WP),parameter :: alpha = ONE, beta = ZERO
+    real(WP) :: fbc(2)
+    integer :: i
 
 
     ! natural position as in staggered storage
-    real(WP), dimension( dm%np(1), dm%nc(2), dm%nc(3) ) :: m1_rhs ! rhs for momentum-x at (xp, yc, zc)
-    real(WP), dimension( dm%np(1), dm%nc(2), dm%nc(3) ) :: rhs1_dummy
-    real(WP), dimension( dm%nc(1), dm%np(2), dm%nc(3) ) :: m2_rhs ! rhs for momentum-x at (xp, yc, zc)
-    real(WP), dimension( dm%nc(1), dm%np(2), dm%nc(3) ) :: rhs2_dummy
-    real(WP), dimension( dm%nc(1), dm%nc(2), dm%np(3) ) :: m3_rhs ! rhs for momentum-x at (xp, yc, zc)
-    real(WP), dimension( dm%nc(1), dm%nc(2), dm%np(3) ) :: rhs3_dummy
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: mx_rhs ! rhs for momentum-x at (xp, yc, zc)
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: rhsx_dummy
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: my_rhs ! rhs for momentum-x at (xp, yc, zc)
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: rhsy_dummy
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: mz_rhs ! rhs for momentum-x at (xp, yc, zc)
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: rhsz_dummy
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: my_rhs_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: qz_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_zpencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: mz_rhs_ypencil
+
 
     if(idir == 1) then
-      f%m1_rhs = ZERO
-      call nvtxStartRange("Get_x_1st_derivative_P2P_3dArray")
+! xpencil 
+      fl%mx_rhs = ZERO
+
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS .or. icase == ICASE_INVSD_BURGERS) then
-        call Get_x_1st_derivative_P2P_3dArray( d, -f%qx * f%qx * HALF, m1_rhs )
-        f%m1_rhs = f%m1_rhs + m1_rhs
+        do i = 1, 2
+          fbc(i) = dm%ibcx(i, 1) * dm%ibcx(i, 1)
+        end do
+        call Get_x_1st_derivative_P2P_3D(-fl%qx * fl%qx * HALF, mx_rhs, dm, dm%ibcx(:, 1), fbc(:))
+        fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
-      call nvtxEndRange
 
-      call nvtxStartRange("Get_x_2nd_derivative_P2P_3dArray")
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS .or. icase == ICASE_HEATEQ) then
-        call Get_x_2nd_derivative_P2P_3dArray( d, f%qx, m1_rhs )
-        f%m1_rhs = f%m1_rhs + f%rre * m1_rhs
+        call Get_x_2nd_derivative_P2P_3D( fl%qx, mx_rhs, dm, dm%ibcx(:, 1) )
+        fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
-      call nvtxEndRange
 
-      call nvtxStartRange("RK")
-      rhs1_dummy(:, :, :) = f%m1_rhs(:, :, :)
-      f%m1_rhs(:, :, :) = tGamma(isub) * f%m1_rhs(:, :, :) + &
-                          tZeta (isub) * f%m1_rhs0(:, :, :)
-      f%m1_rhs0(:, :, :) = rhs1_dummy(:, :, :)
+      rhsx_dummy(:, :, :) = fl%mx_rhs(:, :, :)
+      fl%mx_rhs(:, :, :) = dm%tGamma(isub) * fl%mx_rhs(:, :, :) + &
+                           dm%tZeta (isub) * fl%mx_rhs0(:, :, :)
+      fl%mx_rhs0(:, :, :) = rhsx_dummy(:, :, :)
 
-      f%qx(:, :, :) = f%qx(:, :, :) + dt * f%m1_rhs(:, :, :)
-      call nvtxEndRange
+      fl%qx(:, :, :) = fl%qx(:, :, :) + dm%dt * fl%mx_rhs(:, :, :)
+      
     else if (idir == 2) then
-      f%m2_rhs = ZERO
-      ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
+! y pencil
+      fl%my_rhs = ZERO
+      my_rhs =  ZERO
+      my_rhs_ypencil = ZERO
+
+      call transpose_x_to_y (fl%qy,  qy_ypencil, dm%dcpc)     
+      
+      ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS .or. icase == ICASE_INVSD_BURGERS) then
-        call Get_y_1st_derivative_P2P_3dArray( d, -f%qy * f%qy * HALF, m2_rhs )
-        f%m2_rhs = f%m2_rhs + m2_rhs
+        do i = 1, 2
+          fbc(i) = dm%ibcy(i, 2) * dm%ibcy(i, 2)
+        end do
+        call Get_y_1st_derivative_P2P_3D(-qy_ypencil * qy_ypencil * HALF, my_rhs_ypencil, dm, dm%ibcy(:, 2), fbc(:))
+        call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
+        fl%my_rhs = fl%my_rhs + my_rhs
       end if
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS .or. icase == ICASE_HEATEQ) then
-        call Get_y_2nd_derivative_P2P_3dArray( d, f%qy, m2_rhs )
-        f%m2_rhs = f%m2_rhs + f%rre * m2_rhs
+        call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%ibcy(:, 2) )
+        call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
+        fl%my_rhs = fl%my_rhs + fl%rre * my_rhs
       end if
 
-      rhs2_dummy(:, :, :) = f%m2_rhs(:, :, :)
-      f%m2_rhs(:, :, :) = tGamma(isub) * f%m2_rhs(:, :, :) + &
-                          tZeta (isub) * f%m2_rhs0(:, :, :)
-      f%m2_rhs0(:, :, :) = rhs2_dummy(:, :, :)
+      rhsy_dummy(:, :, :) = fl%my_rhs(:, :, :)
+      fl%my_rhs(:, :, :)  = dm%tGamma(isub) * fl%my_rhs(:, :, :) + &
+                            dm%tZeta (isub) * fl%my_rhs0(:, :, :)
+      fl%my_rhs0(:, :, :) = rhsy_dummy(:, :, :)
 
-      f%qy(:, :, :) = f%qy(:, :, :) + dt * f%m2_rhs(:, :, :)
+      fl%qy(:, :, :) = fl%qy(:, :, :) + dm%dt * fl%my_rhs(:, :, :)
+
     else if (idir == 3) then
-      f%m3_rhs = ZERO
+! z pencil
+      call transpose_x_to_y (fl%qz,       qz_ypencil, dm%dccp)     
+      call transpose_y_to_z (qz_ypencil,  qz_zpencil, dm%dccp)     
+
+      fl%mz_rhs = ZERO
+      mz_rhs =  ZERO
+      mz_rhs_zpencil = ZERO
+
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS .or. icase == ICASE_INVSD_BURGERS) then
-        call Get_z_1st_derivative_P2P_3dArray( d, -f%qz * f%qz * HALF, m3_rhs )
-        f%m3_rhs = f%m3_rhs + m3_rhs
+        do i = 1, 2
+          fbc(i) = dm%ibcz(i, 3) * dm%ibcz(i, 3)
+        end do
+        call Get_z_1st_derivative_P2P_3D(-qz_zpencil * qz_zpencil * HALF, mz_rhs_zpencil, dm, dm%ibcz(:, 3), fbc(:))
+        call transpose_z_to_y (mz_rhs_zpencil,  mz_rhs_ypencil, dm%dccp)  
+        call transpose_y_to_x (mz_rhs_ypencil,  mz_rhs,         dm%dccp)     
+        fl%mz_rhs = fl%mz_rhs + mz_rhs
       end if
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS .or. icase == ICASE_HEATEQ) then
-        call Get_z_2nd_derivative_P2P_3dArray( d, f%qz, m3_rhs )
-        f%m3_rhs = f%m3_rhs + f%rre * m3_rhs
+        call Get_z_2nd_derivative_P2P_3D( qz_zpencil, mz_rhs_zpencil, dm, dm%ibcz(:, 3))
+        call transpose_z_to_y (mz_rhs_zpencil,  mz_rhs_ypencil, dm%dccp)  
+        call transpose_y_to_x (mz_rhs_ypencil,  mz_rhs,         dm%dccp)    
+        fl%mz_rhs = fl%mz_rhs + fl%rre * mz_rhs
       end if
 
-      rhs3_dummy(:, :, :) = f%m3_rhs(:, :, :)
-      f%m3_rhs(:, :, :) = tGamma(isub) * f%m3_rhs(:, :, :) + &
-                          tZeta (isub) * f%m3_rhs0(:, :, :)
-      f%m3_rhs0(:, :, :) = rhs3_dummy(:, :, :)
+      rhsz_dummy(:, :, :) = fl%mz_rhs(:, :, :)
+      fl%mz_rhs(:, :, :) = dm%tGamma(isub) * fl%mz_rhs(:, :, :) + &
+                           dm%tZeta (isub) * fl%mz_rhs0(:, :, :)
+      fl%mz_rhs0(:, :, :) = rhsz_dummy(:, :, :)
 
-      f%qz(:, :, :) = f%qz(:, :, :) + dt * f%m3_rhs(:, :, :)
+      fl%qz(:, :, :) = fl%qz(:, :, :) + dm%dt * fl%mz_rhs(:, :, :)
     else
     end if
 
-    call Apply_BC_velocity (f%qx, f%qy, f%qz, d)
+    ! apply bc
+    call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
 
     if(icase == ICASE_INVSD_BURGERS) then 
       if(idir == 1) then
-        f%qx(1,       :, :) = beta / (alpha * f%time + ONE)
-        f%qx(d%np(1), :, :) = (alpha * lxx + beta) / (alpha * f%time + ONE)
+        fl%qx(1,        :, :) = beta / (alpha * fl%time + ONE)
+        fl%qx(dm%np(1), :, :) = (alpha * dm%lxx + beta) / (alpha * fl%time + ONE)
       else if(idir == 2) then
-        f%qy(:, 1,       :) = beta / (alpha * f%time + ONE)
-        f%qy(:, d%np(2), :) = (alpha * lyt + beta) / (alpha * f%time + ONE)
+        fl%qy(:, 1,        :) = beta / (alpha * fl%time + ONE)
+        fl%qy(:, dm%np(2), :) = (alpha * dm%lyt + beta) / (alpha * fl%time + ONE)
       else if(idir == 3) then
-        f%qz(:, :, 1      ) = beta / (alpha * f%time + ONE)
-        f%qz(:, :, d%np(3)) = (alpha * lzz + beta) / (alpha * f%time + ONE)
+        fl%qz(:, :, 1      ) = beta / (alpha * fl%time + ONE)
+        fl%qz(:, :, dm%np(3)) = (alpha * dm%lzz + beta) / (alpha * fl%time + ONE)
       else
       end if 
     end if
@@ -841,7 +910,7 @@ contains
     return
   end subroutine Compute_burgers_rhs
 !===============================================================================
-  subroutine Validate_burgers_error(f, d)
+  subroutine Validate_burgers_error(fl, dm)
     use udf_type_mod,            only : t_flow, t_domain
     use parameters_constant_mod
     use operations
@@ -849,8 +918,8 @@ contains
     use input_general_mod
     implicit none
 
-    type(t_flow),   intent(inout) :: f
-    type(t_domain), intent(in   ) :: d
+    type(t_flow),   intent(inout) :: fl
+    type(t_domain), intent(in   ) :: dm
     integer :: i, j, k
     real(WP) :: xp, ux, uerr, uerr2, uerrmax, wavenum
     real(WP) :: dd
@@ -875,24 +944,25 @@ contains
      end if
     ! data convert to cell centre data...
 
-
-    wavenum = TWO * PI / lxx
     uerr2 = ZERO
     uerrmax = ZERO
 
-    dd = d%h(idir)
+    dd = dm%h(idir)
     if(idir == 1) then
-      nx = d%np(1)
-      ny = d%nc(2)
-      nz = d%nc(3)
+      wavenum = TWO * PI / dm%lxx
+      nx = dm%np(1)
+      ny = dm%nc(2)
+      nz = dm%nc(3)
     else if (idir == 2) then
-      nx = d%nc(1)
-      ny = d%np(2)
-      nz = d%nc(3)
+      wavenum = TWO * PI / dm%lyt
+      nx = dm%nc(1)
+      ny = dm%np(2)
+      nz = dm%nc(3)
     else if (idir == 3) then
-      nx = d%nc(1)
-      ny = d%np(2)
-      nz = d%nc(3)
+      wavenum = TWO * PI / dm%lzz
+      nx = dm%nc(1)
+      ny = dm%np(2)
+      nz = dm%nc(3)
     else
     end if
 
@@ -903,32 +973,32 @@ contains
           if(idir == 2) xp = dd * real(j - 1, WP)
           if(idir == 3) xp = dd * real(k - 1, WP)
           if(icase == ICASE_BURGERS) then
-            ux = sin_wp ( PI * xp ) * exp(- TWO * f%rre * f%time * wavenum * wavenum)
+            ux = sin_wp ( PI * xp ) * exp(- TWO * fl%rre * fl%time * wavenum * wavenum)
           else if(icase == ICASE_HEATEQ) then
-            ux = sin_wp ( PI * xp ) * exp(- TWO * f%rre * f%time * wavenum * wavenum) ! check
+            ux = sin_wp ( PI * xp ) * exp(- TWO * fl%rre * fl%time * wavenum * wavenum) ! check
           else if(icase == ICASE_INVSD_BURGERS) then
-            ux = (alpha * xp + beta )/(alpha * f%time + ONE) ! check
+            ux = (alpha * xp + beta )/(alpha * fl%time + ONE) ! check
           else
           end if
-          if(idir == 1) uerr = f%qx(i, j, k) - ux
-          if(idir == 2) uerr = f%qy(i, j, k) - ux
-          if(idir == 3) uerr = f%qz(i, j, k) - ux
+          if(idir == 1) uerr = fl%qx(i, j, k) - ux
+          if(idir == 2) uerr = fl%qy(i, j, k) - ux
+          if(idir == 3) uerr = fl%qz(i, j, k) - ux
 
           uerr2 = uerr2 + uerr**2
           if(dabs(uerr) > uerrmax) uerrmax = dabs(uerr)
-          !if(k==d%nc(3)/2 .and. j == d%nc(2)/2) write(*,*) k, j, i, ux, f%qx(i, j, k), uerr
+          !if(k==d%nc(3)/2 .and. j == d%nc(2)/2) write(*,*) k, j, i, ux, fl%qx(i, j, k), uerr
         end do 
       end do
     end do
-    uerr2 = uerr2 / real(d%np(1), wp) / real(d%nc(2), wp) / real(d%nc(3), wp)
+    uerr2 = uerr2 / real(dm%np(1), wp) / real(dm%nc(2), wp) / real(dm%nc(3), wp)
     uerr2 = sqrt_wp(uerr2)
 
-    write(output_unit, '(1F10.4, 2ES15.7)') f%time, uerr2, uerrmax
+    write(output_unit, '(1F10.4, 2ES15.7)') fl%time, uerr2, uerrmax
     close(output_unit)
 
   end subroutine 
   !===============================================================================
-  subroutine Plot_burgers_profile(f, d, iter)
+  subroutine Plot_burgers_profile(fl, dm, iter)
     use udf_type_mod,            only : t_flow, t_domain
     use parameters_constant_mod
     use input_general_mod
@@ -937,8 +1007,8 @@ contains
     use typeconvert_mod
     implicit none
 
-    type(t_flow),   intent(inout) :: f
-    type(t_domain), intent(in   ) :: d
+    type(t_flow),   intent(inout) :: fl
+    type(t_domain), intent(in   ) :: dm
     integer, intent(in) :: iter
     integer :: i, j, k
     real(WP) :: xp, ux, uerr, uerr2, uerrmax, wavenum
@@ -967,18 +1037,18 @@ contains
     uerr = ZERO
     uerrmax = ZERO
 
-    dd = d%h(idir)
+    dd = dm%h(idir)
     if(idir == 1) then
-      do i = 1, d%np(idir)
-        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), f%qx(i, d%nc(2)/2, d%nc(3)/2)
+      do i = 1, dm%np(idir)
+        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qx(i, dm%nc(2)/2, dm%nc(3)/2)
       end do
     else if (idir == 2) then
-      do i = 1, d%np(idir)
-        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), f%qy(d%nc(1)/2, i, d%nc(3)/2)
+      do i = 1, dm%np(idir)
+        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qy(dm%nc(1)/2, i, dm%nc(3)/2)
       end do
     else if (idir == 3) then
-      do i = 1, d%np(idir)
-        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), f%qz(d%nc(1)/2, d%nc(2)/2, i)
+      do i = 1, dm%np(idir)
+        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qz(dm%nc(1)/2, dm%nc(2)/2, i)
       end do
     else
     end if
@@ -988,51 +1058,128 @@ contains
   end subroutine 
 !===============================================================================
   subroutine Solve_burgers_eq_iteration
-    use input_general_mod!,  only :  ithermo, nIterFlowEnd, nIterThermoEnd, &
-                                    !nIterFlowStart, nIterThermoStart, &
-                                    !tThermo, tFlow, nIterFlowEnd, nrsttckpt, &
-                                    !dt, nsubitr, niter
-    use type_vars_mod!,      only : flow, thermo, domain
-    use flow_variables_mod!, only : Calculate_RePrGr, Check_maximum_velocity
-    use eq_momentum_mod!,    only : Solve_momentum_eq
-    use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
-    use continuity_eq_mod
-    use poisson_mod
-    use code_performance_mod
     use parameters_constant_mod
+    use mpi_mod
+    use vars_df_mod
     use solver_tools_mod
+    use thermo_info_mod
+    use code_performance_mod
+    use input_general_mod
     implicit none
 
-    integer(4) :: iter, isub
+    logical :: is_flow   = .false.
+    logical :: is_thermo = .false.
+    integer :: i
+    integer :: iter, isub
+    integer :: nrsttckpt
+    integer :: niter
     real(wp)   :: rtmp
 
-    niter = nIterFlowEnd
-    flow%time = tFlow 
-    flow%rre = ONE / ren
-    call Check_cfl_diffusion_1d(domain%h2r(IDIR), flow%rre)
-    !call Plot_burgers_profile(flow, domain, 0)
+    
+    nrsttckpt = HUGE(0)
+    niter     = 0
+    do i = 1, nxdomain
+      if( flow(i)%nrsttckpt < nrsttckpt) nrsttckpt = flow(i)%nrsttckpt
+      if( flow(i)%nIterFlowEnd > niter)  niter     = flow(i)%nIterFlowEnd
+      if( is_any_energyeq) then
+        if (thermo(i)%nIterThermoEnd > niter) niter = thermo(i)%nIterThermoEnd
+      end if
+    end do
 
     do iter = nrsttckpt + 1, niter
+      write(*,*) 'iter = ', iter
       call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
-  !===============================================================================
-  !     main solver
-  !===============================================================================
-      flow%time = flow%time + dt
-      do isub = 1, nsubitr
-        call Compute_burgers_rhs(flow, domain, isub)
+      do i = 1, nxdomain
+!===============================================================================
+!      setting up 1/re, 1/re/prt, gravity, etc
+!===============================================================================
+        call Update_Re(iter, flow(i))
+        if(domain(i)%ithermo == 1) &
+        call Update_PrGr(flow(i), thermo(i))
+!===============================================================================
+!      setting up flow solver
+!===============================================================================
+        if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
+          is_flow = .true.
+          flow(i)%time = flow(i)%time + domain(i)%dt
+          call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+          call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+        end if
+!===============================================================================
+!     setting up thermo solver
+!===============================================================================
+        if(domain(i)%ithermo == 1) then
+          if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
+            is_thermo = .true.
+            thermo(i)%time = thermo(i)%time  + domain(i)%dt
+          end if
+        end if
+!===============================================================================
+!     main solver
+!===============================================================================
+        do isub = 1, domain(i)%nsubitr
+          !if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
+          !if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
+          call Compute_burgers_rhs(flow(i), domain(i), isub)
+        end do
+  
+        call Validate_burgers_error (flow(i), domain(i))
+        if( MOD(iter, domain(i)%nvisu) == 0 ) call Plot_burgers_profile(flow(i), domain(i), iter)
+
       end do
-  !===============================================================================
-  !     validation
-  !===============================================================================
-      !call Validate_burgers_error (flow, domain)
-
-      !if(MOD(iter, nvisu) == 0) call Plot_burgers_profile(flow, domain, iter)
-
-      call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
+      
+      
 
     end do
+  
+  
+    call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
+    call Finalise_mpi()
 
     return
   end subroutine Solve_burgers_eq_iteration
 
 end module
+
+
+!===============================================================================
+!===============================================================================
+!> \brief In-code independent test code for algorithms and schemes
+!>
+!> This subroutine is only called in the main program for testing.
+!> Please select the test options which you are interested in.
+!-------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     none          NA
+!> \param[out]    none          NA
+!_______________________________________________________________________________
+subroutine Test_algorithms()
+  use vars_df_mod
+  use test_operations_mod
+  use burgers_eq_mod
+  implicit none
+
+  logical :: is_TDMA = .false.
+  logical :: is_operations = .false.
+  logical :: is_burgers = .true.
+
+  if(is_TDMA) then
+    call Test_TDMA_cyclic
+    call Test_TDMA_noncyclic
+  end if
+  
+  if(is_operations) then
+    call Test_interpolation (domain(1))
+    call Test_1st_derivative(domain(1))
+    call Test_2nd_derivative(domain(1))
+  end if
+
+  if (is_burgers) then
+    call Solve_burgers_eq_iteration
+  end if
+
+  return 
+end subroutine 

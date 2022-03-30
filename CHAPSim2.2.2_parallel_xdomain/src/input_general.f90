@@ -400,6 +400,8 @@ contains
         domain(i)%icoordinate = ICARTESIAN
       else if (domain(i)%icase == ICASE_TGV3D) then
         domain(i)%icoordinate = ICARTESIAN
+      else if (domain(i)%icase == ICASE_BURGERS) then
+        domain(i)%icoordinate = ICARTESIAN
       else 
         domain(i)%icoordinate = ICARTESIAN
       end if
@@ -439,13 +441,13 @@ contains
         domain(i)%lzz = TWO * PI
         domain(i)%lyt = TWO * PI
         domain(i)%lyb = ZERO
-      else if (domain(i)%icase == ICASE_SINETEST) then
+      else if (domain(i)%icase == ICASE_BURGERS) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")
-        domain(i)%lxx = TWO * PI
-        domain(i)%lzz = TWO * PI
-        domain(i)%lyt =   PI
-        domain(i)%lyb = - PI
+        domain(i)%lxx = ONE
+        domain(i)%lzz = ONE
+        domain(i)%lyt = ONE
+        domain(i)%lyb = ZERO
       else 
         ! do nothing...
       end if

@@ -57,7 +57,6 @@ contains
     use vars_df_mod
     use thermo_info_mod
     use boundary_conditions_mod
-    use test_algorithms_mod
     implicit none
 
     logical :: itest = .true.
@@ -227,8 +226,9 @@ contains
     use udf_type_mod
     use solver_tools_mod
     use parameters_constant_mod
+    use burgers_eq_mod
     implicit none
-    type(t_domain), intent(in   ) :: dm
+    type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
 
     if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
@@ -250,8 +250,8 @@ contains
       call Initialize_vortexgreen_2dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
     else if (dm%icase == ICASE_TGV3D) then
       call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
-    else if (dm%icase == ICASE_SINETEST) then
-      call Initialize_sinetest_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+    else if (dm%icase == ICASE_BURGERS) then
+      call Initialize_burgers_flow       (dm, fl%qx, fl%qy, fl%qz, fl%pres)
     else 
       if(nrank == 0) call Print_error_msg("No such case defined" )
     end if
@@ -857,110 +857,5 @@ contains
     
     return
   end subroutine Initialize_vortexgreen_3dflow
-!===============================================================================
-!===============================================================================
-!> \brief Initialize Sine signal for test only
-!>
-!> This subroutine is called locally once.
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     d             domain
-!> \param[out]    f             flow
-!_______________________________________________________________________________
-  subroutine  Initialize_sinetest_flow(dm, ux, uy, uz, p)
-    use udf_type_mod
-    use math_mod
-    use parameters_constant_mod
-    
-    implicit none
-    type(t_domain), intent(in )   :: dm
-    real(WP),       intent(inout) :: ux(:, :, :), &
-                                     uy(:, :, :), &
-                                     uz(:, :, :), &
-                                     p (:, :, :)
-
-    real(WP) :: xc, yc, zc
-    real(WP) :: xp, yp, zp
-    integer :: i, j, k, ii, jj, kk
-    type(DECOMP_INFO) :: dtmp
-
-!-------------------------------------------------------------------------------
-!   ux in x-pencil
-!-------------------------------------------------------------------------------
-    dtmp = dm%dpcc
-    do k = 1, dtmp%xsz(3)
-      kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        yc = dm%yc(jj)
-        do i = 1, dtmp%xsz(1)
-          ii = dtmp%xst(1) + i - 1
-          xp = dm%h(1) * real(ii - 1, WP)
-          ux(i, j, k) =  sin_wp ( xp ) + sin_wp(yc) + sin_wp(zc)
-        end do 
-      end do
-    end do
-!-------------------------------------------------------------------------------
-!   uy in x-pencil
-!-------------------------------------------------------------------------------
-    dtmp = dm%dcpc
-    do k = 1, dtmp%xsz(3)
-      kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-      do i = 1, dtmp%xsz(1)
-        ii = dtmp%xst(1) + i - 1
-        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        do j = 1, dtmp%xsz(2)
-          jj = dtmp%xst(2) + j - 1
-          yp = dm%yp(jj)
-          uy(i, j, k) = sin_wp ( xc ) + sin_wp(yp) + sin_wp(zc)
-        end do
-      end do
-    end do
-!-------------------------------------------------------------------------------
-!   uz in x-pencil
-!-------------------------------------------------------------------------------
-    dtmp = dm%dccp
-    do j = 1, dtmp%xsz(2)
-      jj = dtmp%xst(2) + j - 1
-      yc = dm%yc(jj)
-      do i = 1, dtmp%xsz(1)
-        ii = dtmp%xst(1) + i - 1
-        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        do k = 1, dtmp%xsz(3)
-          kk = dtmp%xst(3) + k - 1
-          zp = dm%h(3) * real(kk - 1, WP)
-          uz(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zp)
-        end do
-      end do
-    end do
-!-------------------------------------------------------------------------------
-!   p in x-pencil
-!------------------------------------------------------------------------------- 
-    dtmp = dm%dccc
-    do j = 1, dtmp%xsz(2)
-      jj = dtmp%xst(2) + j - 1
-      yc = dm%yc(jj)
-      do i = 1, dtmp%xsz(1)
-        ii = dtmp%xst(1) + i - 1
-        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        do k = 1, dtmp%xsz(3)
-          kk = dtmp%xst(3) + k - 1
-          zc = dm%h(3) * (real(kk - 1, WP) + HALF)
-          p(i, j, k) = sin_wp ( xc ) + sin_wp(yc) + sin_wp(zc)
-        end do
-      end do
-    end do
-    
-    return
-  end subroutine Initialize_sinetest_flow
-!===============================================================================
-
-
 
 end module flow_thermo_initialiasation
