@@ -374,6 +374,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use operations
+    use decomp_2d
     implicit none
 
     type(t_domain),               intent(in) :: dm
@@ -424,9 +425,12 @@ contains
 !-------------------------------------------------------------------------------
 ! Convert X-pencil to Y-Pencil
 !-------------------------------------------------------------------------------
-    call transpose_x_to_y(udx_xpencil, udx_ypencil, dm%dccc)
-    call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call transpose_x_to_y(w,             w_ypencil, dm%dccp)
+    dtmp = dm%dccc
+    call transpose_x_to_y(udx_xpencil, udx_ypencil, dtmp)
+    dtmp = dm%dcpc
+    call transpose_x_to_y(v,             v_ypencil, dtmp)
+    dtmp = dm%dccp
+    call transpose_x_to_y(w,             w_ypencil, dtmp)
 !-------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !-------------------------------------------------------------------------------

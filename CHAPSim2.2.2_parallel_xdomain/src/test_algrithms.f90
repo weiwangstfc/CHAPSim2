@@ -1012,6 +1012,7 @@ contains
     use operations
     use math_mod
     use typeconvert_mod
+    use mpi_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -1022,23 +1023,29 @@ contains
     real(WP) :: dd
     integer :: nx, ny, nz
 
-    integer :: output_unit
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: qz_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: qz_zpencil
+
+    integer :: wrt_unit
     character( len = 128) :: filename
     logical :: file_exists = .FALSE.
     
+
+    if(nrank == 0) then
 
     filename = 'Plot_Burgers_profile'//trim(int2str(iter))//'.dat'
 
     INQUIRE(FILE = trim(filename), exist = file_exists)
 
     if(.not.file_exists) then
-      open(newunit = output_unit, file = trim(filename), action = "write", status = "new")
-      write(output_unit, '(A)') 'x qx'
+      open(newunit = wrt_unit, file = trim(filename), action = "write", status = "new")
+      write(wrt_unit, '(A)') 'x qx'
     else
-      open(newunit = output_unit, file = trim(filename), action = "write", status = "old", position="append")
+      open(newunit = wrt_unit, file = trim(filename), action = "write", status = "old", position="append")
      end if
     ! data convert to cell centre data...
-
+    end if
 
     wavenum = ONE
     uerr = ZERO
@@ -1047,20 +1054,23 @@ contains
     dd = dm%h(idir)
     if(idir == 1) then
       do i = 1, dm%np(idir)
-        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qx(i, dm%nc(2)/2, dm%nc(3)/2)
+        if(nrank == 0) write(wrt_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qx(i, dm%nc(2)/2, dm%nc(3)/2)
       end do
     else if (idir == 2) then
+      call transpose_x_to_y (fl%qy,       qy_ypencil, dm%dcpc)    
       do i = 1, dm%np(idir)
-        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qy(dm%nc(1)/2, i, dm%nc(3)/2)
+        if(nrank == 0) write(wrt_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), qy_ypencil(dm%nc(1)/2, i, dm%nc(3)/2)
       end do
     else if (idir == 3) then
+      call transpose_x_to_y (fl%qz,       qz_ypencil, dm%dccp)    
+      call transpose_y_to_z (qz_ypencil,  qz_zpencil, dm%dccp)    
       do i = 1, dm%np(idir)
-        write(output_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), fl%qz(dm%nc(1)/2, dm%nc(2)/2, i)
+        if(nrank == 0) write(wrt_unit, '(1F10.4, 2ES15.7)') dd*real(i, WP), qz_zpencil(dm%nc(1)/2, dm%nc(2)/2, i)
       end do
     else
     end if
 
-    close(output_unit)
+    if(nrank == 0)close(wrt_unit)
 
   end subroutine 
 !===============================================================================
@@ -1108,8 +1118,8 @@ contains
         if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
           is_flow = .true.
           flow(i)%time = flow(i)%time + domain(i)%dt
-          call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
-          call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+          !call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+          !call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
         end if
 !===============================================================================
 !     setting up thermo solver
