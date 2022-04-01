@@ -444,9 +444,9 @@ contains
       else if (domain(i)%icase == ICASE_BURGERS) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")
-        domain(i)%lxx = ONE
-        domain(i)%lzz = ONE
-        domain(i)%lyt = ONE
+        domain(i)%lxx = TWO
+        domain(i)%lzz = TWO
+        domain(i)%lyt = TWO
         domain(i)%lyb = ZERO
       else 
         ! do nothing...

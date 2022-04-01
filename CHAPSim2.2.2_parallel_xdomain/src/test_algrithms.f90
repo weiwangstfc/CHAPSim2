@@ -895,14 +895,14 @@ contains
 
     if(icase == ICASE_INVSD_BURGERS) then 
       if(idir == 1) then
-        fl%qx(1,        :, :) = beta / (alpha * fl%time + ONE)
-        fl%qx(dm%np(1), :, :) = (alpha * dm%lxx + beta) / (alpha * fl%time + ONE)
+        if (dm%dpcc%xst(1) == 1 )        fl%qx(1,        :, :) = beta / (alpha * fl%time + ONE)
+        if (dm%dpcc%xen(1) == dm%np(1) ) fl%qx(dm%np(1), :, :) = (alpha * dm%lxx + beta) / (alpha * fl%time + ONE)
       else if(idir == 2) then
-        fl%qy(:, 1,        :) = beta / (alpha * fl%time + ONE)
-        fl%qy(:, dm%np(2), :) = (alpha * dm%lyt + beta) / (alpha * fl%time + ONE)
+        if (dm%dcpc%xst(2) == 1 )        fl%qy(:, 1,        :) = beta / (alpha * fl%time + ONE)
+        if (dm%dcpc%xen(2) == dm%np(2) ) fl%qy(:, dm%np(2), :) = (alpha * dm%lyt + beta) / (alpha * fl%time + ONE)
       else if(idir == 3) then
-        fl%qz(:, :, 1      ) = beta / (alpha * fl%time + ONE)
-        fl%qz(:, :, dm%np(3)) = (alpha * dm%lzz + beta) / (alpha * fl%time + ONE)
+        if (dm%dccp%xst(3) == 1 )        fl%qz(:, :, 1      ) = beta / (alpha * fl%time + ONE)
+        if (dm%dccp%xen(3) == dm%np(3) ) fl%qz(:, :, dm%np(3)) = (alpha * dm%lzz + beta) / (alpha * fl%time + ONE)
       else
       end if 
     end if
@@ -916,55 +916,44 @@ contains
     use operations
     use math_mod
     use input_general_mod
+    use mpi_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(in   ) :: dm
     integer :: i, j, k
     real(WP) :: xp, ux, uerr, uerr2, uerrmax, wavenum
+    real(WP) :: uerr2_work, uerrmax_work
     real(WP) :: dd
     integer :: nx, ny, nz
-
-    integer :: output_unit
+    integer :: wrt_unit
     character( len = 128) :: filename
     logical :: file_exists = .FALSE.
-    real(WP),parameter :: alpha = ONE, beta = ZERO
+    integer :: nsz
 
     
-
-    filename = 'Validation_Burgers.dat'
-
-    INQUIRE(FILE = trim(filename), exist = file_exists)
-
-    if(.not.file_exists) then
-      open(newunit = output_unit, file = trim(filename), action = "write", status = "new")
-      write(output_unit, '(A)') 'Time, SD(uerr), Max(uerr)'
-    else
-      open(newunit = output_unit, file = trim(filename), action = "write", status = "old", position="append")
-     end if
-    ! data convert to cell centre data...
-
     uerr2 = ZERO
     uerrmax = ZERO
 
     dd = dm%h(idir)
     if(idir == 1) then
       wavenum = TWO * PI / dm%lxx
-      nx = dm%np(1)
-      ny = dm%nc(2)
-      nz = dm%nc(3)
+      nx = dm%dpcc%xsz(1)
+      ny = dm%dpcc%xsz(2)
+      nz = dm%dpcc%xsz(3)
     else if (idir == 2) then
       wavenum = TWO * PI / dm%lyt
-      nx = dm%nc(1)
-      ny = dm%np(2)
-      nz = dm%nc(3)
+      nx = dm%dcpc%xsz(1)
+      ny = dm%dcpc%xsz(2)
+      nz = dm%dcpc%xsz(3)
     else if (idir == 3) then
       wavenum = TWO * PI / dm%lzz
-      nx = dm%nc(1)
-      ny = dm%np(2)
-      nz = dm%nc(3)
+      nx = dm%dccp%xsz(1)
+      ny = dm%dccp%xsz(2)
+      nz = dm%dccp%xsz(3)
     else
     end if
+    nsz =  nx * ny * nz
 
     do k = 1, nz
       do j = 1, ny
@@ -990,11 +979,29 @@ contains
         end do 
       end do
     end do
-    uerr2 = uerr2 / real(dm%np(1), wp) / real(dm%nc(2), wp) / real(dm%nc(3), wp)
-    uerr2 = sqrt_wp(uerr2)
 
-    write(output_unit, '(1F10.4, 2ES15.7)') fl%time, uerr2, uerrmax
-    close(output_unit)
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(uerr2,   uerr2_work,   1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(uerrmax, uerrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    uerr2_work = sqrt_wp(uerr2_work / real(nsz, WP) )
+    uerr2_work = sqrt_wp(uerr2_work)
+
+    if(nrank == 0 ) then
+      filename = 'Validation_Burgers.dat'
+
+      INQUIRE(FILE = trim(filename), exist = file_exists)
+
+      if(.not.file_exists) then
+        open(newunit = wrt_unit, file = trim(filename), action = "write", status = "new")
+        write(wrt_unit, '(A)') 'Time, SD(uerr), Max(uerr)'
+      else
+        open(newunit = wrt_unit, file = trim(filename), action = "write", status = "old", position="append")
+      end if
+      ! data convert to cell centre data...
+
+      write(wrt_unit, '(1F10.4, 2ES15.7)') fl%time, uerr2_work, uerrmax_work
+      close(wrt_unit)
+    end if
 
   end subroutine 
   !===============================================================================
@@ -1026,7 +1033,7 @@ contains
 
     if(.not.file_exists) then
       open(newunit = output_unit, file = trim(filename), action = "write", status = "new")
-      write(output_unit, '(A)') 'Time, SD(uerr), Max(uerr)'
+      write(output_unit, '(A)') 'x qx'
     else
       open(newunit = output_unit, file = trim(filename), action = "write", status = "old", position="append")
      end if
@@ -1087,7 +1094,6 @@ contains
     end do
 
     do iter = nrsttckpt + 1, niter
-      write(*,*) 'iter = ', iter
       call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
       do i = 1, nxdomain
 !===============================================================================
@@ -1135,7 +1141,7 @@ contains
   
     call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
     call Finalise_mpi()
-
+    stop
     return
   end subroutine Solve_burgers_eq_iteration
 
