@@ -4,7 +4,7 @@
 #       make all        to make all files with -O2                                              #
 #       make cfg=gnu    to debug for gfortran compiler                                          #
 #       make cfg=intel  to debug for intel compiler                                             #
-#                                                                                               #
+#       make cfg=cray   to make for cray                                                        #
 # For debugging run:                                                                            #
 # mpirun -np 4 valgrind --leak-check=full --track-origins=yes \                                 #
 #                       --log-file=valgrind_output.txt ./CHAPSIM*                               #
@@ -30,6 +30,9 @@ else ifeq ($(cfg), intel)
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
 	FFLGS= -DOUBLE_PREC -DDEBUG
 	FOPTS= -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=gnu
+else ifeq ($(cfg), cray)
+	FOPTS= # -m 3
+	FFLGS= # -s default64
 else
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
