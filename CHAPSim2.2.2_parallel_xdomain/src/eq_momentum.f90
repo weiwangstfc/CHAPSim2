@@ -358,11 +358,13 @@ contains
     call transpose_y_to_x (apcp_ypencil, gx_zpcp,            dm%dpcp)                   ! x-pencil : z-mom, wo  thermal
 !-------------------------------------------------------------------------------
 !    gy --> gy_ypencil(W) --> gy_zpencil(I) --> gy_zcpp_zpencil(I) --> gy_zcpp_ypencil(W)
+!                         --> gy_xppc_ypencil
 !-------------------------------------------------------------------------------
     i = 2
     call transpose_x_to_y (fl%gy,        gy_ypencil,        dm%dcpc)                    ! y-pencil : y-mom, w   thermal
+    call Get_x_midp_C2P_3D(gy_ypencil,   gy_xppc_ypencil,   dm, dm%ibcx(:,i), dm%fbcx(:,i) ) ! intermediate, acpp_zpencil = gy_zcpp_zpencil
     call transpose_y_to_z (gy_ypencil,   acpc_zpencil,      dm%dcpc)                    ! intermediate, acpc_zpencil = gy_zpencil
-    call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(:,i) ) ! intermediate, acpp_zpencil = gy_zcpp_zpencil
+    call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil,      dm, dm%ibcz(:,i), dm%fbcz(:,i) ) ! intermediate, acpp_zpencil = gy_zcpp_zpencil
     call transpose_z_to_y (acpp_zpencil, gy_zcpp_ypencil,   dm%dcpp)                    ! y-pencil : z-mom, w   thermal
 !-------------------------------------------------------------------------------
 !    gz --> gz_xpcp(I)    --> gz_xpcp_ypencil(I) --> gz_xpcp_zpencil(W)
@@ -388,7 +390,8 @@ contains
 !    m --> dmdx_xpcc
 !    | --> m_xpcc -->m_xpcc_ypencil -->dmdy_xpcc_ypencil-->dmdy_xpcc
 !                                 | -->m_xpcc_zpencil --> dmdz_xpcc_zpencil--> dmdz_xpcc_ypencil(I) --> dmdz_xpcc 
-!    | --> m_ypencil(I) --> m_ycpc_ypencil --> m_ycpc --> dmdx_ycpc
+!    | --> m_ypencil(I) --> dmdy_ycpc_ypencil
+!                     | --> m_ycpc_ypencil --> m_ycpc --> dmdx_ycpc
 !                                        | --> m_ycpc_zpencil
 !                     | --> m_zpencil(I) --> dmdz_zccp_zpencil
 !                                      | --> m_zccp_zpencil --> m_zccp_ypencil --> m_zccp --> dmdx_zccp --> dmdx_zccp_ypencil(I) --> dmdx_zccp_zpencil--> dmdy_zccp_ypencil
@@ -406,7 +409,8 @@ contains
     call transpose_z_to_y (dmdz_xpcc_zpencil, apcc_ypencil,      dm%dpcc)                            ! intermediate, apcc_ypencil = dmdz_xpcc_ypencil
     call transpose_y_to_x (apcc_ypencil,      dmdz_xpcc,         dm%dpcc)                            ! x-pencil : x-mom, w thermal
 
-    call transpose_x_to_y (fl%mVisc, accc_ypencil, dm%dccc)                                          ! intermediate, accc_ypencil = m_ypencil 
+    call transpose_x_to_y (fl%mVisc, accc_ypencil, dm%dccc)       
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  dmdy_ycpc_ypencil, dm, dm%ibcy(:,i), dm%fbc_vism(:, 2))                ! x-pencil : y-mom, w thermal                                   ! intermediate, accc_ypencil = m_ypencil 
     call Get_y_midp_C2P_3D(accc_ypencil, m_ycpc_ypencil, dm, dm%ibcy(:,i), dm%fbc_vism(:, 2) )              ! y-pencil : y-mom, w thermal
     call transpose_y_to_z (m_ycpc_ypencil,    m_ycpc_zpencil,    dm%dcpc)                            ! z-pencil : y-mom, w thermal
     call transpose_y_to_x (m_ycpc_ypencil,    m_ycpc,            dm%dcpc)                            ! x-pencil : y-mom, w thermal

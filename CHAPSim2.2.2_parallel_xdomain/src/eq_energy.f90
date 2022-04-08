@@ -69,8 +69,8 @@ contains
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: kCond_zpencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_zpencil
     
-    real(WP) :: fbc(2)
-    integer  :: ibc(2)
+    real(WP) :: fbcx(2), fbcy(2), fbcz(2)
+    integer  :: ibcx(2), ibcy(2), ibcz(2)
     integer  :: i
 !===============================================================================
 !   preparation
@@ -84,31 +84,30 @@ contains
 !                    --> h_zpencil --> h_zccp_zpencil
 !-------------------------------------------------------------------------------
     do i = 1, 2
-      fbc(i) = tm%tpbcx(i)%h
+      fbcx(i) = tm%tpbcx(i)%h
+      fbcy(i) = tm%tpbcy(i)%h
+      fbcz(i) = tm%tpbcz(i)%h
     end do
-    call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_xpcc,         dm, dm%ibcx(:, 5), fbc(:)) ! for d(g_x h_pcc))/dy
-
-    call transpose_x_to_y (tm%hEnth, accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-    do i = 1, 2
-      fbc(i) = tm%tpbcy(i)%h
-    end do
-    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_ycpc_ypencil, dm, dm%ibcx(:, 5), fbc(:))! for d(g_y h_cpc)/dy
-
+    call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_xpcc,         dm, dm%ibcx(:, 5), fbcx(:)) ! for d(g_x h_pcc))/dy
+    call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
+    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_ycpc_ypencil, dm, dm%ibcx(:, 5), fbcy(:))! for d(g_y h_cpc)/dy
     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-    do i = 1, 2
-      fbc(i) = tm%tpbcz(i)%h
-    end do
-    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_zccp_zpencil, dm, dm%ibcx(:, 5), fbc(:)) ! for d(g_z h_ccp)/dz
+    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_zccp_zpencil, dm, dm%ibcx(:, 5), fbcz(:)) ! for d(g_z h_ccp)/dz
 !-------------------------------------------------------------------------------
 !    k --> k_xpcc
-!      --> k_ypencil --> k_zpencil
+!      --> k_ypencil --> k_ycpc_ypencil
+!                    --> k_zpencil --> k_zccp_zpencil              
 !-------------------------------------------------------------------------------
     do i = 1, 2
-      fbc(i) = tm%tpbcx(i)%k
+      fbcx(i) = tm%tpbcx(i)%k
+      fbcy(i) = tm%tpbcy(i)%k
+      fbcz(i) = tm%tpbcz(i)%k
     end do
-    call Get_x_midp_C2P_3D(tm%kCond, kCond_xpcc, dm, dm%ibcx(:, 5), fbc(:) ) ! for d(k_pcc * (dT/dx) )/dx
+    call Get_x_midp_C2P_3D(tm%kCond,      kCond_xpcc,     dm, dm%ibcx(:, 5), fbcx(:) ) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-    call transpose_x_to_y (accc_ypencil, kCond_zpencil, dm%dccc) 
+    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_ycpc_ypencil, dm, dm%ibcy(:, 5), fbcy(:))
+    call transpose_x_to_y (accc_ypencil,  kCond_zpencil, dm%dccc) 
+    call Get_z_midp_C2P_3D(kCond_zpencil, kCond_zccp_zpencil, dm, dm%ibcz(:, 5), fbcz(:))
 !-------------------------------------------------------------------------------
 !    T --> T_ypencil --> T_zpencil
 !-------------------------------------------------------------------------------
@@ -129,14 +128,14 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if (dm%ibcx(i, 5) == IBC_NEUMANN) then
-        ibc(i) = IBC_INTERIOR
-        fbc(i) = ZERO
+        ibcx(i) = IBC_INTERIOR
+        fbcx(i) = ZERO
       else
-        ibc(i) = dm%ibcx(i, 5)
-        fbc(i) = dm%fbcx(i, 5)
+        ibcx(i) = dm%ibcx(i, 5)
+        fbcx(i) = dm%fbcx(i, 5)
       end if
     end do
-    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, ibc(:), fbc(:) )
+    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, ibcx(:), fbcx(:) )
 !-------------------------------------------------------------------------------
 ! x-pencil : k_pcc * d (T) / dx 
 !-------------------------------------------------------------------------------
@@ -168,14 +167,14 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if (dm%ibcy(i, 5) == IBC_NEUMANN) then
-        ibc(i) = IBC_INTERIOR
-        fbc(i) = ZERO
+        ibcy(i) = IBC_INTERIOR
+        fbcy(i) = ZERO
       else
-        ibc(i) = dm%ibcy(i, 5)
-        fbc(i) = dm%fbcy(i, 5)
+        ibcy(i) = dm%ibcy(i, 5)
+        fbcy(i) = dm%fbcy(i, 5)
       end if
     end do
-    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, ibc(:), fbc(:) )
+    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, ibcy(:), fbcy(:) )
 !-------------------------------------------------------------------------------
 ! y-pencil : k_cpc * d (T) / dy 
 !-------------------------------------------------------------------------------
@@ -209,14 +208,14 @@ contains
 !-------------------------------------------------------------------------------
     do i = 1, 2
       if (dm%ibcz(i, 5) == IBC_NEUMANN) then
-        ibc(i) = IBC_INTERIOR
-        fbc(i) = ZERO
+        ibcz(i) = IBC_INTERIOR
+        fbcz(i) = ZERO
       else
-        ibc(i) = dm%ibcz(i, 5)
-        fbc(i) = dm%fbcz(i, 5)
+        ibcz(i) = dm%ibcz(i, 5)
+        fbcz(i) = dm%fbcz(i, 5)
       end if
     end do
-    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, ibc(:), fbc(:) )
+    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, ibcz(:), fbcz(:) )
 !-------------------------------------------------------------------------------
 ! z-pencil : k_ccp * d (T) / dz 
 !-------------------------------------------------------------------------------
