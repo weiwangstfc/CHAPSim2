@@ -1180,7 +1180,7 @@ subroutine Test_algorithms()
 
   logical :: is_TDMA = .false.
   logical :: is_operations = .false.
-  logical :: is_burgers = .true.
+  logical :: is_burgers = .false.
 
   if(is_TDMA) then
     call Test_TDMA_cyclic

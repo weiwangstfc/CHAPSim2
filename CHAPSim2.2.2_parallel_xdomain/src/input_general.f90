@@ -319,7 +319,9 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%nIterIniRen
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%renIni
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%initNoise
-
+        do i = 1, nxdomain
+          if(flow(i)%irestart /= 1) flow(i)%nrsttckpt = 0
+        end do
         if( nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i

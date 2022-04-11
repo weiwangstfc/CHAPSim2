@@ -157,7 +157,7 @@ contains
     implicit none
     type(t_domain), intent(inout) :: dm
     integer :: i, j
-    logical    :: dbg = .true.
+    logical    :: dbg = .false.
 
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
     ! Build up domain info

@@ -129,6 +129,8 @@ subroutine Solve_eqs_iteration
   integer :: nrsttckpt
   integer :: niter
 
+  if(nrank == 0) call Print_debug_start_msg("Solving the governing equations ...")
+
   nrsttckpt = HUGE(0)
   niter     = 0
   do i = 1, nxdomain
@@ -172,11 +174,11 @@ subroutine Solve_eqs_iteration
       do isub = 1, domain(i)%nsubitr
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
-#ifdef DEBUG
+!#ifdef DEBUG
         write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
         call Check_mass_conservation(flow(i), domain(i)) 
         call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
-#endif
+!#endif
       end do
 !
     !comment this part code for testing 

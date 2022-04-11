@@ -59,7 +59,7 @@ contains
     use boundary_conditions_mod
     implicit none
 
-    logical :: itest = .true.
+    logical :: itest = .false.
     integer :: i, j, iter
     type(t_thermoProperty) :: tpx, tpy, tpz
 
