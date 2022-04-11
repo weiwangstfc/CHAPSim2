@@ -952,9 +952,14 @@ contains
       ny = dm%dccp%xsz(2)
       nz = dm%dccp%xsz(3)
     else
+      wavenum = ZERO
+      nx = 0
+      ny = 0
+      nz = 0
     end if
     nsz =  nx * ny * nz
 
+    uerr = ZERO
     do k = 1, nz
       do j = 1, ny
         do i = 1, nx
@@ -968,6 +973,7 @@ contains
           else if(icase == ICASE_INVSD_BURGERS) then
             ux = (alpha * xp + beta )/(alpha * fl%time + ONE) ! check
           else
+            ux = ZERO
           end if
           if(idir == 1) uerr = fl%qx(i, j, k) - ux
           if(idir == 2) uerr = fl%qy(i, j, k) - ux

@@ -579,7 +579,6 @@ contains
       call Get_x_1st_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:,3), dm%fbcx(:,3) )
       fl%mz_rhs =  fl%mz_rhs + fl%rre * dmdx_zccp * accp
     end if
-
 !===============================================================================
 ! the RHS of momentum equation
 ! Y-pencil : the RHS terms of all 3 momentum equations (derivative) operating in the y direction
@@ -591,6 +590,7 @@ contains
     apcc_ypencil = ZERO
     acpc_ypencil = ZERO
     accp_ypencil = ZERO
+    my_rhs_implicit = ZERO
 !-------------------------------------------------------------------------------
 ! Y-pencil : X-mom convection term (x-c2/3): d(<gy>^x * <qx>^y)/dy at (i', j, k)
 !-------------------------------------------------------------------------------
@@ -711,7 +711,6 @@ contains
     fl%mz_rhs = fl%mz_rhs + accp
     call transpose_y_to_x (my_rhs_implicit_ypencil, acpc, dm%dcpc)
     my_rhs_implicit = my_rhs_implicit + acpc
-
 !===============================================================================
 ! the RHS of momentum equation
 ! z-pencil : the RHS terms of all 3 momentum equations (derivative) operating in the z direction
@@ -723,6 +722,7 @@ contains
     apcc_zpencil = ZERO
     acpc_zpencil = ZERO
     accp_zpencil = ZERO
+    mz_rhs_implicit = ZERO
 !-------------------------------------------------------------------------------
 ! Z-pencil : X-mom convection term (x-c3/3): d(<gz>^x * <qx>^z)/dz at (i', j, k)
 !-------------------------------------------------------------------------------

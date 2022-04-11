@@ -110,6 +110,7 @@ end subroutine Initialize_chapsim
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Solve_eqs_iteration
+  use iso_fortran_env
   use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
   use continuity_eq_mod
   !use poisson_mod
@@ -174,11 +175,11 @@ subroutine Solve_eqs_iteration
       do isub = 1, domain(i)%nsubitr
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
-!#ifdef DEBUG
+#ifdef DEBUG
         write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
         call Check_mass_conservation(flow(i), domain(i)) 
         call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
-!#endif
+#endif
       end do
 !
     !comment this part code for testing 

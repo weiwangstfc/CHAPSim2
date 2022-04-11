@@ -22,7 +22,7 @@ ifeq ($(cfg), gnu)
 	-ffpe-trap=invalid,zero,overflow -fimplicit-none -finit-real=snan -ftrapv \
 	-fsignaling-nans -fno-omit-frame-pointer -fwhole-file \
 	-Wall -Waliasing -Wextra -Wline-truncation -Wcharacter-truncation  \
-	-Wmaybe-uninitialized -Wno-unused-parameter -Wno-unused-variable -Wsurprising  \
+	-Wmaybe-uninitialized -Wuninitialized -Wno-unused-parameter -Wno-unused-variable -Wsurprising  \
 	-Wunused-parameter -std=gnu  -pedantic -pedantic-errors -fall-intrinsics
 	FFLGS= -DOUBLE_PREC -DDEBUG
 else ifeq ($(cfg), intel)
