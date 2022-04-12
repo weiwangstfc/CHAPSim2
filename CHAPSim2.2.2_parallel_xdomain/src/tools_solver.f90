@@ -340,6 +340,7 @@ contains
   subroutine Check_cfl_diffusion(x2r, rre, dt)
     use parameters_constant_mod
     use iso_fortran_env
+    use mpi_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
     real(WP), intent(in) :: rre
@@ -348,10 +349,11 @@ contains
 
     ! check, ours is two times of the one in xcompact3d.
     cfl_diff = sum(x2r) * TWO * dt * rre
-
-    if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-    write (OUTPUT_UNIT,*) "  Diffusion number :"
-    write (OUTPUT_UNIT,"(12X, F13.8)") cfl_diff
+    if(nrank == 0) then
+      if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
+      write (OUTPUT_UNIT,*) "  Diffusion number :"
+      write (OUTPUT_UNIT,"(12X, F13.8)") cfl_diff
+    end if
     
     return
   end subroutine
@@ -381,10 +383,10 @@ contains
     real(WP), dimension(:, :, :), intent(in) :: u, v, w
 
     real(WP), dimension( dm%np(1) ) :: fix
-    real(WP), dimension( dm%nc(1) ) :: fox
     real(WP), dimension( dm%np(2) ) :: fiy
-    real(WP), dimension( dm%nc(2) ) :: foy
     real(WP), dimension( dm%np(3) ) :: fiz
+    real(WP), dimension( dm%nc(1) ) :: fox
+    real(WP), dimension( dm%nc(2) ) :: foy
     real(WP), dimension( dm%nc(3) ) :: foz
 
     real(WP) :: udx_xpencil (dm%dccc%xsz(1), &
@@ -425,19 +427,16 @@ contains
 !-------------------------------------------------------------------------------
 ! Convert X-pencil to Y-Pencil
 !-------------------------------------------------------------------------------
-    dtmp = dm%dccc
-    call transpose_x_to_y(udx_xpencil, udx_ypencil, dtmp)
-    dtmp = dm%dcpc
-    call transpose_x_to_y(v,             v_ypencil, dtmp)
-    dtmp = dm%dccp
-    call transpose_x_to_y(w,             w_ypencil, dtmp)
+    call transpose_x_to_y(udx_xpencil, udx_ypencil, dm%dccc)
+    call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
+    call transpose_x_to_y(w,             w_ypencil, dm%dccp)
 !-------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !-------------------------------------------------------------------------------
     dtmp = dm%dcpc
     do k = 1, dtmp%ysz(3)
       do i = 1, dtmp%ysz(1)
-        fiy(:) = v(i, :, k)
+        fiy(:) = v_ypencil(i, :, k)
         call Get_y_midp_P2C_1D (fiy, foy, dm, dm%ibcy(:, 2))
         udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + foy(:) * dm%h1r(2) * dm%dt
       end do
@@ -454,7 +453,9 @@ contains
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = w_zpencil(i, j, :)
+        write(*,*) 'test31', j, i
         call Get_z_midp_P2C_1D (fiz, foz, dm, dm%ibcz(:, 3))
+        write(*,*) 'test33', j, i
         udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
       end do
     end do

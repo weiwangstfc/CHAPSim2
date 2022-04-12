@@ -384,6 +384,9 @@ contains
     'in Subroutine: '// "Read_general_input")
 
     close(inputUnit)
+
+    if(allocated(itmpx)) deallocate(itmpx)
+    if(allocated(rtmpx)) deallocate(rtmpx)
 !-------------------------------------------------------------------------------
 ! adjust input varnames
 !-------------------------------------------------------------------------------

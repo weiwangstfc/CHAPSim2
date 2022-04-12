@@ -2254,7 +2254,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
-    real(WP), intent(out) :: fo(nc)
+    real(WP), intent(inout) :: fo(nc)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     integer,  intent(in ) :: ibc(2)
     !real(WP), optional, intent(in ) :: fbc(2)
@@ -2394,7 +2394,7 @@ contains
 
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
-    real(WP),           intent(out) :: fo(np)
+    real(WP),           intent(inout) :: fo(np)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
@@ -2568,7 +2568,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers
-    real(WP), intent(out) :: fo(nc)
+    real(WP), intent(inout) :: fo(nc)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -2757,7 +2757,7 @@ contains
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
-    real(WP),           intent(out) :: fo(np)
+    real(WP),           intent(inout) :: fo(np)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -2950,7 +2950,7 @@ contains
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
-    real(WP),           intent(out) :: fo(np)
+    real(WP),           intent(inout) :: fo(np)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -3138,7 +3138,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
-    real(WP), intent(out) :: fo(nc)
+    real(WP), intent(inout) :: fo(nc)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -3269,7 +3269,7 @@ contains
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: nc ! unknow numbers
-    real(WP),           intent(out) :: fo(nc)
+    real(WP),           intent(inout) :: fo(nc)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -3441,7 +3441,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: np ! unknow numbers
-    real(WP), intent(out) :: fo(np)
+    real(WP), intent(inout) :: fo(np)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
