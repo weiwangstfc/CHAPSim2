@@ -1182,6 +1182,7 @@ subroutine Test_algorithms()
   use vars_df_mod
   use test_operations_mod
   use burgers_eq_mod
+  use tridiagonal_matrix_algorithm
   implicit none
 
   logical :: is_TDMA = .false.
