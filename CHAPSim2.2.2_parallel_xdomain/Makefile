@@ -18,12 +18,33 @@
 PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
-	FOPTS= -g -fbacktrace -fbounds-check -fcheck=all -fdump-core \
-	-ffpe-trap=invalid,zero,overflow -fimplicit-none -finit-real=snan -ftrapv \
-	-fsignaling-nans -fno-omit-frame-pointer -fwhole-file \
-	-Wall -Waliasing -Wextra -Wline-truncation -Wcharacter-truncation  \
-	-Wmaybe-uninitialized -Wuninitialized -Wno-unused-parameter -Wno-unused-variable -Wsurprising  \
-	-Wunused-parameter -std=gnu  -pedantic -pedantic-errors -fall-intrinsics
+	FOPTS= -g \
+		   -std=gnu  \
+	       -march=native \
+		   -fbacktrace \
+		   -fbounds-check \
+		   -fcheck=all \
+		   -fdump-core \
+	       -ffpe-trap=invalid,zero,overflow \
+		   -fimplicit-none \
+		   -finit-real=snan -ftrapv \
+	       -fsignaling-nans \
+		   -fno-omit-frame-pointer \
+		   -fwhole-file \
+	       -Wall \
+		   -Waliasing \
+		   -Wextra \
+		   -Wline-truncation \
+		   -Wcharacter-truncation  \
+	       -Wmaybe-uninitialized \
+		   -Wuninitialized \
+		   -Wno-unused-parameter \
+		   -Wno-unused-variable \
+		   -Wsurprising  \
+	       -Wunused-parameter \
+		   -pedantic \
+		   -pedantic-errors \
+		   -fall-intrinsics
 	FFLGS= -DOUBLE_PREC -DDEBUG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
@@ -34,7 +55,7 @@ else ifeq ($(cfg), cray)
 	FOPTS= # -m 3
 	FFLGS= # -s default64
 else
-	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=gnu \
+	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -Wline-truncation  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
 	FFLGS= -DOUBLE_PREC
 endif
