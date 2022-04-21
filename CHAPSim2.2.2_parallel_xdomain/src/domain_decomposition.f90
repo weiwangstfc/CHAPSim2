@@ -69,25 +69,25 @@ contains
       select case(i)
       case(1)
         dtmp = dm%dpcc
-        write (OUTPUT_UNIT, *) 'In the decomp - pcc grids (for ux, gx) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - pcc grids (for ux, gx) :'
       case(2)
         dtmp = dm%dcpc
-        write (OUTPUT_UNIT, *) 'In the decomp - pcc grids (for uy, gy) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - pcc grids (for uy, gy) :'
       case(3)
         dtmp = dm%dccp
-        write (OUTPUT_UNIT, *) 'In the decomp - cpp grids (for uz, gz) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - cpp grids (for uz, gz) :'
       case(4)
         dtmp = dm%dccc
-        write (OUTPUT_UNIT, *) 'In the decomp - ccc grids (for rho, p) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - ccc grids (for rho, p) :'
       case(5)
         dtmp = dm%dppc
-        write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dy, duy/dx) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dy, duy/dx) :'
       case(6)
         dtmp = dm%dcpp
-        write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for duy/dz, duz/dy) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for duy/dz, duz/dy) :'
       case(7)
         dtmp = dm%dpcp
-        write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dz, duz/dx) :'
+        if (nrank == 0) write (OUTPUT_UNIT, *) 'In the decomp - ppc grids (for dux/dz, duz/dx) :'
       case default
       end select
       call mpi_barrier(MPI_COMM_WORLD, ierror)

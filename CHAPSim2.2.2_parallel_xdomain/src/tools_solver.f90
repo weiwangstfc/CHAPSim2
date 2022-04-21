@@ -380,7 +380,9 @@ contains
     implicit none
 
     type(t_domain),               intent(in) :: dm
-    real(WP), dimension(:, :, :), intent(in) :: u, v, w
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(in) :: u
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(in) :: v
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(in) :: w
 
     real(WP), dimension( dm%np(1) ) :: fix
     real(WP), dimension( dm%np(2) ) :: fiy
@@ -412,10 +414,17 @@ contains
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
-! X-pencil : u_ccc / dx * dt
+! Initialisation
 !-------------------------------------------------------------------------------
     udx_xpencil(:, :, :) = ZERO
-
+    udx_ypencil(:, :, :) = ZERO
+    udx_zpencil(:, :, :) = ZERO
+      v_ypencil(:, :, :) = ZERO
+      w_ypencil(:, :, :) = ZERO
+      w_zpencil(:, :, :) = ZERO
+!-------------------------------------------------------------------------------
+! X-pencil : u_ccc / dx * dt
+!-------------------------------------------------------------------------------
     dtmp = dm%dpcc
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
@@ -453,9 +462,7 @@ contains
     do j = 1, dtmp%zsz(2)
       do i = 1, dtmp%zsz(1)
         fiz(:) = w_zpencil(i, j, :)
-        write(*,*) 'test31', j, i
         call Get_z_midp_P2C_1D (fiz, foz, dm, dm%ibcz(:, 3))
-        write(*,*) 'test33', j, i
         udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
       end do
     end do
