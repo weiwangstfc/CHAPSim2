@@ -1,0 +1,4 @@
+cpu-bind=MASK - cn507, task  0  0 [1928]: mask 0x80000 set
+At line 594 of file src/tools_solver.f90
+Fortran runtime error: Index '17' of dimension 2 of array 'vcp_ypencil' above upper bound of 16
+MPI Application rank 0 exited before MPI_Finalize() with status 2
