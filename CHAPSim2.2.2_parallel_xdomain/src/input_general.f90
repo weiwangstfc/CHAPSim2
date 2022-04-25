@@ -49,6 +49,7 @@ contains
     use parameters_constant_mod
     use vars_df_mod
     use thermo_info_mod
+    use boundary_conditions_mod
     implicit none
 
     character(len = 18) :: flname = 'input_chapsim.ini'
@@ -158,19 +159,19 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5) ! dimensional
         end do
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5) ! dimensional
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5) ! dimensional
 
         do i = 1, nxdomain
           domain(i)%ibcy(:, :) = domain(1)%ibcy(:, :)
@@ -463,6 +464,8 @@ contains
 !-------------------------------------------------------------------------------
 !     boundary
 !-------------------------------------------------------------------------------
+      if(is_any_energyeq) call Convert_thermo_BC_from_dim_to_undim(domain(i), thermo(i))
+
       domain(i)%is_periodic(:) = .false.
       do j = 1, 5
         if(domain(i)%ibcx(1, j) == IBC_PERIODIC .or. domain(i)%ibcx(2, j) == IBC_PERIODIC) then

@@ -1,6 +1,6 @@
 1. no-fft tgv
    1) cpu = 1: ok. normal diverged after 3 steps
-   2) cpu = 4:
+   2) cpu = 4: ok. normal diverged after 4 steps
 
 2. no-fft channel
    1) cpu = 1

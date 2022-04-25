@@ -1,11 +1,11 @@
 module boundary_conditions_mod
 
-  public :: Apply_BC_thermo
+  public :: Convert_thermo_BC_from_dim_to_undim
   public :: Apply_BC_velocity
 
 contains
 
-  subroutine Apply_BC_thermo(dm, th)
+  subroutine Convert_thermo_BC_from_dim_to_undim(dm, th)
     use parameters_constant_mod
     use udf_type_mod
     use thermo_info_mod

@@ -72,7 +72,6 @@ contains
         domain(i)%fbc_dend(:, :) = ONE
         domain(i)%fbc_vism(:, :) = ONE
       else 
-        call Apply_BC_thermo(domain(i), thermo(i))
         do j = 1, 2
           tpx = thermo(i)%tpbcx(j)
           tpy = thermo(i)%tpbcy(j)
@@ -289,7 +288,6 @@ contains
 !-------------------------------------------------------------------------------
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
     call Initialize_thermal_variables (fl, tm)
-    call Apply_BC_thermo(dm, tm)
 
     call Calculate_massflux_from_velocity (dm, fl)
 !-------------------------------------------------------------------------------
@@ -429,6 +427,7 @@ contains
     real(WP) :: rd
     type(DECOMP_INFO) :: dtmp
 
+    if(nrank == 0) call Print_debug_mid_msg("Generating random field ...")
 !-------------------------------------------------------------------------------
 !   Initialisation in x pencil
 !-------------------------------------------------------------------------------
@@ -440,44 +439,33 @@ contains
     do n = 1, NVD
       if(n == 1) then
         dtmp = dm%dpcc
-        nx = dm%np(1)
-        ny = dm%nc(2)
-        nz = dm%nc(3)
       else if(n == 2) then
         dtmp = dm%dcpc
-        nx = dm%nc(1)
-        ny = dm%np(2)
-        nz = dm%nc(3)
       else if(n == 3) then
         dtmp = dm%dccp
-        nx = dm%nc(1)
-        ny = dm%nc(2)
-        nz = dm%np(3)
       else
       end if
 
-      do ii = 1, nx                       
-        i = ii                            
-        do jj = 1, ny                     
-          if(jj >= dtmp%xst(2) .and. jj <= dtmp%xen(2) ) then
-            j = jj - dtmp%xst(2) + 1      
-            do kk = 1, nz                 
-              if(kk >= dtmp%xst(3) .and. kk <= dtmp%xen(3) ) then
-                k = kk - dtmp%xst(3) + 1  
-                seed = ii + jj + kk + seed * (n - 1)
-                call Initialize_random_number ( seed )
-                call Generate_r_random( -ONE, ONE, rd)
-                if(n == 1) ux(i, j, k) = lnoise * rd
-                if(n == 2) uy(i, j, k) = lnoise * rd
-                if(n == 3) uz(i, j, k) = lnoise * rd
-              end if
-            end do
-          end if
+      do i = 1, dtmp%xsz(1)
+        ii = i
+        do j = 1, dtmp%xsz(2)
+          jj = dtmp%xst(2) + j - 1
+          do k = 1, dtmp%xsz(3)
+            kk = dtmp%xst(3) + k - 1
+            seed = ii + jj + kk + seed * (n - 1)
+            call Initialize_random_number ( seed )
+            call Generate_r_random( -ONE, ONE, rd)
+
+            if(n == 1) ux(i, j, k) = lnoise * rd
+            if(n == 2) uy(i, j, k) = lnoise * rd
+            if(n == 3) uz(i, j, k) = lnoise * rd
+
+          end do
         end do
       end do
-
     end do
 
+    if(nrank==0) call Print_debug_end_msg
     return
   end subroutine
 !===============================================================================
@@ -513,6 +501,8 @@ contains
     real(WP) :: uyxza(dm%np(2))
     real(WP) :: uzxza(dm%nc(2))
     real(WP) :: ux_ypencil(dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3))
+
+    if(nrank == 0) call Print_debug_mid_msg("Initializing Poiseuille flow field ...")
 !-------------------------------------------------------------------------------
 !   x-pencil : initial
 !-------------------------------------------------------------------------------
@@ -573,6 +563,8 @@ contains
       close(pf_unit)
     end if
     
+    if(nrank == 0) call Print_debug_end_msg
+
     return
   end subroutine  Initialize_poiseuille_flow
 !===============================================================================
@@ -797,6 +789,7 @@ contains
     integer :: i, j, k, ii, jj, kk
     type(DECOMP_INFO) :: dtmp
 
+    if(nrank == 0) call Print_debug_mid_msg("Initializing Taylor Green Vortex flow field ...")
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
 !------------------------------------------------------------------------------- 
@@ -854,6 +847,8 @@ contains
         end do
       end do
     end do
+
+    if(nrank == 0) call Print_debug_end_msg
     
     return
   end subroutine Initialize_vortexgreen_3dflow

@@ -54,13 +54,13 @@ OBJS= mpi_mod.o\
       modules.o\
       tools_general.o\
       input_thermo.o\
+	  boundary_conditions.o\
       input_general.o\
       geometry.o\
       domain_decomposition.o\
       algorithms.o\
       operations.o\
       tools_solver.o\
-      boundary_conditions.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\
