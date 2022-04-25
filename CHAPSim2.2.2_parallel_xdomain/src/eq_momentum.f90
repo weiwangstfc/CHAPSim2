@@ -89,10 +89,7 @@ contains
     
 
     integer :: n(3)
-    real(WP), allocatable :: rhs_dummy(:, :, :)
-
-    n(1:3) = shape(rhs1)
-    allocate( rhs_dummy (n(1), n(2), n(3)) )
+    real(WP), dimension(size(rhs1, 1), size(rhs1, 2), size(rhs1, 3)) :: rhs_dummy
 
   ! add explicit terms
     rhs_dummy(:, :, :) = rhs1(:, :, :)
@@ -106,8 +103,6 @@ contains
   
   ! times the time step 
     rhs1(:, :, :) = dm%dt * rhs1(:, :, :)
-
-    deallocate (rhs_dummy)
 
     return
   end subroutine

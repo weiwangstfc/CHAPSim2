@@ -13,6 +13,7 @@ module solver_tools_mod
   public  :: Calculate_xzmean_perturbation
   public  :: Check_maximum_velocity
   public  :: Get_volumetric_average_3d
+  public  :: Find_maximum_absvar3d
 
 contains
 !===============================================================================
@@ -469,9 +470,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !-------------------------------------------------------------------------------
-    cfl_convection = MAXVAL(udx_zpencil(:, :, :))
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(cfl_convection, cfl_convection_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call Find_maximum_absvar3d(udx_zpencil, cfl_convection_work)
 
     if(nrank == 0) then
       if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
@@ -521,15 +520,14 @@ contains
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
  
+    real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) )  :: var_ypencil
     real(WP), allocatable   :: vcp_ypencil(:, :, :)
-    real(WP), allocatable   :: var_ypencil(:, :, :)
     real(WP)   :: vol, fo, vol_work
     integer :: i, j, k, noy
 
 !-------------------------------------------------------------------------------
 !   transpose to y pencil. Default is x-pencil.
 !-------------------------------------------------------------------------------
-    allocate ( var_ypencil(dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3)) )
     var_ypencil = ZERO
 
     call transpose_x_to_y(var, var_ypencil, dtmp)
@@ -608,7 +606,6 @@ contains
       end do
       deallocate(vcp_ypencil)
     end if
-    deallocate(var_ypencil)
     
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce( fo,  fo_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
@@ -646,21 +643,36 @@ contains
 
     real(WP), intent(in) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
 
-    real(WP)   :: u(3), u_work(3)
+    real(WP)   :: ux_work, uy_work, uz_work
 
-    u(1) = MAXVAL( abs_wp( ux(:, :, :) ) )
-    u(2) = MAXVAL( abs_wp( uy(:, :, :) ) )
-    u(3) = MAXVAL( abs_wp( uz(:, :, :) ) )
-
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(u, u_work, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call Find_maximum_absvar3d(ux, ux_work)
+    call Find_maximum_absvar3d(uy, uy_work)
+    call Find_maximum_absvar3d(uz, uz_work)
 
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The maximum velocities are:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(1)
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(2)
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', u_work(3)
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', uz_work
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', uy_work
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', uz_work
     end if
+
+    return
+  end subroutine
+
+  subroutine Find_maximum_absvar3d(var, varmax_work)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    implicit none
+
+    real(WP), intent(in) :: var(:, :, :)
+    real(WP), intent(out) :: varmax_work
+
+    real(WP)   :: varmax
+
+    varmax = MAXVAL( abs_wp( var(:, :, :) ) )
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
 
     return
   end subroutine
