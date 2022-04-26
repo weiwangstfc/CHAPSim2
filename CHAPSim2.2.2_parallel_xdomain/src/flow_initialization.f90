@@ -63,6 +63,7 @@ contains
     integer :: i, j, iter
     type(t_thermoProperty) :: tpx, tpy, tpz
 
+    if(nrank == 0) call Print_debug_mid_msg("Initialize flow thermal fields ...")
     iter = 0
     do i = 1, nxdomain
 !-------------------------------------------------------------------------------
@@ -124,7 +125,8 @@ contains
 ! test
 !-------------------------------------------------------------------------------
 !call Test_poisson_solver
-    
+    if(nrank == 0) call Print_debug_end_msg
+     
     return
   end subroutine Initialize_flow_thermal_fields
 !===============================================================================
@@ -271,7 +273,7 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
-
+  !===============================================================================
   subroutine Initialize_thermo_variables( dm, fl, tm )
     use udf_type_mod
     use solver_tools_mod
@@ -321,6 +323,7 @@ contains
     
     type(t_thermoProperty) :: tp_ini
 
+    if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
 !-------------------------------------------------------------------------------
 !   given initialisation temperature
 !-------------------------------------------------------------------------------
@@ -340,6 +343,7 @@ contains
     tm%kCond(:, :, :) = tp_ini%k
     tm%tTemp(:, :, :) = tp_ini%t
 
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Initialize_thermal_variables
 
@@ -368,6 +372,8 @@ contains
     real(WP)   :: a, b, c, yy, ymax, ymin
     integer :: j
     
+    if(nrank == 0) call Print_debug_mid_msg("Generate poiseuille flow profile ...")
+
     ux_1c1 (:) = ZERO
 
     ymax = dm%yp( dm%np_geo(2) )
@@ -395,6 +401,7 @@ contains
       ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Generate_poiseuille_flow_profile
 !===============================================================================
@@ -416,13 +423,13 @@ contains
     use mpi_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    real(WP),    intent(inout) :: ux(:, :, :)
-    real(WP),    intent(inout) :: uy(:, :, :)
-    real(WP),    intent(inout) :: uz(:, :, :)
+    real(WP),       intent(inout) :: ux(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3))
+    real(WP),       intent(inout) :: uy(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3))
+    real(WP),       intent(inout) :: uz(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3))
     real(WP),    intent(in)    :: lnoise
     integer :: seed
     integer :: i, j, k! local id
-    integer :: n, nx, ny, nz   
+    integer :: n, nsz  
     integer :: ii, jj, kk ! global id
     real(WP) :: rd
     type(DECOMP_INFO) :: dtmp
@@ -435,7 +442,8 @@ contains
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
-  
+    nsz = dm%np(1) * dm%np(2) * dm%np(3)
+
     do n = 1, NVD
       if(n == 1) then
         dtmp = dm%dpcc
@@ -452,7 +460,7 @@ contains
           jj = dtmp%xst(2) + j - 1
           do k = 1, dtmp%xsz(3)
             kk = dtmp%xst(3) + k - 1
-            seed = ii + jj + kk + seed * (n - 1)
+            seed = ii + jj + kk + nsz * (n - 1)
             call Initialize_random_number ( seed )
             call Generate_r_random( -ONE, ONE, rd)
 
@@ -489,10 +497,10 @@ contains
     implicit none
     type(t_domain), intent(in   ) :: dm
     real(WP),       intent(in   ) :: lnoise   
-    real(WP),       intent(inout) :: ux(:, :, :) , &
-                                     uy(:, :, :) , &
-                                     uz(:, :, :) , &
-                                     p (:, :, :)    
+    real(WP),       intent(inout) :: ux(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3))
+    real(WP),       intent(inout) :: uy(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3))
+    real(WP),       intent(inout) :: uz(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3))
+    real(WP),       intent(inout) ::  p(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3))
     integer :: pf_unit
     integer :: j
     real(WP) :: ubulk
@@ -526,23 +534,26 @@ contains
 !-------------------------------------------------------------------------------
 !   x-pencil : Get the u, v, w, averged in x and z directions
 !-------------------------------------------------------------------------------
+    if(nrank == 0) call Print_debug_mid_msg("Get the u, v, w, averged in x and z directions ...")
     call Calculate_xz_mean(ux, dm%dpcc, uxxza)
     call Calculate_xz_mean(uy, dm%dcpc, uyxza)
     call Calculate_xz_mean(uz, dm%dpcc, uzxza)
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
+    if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
     call Calculate_xzmean_perturbation(ux, dm%dpcc, uxxza, ux_1c1)
     call Calculate_xzmean_perturbation(uy, dm%dcpc, uyxza )
     call Calculate_xzmean_perturbation(uz, dm%dccp, uzxza )
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    call Get_volumetric_average_3d(.false., dm%ibcx( :, 1), dm%fbcx( :, 1), &
+    if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
+    call Get_volumetric_average_3d(.false., dm%ibcy( :, 1), dm%fbcy( :, 1), &
           dm, dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(.false., dm%ibcx( :, 1), dm%fbcx( :, 1), &
+    call Get_volumetric_average_3d(.false., dm%ibcy( :, 1), dm%fbcy( :, 1), &
           dm, dm%dpcc, ux, ubulk)
 !-------------------------------------------------------------------------------
 !   X-pencil ==> Y-pencil
@@ -553,10 +564,10 @@ contains
 !-------------------------------------------------------------------------------
     if(nrank == 0) then
       open ( newunit = pf_unit,     &
-              file    = 'output_check_poiseuille_profile.dat', &
+              file    = 'check_poiseuille_profile.dat', &
               status  = 'replace',         &
               action  = 'write')
-      write(pf_unit, '(A)') "# :yc, ux_laminar, ux, uy, uz"
+      write(pf_unit, '(A)') "# :yc, ux_laminar"
       do j = 1, dm%nc(2)
         write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1), j, dm%dpcc%yen(3))
       end do
@@ -596,6 +607,7 @@ contains
     integer :: i, j, ii, jj
     type(DECOMP_INFO) :: dtmp
 
+    if(nrank == 0) call Print_debug_mid_msg("Initializing vortexgreen 2dflow ...")
 !-------------------------------------------------------------------------------
 !   ux in x-pencil
 !-------------------------------------------------------------------------------
@@ -640,6 +652,7 @@ contains
       end do
     end do
     
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Initialize_vortexgreen_2dflow
 !===============================================================================
@@ -669,6 +682,8 @@ contains
 !-------------------------------------------------------------------------------
 !   X-pencil : Find Max. error of ux
 !-------------------------------------------------------------------------------
+    if(nrank == 0) call Print_debug_mid_msg("Validat TGV2D error ...")
+
     dtmp = dm%dpcc
     uerr = ZERO
     uerrmax = ZERO
@@ -757,6 +772,8 @@ contains
             uerrmax_work, verrmax_work, perrmax_work
       close(output_unit)
     end if
+
+    if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine

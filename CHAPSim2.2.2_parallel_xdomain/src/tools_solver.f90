@@ -506,7 +506,7 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]         
 !===============================================================================
-  subroutine Get_volumetric_average_3d(is_ynp, ibc, fbc, dm, dtmp, var, fo_work)
+  subroutine Get_volumetric_average_3d(is_ynp, ibcy, fbcy, dm, dtmp, var, fo_work)
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
@@ -514,8 +514,8 @@ contains
     implicit none
     type(t_domain),  intent(in) :: dm
     logical,           intent(in) :: is_ynp
-    integer,           intent(in) :: ibc(2)
-    real(WP),          intent(in) :: fbc(2)
+    integer,           intent(in) :: ibcy(2)
+    real(WP),          intent(in) :: fbcy(2)
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
@@ -523,7 +523,7 @@ contains
     real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) )  :: var_ypencil
     real(WP), allocatable   :: vcp_ypencil(:, :, :)
     real(WP)   :: vol, fo, vol_work
-    integer :: i, j, k, noy
+    integer :: i, j, k, noy, jp
 
 !-------------------------------------------------------------------------------
 !   transpose to y pencil. Default is x-pencil.
@@ -548,7 +548,7 @@ contains
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
 
-      call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibc)
+      call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy)
 
       fo = ZERO
       vol = ZERO
@@ -563,8 +563,10 @@ contains
             !     ( fi3d_ypencil(i, j, k) + &
             !       FOUR * fo3dy(i, j, k) + &
             !       fi3d_ypencil(i, dm%jNeighb(3, j), k)) ! Simpson 2nd order 
+            jp = j + 1
+            if( dm%is_periodic(2) .and. jp > dtmp%ysz(2)) jp = 1
             fo = fo + &      
-                ( var_ypencil(i, j + 1, k) + vcp_ypencil(i, j, k) ) * &
+                ( var_ypencil(i, jp, k) + vcp_ypencil(i, j, k) ) * &
                 ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
                 ( var_ypencil(i, j,     k) + vcp_ypencil(i, j, k) ) * &
                 ( dm%yc(j    ) - dm%yp(j) ) * HALF
@@ -585,7 +587,7 @@ contains
       end if
       allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
       vcp_ypencil = ZERO
-      call Get_y_midp_C2P_3D(var_ypencil, vcp_ypencil, dm, ibc, fbc)
+      call Get_y_midp_C2P_3D(var_ypencil, vcp_ypencil, dm, ibcy, fbcy)
 
       fo = ZERO
       vol = ZERO
@@ -594,9 +596,11 @@ contains
           do j = 1, dtmp%ysz(2)
 !>       j'    j'+1
 !>      _|__.__|_
-!>         j  
+!>         j
+            jp = j + 1
+            if( dm%is_periodic(2) .and. jp > noy) jp = 1
             fo = fo + &
-                ( vcp_ypencil(i, j + 1, k) + var_ypencil(i, j, k) ) * &
+                ( vcp_ypencil(i, jp, k) + var_ypencil(i, j, k) ) * &
                 ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
                 ( var_ypencil(i, j,     k) + var_ypencil(i, j, k) ) * &
                 ( dm%yc(j    ) - dm%yp(j) ) * HALF

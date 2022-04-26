@@ -85,9 +85,9 @@ contains
     end do
     call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_xpcc,         dm, dm%ibcx(:, 5), fbcx(:)) ! for d(g_x h_pcc))/dy
     call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_ycpc_ypencil, dm, dm%ibcx(:, 5), fbcy(:))! for d(g_y h_cpc)/dy
+    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_ycpc_ypencil, dm, dm%ibcy(:, 5), fbcy(:))! for d(g_y h_cpc)/dy
     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_zccp_zpencil, dm, dm%ibcx(:, 5), fbcz(:)) ! for d(g_z h_ccp)/dz
+    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_zccp_zpencil, dm, dm%ibcz(:, 5), fbcz(:)) ! for d(g_z h_ccp)/dz
 !-------------------------------------------------------------------------------
 !    k --> k_xpcc
 !      --> k_ypencil --> k_ycpc_ypencil
