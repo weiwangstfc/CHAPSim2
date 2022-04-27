@@ -534,21 +534,21 @@ contains
 !-------------------------------------------------------------------------------
 !   x-pencil : Get the u, v, w, averged in x and z directions
 !-------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Get the u, v, w, averged in x and z directions ...")
+    !if(nrank == 0) call Print_debug_mid_msg("Get the u, v, w, averged in x and z directions ...")
     call Calculate_xz_mean(ux, dm%dpcc, uxxza)
     call Calculate_xz_mean(uy, dm%dcpc, uyxza)
     call Calculate_xz_mean(uz, dm%dpcc, uzxza)
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
+    !if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
     call Calculate_xzmean_perturbation(ux, dm%dpcc, uxxza, ux_1c1)
     call Calculate_xzmean_perturbation(uy, dm%dcpc, uyxza )
     call Calculate_xzmean_perturbation(uz, dm%dccp, uzxza )
 !-------------------------------------------------------------------------------
 !   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
 !-------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
+    !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
     call Get_volumetric_average_3d(.false., dm%ibcy( :, 1), dm%fbcy( :, 1), &
           dm, dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
@@ -569,7 +569,7 @@ contains
               action  = 'write')
       write(pf_unit, '(A)') "# :yc, ux_laminar"
       do j = 1, dm%nc(2)
-        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1), j, dm%dpcc%yen(3))
+        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1)/2, j, dm%dpcc%yen(3)/2)
       end do
       close(pf_unit)
     end if

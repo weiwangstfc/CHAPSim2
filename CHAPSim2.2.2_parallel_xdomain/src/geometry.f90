@@ -21,7 +21,7 @@
 !===============================================================================
 !> \file geometry.f90
 !>
-!> \brief Building up the geometry and mesh inwrtfmt1ion.
+!> \brief Building up the geometry and mesh information.
 !>
 !===============================================================================
 module geometry_mod

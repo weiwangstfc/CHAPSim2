@@ -146,7 +146,7 @@ contains
         if(nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  icase                  :', domain(i)%icase
+            write (OUTPUT_UNIT, wrtfmt1i) '  icase : ', domain(i)%icase
           end do
         end if
 !-------------------------------------------------------------------------------
@@ -194,17 +194,22 @@ contains
         if(nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt2i) '  u-x-bc-type  :', domain(i)%ibcx(1:2, 1)
-            write (OUTPUT_UNIT, wrtfmt2r) '  u-x-bc-value :', domain(i)%fbcx(1:2, 1)
-            write (OUTPUT_UNIT, wrtfmt2i) '  v-x-bc-type  :', domain(i)%ibcx(1:2, 2)
-            write (OUTPUT_UNIT, wrtfmt2r) '  v-x-bc-value :', domain(i)%fbcx(1:2, 2)
-            write (OUTPUT_UNIT, wrtfmt2i) '  w-x-bc-type  :', domain(i)%ibcx(1:2, 3)
-            write (OUTPUT_UNIT, wrtfmt2r) '  w-x-bc-value :', domain(i)%fbcx(1:2, 3)
-            write (OUTPUT_UNIT, wrtfmt2i) '  p-x-bc-type  :', domain(i)%ibcx(1:2, 4)
-            write (OUTPUT_UNIT, wrtfmt2r) '  p-x-bc-value :', domain(i)%fbcx(1:2, 4)
-            write (OUTPUT_UNIT, wrtfmt2i) '  T-x-bc-type  :', domain(i)%ibcx(1:2, 5)
-            write (OUTPUT_UNIT, wrtfmt2r) '  T-x-bc-value :', domain(i)%fbcx(1:2, 5)
+            write (OUTPUT_UNIT, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx(1:2, 1), domain(i)%fbcx(1:2, 1)
+            write (OUTPUT_UNIT, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
+            write (OUTPUT_UNIT, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
+            write (OUTPUT_UNIT, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
+            write (OUTPUT_UNIT, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5)
           end do
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
+          write (OUTPUT_UNIT, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
         end if
 !-------------------------------------------------------------------------------
 ! [mesh] 
@@ -275,9 +280,9 @@ contains
         if(nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1r) '  flow Reynolds number      :', flow(i)%ren
-            write (OUTPUT_UNIT, wrtfmt1i) '  flow driven force type    :', flow(i)%idriven
-            write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force         :', flow(i)%drvfc
+            write (OUTPUT_UNIT, wrtfmt1r) '  flow Reynolds number   :', flow(i)%ren
+            write (OUTPUT_UNIT, wrtfmt1i) '  flow driven force type :', flow(i)%idriven
+            write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force      :', flow(i)%drvfc
           end do
         end if
 !-------------------------------------------------------------------------------
