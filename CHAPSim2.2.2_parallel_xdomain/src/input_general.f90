@@ -307,13 +307,13 @@ contains
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  fluid medium               :', thermo(i)%ifluid
-            write (OUTPUT_UNIT, wrtfmt1r) '  reference length (m)       :', thermo(i)%lenRef
-            write (OUTPUT_UNIT, wrtfmt1r) '  reference temperature (K)  :', thermo(i)%T0Ref
-            write (OUTPUT_UNIT, wrtfmt1i) '  is thermal field solved    ?', domain(i)%ithermo
-            write (OUTPUT_UNIT, wrtfmt1i) '  is CHT solved              ?', domain(i)%icht
-            write (OUTPUT_UNIT, wrtfmt1i) '  gravity direction          :', flow(i)%igravity
-            write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)    :', thermo(i)%Tini0
+            write (OUTPUT_UNIT, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
+            write (OUTPUT_UNIT, wrtfmt1r) '  reference length (m)      :', thermo(i)%lenRef
+            write (OUTPUT_UNIT, wrtfmt1r) '  reference temperature (K) :', thermo(i)%T0Ref
+            write (OUTPUT_UNIT, wrtfmt1i) '  is thermal field solved   ?', domain(i)%ithermo
+            write (OUTPUT_UNIT, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
+            write (OUTPUT_UNIT, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
+            write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%Tini0
           end do
         end if
 !-------------------------------------------------------------------------------
@@ -331,11 +331,11 @@ contains
         if( nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  flow restart                           :', flow(i)%irestart
-            write (OUTPUT_UNIT, wrtfmt1i) '  restarting from iteration              :', flow(i)%nrsttckpt
-            write (OUTPUT_UNIT, wrtfmt1i) '  Iteration for initial Reynolds No.     :', flow(i)%nIterIniRen
-            write (OUTPUT_UNIT, wrtfmt1r) '  Initial Reynolds No.                   :', flow(i)%renIni
-            write (OUTPUT_UNIT, wrtfmt1r) '  Initial velocity perturbation itensity :', flow(i)%initNoise
+            write (OUTPUT_UNIT, wrtfmt1i) '  flow restart                       :', flow(i)%irestart
+            write (OUTPUT_UNIT, wrtfmt1i) '  restarting from iteration          :', flow(i)%nrsttckpt
+            write (OUTPUT_UNIT, wrtfmt1i) '  Iteration for initial Reynolds No. :', flow(i)%nIterIniRen
+            write (OUTPUT_UNIT, wrtfmt1r) '  Initial Reynolds No.               :', flow(i)%renIni
+            write (OUTPUT_UNIT, wrtfmt1r) '  Initial velocity influction level  :', flow(i)%initNoise
           end do
         end if
 !-------------------------------------------------------------------------------
