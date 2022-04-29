@@ -7,13 +7,13 @@ module visualization
   
   contains
 
-  subroutine Display_snapshot_slice_xy(d, str, varnm, vartp, var0, iter)
+  subroutine Display_snapshot_slice_xy(dm, str, varnm, vartp, var0, iter)
     use udf_type_mod
     use parameters_constant_mod, only : ZERO
     use operations!, only : Get_midp_interpolation_1D
     use typeconvert_mod
     implicit none
-    type(t_domain), intent( in ) :: d
+    type(t_domain), intent( in ) :: dm
     integer(4) :: vartp
     character( len = *), intent( in ) :: str
     character( len = *), intent( in ) :: varnm
@@ -30,6 +30,40 @@ module visualization
     integer :: output_unit
     character( len = 128) :: filename
     logical :: file_exists = .FALSE.
+
+    if(nrank == 0) then
+      filename = 'display_xy_'//trim(varnm)//'_'//trim(int2str(iter))//'.vtk'
+      INQUIRE(FILE = trim(filename), exist = file_exists)
+    
+      if(.not.file_exists) then
+    
+        open(newunit = output_unit, file = trim(filename), action = "write", status = "new")
+        write(output_unit, '(A)') '# vtk DataFile Version 2.0'
+        write(output_unit, '(A)') str//'_mesh'
+        write(output_unit, '(A)') 'ASCII'
+        write(output_unit, '(A)') 'DATASET STRUCTURED_GRID'
+        write(output_unit, '(A, 3I10.1)') 'DIMENSIONS', nd1, nd2, nd3
+        write(output_unit, '(A, I10.1, 1X, A)') 'POINTS', nd1 * nd2 * nd3, 'float'
+        do k = 1, nd3
+          z = dm%h(3) * real(k - 1, WP)
+          do j = 1, nd2
+            y = dm%yp(j)
+            do i = 1, nd1
+              x = dm%h(1) * real(i - 1, WP)
+              write(output_unit, *) x, y, z
+            end do
+          end do
+        end do
+    
+      else
+        open(newunit = output_unit, file = trim(filename), action = "write", status = "old", position="append")
+      end if
+    end if
+
+
+
+
+
   
     nd1 = dm%np_geo(1)
     nd2 = dm%np_geo(2)
