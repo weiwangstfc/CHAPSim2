@@ -229,14 +229,14 @@ module wtformat_mod
   use iso_fortran_env
   implicit none
 
-  character(len = 17) :: wrtfmt1i   = '(2X, A32, 1I20.1)'
-  character(len = 17) :: wrtfmt2i   = '(2X, A32, 2I10.1)'
-  character(len = 17) :: wrtfmt1r   = '(2X, A32, 1F20.4)'
-  character(len = 17) :: wrtfmt2r   = '(2X, A32, 2F10.2)'
-  character(len = 17) :: wrtfmt1e   = '(2X, A32, 1E20.4)'
-  character(len = 25) :: wrtfmt1i1r = '(2X, A32, 1I10.1, 1F10.2)'
-  character(len = 25) :: wrtfmt2i2r = '(2X, A32, 2I10.1, 2F10.2)'
-  character(len = 14) :: wrtfmt1s   = '(2X, A32, A20)'
+  character(len = 17) :: wrtfmt1i   = '(2X, A48, 1I20.1)'
+  character(len = 17) :: wrtfmt2i   = '(2X, A48, 2I10.1)'
+  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F20.4)'
+  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.2)'
+  character(len = 17) :: wrtfmt1e   = '(2X, A48, 1E20.4)'
+  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.2)'
+  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.2)'
+  character(len = 14) :: wrtfmt1s   = '(2X, A48, A20)'
 
 end module wtformat_mod
 !===============================================================================

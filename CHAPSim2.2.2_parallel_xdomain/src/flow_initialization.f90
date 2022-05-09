@@ -57,74 +57,149 @@ contains
     use vars_df_mod
     use thermo_info_mod
     use boundary_conditions_mod
+    use decomp_2d_io
+    use typeconvert_mod
     implicit none
 
-    logical :: itest = .false.
-    integer :: i, j, iter
+    logical :: itest1 = .false.
+    logical :: itest2 = .true.
+    integer :: i, j, k, l, s, iter
     type(t_thermoProperty) :: tpx, tpy, tpz
+    integer :: ipencil
+    type(DECOMP_INFO) :: dtmp
 
     if(nrank == 0) call Print_debug_mid_msg("Initialize flow thermal fields ...")
     iter = 0
-    do i = 1, nxdomain
+    do l = 1, nxdomain
 !-------------------------------------------------------------------------------
 ! to test algorithms based on given values.
 !-------------------------------------------------------------------------------
-      if(domain(i)%ithermo == 0) then
-        domain(i)%fbc_dend(:, :) = ONE
-        domain(i)%fbc_vism(:, :) = ONE
+      if(domain(l)%ithermo == 0) then
+        domain(l)%fbc_dend(:, :) = ONE
+        domain(l)%fbc_vism(:, :) = ONE
       else 
-        do j = 1, 2
-          tpx = thermo(i)%tpbcx(j)
-          tpy = thermo(i)%tpbcy(j)
-          tpz = thermo(i)%tpbcz(j)
+        do s = 1, 2
+          tpx = thermo(l)%tpbcx(s)
+          tpy = thermo(l)%tpbcy(s)
+          tpz = thermo(l)%tpbcz(s)
 
-          domain(i)%fbc_dend(j, 1) = tpx%d
-          domain(i)%fbc_dend(j, 2) = tpy%d
-          domain(i)%fbc_dend(j, 3) = tpz%d
-          domain(i)%fbc_vism(j, 1) = tpx%m
-          domain(i)%fbc_vism(j, 2) = tpy%m
-          domain(i)%fbc_vism(j, 3) = tpz%m
+          domain(l)%fbc_dend(s, 1) = tpx%d
+          domain(l)%fbc_dend(s, 2) = tpy%d
+          domain(l)%fbc_dend(s, 3) = tpz%d
+          domain(l)%fbc_vism(s, 1) = tpx%m
+          domain(l)%fbc_vism(s, 2) = tpy%m
+          domain(l)%fbc_vism(s, 3) = tpz%m
         end do
       end if
 !-------------------------------------------------------------------------------
 ! to allocate variables
 !-------------------------------------------------------------------------------
-      call Allocate_flow_variables (domain(i), flow(i))
-      if(domain(i)%ithermo == 1) call Allocate_thermo_variables (domain(i), thermo(i))
+      call Allocate_flow_variables (domain(l), flow(l))
+      if(domain(l)%ithermo == 1) call Allocate_thermo_variables (domain(l), thermo(l))
 !-------------------------------------------------------------------------------
 ! to intialize variable
 !-------------------------------------------------------------------------------
-      if (flow(i)%irestart == INITIAL_RANDOM) then
+      if (flow(l)%irestart == INITIAL_RANDOM) then
         iter = 0
-        call Update_Re(iter, flow(i))
-        if(domain(i)%ithermo == 1) &
-        call Update_PrGr(flow(i), thermo(i))
+        call Update_Re(iter, flow(l))
+        if(domain(l)%ithermo == 1) &
+        call Update_PrGr(flow(l), thermo(l))
 
-        call Initialize_flow_variables ( domain(i), flow(i) )
-        if(domain(i)%ithermo == 1) &
-        call Initialize_thermo_variables ( domain(i), flow(i), thermo(i) )
+        call Initialize_flow_variables ( domain(l), flow(l) )
+        if(domain(l)%ithermo == 1) &
+        call Initialize_thermo_variables ( domain(l), flow(l), thermo(l) )
 
-        flow(i)%time = ZERO
-        if(domain(i)%ithermo == 1) &
-        thermo(i)%time = ZERO 
-      else if (flow(i)%irestart == INITIAL_RESTART) then
+        flow(l)%time = ZERO
+        if(domain(l)%ithermo == 1) &
+        thermo(l)%time = ZERO 
+      else if (flow(l)%irestart == INITIAL_RESTART) then
 
-      else if (flow(i)%irestart == INITIAL_INTERPL) then
+      else if (flow(l)%irestart == INITIAL_INTERPL) then
 
       else
         call Print_error_msg("Error in flow initialisation flag.")
       end if
 
+      if(itest2) then
+        !-------------------------------------------------------------------------------
+        ! to write initial data.
+        !-------------------------------------------------------------------------------
+        ipencil = 1
+        call decomp_2d_write_one(ipencil, flow(l)%qx,      'raw_ux_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dpcc)
+        call decomp_2d_write_one(ipencil, flow(l)%qy,      'raw_uy_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dcpc)
+        call decomp_2d_write_one(ipencil, flow(l)%qz,      'raw_uz_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dccp)
+        call decomp_2d_write_one(ipencil, flow(l)%pres,    'raw_p_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dccc)
+        if(domain(l)%ithermo == 1) &
+        call decomp_2d_write_one(ipencil, thermo(l)%tTemp, 'raw_T_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dccc)
+        ! write(*,*) 'check ux' 
+        ! dtmp = domain(l)%dpcc
+        ! do k = 1, dtmp%xsz(3)
+        !   do j =  1, dtmp%xsz(2)
+        !     do i =  1, dtmp%xsz(1)
+        !       write(*, *) i, j, k, flow(l)%qx(i, j, k)
+        !     end do
+        !   end do
+        ! end do
+
+        ! write(*,*) 'check uy'
+        ! dtmp = domain(l)%dcpc
+        ! do k = 1, dtmp%xsz(3)
+        !   do j =  1, dtmp%xsz(2)
+        !     do i =  1, dtmp%xsz(1)
+        !       write(*, *) i, j, k, flow(l)%qy(i, j, k)
+        !     end do
+        !   end do
+        ! end do
+
+        ! write(*,*) 'check uz'
+        ! dtmp = domain(l)%dccp
+        ! do k = 1, dtmp%xsz(3)
+        !   do j =  1, dtmp%xsz(2)
+        !     do i =  1, dtmp%xsz(1)
+        !       write(*, *) i, j, k, flow(l)%qz(i, j, k)
+        !     end do
+        !   end do
+        ! end do
+
+        ! write(*,*) 'check p'
+        ! dtmp = domain(l)%dccc
+        ! do k = 1, dtmp%xsz(3)
+        !   do j =  1, dtmp%xsz(2)
+        !     do i =  1, dtmp%xsz(1)
+        !       write(*, *) i, j, k, flow(l)%pres(i, j, k)
+        !     end do
+        !   end do
+        ! end do
+        ! if(domain(l)%ithermo == 1) then
+        !   write(*,*) 'check T'
+        !   dtmp = domain(i)%dccc
+        !   do k = 1, dtmp%xsz(3)
+        !     do j =  1, dtmp%xsz(2)
+        !       do i =  1, dtmp%xsz(1)
+        !         write(*, *) i, j, k, thermo(l)%tTemp(i, j, k)
+        !       end do
+        !     end do
+        !   end do
+        ! end if
+
+      end if
     end do
+
+
+
 
 !-------------------------------------------------------------------------------
 ! to test algorithms based on given values.
 !-------------------------------------------------------------------------------
-    if(itest) call Test_algorithms()
+    if(itest1) then
+      call Test_algorithms()
+      !call Test_poisson_solver
+    end if
+
 !-------------------------------------------------------------------------------
 ! test
 !-------------------------------------------------------------------------------
-!call Test_poisson_solver
+
     if(nrank == 0) call Print_debug_end_msg
      
     return

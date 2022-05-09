@@ -291,7 +291,7 @@ contains
       else if ( secname(1:slen) == '[thermo]' )  then 
         allocate ( itmpx(nxdomain) ); itmpx = 0
         allocate ( rtmpx(nxdomain) ); rtmpx = ZERO
-
+        
         read(inputUnit, *, iostat = ioerr) varname, itmp
         if(is_any_energyeq) thermo(1 : nxdomain)%ifluid = itmp
         read(inputUnit, *, iostat = ioerr) varname, rtmp

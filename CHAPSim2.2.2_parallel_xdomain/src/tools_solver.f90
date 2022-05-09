@@ -655,9 +655,9 @@ contains
 
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The maximum velocities are:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', uz_work
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', uy_work
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', uz_work
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', ux_work
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Vmax : ', uy_work
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Wmax : ', uz_work
     end if
 
     return
@@ -674,10 +674,9 @@ contains
 
     real(WP)   :: varmax
 
-    varmax = MAXVAL( abs_wp( var(:, :, :) ) )
+    varmax = MAXVAL( abs_wp( var(:, :, :) ) ) 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varmax, varmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
-
     return
   end subroutine
 

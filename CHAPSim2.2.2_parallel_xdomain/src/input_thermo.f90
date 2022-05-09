@@ -761,7 +761,8 @@ contains
 !_______________________________________________________________________________
   subroutine Write_thermo_property
     !use mpi_mod ! for test
-    use parameters_constant_mod, only : ZERO, TRUNCERR
+    use parameters_constant_mod
+    use decomp_2d
     implicit none
     type(t_thermoProperty) :: tp
     integer :: n, i
@@ -770,7 +771,7 @@ contains
     integer :: tp_unit
     logical :: is_dim
 
-    !if (nrank /= 0) return
+    if (nrank /= 0) return
 
     n = 128
     call tp%Get_initialized_thermal_properties
@@ -798,6 +799,7 @@ contains
     end if
 
     open (newunit = tp_unit, file = 'check_tp_from_dh.dat')
+    write(tp_unit, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
     do i = 1, n
       tp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
       call tp%Refresh_thermal_properties_from_DH()

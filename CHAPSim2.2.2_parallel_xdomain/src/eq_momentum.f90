@@ -605,7 +605,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * L22(ux) at (i', j, k)
 !-------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_P2P_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:,1))
+    call Get_y_2nd_derivative_C2C_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:,1), dm%fbcy(:,1))
     if ( dm%ithermo == 0) mx_rhs_ypencil = mx_rhs_ypencil +                  fl%rre * apcc_ypencil
     if ( dm%ithermo == 1) mx_rhs_ypencil = mx_rhs_ypencil + m_xpcc_ypencil * fl%rre * apcc_ypencil
 !-------------------------------------------------------------------------------
@@ -644,7 +644,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Y-pencil : Z-mom diffusion term (z-v1-2/1), \mu * L22(uz) at (i, j, k')
 !-------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_P2P_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:,3))
+    call Get_y_2nd_derivative_C2C_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:,3), dm%fbcy(:,3))
     if ( dm%ithermo == 0) mz_rhs_ypencil = mz_rhs_ypencil +                  fl%rre * accp_ypencil
     if ( dm%ithermo == 1) mz_rhs_ypencil = mz_rhs_ypencil + m_zccp_ypencil * fl%rre * accp_ypencil
 !-------------------------------------------------------------------------------
