@@ -165,7 +165,8 @@ module parameters_constant_mod
                         ILIQUID_SODIUM  = 3, &
                         ILIQUID_LEAD    = 4, &
                         ILIQUID_BISMUTH = 5, &
-                        ILIQUID_LBE     = 6
+                        ILIQUID_LBE     = 6, &
+                        ILIQUID_WATER   = 7 ! to be updated 
 
   integer, parameter :: IPROPERTY_TABLE = 1, &
                         IPROPERTY_FUNCS = 2
@@ -173,20 +174,23 @@ module parameters_constant_mod
   character(len = 64), parameter :: INPUT_SCP_WATER = 'NIST_WATER_23.5MP.DAT'
   character(len = 64), parameter :: INPUT_SCP_CO2   = 'NIST_CO2_8MP.DAT'
 
-  real(WP), parameter :: TM0_Na = 371.0 ! unit: K, melting temperature at 1 atm for Na
-  real(WP), parameter :: TM0_Pb = 600.6 ! unit: K, melting temperature at 1 atm for Lead
-  real(WP), parameter :: TM0_BI = 544.6 ! unit: K, melting temperature at 1 atm for Bismuth
-  real(WP), parameter :: TM0_LBE = 398.0 ! unit: K, melting temperature at 1 atm for LBE
+  real(WP), parameter :: TM0_Na  = 371.0  ! unit: K, melting temperature at 1 atm for Na
+  real(WP), parameter :: TM0_Pb  = 600.6  ! unit: K, melting temperature at 1 atm for Lead
+  real(WP), parameter :: TM0_BI  = 544.6  ! unit: K, melting temperature at 1 atm for Bismuth
+  real(WP), parameter :: TM0_LBE = 398.0  ! unit: K, melting temperature at 1 atm for LBE
+  real(WP), parameter :: TM0_H2O = 273.15 ! unit: K, melting temperature at 1 atm for water
 
-  real(WP), parameter :: TB0_Na = 1155.0 ! unit: K, boling temperature at 1 atm for Na
-  real(WP), parameter :: TB0_Pb = 2021.0 ! unit: K, boling temperature at 1 atm for Lead
-  real(WP), parameter :: TB0_BI = 1831.0 ! unit: K, boling temperature at 1 atm for Bismuth
+  real(WP), parameter :: TB0_Na  = 1155.0 ! unit: K, boling temperature at 1 atm for Na
+  real(WP), parameter :: TB0_Pb  = 2021.0 ! unit: K, boling temperature at 1 atm for Lead
+  real(WP), parameter :: TB0_BI  = 1831.0 ! unit: K, boling temperature at 1 atm for Bismuth
   real(WP), parameter :: TB0_LBE = 1927.0 ! unit: K, boling temperature at 1 atm for LBE
+  real(WP), parameter :: TB0_H2O = 373.15 ! unit: K, boling temperature at 1 atm for water
 
-  real(WP), parameter :: HM0_Na = 113.0e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP), parameter :: HM0_Pb = 23.07e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP), parameter :: HM0_BI = 53.3e3 ! unit: J / Kg, latent melting heat, enthalpy
-  real(WP), parameter :: HM0_LBE = 38.6e3 ! unit: J / Kg, latent melting heat, enthalpy
+  real(WP), parameter :: HM0_Na  = 113.0e3 ! unit: J / Kg, latent melting heat, enthalpy for Na
+  real(WP), parameter :: HM0_Pb  = 23.07e3 ! unit: J / Kg, latent melting heat, enthalpy for Lead
+  real(WP), parameter :: HM0_BI  = 53.3e3  ! unit: J / Kg, latent melting heat, enthalpy for Bismuth
+  real(WP), parameter :: HM0_LBE = 38.6e3  ! unit: J / Kg, latent melting heat, enthalpy for LBE
+  real(WP), parameter :: HM0_H2O = 334.0e3 ! unit: J / Kg, latent melting heat, enthalpy for water
 
   ! D = CoD(0) + CoD(1) * T
   real(WP), parameter :: CoD_Na(0:1) = (/1014.0, -0.235/)
@@ -321,6 +325,8 @@ module udf_type_mod
     integer  :: nIterIniRen
     integer  :: nIterFlowStart
     integer  :: nIterFlowEnd
+
+    integer  :: iteration
 
     real(WP) :: time
     real(WP) :: ren

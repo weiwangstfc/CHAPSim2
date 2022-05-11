@@ -10,7 +10,7 @@ module solver_tools_mod
   public  :: Update_Re
   public  :: Update_PrGr
   public  :: Calculate_xz_mean
-  public  :: Calculate_xzmean_perturbation
+  public  :: Adjust_to_xzmean_zero
   public  :: Check_maximum_velocity
   public  :: Get_volumetric_average_3d
   public  :: Find_maximum_absvar3d
@@ -114,10 +114,10 @@ contains
     integer :: jj, i, j, k
     integer :: ist, ien, jst, jen, kst, ken
     integer :: xst(3), xen(3), xsz(3)
-    integer :: nk, ni
-!-------------------------------------------------------------------------------
-!   Default X-pencil
-!-------------------------------------------------------------------------------
+    integer :: nk, ni, nk_work, ni_work
+    !-------------------------------------------------------------------------------
+    !   Default X-pencil
+    !-------------------------------------------------------------------------------
     xst(:) = dtmp%xst(:)
     xen(:) = dtmp%xen(:)
     xsz(:) = dtmp%xsz(:)
@@ -132,11 +132,11 @@ contains
     varxz_work(:) = ZERO
     nk = 0
     ni = 0
-    do j = jst, jen
-      jj = j - 1 + xst(2)
-      do k = kst, ken
+    do j = 1, dtmp%xsz(2)
+      jj = j - 1 + dtmp%xst(2)
+      do k = 1, dtmp%xsz(3)
         nk = nk + 1
-        do i = ist, ien
+        do i = 1, dtmp%xsz(1)
           ni = ni + 1
           varxz(jj) = varxz(jj) + var(i, j, k) !
         end do
@@ -145,8 +145,10 @@ contains
     varxz(:) = varxz(:) / real(nk * ni, wp)
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(ni, ni_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(nk, nk_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varxz, varxz_work, size(varxz_work), MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    varxz_work(:) = varxz_work(:) / real(ncol, wp)
+    varxz_work(:) = varxz_work(:) / real(ni_work * nk_work, wp)
 
     return
   end subroutine
@@ -163,41 +165,21 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]            
 !===============================================================================
-  subroutine Calculate_xzmean_perturbation(var, dtmp, varxz, varxz_shift)
+  subroutine Adjust_to_xzmean_zero(var, dtmp, varxz)
     use mpi_mod
     use udf_type_mod
     implicit none
     type(DECOMP_INFO),  intent(in)    :: dtmp
     real(WP),           intent(inout) :: var(:, :, :)
     real(WP),           intent(in)    :: varxz(:)
-    real(WP), optional, intent(in)    :: varxz_shift(:)
 
     integer :: jj, i, j, k
-    integer :: ist, ien, jst, jen, kst, ken
-    integer :: xst(3), xen(3), xsz(3)
 
-!-------------------------------------------------------------------------------
-!   Default X-pencil
-!-------------------------------------------------------------------------------
-    xst(:) = dtmp%xst(:)
-    xen(:) = dtmp%xen(:)
-    xsz(:) = dtmp%xsz(:)
-    ist = 1
-    ien = xsz(1)
-    jst = 1
-    jen = xsz(2)
-    kst = 1
-    ken = xsz(3)
-
-    do j = jst, jen
+    do j = 1, dtmp%xsz(2)
       jj = j - 1 + xst(2)
-      do k = kst, ken
-        do i = ist, ien
-          if( present(varxz_shift) ) then
-            var(:, j, :) = var(:, j, :) - varxz(jj) + varxz_shift(jj)
-          else
-            var(:, j, :) = var(:, j, :) - varxz(jj)
-          end if
+      do k = 1, dtmp%xsz(3)
+        do i = 1, dtmp%xsz(1)
+          var(:, j, :) = var(:, j, :) - varxz(jj)
         end do
       end do
     end do
@@ -484,7 +466,7 @@ contains
 !>\brief : to calculate:
 !>         fo = \int_1^nx \int_
 !> This is based only y-direction stretching.
-!> Here is 2nd order Trapezoid Method. Need to improve! Check!
+!> \todo Here is 2nd order Trapezoid Method. Need to improve! Check!
 !------------------------------------------------------------------------------- 
 !> Scope:  mpi    called-freq    xdomain     module
 !>         all    needed         specified   pubic
@@ -525,20 +507,20 @@ contains
     real(WP)   :: vol, fo, vol_work
     integer :: i, j, k, noy, jp
 
-!-------------------------------------------------------------------------------
-!   transpose to y pencil. Default is x-pencil.
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  !   transpose to y pencil. Default is x-pencil.
+  !-------------------------------------------------------------------------------
     var_ypencil = ZERO
 
     call transpose_x_to_y(var, var_ypencil, dtmp)
-!-------------------------------------------------------------------------------
-!   In Y-pencil now
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   In Y-pencil now
+    !-------------------------------------------------------------------------------
     if( is_ynp )then
-!-------------------------------------------------------------------------------
-!   if variable is stored in y-nodes, extend them to y-cell centres (P2C)
-!   for example, uy.
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      !   if variable is stored in y-nodes, extend them to y-cell centres (P2C)
+      !   for example, uy.
+      !-------------------------------------------------------------------------------
       if( dm%is_periodic(2) ) then
         noy = dtmp%ysz(2)
       else
@@ -555,14 +537,11 @@ contains
       do k = 1, dtmp%ysz(3)
         do i = 1, dtmp%ysz(1)
           do j = 1, noy
-!>       j'    j'+1
-!>      _|__.__|_
-!>         j     
-            ! fo = fo + &
-            !     ( dm%yp(j + 1) - dm%yp(j) ) / SIX * &
-            !     ( fi3d_ypencil(i, j, k) + &
-            !       FOUR * fo3dy(i, j, k) + &
-            !       fi3d_ypencil(i, dm%jNeighb(3, j), k)) ! Simpson 2nd order 
+            !-------------------------------------------------------------------------------
+            !       j'    j'+1
+            !      _|__.__|_
+            !         j     
+            !-------------------------------------------------------------------------------
             jp = j + 1
             if( dm%is_periodic(2) .and. jp > dtmp%ysz(2)) jp = 1
             fo = fo + &      
@@ -576,10 +555,10 @@ contains
       end do
       deallocate(vcp_ypencil)
     else
-!-------------------------------------------------------------------------------
-!   if variable is not stored in y-nodes, extends them to y-nodes. C2P
-!   for example, ux, density, etc.
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      !   if variable is not stored in y-nodes, extends them to y-nodes. C2P
+      !   for example, ux, density, etc.
+      !-------------------------------------------------------------------------------
       if( dm%is_periodic(2) ) then
         noy = dtmp%ysz(2)
       else
@@ -594,9 +573,11 @@ contains
       do k = 1, dtmp%ysz(3)
         do i = 1, dtmp%ysz(1)
           do j = 1, dtmp%ysz(2)
-!>       j'    j'+1
-!>      _|__.__|_
-!>         j
+            !-------------------------------------------------------------------------------
+            !      j'    j'+1
+            !      _|__.__|_
+            !         j
+            !-------------------------------------------------------------------------------
             jp = j + 1
             if( dm%is_periodic(2) .and. jp > noy) jp = 1
             fo = fo + &

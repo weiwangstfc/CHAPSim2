@@ -1,4 +1,4 @@
-!-------------------------------------------------------------------------------
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !                      CHAPSim version 2.0.0
 !                      --------------------------
 ! This file is part of CHAPSim, a general-purpose CFD tool.
@@ -17,12 +17,12 @@
 ! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 ! Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-!-------------------------------------------------------------------------------
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !===============================================================================
 !> \file chapsim.f90
-!>
-!> \brief The main program.
-!>
+!> \brief the main program.
+!> \author Wei Wang wei.wang@stfc.ac.uk
+!> \date 
 !===============================================================================
 program chapsim
   implicit none
@@ -33,20 +33,11 @@ program chapsim
 end program
 !===============================================================================
 !> \brief Initialisation and preprocessing of geometry, mesh and tools
-!>
-!> This subroutine is called at beginning of the main program
-!>
-!-------------------------------------------------------------------------------
-! Arguments
-!-------------------------------------------------------------------------------
-!  mode           name          role                                           
-!-------------------------------------------------------------------------------
-!> \param[in]     none          NA
-!> \param[out]    none          NA
+!! This subroutine is called at beginning of the main program
 !===============================================================================
 subroutine Initialize_chapsim
-  use code_performance_mod
-  use input_general_mod
+  use code_performance_mod, only : CPU_TIME_CODE_START
+  use input_general_mod, only : nxdomain, is_any_energyeq
   use geometry_mod
   use thermo_info_mod
   use operations
@@ -56,24 +47,24 @@ subroutine Initialize_chapsim
   implicit none
   integer :: i
 
-!-------------------------------------------------------------------------------
-! initialisation of mpi, nrank, nproc
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  ! initialisation of mpi, nrank, nproc
+  !-------------------------------------------------------------------------------
   call Initialize_mpi
   call Call_cpu_time(CPU_TIME_CODE_START, 0, 0)
-!-------------------------------------------------------------------------------
-! reading input parameters
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  ! reading input parameters
+  !-------------------------------------------------------------------------------
   call Read_input_parameters
-!-------------------------------------------------------------------------------
-! build up geometry information
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  ! build up geometry information
+  !-------------------------------------------------------------------------------
   do i = 1, nxdomain
     call Buildup_geometry_mesh_info(domain(i)) 
   end do
-!-------------------------------------------------------------------------------
-! build up thermo_mapping_relations, independent of any domains
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  ! build up thermo_mapping_relations, independent of any domains
+  !-------------------------------------------------------------------------------
   if(is_any_energyeq) call Buildup_thermo_mapping_relations
 !-------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains
@@ -136,6 +127,7 @@ subroutine Solve_eqs_iteration
   niter     = 0
   do i = 1, nxdomain
      if( flow(i)%nrsttckpt < nrsttckpt) nrsttckpt = flow(i)%nrsttckpt
+     
      if( flow(i)%nIterFlowEnd > niter)  niter     = flow(i)%nIterFlowEnd
      if( is_any_energyeq) then
        if (thermo(i)%nIterThermoEnd > niter) niter = thermo(i)%nIterThermoEnd

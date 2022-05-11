@@ -56,8 +56,11 @@ module thermo_info_mod
 !-------------------------------------------------------------------------------
   type t_thermo
     integer  :: ifluid
+    integer  :: irestart
+    integer  :: nrsttckpt
     integer  :: nIterThermoStart
     integer  :: nIterThermoEnd
+    integer  :: iteration
     real(WP) :: lenRef
     real(WP) :: T0Ref
     real(WP) :: Tini0
@@ -636,15 +639,14 @@ contains
   end subroutine Check_monotonicity_DH_of_HT_list
 !===============================================================================
 !> \brief Building up the thermal property relations from the given table.
-!>
-!> This subroutine is called once after reading the table.
-!> [mpi] all ranks
+!! This subroutine is called once after reading the table.
+!! [mpi] all ranks
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
 !  mode           name          role                                           
 !-------------------------------------------------------------------------------
-!> \param[inout]  none          NA
+!> \param[in]     t0Ref          reference temperature
 !===============================================================================
   subroutine Buildup_property_relations_from_table(t0Ref)
     use mpi_mod
@@ -657,9 +659,9 @@ contains
     character(len = 80) :: str
     real(WP) :: rtmp
     integer :: i
-!-------------------------------------------------------------------------------
-! to read given table of thermal properties
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to read given table of thermal properties
+    !-------------------------------------------------------------------------------
     open ( newunit = inputUnit,     &
            file    = inputProperty, &
            status  = 'old',         &
@@ -681,29 +683,31 @@ contains
       nlist = nlist + 1
     end do
     rewind(inputUnit)
-!-------------------------------------------------------------------------------
-! to read given table of thermal properties
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to read given table of thermal properties, dimensional
+    !-------------------------------------------------------------------------------
     allocate ( listTP (nlist) )
 
     read(inputUnit, *, iostat = ioerr) str
-    block_tablereading: do i = 1, nlist
+    do i = 1, nlist
       call listTP(i)%Get_initialized_thermal_properties()
       read(inputUnit, *, iostat = ioerr) rtmp, listTP(i)%h, listTP(i)%t, listTP(i)%d, &
       listTP(i)%m, listTP(i)%k, listTP(i)%cp, listTP(i)%b
       listTP(i)%dh = listTP(i)%d * listTP(i)%h
-    end do block_tablereading
+    end do
     close(inputUnit)
-!-------------------------------------------------------------------------------
-! to sort input date based on Temperature (small to big)
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to sort input date based on Temperature (small to big)
+    !-------------------------------------------------------------------------------
     call Sort_listTP_Tsmall2big ( listTP(:) )
-
+    !-------------------------------------------------------------------------------
     ! to update reference of thermal properties
+    !-------------------------------------------------------------------------------
     tpRef0%t = t0Ref
     call tpRef0%Refresh_thermal_properties_from_T_dimensional
-
+    !-------------------------------------------------------------------------------
     ! to unify/undimensionalize the table of thermal property
+    !-------------------------------------------------------------------------------
     listTP(:)%t = listTP(:)%t / tpRef0%t
     listTP(:)%d = listTP(:)%d / tpRef0%d
     listTP(:)%m = listTP(:)%m / tpRef0%m
@@ -741,7 +745,7 @@ contains
     allocate ( listTP (nlist) )
     do i = 1, nlist
       call listTP(i)%Get_initialized_thermal_properties()
-      listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t
+      listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t ! undimensional
       call listTP(i)%Refresh_thermal_properties_from_T_undim
     end do
     return
@@ -827,6 +831,9 @@ contains
     implicit none
 
     if(nrank == 0) call Print_debug_start_msg("Initializing thermal parameters ...")
+    !-------------------------------------------------------------------------------
+    ! get given file name or coefficients 
+    !-------------------------------------------------------------------------------
     select case (ifluid)
     case (ISCP_WATER)
       ipropertyState = IPROPERTY_TABLE
@@ -883,18 +890,29 @@ contains
       CoCp(-2:2) = CoCp_LBE(-2:2)
       CoH(-1:3) = CoH_LBE(-1:3)
       CoM(-1:1) = CoM_LBE(-1:1)
+
+    case (ILIQUID_WATER)
+      ipropertyState = IPROPERTY_FUNCS
+      TM0 = TM0_H2O
+      TB0 = TB0_H2O
+      HM0 = HM0_H2O
+      CoD(0:1) = CoD_H2O(0:1)
+      CoK(0:2) = CoK_H2O(0:2)
+      CoB = CoB_H2O
+      CoCp(-2:2) = CoCp_H2O(-2:2)
+      CoH(-1:3) = CoH_H2O(-1:3)
+      CoM(-1:1) = CoM_H2O(-1:1)
     case default
       ipropertyState = IPROPERTY_FUNCS
-      TM0 = TM0_Na
-      TB0 = TB0_Na
-      HM0 = HM0_Na
-      CoD(0:1) = CoD_Na(0:1)
-      CoK(0:2) = CoK_Na(0:2)
-      CoB = CoB_Na
-      CoCp(-2:2) = CoCp_Na(-2:2)
-      CoH(-1:3) = CoH_Na(-1:3)
-      CoM(-1:1) = CoM_Na(-1:1)
-
+      TM0 = TM0_H2O
+      TB0 = TB0_H2O
+      HM0 = HM0_H2O
+      CoD(0:1) = CoD_H2O(0:1)
+      CoK(0:2) = CoK_H2O(0:2)
+      CoB = CoB_H2O
+      CoCp(-2:2) = CoCp_H2O(-2:2)
+      CoH(-1:3) = CoH_H2O(-1:3)
+      CoM(-1:1) = CoM_H2O(-1:1)
     end select
 
 

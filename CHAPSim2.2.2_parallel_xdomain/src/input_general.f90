@@ -1,4 +1,4 @@
-!-------------------------------------------------------------------------------
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !                      CHAPSim version 2.0.0
 !                      --------------------------
 ! This file is part of CHAPSim, a general-purpose CFD tool.
@@ -17,12 +17,12 @@
 ! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 ! Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-!-------------------------------------------------------------------------------
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !===============================================================================
 !> \file input_general.f90
-!>
 !> \brief Reading the input parameters from the given file.
-!>
+!> \author Wei Wang wei.wang@stfc.ac.uk
+!> \date 11-05-2022, checked.
 !===============================================================================
 module input_general_mod
   implicit none
@@ -33,8 +33,8 @@ module input_general_mod
 contains
 !===============================================================================
 !> \brief Reading the input parameters from the given file.     
-!> Scope:  mpi    called-freq    xdomain
-!>         all    once           all
+!! Scope:  mpi    called-freq    xdomain
+!!         all    once           all
 !-------------------------------------------------------------------------------
 ! Arguments
 !-------------------------------------------------------------------------------
@@ -50,6 +50,7 @@ contains
     use vars_df_mod
     use thermo_info_mod
     use boundary_conditions_mod
+    use decomp_2d, only: p_col, p_row
     implicit none
 
     character(len = 18) :: flname = 'input_chapsim.ini'
@@ -67,9 +68,9 @@ contains
     integer :: i, j, k
     
     if(nrank == 0) call Print_debug_start_msg("CHAPSim2.0 Starts ...")
-!-------------------------------------------------------------------------------
-! open file
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! open file
+    !-------------------------------------------------------------------------------
     open ( newunit = inputUnit, &
            file    = flname, &
            status  = 'old', &
@@ -84,13 +85,13 @@ contains
 
     if(nrank == 0) &
     call Print_debug_start_msg("Reading General Parameters from "//flname//" ...")
-!-------------------------------------------------------------------------------
-! reading input
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! reading input
+    !-------------------------------------------------------------------------------
     do 
-!-------------------------------------------------------------------------------
-! reading headings/comments
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! reading headings/comments
+      !-------------------------------------------------------------------------------
       read(inputUnit, '(a)', iostat = ioerr) secname
       slen = len_trim(secname)
       if (ioerr /=0 ) exit
@@ -101,14 +102,14 @@ contains
         cycle
       end if
       if(nrank == 0) call Print_debug_start_msg("Reading "//secname(1:slen))
-!-------------------------------------------------------------------------------
-! [decomposition]
-!-------------------------------------------------------------------------------
-      block_secname: if ( secname(1:slen) == '[decomposition]' ) then
+      !-------------------------------------------------------------------------------
+      ! [decomposition]
+      !-------------------------------------------------------------------------------
+      if ( secname(1:slen) == '[decomposition]' ) then
 
         read(inputUnit, *, iostat = ioerr) varname, nxdomain
-        read(inputUnit, *, iostat = ioerr) varname, nrow
-        read(inputUnit, *, iostat = ioerr) varname, ncol
+        read(inputUnit, *, iostat = ioerr) varname, p_row
+        read(inputUnit, *, iostat = ioerr) varname, p_col
         allocate( domain (nxdomain) )
         allocate(   flow (nxdomain) )
 
@@ -120,13 +121,13 @@ contains
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
             write (OUTPUT_UNIT, wrtfmt1i) '  x-dir domain number             :', nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) '  y-dir domain number (mpi Row)   :', nrow
-            write (OUTPUT_UNIT, wrtfmt1i) '  z-dir domain number (mpi Column):', ncol
+            write (OUTPUT_UNIT, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
+            write (OUTPUT_UNIT, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
           end do
         end if
-!-------------------------------------------------------------------------------
-! [flow]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [domain]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[domain]' ) then
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%icase
@@ -149,9 +150,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1i) '  icase : ', domain(i)%icase
           end do
         end if
-!-------------------------------------------------------------------------------
-! [boundary] 
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [boundary] 
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[boundary]' ) then
 
         do i = 1, nxdomain
@@ -161,6 +162,7 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5) ! dimensional
         end do
+
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
@@ -180,7 +182,7 @@ contains
           domain(i)%fbcz(:, :) = domain(1)%fbcz(:, :)
         end do
 
-        ! below for temporary fix
+        ! to exclude non-resonable input
         do i = 1, nxdomain
           do j = 1, 2
             do k = 1, 5
@@ -211,9 +213,9 @@ contains
           write (OUTPUT_UNIT, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
           write (OUTPUT_UNIT, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
         end if
-!-------------------------------------------------------------------------------
-! [mesh] 
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [mesh] 
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[mesh]' ) then
         read(inputUnit, *, iostat = ioerr) varname, domain(1:nxdomain)%nc(1)
         read(inputUnit, *, iostat = ioerr) varname, itmp 
@@ -235,9 +237,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
           end do
         end if
-!-------------------------------------------------------------------------------
-! [timestepping]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [timestepping]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[timestepping]' ) then
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         domain(:)%dt = rtmp
@@ -251,9 +253,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
           end do
         end if
-!-------------------------------------------------------------------------------
-! [schemes]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [schemes]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[schemes]' )  then
         read(inputUnit, *, iostat = ioerr) varname, itmp
         domain(:)%iAccuracy = itmp
@@ -267,9 +269,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do
         end if
-!-------------------------------------------------------------------------------
-! [flow]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [flow]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[flow]' ) then
         read(inputUnit, *, iostat = ioerr) varname, is_any_energyeq
         if(is_any_energyeq) allocate( thermo(nxdomain) )
@@ -285,9 +287,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force      :', flow(i)%drvfc
           end do
         end if
-!-------------------------------------------------------------------------------
-! [thermo] 
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [thermo] 
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[thermo]' )  then 
         allocate ( itmpx(nxdomain) ); itmpx = 0
         allocate ( rtmpx(nxdomain) ); rtmpx = ZERO
@@ -303,6 +305,11 @@ contains
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
         read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
         if(is_any_energyeq)  thermo(1 : nxdomain)%Tini0 = rtmpx(1: nxdomain)
+        
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%irestart  = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%nrsttckpt = itmp
 
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
@@ -316,9 +323,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%Tini0
           end do
         end if
-!-------------------------------------------------------------------------------
-! [initialization]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [initialization]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[initialization]' ) then
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%irestart
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%nrsttckpt
@@ -338,9 +345,9 @@ contains
             write (OUTPUT_UNIT, wrtfmt1r) '  Initial velocity influction level  :', flow(i)%initNoise
           end do
         end if
-!-------------------------------------------------------------------------------
-! [simcontrol]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [simcontrol]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[simcontrol]' ) then
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%nIterFlowStart
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%nIterFlowEnd
@@ -360,9 +367,9 @@ contains
             end if
           end do
         end if
-!-------------------------------------------------------------------------------
-! [ioparams]
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! [ioparams]
+      !-------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[ioparams]' ) then
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nfreqckpt
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nvisu
@@ -380,11 +387,11 @@ contains
         end if
       else
         exit
-      end if block_secname
+      end if
     end do
-!-------------------------------------------------------------------------------
-! end of reading
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! end of reading, clearing dummies
+    !-------------------------------------------------------------------------------
     if(ioerr /= IOSTAT_END) &
     call Print_error_msg( 'Problem reading '//flname // &
     'in Subroutine: '// "Read_general_input")
@@ -393,13 +400,14 @@ contains
 
     if(allocated(itmpx)) deallocate(itmpx)
     if(allocated(rtmpx)) deallocate(rtmpx)
-!-------------------------------------------------------------------------------
-! adjust input varnames
-!-------------------------------------------------------------------------------
+
+    !-------------------------------------------------------------------------------
+    ! adjust input varnames
+    !-------------------------------------------------------------------------------
     do i = 1, nxdomain
-!-------------------------------------------------------------------------------
-!     coordinates
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! coordinates type
+      !-------------------------------------------------------------------------------
       if (domain(i)%icase == ICASE_CHANNEL) then
         domain(i)%icoordinate = ICARTESIAN
       else if (domain(i)%icase == ICASE_PIPE) then
@@ -416,14 +424,14 @@ contains
       else 
         domain(i)%icoordinate = ICARTESIAN
       end if
-!-------------------------------------------------------------------------------
-!     stretching
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      !     stretching
+      !-------------------------------------------------------------------------------
       domain(i)%is_stretching(:) = .false.
       if(domain(i)%istret /= ISTRET_NO) domain(i)%is_stretching(2) = .true.
-!-------------------------------------------------------------------------------
-!     domain size
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      !     restore domain size to default if not set properly
+      !-------------------------------------------------------------------------------
       if (domain(i)%icase == ICASE_CHANNEL) then
         if(domain(i)%istret /= ISTRET_2SIDES .and. nrank == 0) &
         call Print_warning_msg ("Grids are not two-side clustered.")
@@ -463,14 +471,18 @@ contains
         ! do nothing...
       end if
 
-      write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in x-dir :', domain(i)%lxx
-      write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in y-dir :', domain(i)%lyt - domain(i)%lyb
-      write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-dir :', domain(i)%lzz
-!-------------------------------------------------------------------------------
-!     boundary
-!-------------------------------------------------------------------------------
+      if( nrank == 0) then
+        write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
+        write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
+        write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
+      end if
+      !-------------------------------------------------------------------------------
+      !  covert given dimensional boundary (thermal) to undimensional 
+      !-------------------------------------------------------------------------------
       if(is_any_energyeq) call Convert_thermo_BC_from_dim_to_undim(domain(i), thermo(i))
-
+      !-------------------------------------------------------------------------------
+      !  set up periodic b.c. boolean, based on velocity
+      !-------------------------------------------------------------------------------
       domain(i)%is_periodic(:) = .false.
       do j = 1, 5
         if(domain(i)%ibcx(1, j) == IBC_PERIODIC .or. domain(i)%ibcx(2, j) == IBC_PERIODIC) then
@@ -486,16 +498,16 @@ contains
           domain(i)%is_periodic(3) = .true.
         end if
       end do
-!-------------------------------------------------------------------------------
-! time and scheme 
-!-------------------------------------------------------------------------------
-    !option 1: to set up pressure treatment, for O(dt^2)
+      !-------------------------------------------------------------------------------
+      ! set up constant for time step marching 
+      !-------------------------------------------------------------------------------
+      !option 1: to set up pressure treatment, for O(dt^2)
       domain(i)%sigma1p = ONE
       domain(i)%sigma2p = HALF
   
       !option 2: to set up pressure treatment, for O(dt)
-      !sigma1p = ONE
-      !sigma2p = ONE
+      !domain(i)%sigma1p = ONE
+      !domain(i)%sigma2p = ONE
   
       if(domain(i)%iTimeScheme == ITIME_RK3     .or. &
          domain(i)%iTimeScheme == ITIME_RK3_CN) then
@@ -508,8 +520,8 @@ contains
   
         domain(i)%tZeta (0) = ZERO
         domain(i)%tZeta (1) = ZERO
-        domain(i)%tZeta (2) = -SEVENTEEN / SIXTY
-        domain(i)%tZeta (3) = -FIVE / TWELVE
+        domain(i)%tZeta (2) = - SEVENTEEN / SIXTY
+        domain(i)%tZeta (3) = - FIVE / TWELVE
   
       else if (domain(i)%iTimeScheme == ITIME_AB2) then
   

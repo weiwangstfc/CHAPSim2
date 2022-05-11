@@ -33,8 +33,8 @@ contains
 #endif 
 !-------------------------------------------------------------------------------
 ! basic 2D decompistion API
-! limits: nrow <= min(nx, ny)
-!         ncol <= min(ny, nz)
+! limits: p_row <= min(nx, ny)
+!         p_col <= min(ny, nz)
 ! xsize(i), ysize(i), zsize(i), i = 1,2,3 :
 !   sizes of the sub-domains held by the current process. 
 !   The first letter refers to the pencil orientation and the three 1D array elements 
@@ -124,7 +124,10 @@ contains
     implicit none
     integer :: i
 
-    call decomp_2d_init(domain(1)%nc(1), domain(1)%nc(2), domain(1)%nc(3), nrow, ncol)
+    !-------------------------------------------------------------------------------
+    ! default, but not used.
+    !-------------------------------------------------------------------------------
+    call decomp_2d_init(domain(1)%nc(1), domain(1)%nc(2), domain(1)%nc(3), p_row, p_col)
 
     do i = 1, nxdomain
       call Initialize_domain_decomposition(domain(i))

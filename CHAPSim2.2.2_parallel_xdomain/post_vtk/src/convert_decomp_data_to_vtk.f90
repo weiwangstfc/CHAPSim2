@@ -5,8 +5,6 @@ module mpi_mod
   use decomp_2d
   use iso_fortran_env
   implicit none
-  integer :: nrow
-  integer :: ncol
   integer :: ierror
   integer :: nxdomain
 
@@ -33,6 +31,8 @@ program convert_decomp_data_to_vtk
   use mpi_mod
   
   implicit none 
+  integer, parameter :: p_row = 1
+  integer, parameter :: p_col = 1
   real(mytype), allocatable, dimension(:,:,:) :: input_var
 
   character( len = 128) :: filename
@@ -45,13 +45,18 @@ program convert_decomp_data_to_vtk
 
   ! initialisation 
   call Initialize_mpi
+
+  ! prepare files
+  filename = 'display_test.vtk'
+  call SYSTEM('cp display_mesh_domain1.vtk '//trim(filename))
+
   call decomp_2d_init(nx,ny,nz,p_row,p_col)
 
   ! prepare files
   filename = 'display_test.vtk'
   call SYSTEM('cp display_mesh_domain1.vtk '//trim(filename))
 
-  ! reading data
+  ! reading data based in xpencil
   write(*, *) 'Reading data ... '
   allocate(u1b(xstart(1):xend(1), xstart(2):xend(2), xstart(3):xend(3)))
 ! read back to different arrays

@@ -52,14 +52,14 @@ contains
 !> \param[out]    y            the physical coordinate array
 !> \param[out]    mp           the mapping relations for 1st and 2nd deriviatives
 !_______________________________________________________________________________
-  subroutine Buildup_grid_mapping_1D (str, n, y, dm, mp)
+  subroutine Buildup_grid_mapping_1D (str, n, dm, y, mp)
     use math_mod
     use udf_type_mod
     use parameters_constant_mod
     implicit none
-    character(len = *), intent(in) :: str
-    integer, intent( in )          :: n
-    type(t_domain), intent(in)     :: dm
+    character(len = *), intent(in)   :: str
+    integer,            intent(in)   :: n
+    type(t_domain),     intent(in)   :: dm
     real(WP), intent( out )        :: y(n)
     real(WP), intent( out )        :: mp(n, 3)
     integer :: j
@@ -68,6 +68,8 @@ contains
     real(WP) :: alpha, beta, gamma, delta, cc, dd, ee, st1, st2, mm
     real(WP), dimension(n) :: eta
 
+    !-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
     eta_shift = ZERO
     eta_delta = ONE
     if ( trim( str ) == 'nd' ) then
@@ -77,19 +79,21 @@ contains
       eta_shift = ONE / ( real(n, WP) ) * HALF
       eta_delta = ONE / real( n, WP )
     else 
-      call Print_error_msg('Grid stretching location not defined in Subroutine: '// &
-      "Buildup_grid_mapping_1D")
+      call Print_error_msg('Grid stretching location not defined.')
     end if
-
+    
+    !-------------------------------------------------------------------------------
     ! to build up the computational domain \eta \in [0, 1] uniform mesh
+    !-------------------------------------------------------------------------------
     eta(1) = ZERO + eta_shift
 
     do j = 2, n
       eta(j) = eta(1) + real(j - 1, WP) * eta_delta
     end do
-
+    !-------------------------------------------------------------------------------
     ! to build up the physical domain y stretching grids based on Eq(53) of Leizet2009JCP
     ! and to build up the derivates based on Eq(53) and (47) in Leizet2009JCP
+    !-------------------------------------------------------------------------------
     gamma = ONE
     delta = ZERO
     if (dm%istret == ISTRET_NO) then
@@ -112,8 +116,7 @@ contains
       gamma = HALF
       delta = ZERO
     else
-      call Print_error_msg('Grid stretching flag is not valid in Subroutine: '// &
-      "Buildup_grid_mapping_1D")
+      call Print_error_msg('Grid stretching flag is not valid.')
     end if
 
     beta = dm%rstret
@@ -128,22 +131,28 @@ contains
 
     do j = 1, n
       mm = PI * (gamma * eta(j) + delta)
-
+      !-------------------------------------------------------------------------------
       ! y \in [0, 1]
+      !-------------------------------------------------------------------------------
       y(j) = atan_wp ( dd * tan_wp( mm ) ) - &
             atan_wp ( dd * tan_wp( PI * delta) ) + &
             PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
       y(j) = ONE / (gamma * ee) * y(j)
+      !-------------------------------------------------------------------------------
       ! y \in [lyb, lyt]
+      !-------------------------------------------------------------------------------
       y(j) = y(j) * (dm%lyt - dm%lyb) + dm%lyb
-
+      !-------------------------------------------------------------------------------
       ! 1/h'
+      !-------------------------------------------------------------------------------
       mp(j, 1) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (dm%lyt - dm%lyb)
-
+      !-------------------------------------------------------------------------------
       ! (1/h')^2
+      !-------------------------------------------------------------------------------
       mp(j, 2) = mp(j, 1) * mp(j, 1)
-
+      !-------------------------------------------------------------------------------
       ! -h"/(h'^3) = 1/h' * [ d(1/h') / d\eta]
+      !-------------------------------------------------------------------------------
       mp(j, 3) = gamma / (dm%lyt - dm%lyb) / beta * sin_wp(TWO * mm) * mp(j, 1)
 
     end do
@@ -158,25 +167,26 @@ contains
     use udf_type_mod
     use typeconvert_mod
     implicit none
+
     type(t_domain), intent(inout) :: dm
-    integer :: i, j, k
+
+    integer    :: i, j, k
+    integer    :: outputunit
     logical    :: dbg = .false.
+    logical    :: file_exists = .FALSE.
     character( len = 128) :: filename
-    logical :: file_exists = .FALSE.
-    integer :: outputunit
-
+    
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
-    ! Build up domain info
 
-    dm%is_periodic(:) = .false.
-    if(dm%ibcx(1, 1) == IBC_PERIODIC) dm%is_periodic(1) = .true.
-    if(dm%ibcy(1, 1) == IBC_PERIODIC) dm%is_periodic(2) = .true.
-    if(dm%ibcz(1, 1) == IBC_PERIODIC) dm%is_periodic(3) = .true.
-
+    !-------------------------------------------------------------------------------
+    ! set up node number in geometry domain
+    !-------------------------------------------------------------------------------
     dm%np_geo(1) = dm%nc(1) + 1 
     dm%np_geo(2) = dm%nc(2) + 1
     dm%np_geo(3) = dm%nc(3) + 1
-
+    !-------------------------------------------------------------------------------
+    ! set up node number in computational domain
+    !-------------------------------------------------------------------------------
     do i = 1, 3
       if ( dm%is_periodic(i) ) then
         dm%np(i) = dm%nc(i)
@@ -184,31 +194,43 @@ contains
         dm%np(i) = dm%np_geo(i)
       end if
     end do
-
-    dm%is_stretching(:) = .false.
-    if (dm%istret /= ISTRET_NO) dm%is_stretching(2) = .true.
-    
+    !-------------------------------------------------------------------------------
+    ! set dy for un-stretching grids; ds for stretching grids (computational domain).
+    !-------------------------------------------------------------------------------
     if(dm%is_stretching(2)) then
       dm%h(2) = ONE / real(dm%nc(2), WP)
     else 
-      dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) ! mean dy
+      dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP)
     end if
+    !-------------------------------------------------------------------------------
+    ! set dx, dz for uniform grids
+    !-------------------------------------------------------------------------------
     dm%h(1) = dm%lxx / real(dm%nc(1), WP)
     dm%h(3) = dm%lzz / real(dm%nc(3), WP)
+    !-------------------------------------------------------------------------------
+    ! set 1/dx, 1/(dx)^2
+    !-------------------------------------------------------------------------------
     dm%h2r(:) = ONE / dm%h(:) / dm%h(:)
     dm%h1r(:) = ONE / dm%h(:)
-
+    !-------------------------------------------------------------------------------
     ! allocate  variables for mapping physical domain to computational domain
-    allocate ( dm%yp( dm%np_geo(2) ) ); dm%yp(:) = ZERO
-    allocate ( dm%yc( dm%nc(2) ) ); dm%yc(:) = ZERO
+    !-------------------------------------------------------------------------------
+    allocate ( dm%yp( dm%np_geo(2) ) ) ! yp(1:np_geo)
+    allocate ( dm%yc( dm%nc    (2) ) ) ! yc(1:nc)
+    dm%yp(:) = ZERO
+    dm%yc(:) = ZERO
 
-    allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) ); dm%yMappingpt(:, :) = ONE
-    allocate ( dm%yMappingcc( dm%nc(2),     3 ) ); dm%yMappingcc(:, :) = ONE
+    allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) )
+    allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
+    dm%yMappingpt(:, :) = ONE
+    dm%yMappingcc(:, :) = ONE
 
-    call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm%yp(:), dm, dm%yMappingPt(:, :))
-    call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm%yc(:), dm, dm%yMappingcc(:, :))
+    call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
+    call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
 
-    ! print out for debugging
+    !-------------------------------------------------------------------------------
+    ! print out data for debugging
+    !-------------------------------------------------------------------------------
     if(dbg) then
       do i = 1, dm%np_geo(2)
         write (OUTPUT_UNIT, '(I5, 1F8.4)') i, dm%yp(i)

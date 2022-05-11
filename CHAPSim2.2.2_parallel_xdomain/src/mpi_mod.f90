@@ -5,8 +5,6 @@ module mpi_mod
   use decomp_2d
   use iso_fortran_env
   implicit none
-  integer :: nrow
-  integer :: ncol
   integer :: ierror
   integer :: nxdomain
 

@@ -63,7 +63,7 @@ contains
 
     logical :: itest1 = .false.
     logical :: itest2 = .true.
-    integer :: i, j, k, l, s, iter
+    integer :: i, j, k, l, s
     type(t_thermoProperty) :: tpx, tpy, tpz
     integer :: ipencil
     type(DECOMP_INFO) :: dtmp
@@ -71,9 +71,10 @@ contains
     if(nrank == 0) call Print_debug_mid_msg("Initialize flow thermal fields ...")
     iter = 0
     do l = 1, nxdomain
-!-------------------------------------------------------------------------------
-! to test algorithms based on given values.
-!-------------------------------------------------------------------------------
+
+      !-------------------------------------------------------------------------------
+      ! initialize common thermal variables
+      !-------------------------------------------------------------------------------
       if(domain(l)%ithermo == 0) then
         domain(l)%fbc_dend(:, :) = ONE
         domain(l)%fbc_vism(:, :) = ONE
@@ -91,17 +92,19 @@ contains
           domain(l)%fbc_vism(s, 3) = tpz%m
         end do
       end if
-!-------------------------------------------------------------------------------
-! to allocate variables
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! to allocate flow variables
+      !-------------------------------------------------------------------------------
       call Allocate_flow_variables (domain(l), flow(l))
+      !-------------------------------------------------------------------------------
+      ! to allocate thermal variables
+      !-------------------------------------------------------------------------------
       if(domain(l)%ithermo == 1) call Allocate_thermo_variables (domain(l), thermo(l))
-!-------------------------------------------------------------------------------
-! to intialize variable
-!-------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------------
+      ! to intialize variable
+      !-------------------------------------------------------------------------------
       if (flow(l)%irestart == INITIAL_RANDOM) then
-        iter = 0
-        call Update_Re(iter, flow(l))
+        call Update_Re(0, flow(l))
         if(domain(l)%ithermo == 1) &
         call Update_PrGr(flow(l), thermo(l))
 
@@ -226,10 +229,10 @@ contains
     type(t_flow),   intent(inout) :: fl
 
     if(nrank == 0) call Print_debug_start_msg("Allocating flow variables ...")
-!-------------------------------------------------------------------------------
-! default : x pencil. 
-! varaible index is LOCAL. means 1:xsize(1)
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! default : x pencil. 
+    ! varaible index is LOCAL. means 1:xsize(1)
+    !-------------------------------------------------------------------------------
     call alloc_x(fl%qx,      dm%dpcc) ; fl%qx = ZERO
     call alloc_x(fl%qy,      dm%dcpc) ; fl%qy = ZERO
     call alloc_x(fl%qz,      dm%dccp) ; fl%qz = ZERO
@@ -270,13 +273,12 @@ contains
     type(t_domain), intent(in)    :: dm
     type(t_thermo), intent(inout) :: tm
 
+    if(dm%ithermo == 0) return
     if(nrank == 0) call Print_debug_start_msg("Allocating thermal variables ...")
-!-------------------------------------------------------------------------------
-! default : x pencil. 
-! varaible index is LOCAL. means 1:xsize(1)
-!-------------------------------------------------------------------------------
-    if(dm%ithermo /= 1) return
-
+    !-------------------------------------------------------------------------------
+    ! default : x pencil. 
+    ! varaible index is LOCAL. means 1:xsize(1)
+    !-------------------------------------------------------------------------------
     call alloc_x(tm%dh,    dm%dccc) ; tm%dh    = ZERO
     call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
     call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
@@ -309,9 +311,9 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
 
-!-------------------------------------------------------------------------------
-! to initialize flow velocity and pressure
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to initialize flow velocity and pressure
+    !-------------------------------------------------------------------------------
     fl%dDens  (:, :, :) = ONE
     fl%mVisc  (:, :, :) = ONE
     fl%dDensm1(:, :, :) = ONE
@@ -331,17 +333,17 @@ contains
     else 
       if(nrank == 0) call Print_error_msg("No such case defined" )
     end if
-!-------------------------------------------------------------------------------
-! to initialize pressure correction term
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to initialize pressure correction term
+    !-------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
-!-------------------------------------------------------------------------------
-! to check maximum velocity
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to check maximum velocity
+    !-------------------------------------------------------------------------------
     call Check_maximum_velocity(fl%qx, fl%qy, fl%qz)
-!-------------------------------------------------------------------------------
-! to set up old arrays 
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to set up old arrays 
+    !-------------------------------------------------------------------------------
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
 
@@ -360,16 +362,16 @@ contains
     type(t_thermo), intent(inout) :: tm
 
     if (dm%ithermo /= 1) return
-!-------------------------------------------------------------------------------
-! to initialize thermal variables 
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to initialize thermal variables 
+    !-------------------------------------------------------------------------------
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
     call Initialize_thermal_variables (fl, tm)
 
     call Calculate_massflux_from_velocity (dm, fl)
-!-------------------------------------------------------------------------------
-! to set up old arrays 
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    ! to set up old arrays 
+    !-------------------------------------------------------------------------------
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
 
@@ -399,17 +401,17 @@ contains
     type(t_thermoProperty) :: tp_ini
 
     if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
-!-------------------------------------------------------------------------------
-!   given initialisation temperature
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   given initialisation temperature
+    !-------------------------------------------------------------------------------
     tp_ini%t = tm%Tini0 / tm%t0Ref
-!-------------------------------------------------------------------------------
-!   update all initial properties based on given temperature
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   update all initial properties based on given temperature
+    !-------------------------------------------------------------------------------
     call tp_ini%Refresh_thermal_properties_from_T_undim
-!-------------------------------------------------------------------------------
-!   initialise thermal fields
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   initialise thermal fields
+    !-------------------------------------------------------------------------------
     fl%dDens(:, :, :) = tp_ini%d
     fl%mVisc(:, :, :) = tp_ini%m
 
@@ -510,9 +512,9 @@ contains
     type(DECOMP_INFO) :: dtmp
 
     if(nrank == 0) call Print_debug_mid_msg("Generating random field ...")
-!-------------------------------------------------------------------------------
-!   Initialisation in x pencil
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   Initialisation in x pencil
+    !-------------------------------------------------------------------------------
     seed = 0
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
@@ -580,63 +582,68 @@ contains
     integer :: j
     real(WP) :: ubulk
     real(WP) :: ux_1c1(dm%nc(2))
-    real(WP) :: uxxza(dm%nc(2))
-    real(WP) :: uyxza(dm%np(2))
-    real(WP) :: uzxza(dm%nc(2))
+    real(WP) :: uxxza (dm%nc(2))
+    real(WP) :: uyxza (dm%np(2))
+    real(WP) :: uzxza (dm%nc(2))
     real(WP) :: ux_ypencil(dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3))
 
     if(nrank == 0) call Print_debug_mid_msg("Initializing Poiseuille flow field ...")
-!-------------------------------------------------------------------------------
-!   x-pencil : initial
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   x-pencil : initial
+    !-------------------------------------------------------------------------------
     p (:, :, :) = ZERO
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
-!-------------------------------------------------------------------------------
-!   x-pencil : to get Poiseuille profile for all ranks
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   x-pencil : to get Poiseuille profile for all ranks
+    !-------------------------------------------------------------------------------
     ux_1c1(:) = ZERO
     call Generate_poiseuille_flow_profile ( dm, ux_1c1)
-!-------------------------------------------------------------------------------
-!   x-pencil : to get random fields [-1,1] for ux, uy, uz
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   x-pencil : to get random fields [-1,1] for ux, uy, uz
+    !-------------------------------------------------------------------------------
     call Generate_random_field(dm, ux, uy, uz, lnoise)
-!-------------------------------------------------------------------------------
-!   x-pencil : build up boundary
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   x-pencil : build up boundary
+    !-------------------------------------------------------------------------------
     call Apply_BC_velocity(dm, ux, uy, uz)
-!-------------------------------------------------------------------------------
-!   x-pencil : Get the u, v, w, averged in x and z directions
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   x-pencil : Get the averaged u, v, and w in both the x and z directions
+    !-------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Get the u, v, w, averged in x and z directions ...")
     call Calculate_xz_mean(ux, dm%dpcc, uxxza)
     call Calculate_xz_mean(uy, dm%dcpc, uyxza)
     call Calculate_xz_mean(uz, dm%dpcc, uzxza)
-!-------------------------------------------------------------------------------
-!   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   x-pencil : Ensure u-u_given, v, w, averaged in x and z direction is zero.
+    !              added perturbation is zero in mean. 
+    !-------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
-    call Calculate_xzmean_perturbation(ux, dm%dpcc, uxxza, ux_1c1)
-    call Calculate_xzmean_perturbation(uy, dm%dcpc, uyxza )
-    call Calculate_xzmean_perturbation(uz, dm%dccp, uzxza )
-!-------------------------------------------------------------------------------
-!   x-pencil : Ensure u, v, w, averaged in x and z direction is zero.
-!-------------------------------------------------------------------------------
+    call Adjust_to_xzmean_zero(ux, dm%dpcc, uxxza-ux_1c1)
+    call Adjust_to_xzmean_zero(uy, dm%dcpc, uyxza )
+    call Adjust_to_xzmean_zero(uz, dm%dccp, uzxza )
+    !-------------------------------------------------------------------------------
+    !   x-pencil : apply b.c.
+    !-------------------------------------------------------------------------------
+    call Apply_BC_velocity(dm, ux, uy, uz)
+    !-------------------------------------------------------------------------------
+    !   x-pencil : Ensure the mass flow rate is 1.
+    !-------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy( :, 1), dm%fbcy( :, 1), &
-          dm, dm%dpcc, ux, ubulk)
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
     ux(:, :, :) = ux(:, :, :) / ubulk
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(.false., dm%ibcy( :, 1), dm%fbcy( :, 1), &
-          dm, dm%dpcc, ux, ubulk)
-!-------------------------------------------------------------------------------
-!   X-pencil ==> Y-pencil
-!-------------------------------------------------------------------------------
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
+    ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
+
+    !-------------------------------------------------------------------------------
+    !   some checking
+    !-------------------------------------------------------------------------------
     call transpose_x_to_y(ux, ux_ypencil, dm%dpcc)
-!-------------------------------------------------------------------------------
-!   Y-pencil : write out velocity profile
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   Y-pencil : write out velocity profile
+    !-------------------------------------------------------------------------------
     if(nrank == 0) then
       open ( newunit = pf_unit,     &
               file    = 'check_poiseuille_profile.dat', &

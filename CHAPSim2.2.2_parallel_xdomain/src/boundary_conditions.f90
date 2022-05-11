@@ -15,13 +15,15 @@ contains
 
     integer :: i 
 
-!-------------------------------------------------------------------------------
-!   Build up B.C. info, undimensional, constant temperature
-!-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    !   for x-pencil
+    !   scale the given thermo b.c. in dimensional to undimensional
+    !-------------------------------------------------------------------------------
     do i = 1, 2
 
       if( dm%ibcx(i, 5) == IBC_DIRICHLET ) then
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) / th%t0Ref ! dimensional T --> undimensional T
+        ! dimensional T --> undimensional T
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) / th%t0Ref 
         th%tpbcx(i)%t = dm%fbcx(i, 5)
         call th%tpbcx(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
@@ -31,7 +33,8 @@ contains
       end if
 
       if( dm%ibcy(i, 5) == IBC_DIRICHLET ) then
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) / th%t0Ref ! dimensional T --> undimensional T
+        ! dimensional T --> undimensional T
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) / th%t0Ref 
         th%tpbcy(i)%t = dm%fbcy(i, 5)
         call th%tpbcy(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
@@ -41,7 +44,8 @@ contains
       end if
 
       if( dm%ibcz(i, 5) == IBC_DIRICHLET ) then
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) / th%t0Ref ! dimensional T --> undimensional T
+        ! dimensional T --> undimensional T
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) / th%t0Ref 
         th%tpbcz(i)%t = dm%fbcz(i, 5)
         call th%tpbcz(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
@@ -79,65 +83,50 @@ contains
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
-!   ux at x-pencil , x-id = 1
+!   ux at x-pencil
 !-------------------------------------------------------------------------------
-    dtmp = dm%dpcc
     m = 1
-    n = 1
-    if(dm%ibcx(n, m) == IBC_DIRICHLET) then
-      if(dtmp%xst(m) == 1) then
-        ux(dtmp%xst(m), :, :) = dm%fbcx(n, m)
+    dtmp = dm%dpcc
+    do s = 1, 2
+      if(dm%ibcx(s, m) == IBC_DIRICHLET) then
+        if(dtmp%xst(m) == 1) then
+          ux(1, :, :) = dm%fbcx(s, m)
+        end if
+        if(dtmp%xen(m) == dm%np(m)) then
+          ux(dtmp%xsz(m), :, :) = dm%fbcx(s, m)
+        end if
       end if
-    end if
+    end do
 !-------------------------------------------------------------------------------
-!   ux at x-pencil , x-id = np
+!   uy at x-pencil
 !-------------------------------------------------------------------------------
-    n = 2
-    if(dm%ibcx(n, m) == IBC_DIRICHLET) then
-      if(dtmp%xen(m) == dm%np(m)) then
-        ux(dtmp%xen(m), :, :) = dm%fbcx(n, m)
-      end if
-    end if    
-!-------------------------------------------------------------------------------
-!   uy at x-pencil , y-id = 1
-!-------------------------------------------------------------------------------
-    dtmp = dm%dcpc
     m = 2
-    n = 1
-    if(dm%ibcy(n, m) == IBC_DIRICHLET) then
-      if(dtmp%xst(m) == 1) then
-        uy(:, dtmp%xst(m), :) = dm%fbcy(n, m)
+    dtmp = dm%dcpc
+    do s = 1, 2
+      if(dm%ibcy(s, m) == IBC_DIRICHLET) then
+        if(dtmp%xst(m) == 1) then
+          uy(:, 1, :) = dm%fbcy(s, m)
+        end if
+        if(dtmp%xen(m) == dm%np(m)) then
+          uy(:, dtmp%xsz(m), :) = dm%fbcy(s, m)
+        end if
       end if
-    end if
+    end do
 !-------------------------------------------------------------------------------
-!   uy at x-pencil , y-id = np
+!   uz at x-pencil
 !-------------------------------------------------------------------------------
-    n = 2
-    if(dm%ibcy(n, m) == IBC_DIRICHLET) then
-      if(dtmp%xen(m) == dm%np(m)) then
-        uy(:, dtmp%xsz(m), :) = dm%fbcy(n, m)
-      end if
-    end if
-!-------------------------------------------------------------------------------
-!   uz at x-pencil , y-id = 1
-!-------------------------------------------------------------------------------
-    dtmp = dm%dccp
     m = 3
-    n = 1
-    if(dm%ibcz(n, m) == IBC_DIRICHLET) then
-      if(dtmp%xst(m) == 1) then
-        uz(:, :, dtmp%xst(m)) = dm%fbcz(n, m)
+    dtmp = dm%dccp
+    do s = 1, 2
+      if(dm%ibcz(s, m) == IBC_DIRICHLET) then
+        if(dtmp%xst(m) == 1) then
+          uz(:, :, 1) = dm%fbcz(s, m)
+        end if
+        if(dtmp%xen(m) == dm%np(m)) then
+          uz(:, :, dtmp%xsz(m)) = dm%fbcz(n, m)
+        end if
       end if
-    end if
-!-------------------------------------------------------------------------------
-!   uz at x-pencil , y-id = np
-!-------------------------------------------------------------------------------
-    n = 2
-    if(dm%ibcz(n, m) == IBC_DIRICHLET) then
-      if(dtmp%xen(m) == dm%np(m)) then
-        uz(:, :, dtmp%xsz(m)) = dm%fbcz(n, m)
-      end if
-    end if
+    end do
 
     return
   end subroutine
