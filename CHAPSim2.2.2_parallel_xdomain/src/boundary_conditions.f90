@@ -5,13 +5,13 @@ module boundary_conditions_mod
 
 contains
 
-  subroutine Convert_thermo_BC_from_dim_to_undim(dm, th)
+  subroutine Convert_thermo_BC_from_dim_to_undim(tm, dm)
     use parameters_constant_mod
     use udf_type_mod
     use thermo_info_mod
     implicit none
     type(t_domain), intent(inout) :: dm
-    type(t_thermo), intent(inout) :: th
+    type(t_thermo), intent(inout) :: tm
 
     integer :: i 
 
@@ -23,34 +23,34 @@ contains
 
       if( dm%ibcx(i, 5) == IBC_DIRICHLET ) then
         ! dimensional T --> undimensional T
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) / th%t0Ref 
-        th%tpbcx(i)%t = dm%fbcx(i, 5)
-        call th%tpbcx(i)%Refresh_thermal_properties_from_T_undim
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) / tm%t0ref 
+        tm%ftpbcx(i)%t = dm%fbcx(i, 5)
+        call tm%ftpbcx(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) * th%lenRef / tpRef0%k / tpRef0%t 
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) * tm%lenRef / ftp0ref%k / ftp0ref%t 
       else
       end if
 
       if( dm%ibcy(i, 5) == IBC_DIRICHLET ) then
         ! dimensional T --> undimensional T
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) / th%t0Ref 
-        th%tpbcy(i)%t = dm%fbcy(i, 5)
-        call th%tpbcy(i)%Refresh_thermal_properties_from_T_undim
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) / tm%t0ref 
+        tm%ftpbcy(i)%t = dm%fbcy(i, 5)
+        call tm%ftpbcy(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) * th%lenRef / tpRef0%k / tpRef0%t 
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) * tm%lenRef / ftp0ref%k / ftp0ref%t 
       else
       end if
 
       if( dm%ibcz(i, 5) == IBC_DIRICHLET ) then
         ! dimensional T --> undimensional T
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) / th%t0Ref 
-        th%tpbcz(i)%t = dm%fbcz(i, 5)
-        call th%tpbcz(i)%Refresh_thermal_properties_from_T_undim
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) / tm%t0ref 
+        tm%ftpbcz(i)%t = dm%fbcz(i, 5)
+        call tm%ftpbcz(i)%Refresh_thermal_properties_from_T_undim
       else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) * th%lenRef / tpRef0%k / tpRef0%t 
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) * tm%lenRef / ftp0ref%k / ftp0ref%t 
       else
       end if
 

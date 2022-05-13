@@ -60,11 +60,11 @@ contains
 !-------------------------------------------------------------------------------
 !  1/(Re*Pr)                                   
 !-------------------------------------------------------------------------------
-    tm%rPrRen = fl%rre * tpRef0%k / tpRef0%m / tpRef0%cp
+    tm%rPrRen = fl%rre * ftp0ref%k / ftp0ref%m / ftp0ref%cp
 !-------------------------------------------------------------------------------
 !  gravity force                          
 !-------------------------------------------------------------------------------  
-    u0 = ONE / fl%rre * tpRef0%m / tpRef0%d / tm%lenRef
+    u0 = ONE / fl%rre * ftp0ref%m / ftp0ref%d / tm%lenRef
     rtmp = tm%lenRef / u0 / u0 * GRAVITY
     fl%fgravity(:) = ZERO
     if (fl%igravity == 1 ) then ! flow/gravity same dirction - x
@@ -596,11 +596,6 @@ contains
     call mpi_allreduce( fo,  fo_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(vol, vol_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
     fo_work = fo_work / vol_work
-
-    if(nrank == 0) then
-      Call Print_debug_mid_msg("  The bulk value is:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Variable bulk : ', fo_work
-    end if
 
     return 
   end subroutine Get_volumetric_average_3d

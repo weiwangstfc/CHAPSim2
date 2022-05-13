@@ -299,12 +299,12 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         if(is_any_energyeq) thermo(1 : nxdomain)%lenRef = rtmp
         read(inputUnit, *, iostat = ioerr) varname, rtmp
-        if(is_any_energyeq) thermo(1 : nxdomain)%T0Ref = rtmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%t0ref = rtmp
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%ithermo
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
         read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
-        if(is_any_energyeq)  thermo(1 : nxdomain)%Tini0 = rtmpx(1: nxdomain)
+        if(is_any_energyeq)  thermo(1 : nxdomain)%t0ini = rtmpx(1: nxdomain)
         
         read(inputUnit, *, iostat = ioerr) varname, itmp
         if(is_any_energyeq) thermo(1 : nxdomain)%irestart  = itmp
@@ -316,11 +316,11 @@ contains
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
             write (OUTPUT_UNIT, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
             write (OUTPUT_UNIT, wrtfmt1r) '  reference length (m)      :', thermo(i)%lenRef
-            write (OUTPUT_UNIT, wrtfmt1r) '  reference temperature (K) :', thermo(i)%T0Ref
+            write (OUTPUT_UNIT, wrtfmt1r) '  reference temperature (K) :', thermo(i)%t0ref
             write (OUTPUT_UNIT, wrtfmt1i) '  is thermal field solved   ?', domain(i)%ithermo
             write (OUTPUT_UNIT, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
             write (OUTPUT_UNIT, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
-            write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%Tini0
+            write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%t0ini
           end do
         end if
       !-------------------------------------------------------------------------------
@@ -479,7 +479,7 @@ contains
       !-------------------------------------------------------------------------------
       !  covert given dimensional boundary (thermal) to undimensional 
       !-------------------------------------------------------------------------------
-      if(is_any_energyeq) call Convert_thermo_BC_from_dim_to_undim(domain(i), thermo(i))
+      if(is_any_energyeq) call Convert_thermo_BC_from_dim_to_undim(thermo(i), domain(i))
       !-------------------------------------------------------------------------------
       !  set up periodic b.c. boolean, based on velocity
       !-------------------------------------------------------------------------------

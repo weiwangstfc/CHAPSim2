@@ -79,9 +79,9 @@ contains
 !                    --> h_zpencil --> h_zccp_zpencil
 !-------------------------------------------------------------------------------
     do i = 1, 2
-      fbcx(i) = tm%tpbcx(i)%h
-      fbcy(i) = tm%tpbcy(i)%h
-      fbcz(i) = tm%tpbcz(i)%h
+      fbcx(i) = tm%ftpbcx(i)%h
+      fbcy(i) = tm%ftpbcy(i)%h
+      fbcz(i) = tm%ftpbcz(i)%h
     end do
     call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_xpcc,         dm, dm%ibcx(:, 5), fbcx(:)) ! for d(g_x h_pcc))/dy
     call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
@@ -94,9 +94,9 @@ contains
 !                    --> k_zpencil --> k_zccp_zpencil              
 !-------------------------------------------------------------------------------
     do i = 1, 2
-      fbcx(i) = tm%tpbcx(i)%k
-      fbcy(i) = tm%tpbcy(i)%k
-      fbcz(i) = tm%tpbcz(i)%k
+      fbcx(i) = tm%ftpbcx(i)%k
+      fbcy(i) = tm%ftpbcy(i)%k
+      fbcz(i) = tm%ftpbcz(i)%k
     end do
     call Get_x_midp_C2P_3D(tm%kCond,      kCond_xpcc,     dm, dm%ibcx(:, 5), fbcx(:) ) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
@@ -239,7 +239,7 @@ contains
     return
   end subroutine Compute_energy_rhs
 !===============================================================================
-  subroutine Update_thermal_properties_from_dh(fl, tm, dm)
+  subroutine Update_thermal_properties(fl, tm, dm)
     use udf_type_mod
     use thermo_info_mod
     implicit none
@@ -248,26 +248,29 @@ contains
     type(t_thermo), intent(inout) :: tm
 
     integer :: i, j, k
-    type(t_thermoProperty) :: tp
+    type(t_fluidThermoProperty) :: ftp
 !-------------------------------------------------------------------------------
 !   x-pencil
 !-------------------------------------------------------------------------------
     do k = dm%dccc%xst(3), dm%dccc%xen(3)
       do j = dm%dccc%xst(2), dm%dccc%xen(2)
         do i = dm%dccc%xst(1), dm%dccc%xen(1)
-          tp%dh = tm%dh(i, j, k)
-          call tp%Refresh_thermal_properties_from_DH()
-          tm%hEnth(i, j, k) = tp%h
-          tm%tTemp(i, j, k) = tp%T
-          tm%kCond(i, j, k) = tp%k
-          fl%dDens(i, j, k) = tp%d
-          fl%mVisc(i, j, k) = tp%m
+          ftp%dh = tm%dh(i, j, k)
+          call ftp%Refresh_thermal_properties_from_DH()
+          tm%hEnth(i, j, k) = ftp%h
+          tm%tTemp(i, j, k) = ftp%T
+          tm%kCond(i, j, k) = ftp%k
+          fl%dDens(i, j, k) = ftp%d
+          fl%mVisc(i, j, k) = ftp%m
         end do
       end do
     end do
 
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+
   return
-  end subroutine Update_thermal_properties_from_dh
+  end subroutine Update_thermal_properties
 !===============================================================================
   subroutine Solve_energy_eq(fl, tm, dm, isub)
     use udf_type_mod
@@ -289,7 +292,7 @@ contains
 !-------------------------------------------------------------------------------
 !   update other properties from rho * h
 !-------------------------------------------------------------------------------
-    call Update_thermal_properties_from_dh(fl, tm, dm)
+    call Update_thermal_properties(fl, tm, dm)
 !-------------------------------------------------------------------------------
 !   No Need to apply b.c.
 !-------------------------------------------------------------------------------

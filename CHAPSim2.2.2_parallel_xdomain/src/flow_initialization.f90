@@ -64,7 +64,7 @@ contains
     logical :: itest1 = .false.
     logical :: itest2 = .true.
     integer :: i, j, k, l, s
-    type(t_thermoProperty) :: tpx, tpy, tpz
+    type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
     integer :: ipencil
     type(DECOMP_INFO) :: dtmp
 
@@ -80,26 +80,26 @@ contains
         domain(l)%fbc_vism(:, :) = ONE
       else 
         do s = 1, 2
-          tpx = thermo(l)%tpbcx(s)
-          tpy = thermo(l)%tpbcy(s)
-          tpz = thermo(l)%tpbcz(s)
+          ftpx = thermo(l)%ftpbcx(s)
+          ftpy = thermo(l)%ftpbcy(s)
+          ftpz = thermo(l)%ftpbcz(s)
 
-          domain(l)%fbc_dend(s, 1) = tpx%d
-          domain(l)%fbc_dend(s, 2) = tpy%d
-          domain(l)%fbc_dend(s, 3) = tpz%d
-          domain(l)%fbc_vism(s, 1) = tpx%m
-          domain(l)%fbc_vism(s, 2) = tpy%m
-          domain(l)%fbc_vism(s, 3) = tpz%m
+          domain(l)%fbc_dend(s, 1) = ftpx%d
+          domain(l)%fbc_dend(s, 2) = ftpy%d
+          domain(l)%fbc_dend(s, 3) = ftpz%d
+          domain(l)%fbc_vism(s, 1) = ftpx%m
+          domain(l)%fbc_vism(s, 2) = ftpy%m
+          domain(l)%fbc_vism(s, 3) = ftpz%m
         end do
       end if
       !-------------------------------------------------------------------------------
       ! to allocate flow variables
       !-------------------------------------------------------------------------------
-      call Allocate_flow_variables (domain(l), flow(l))
+      call Allocate_flow_variables (flow(l), domain(l))
       !-------------------------------------------------------------------------------
       ! to allocate thermal variables
       !-------------------------------------------------------------------------------
-      if(domain(l)%ithermo == 1) call Allocate_thermo_variables (domain(l), thermo(l))
+      if(domain(l)%ithermo == 1) call Allocate_thermo_variables (thermo(l), domain(l))
       !-------------------------------------------------------------------------------
       ! to intialize variable
       !-------------------------------------------------------------------------------
@@ -108,14 +108,21 @@ contains
         if(domain(l)%ithermo == 1) &
         call Update_PrGr(flow(l), thermo(l))
 
-        call Initialize_flow_variables ( domain(l), flow(l) )
+        call Initialize_flow_variables ( flow(l), domain(l) )
         if(domain(l)%ithermo == 1) &
-        call Initialize_thermo_variables ( domain(l), flow(l), thermo(l) )
+        call Initialize_thermo_variables ( flow(l), thermo(l), domain(l) )
 
         flow(l)%time = ZERO
         if(domain(l)%ithermo == 1) &
         thermo(l)%time = ZERO 
       else if (flow(l)%irestart == INITIAL_RESTART) then
+
+        call read_instantanous_flow_raw_data(flow(l), domain(l))
+        call restore_flow_variables_from_restart(flow(l), domain(l))
+        if(domain(l)%ithermo == 1) then
+            call read_instantanous_thermo_raw_data  (thermo(l), domain(l) )
+            call restore_flow_variables_from_restart(flow(l),   domain(l))
+        end if
 
       else if (flow(l)%irestart == INITIAL_INTERPL) then
 
@@ -263,7 +270,7 @@ contains
 
   end subroutine Allocate_flow_variables
   !===============================================================================
-  subroutine Allocate_thermo_variables (dm, tm)
+  subroutine Allocate_thermo_variables (tm, dm)
     use parameters_constant_mod
     use mpi_mod
     use udf_type_mod
@@ -398,27 +405,30 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     
-    type(t_thermoProperty) :: tp_ini
+    type(t_fluidThermoProperty) :: ftp_ini
 
     if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
     !-------------------------------------------------------------------------------
     !   given initialisation temperature
     !-------------------------------------------------------------------------------
-    tp_ini%t = tm%Tini0 / tm%t0Ref
+    ftp_ini%t = tm%t0ini / tm%t0ref
     !-------------------------------------------------------------------------------
     !   update all initial properties based on given temperature
     !-------------------------------------------------------------------------------
-    call tp_ini%Refresh_thermal_properties_from_T_undim
+    call ftp_ini%Refresh_thermal_properties_from_T_undim
     !-------------------------------------------------------------------------------
     !   initialise thermal fields
     !-------------------------------------------------------------------------------
-    fl%dDens(:, :, :) = tp_ini%d
-    fl%mVisc(:, :, :) = tp_ini%m
+    fl%dDens(:, :, :) = ftp_ini%d
+    fl%mVisc(:, :, :) = ftp_ini%m
 
-    tm%dh   (:, :, :) = tp_ini%dh
-    tm%hEnth(:, :, :) = tp_ini%h
-    tm%kCond(:, :, :) = tp_ini%k
-    tm%tTemp(:, :, :) = tp_ini%t
+    tm%dh   (:, :, :) = ftp_ini%dh
+    tm%hEnth(:, :, :) = ftp_ini%h
+    tm%kCond(:, :, :) = ftp_ini%k
+    tm%tTemp(:, :, :) = ftp_ini%t
+
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -632,9 +642,19 @@ contains
     !-------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
+    if(nrank == 0) then
+      Call Print_debug_mid_msg("  The initial mass flux is:")
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+    end if
+
     ux(:, :, :) = ux(:, :, :) / ubulk
+
     call Apply_BC_velocity(dm, ux, uy, uz)
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
+    if(nrank == 0) then
+      Call Print_debug_mid_msg("  The scaled mass flux is:")
+      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+    end if
     ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
 
     !-------------------------------------------------------------------------------

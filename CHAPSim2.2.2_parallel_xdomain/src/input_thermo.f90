@@ -27,10 +27,10 @@
 module thermo_info_mod
   use parameters_constant_mod
   implicit none
-!-------------------------------------------------------------------------------
-! udf_type : t_thermoProperty
-!-------------------------------------------------------------------------------
-  type t_thermoProperty
+  !-------------------------------------------------------------------------------
+  ! define udf_type : t_fluidThermoProperty
+  !-------------------------------------------------------------------------------
+  type t_fluidThermoProperty
     real(WP) :: t  ! temperature
     real(WP) :: d  ! density
     real(WP) :: m  ! dynviscosity
@@ -50,27 +50,26 @@ module thermo_info_mod
     procedure :: Print_debug
     generic :: Print => Print_debug
     !generic :: write(formatted) => Print_debug
-  end type t_thermoProperty
-!-------------------------------------------------------------------------------
-! udf_type : t_thermo
-!-------------------------------------------------------------------------------
+  end type t_fluidThermoProperty
+  !-------------------------------------------------------------------------------
+  ! define udf_type : t_thermo
+  !-------------------------------------------------------------------------------
   type t_thermo
     integer  :: ifluid
     integer  :: irestart
     integer  :: nrsttckpt
     integer  :: nIterThermoStart
     integer  :: nIterThermoEnd
-    integer  :: iteration
     real(WP) :: lenRef
-    real(WP) :: T0Ref
-    real(WP) :: Tini0
+    real(WP) :: t0ref ! '0' means dimensional 
+    real(WP) :: t0ini
     real(WP) :: time
     real(WP) :: rPrRen
     
-    type(t_thermoProperty) :: tpIni     ! undim, initial state
-    type(t_thermoProperty) :: tpbcx(2)  ! undim, xbc state
-    type(t_thermoProperty) :: tpbcy(2)  ! undim, ybc state
-    type(t_thermoProperty) :: tpbcz(2)  ! undim, zbc state
+    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
+    type(t_fluidThermoProperty) :: ftpbcx(2)  ! undim, xbc state
+    type(t_fluidThermoProperty) :: ftpbcy(2)  ! undim, ybc state
+    type(t_fluidThermoProperty) :: ftpbcz(2)  ! undim, zbc state
 
     real(WP), allocatable :: dh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
@@ -82,12 +81,12 @@ module thermo_info_mod
 !-------------------------------------------------------------------------------
 ! public variables
 !-------------------------------------------------------------------------------
-  type(t_thermoProperty) :: tpRef0 ! dim, reference state
+  type(t_fluidThermoProperty) :: ftp0ref ! dim, reference state
   type(t_thermo), allocatable, save :: thermo(:)
 !-------------------------------------------------------------------------------
 ! private variables
 !-------------------------------------------------------------------------------
-  !private
+  private
   character(len = 64) :: inputProperty
   integer :: ifluid
   integer :: ipropertyState
@@ -101,7 +100,7 @@ module thermo_info_mod
   real(WP) :: CoH(-1:3)
   real(WP) :: CoM(-1:1)
   integer :: nlist
-  type(t_thermoProperty), save, allocatable, dimension(:) :: listTP
+  type(t_fluidThermoProperty), save, allocatable, dimension(:) :: ftplist
 !-------------------------------------------------------------------------------
 ! private functions
 !-------------------------------------------------------------------------------
@@ -109,7 +108,7 @@ module thermo_info_mod
   private :: Buildup_property_relations_from_function
   private :: Check_monotonicity_DH_of_HT_list
   private :: Initialize_thermo_parameters
-  private :: Sort_listTP_Tsmall2big
+  private :: Sort_ftplist_Tsmall2big
   private :: Write_thermo_property
 !-------------------------------------------------------------------------------
 ! public functions
@@ -118,7 +117,7 @@ module thermo_info_mod
 contains
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type t_thermoProperty.
+!> \brief Defination of a procedure in the type t_fluidThermoProperty.
 !>  to initialize the default thermal properties.     
 !>
 !> This subroutine is called as required to initialize the default
@@ -134,7 +133,7 @@ contains
   subroutine Get_initialized_thermal_properties ( this )
     implicit none
 
-    class(t_thermoProperty), intent(inout) :: this
+    class(t_fluidThermoProperty), intent(inout) :: this
     
     this%t  = ONE
     this%d  = ONE
@@ -149,7 +148,7 @@ contains
   end subroutine Get_initialized_thermal_properties
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type t_thermoProperty.
+!> \brief Defination of a procedure in the type t_fluidThermoProperty.
 !>  to check the temperature limitations.     
 !>
 !> This subroutine is called as required to check the temperature
@@ -166,20 +165,20 @@ contains
   subroutine is_T_in_scope ( this )
     implicit none
 
-    class( t_thermoProperty ), intent( inout ) :: this
+    class( t_fluidThermoProperty ), intent( inout ) :: this
     
     if(ipropertyState == IPROPERTY_TABLE) then
-      if ( ( this%t < listTP(1)%t     )  .OR. &
-           ( this%t > listTP(nlist)%t ) ) then
-        print*, this%t, listTP(1)%t, listTP(nlist)%t
+      if ( ( this%t < ftplist(1)%t     )  .OR. &
+           ( this%t > ftplist(nlist)%t ) ) then
+        print*, this%t, ftplist(1)%t, ftplist(nlist)%t
         stop 'temperature exceeds specified range.'
       end if
     end if
 
     if(ipropertyState == IPROPERTY_FUNCS) then
-      if ( ( this%t < ( TM0 / tpRef0%t ) ) .OR. &
-           ( this%t > ( TB0 / tpRef0%t ) ) ) then 
-        print*, this%t, TM0 / tpRef0%t, TB0 / tpRef0%t
+      if ( ( this%t < ( TM0 / ftp0ref%t ) ) .OR. &
+           ( this%t > ( TB0 / ftp0ref%t ) ) ) then 
+        print*, this%t, TM0 / ftp0ref%t, TB0 / ftp0ref%t
         stop 'temperature exceeds specified range.'
       end if
     end if
@@ -188,7 +187,7 @@ contains
   end subroutine is_T_in_scope
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type t_thermoProperty.
+!> \brief Defination of a procedure in the type t_fluidThermoProperty.
 !>  to update the thermal properties based on the known temperature.     
 !>
 !> This subroutine is called as required to update all thermal properties from
@@ -207,7 +206,7 @@ contains
   subroutine Refresh_thermal_properties_from_T_dimensional ( this )
     use parameters_constant_mod, only : MINP, ONE, ZERO
     implicit none
-    class(t_thermoProperty), intent(inout) :: this
+    class(t_fluidThermoProperty), intent(inout) :: this
     
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -219,8 +218,8 @@ contains
       i2 = nlist
       do while ( (i2 - i1) > 1)
         im = i1 + (i2 - i1) / 2
-        d1 = listTP(i1)%t - this%t
-        dm = listTP(im)%t - this%t
+        d1 = ftplist(i1)%t - this%t
+        dm = ftplist(im)%t - this%t
         if ( (d1 * dm) > MINP ) then
           i1 = im
         else
@@ -228,15 +227,15 @@ contains
         end if
       end do
 
-      w1 = (listTP(i2)%t - this%t) / (listTP(i2)%t - listTP(i1)%t) 
+      w1 = (ftplist(i2)%t - this%t) / (ftplist(i2)%t - ftplist(i1)%t) 
       w2 = ONE - w1
 
-      this%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
-      this%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
-      this%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
-      this%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
-      this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
-      this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
+      this%d = w1 * ftplist(i1)%d + w2 * ftplist(i2)%d
+      this%m = w1 * ftplist(i1)%m + w2 * ftplist(i2)%m
+      this%k = w1 * ftplist(i1)%k + w2 * ftplist(i2)%k
+      this%h = w1 * ftplist(i1)%h + w2 * ftplist(i2)%h
+      this%b = w1 * ftplist(i1)%b + w2 * ftplist(i2)%b
+      this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
       this%dh = this%d * this%h
 
     else if(ipropertyState == IPROPERTY_FUNCS) then 
@@ -296,7 +295,7 @@ contains
   subroutine Refresh_thermal_properties_from_T_undim ( this)
     use parameters_constant_mod, only : MINP, ONE, ZERO
     implicit none
-    class(t_thermoProperty), intent(inout) :: this
+    class(t_fluidThermoProperty), intent(inout) :: this
     
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -308,8 +307,8 @@ contains
       i2 = nlist
       do while ( (i2 - i1) > 1)
         im = i1 + (i2 - i1) / 2
-        d1 = listTP(i1)%t - this%t
-        dm = listTP(im)%t - this%t
+        d1 = ftplist(i1)%t - this%t
+        dm = ftplist(im)%t - this%t
         if ( (d1 * dm) > MINP ) then
           i1 = im
         else
@@ -317,33 +316,33 @@ contains
         end if
       end do
 
-      w1 = (listTP(i2)%t - this%t) / (listTP(i2)%t - listTP(i1)%t) 
+      w1 = (ftplist(i2)%t - this%t) / (ftplist(i2)%t - ftplist(i1)%t) 
       w2 = ONE - w1
 
-      this%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
-      this%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
-      this%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
-      this%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
-      this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
-      this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
+      this%d = w1 * ftplist(i1)%d + w2 * ftplist(i2)%d
+      this%m = w1 * ftplist(i1)%m + w2 * ftplist(i2)%m
+      this%k = w1 * ftplist(i1)%k + w2 * ftplist(i2)%k
+      this%h = w1 * ftplist(i1)%h + w2 * ftplist(i2)%h
+      this%b = w1 * ftplist(i1)%b + w2 * ftplist(i2)%b
+      this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
       this%dh = this%d * this%h
 
     else if(ipropertyState == IPROPERTY_FUNCS) then 
       
       ! convert undim to dim 
-      t1 = this%t * tpRef0%t
+      t1 = this%t * ftp0ref%t
 
       ! D = density = f(T)
       dummy = CoD(0) + CoD(1) * t1
-      this%d = dummy / tpRef0%d
+      this%d = dummy / ftp0ref%d
   
       ! K = thermal conductivity = f(T)
       dummy = CoK(0) + CoK(1) * t1 + CoK(2) * t1**2
-      this%k = dummy / tpRef0%k
+      this%k = dummy / ftp0ref%k
   
       ! Cp = f(T)
       dummy = CoCp(-2) * t1**(-2) + CoCp(-1) * t1**(-1) + CoCp(0) + CoCp(1) * t1 + CoCp(2) * t1**2
-      this%cp = dummy / tpRef0%cp
+      this%cp = dummy / ftp0ref%cp
   
       ! H = entropy = f(T)
       dummy = Hm0 + &
@@ -352,11 +351,11 @@ contains
         CoH(1) * (t1 - Tm0) + &
         CoH(2) * (t1**2 - Tm0**2) + &
         CoH(3) * (t1**3 - Tm0**3)
-      this%h = (dummy - tpRef0%h) / (tpRef0%cp * tpRef0%t)
+      this%h = (dummy - ftp0ref%h) / (ftp0ref%cp * ftp0ref%t)
   
       ! B = f(T)
       dummy = ONE / (CoB - t1)
-      this%b = dummy / tpRef0%b
+      this%b = dummy / ftp0ref%b
   
       ! dynamic viscosity = f(T)
       select case (ifluid)
@@ -372,7 +371,7 @@ contains
         case default
           dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
       end select
-      this%m = dummy / tpRef0%m
+      this%m = dummy / ftp0ref%m
       this%dh = this%d * this%h
     else
       this%t  = ONE
@@ -388,7 +387,7 @@ contains
   end subroutine Refresh_thermal_properties_from_T_undim
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type t_thermoProperty.
+!> \brief Defination of a procedure in the type t_fluidThermoProperty.
 !>  to update the thermal properties based on the known enthalpy.     
 !>
 !> This subroutine is called as required to update all thermal properties from
@@ -403,7 +402,7 @@ contains
 !_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_H(this)
     use parameters_constant_mod, only : MINP, ONE
-    class(t_thermoProperty), intent(inout) :: this
+    class(t_fluidThermoProperty), intent(inout) :: this
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -414,8 +413,8 @@ contains
 
     do while ( (i2 - i1) > 1)
       im = i1 + (i2 - i1) / 2
-      d1 = listTP(i1)%h - this%h
-      dm = listTP(im)%h - this%h
+      d1 = ftplist(i1)%h - this%h
+      dm = ftplist(im)%h - this%h
       if ( (d1 * dm) > MINP ) then
         i1 = im
       else
@@ -423,21 +422,21 @@ contains
       end if
     end do
 
-    w1 = (listTP(i2)%h - this%h) / (listTP(i2)%h - listTP(i1)%h) 
+    w1 = (ftplist(i2)%h - this%h) / (ftplist(i2)%h - ftplist(i1)%h) 
     w2 = ONE - w1
 
-    this%d = w1 * listTP(i1)%d + w2 * listTP(i2)%d
-    this%m = w1 * listTP(i1)%m + w2 * listTP(i2)%m
-    this%k = w1 * listTP(i1)%k + w2 * listTP(i2)%k
-    this%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
-    this%b = w1 * listTP(i1)%b + w2 * listTP(i2)%b
-    this%cp = w1 * listTP(i1)%cp + w2 * listTP(i2)%cp
+    this%d = w1 * ftplist(i1)%d + w2 * ftplist(i2)%d
+    this%m = w1 * ftplist(i1)%m + w2 * ftplist(i2)%m
+    this%k = w1 * ftplist(i1)%k + w2 * ftplist(i2)%k
+    this%t = w1 * ftplist(i1)%t + w2 * ftplist(i2)%t
+    this%b = w1 * ftplist(i1)%b + w2 * ftplist(i2)%b
+    this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
     this%dh = this%d * this%h
     return
   end subroutine Refresh_thermal_properties_from_H
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type t_thermoProperty.
+!> \brief Defination of a procedure in the type t_fluidThermoProperty.
 !>  to update the thermal properties based on the known enthalpy per unit mass.     
 !>
 !> This subroutine is called as required to update all thermal properties from
@@ -452,7 +451,7 @@ contains
 !_______________________________________________________________________________
   subroutine Refresh_thermal_properties_from_DH(this)
     use parameters_constant_mod, only : MINP, ONE
-    class(t_thermoProperty), intent(inout) :: this
+    class(t_fluidThermoProperty), intent(inout) :: this
 
     integer :: i1, i2, im
     real(WP) :: d1, dm
@@ -463,8 +462,8 @@ contains
 
     do while ( (i2 - i1) > 1)
       im = i1 + (i2 - i1) / 2
-      d1 = listTP(i1)%dh - this%dh
-      dm = listTP(im)%dh - this%dh
+      d1 = ftplist(i1)%dh - this%dh
+      dm = ftplist(im)%dh - this%dh
       if ( (d1 * dm) > MINP ) then
         i1 = im
       else
@@ -472,14 +471,14 @@ contains
       end if
     end do
 
-    w1 = (listTP(i2)%dh - this%dh) / (listTP(i2)%dh - listTP(i1)%dh) 
+    w1 = (ftplist(i2)%dh - this%dh) / (ftplist(i2)%dh - ftplist(i1)%dh) 
     w2 = ONE - w1
     
     if(ipropertyState == IPROPERTY_TABLE) then 
-      this%h = w1 * listTP(i1)%h + w2 * listTP(i2)%h
+      this%h = w1 * ftplist(i1)%h + w2 * ftplist(i2)%h
       call this%Refresh_thermal_properties_from_H
     else if (ipropertyState == IPROPERTY_FUNCS) then 
-      this%t = w1 * listTP(i1)%t + w2 * listTP(i2)%t
+      this%t = w1 * ftplist(i1)%t + w2 * ftplist(i2)%t
       call this%Refresh_thermal_properties_from_T_undim
     else  
       STOP 'Error. No such option of ipropertyState.'
@@ -488,7 +487,7 @@ contains
   end subroutine Refresh_thermal_properties_from_DH
 !===============================================================================
 !===============================================================================
-!> \brief Defination of a procedure in the type t_thermoProperty.
+!> \brief Defination of a procedure in the type t_fluidThermoProperty.
 !>  to print out the thermal properties at the given element.     
 !>
 !> This subroutine is called as required to print out thermal properties 
@@ -508,7 +507,7 @@ contains
 !_______________________________________________________________________________
   subroutine Print_debug(this, unit, iotype, v_list, iostat, iomsg)
     use iso_fortran_env, only : error_unit
-    class(t_thermoProperty), intent(in) :: this
+    class(t_fluidThermoProperty), intent(in) :: this
     integer, intent(in)                 :: unit
     character(len = *), intent(in)      :: iotype
     integer, intent(in)                 :: v_list(:)
@@ -552,8 +551,8 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]  list         the thermal table element array
 !===============================================================================
-  subroutine Sort_listTP_Tsmall2big(list)
-    type(t_thermoProperty),intent(inout) :: list(:)
+  subroutine Sort_ftplist_Tsmall2big(list)
+    type(t_fluidThermoProperty),intent(inout) :: list(:)
     integer :: i, n, k
     real(WP) :: buf
 
@@ -596,7 +595,7 @@ contains
 
     end do
     return
-  end subroutine Sort_listTP_Tsmall2big
+  end subroutine Sort_ftplist_Tsmall2big
 !===============================================================================
 !===============================================================================
 !> \brief Check the monotonicity of the $\rho h$ along $h$ and $T$
@@ -620,13 +619,13 @@ contains
     real(WP) :: ddt, ddh
 
     do i = 2, nlist - 1
-        ddh1 = listTP(i)%dh - listTP(i - 1)%dh
-        dt1  = listTP(i)%t  - listTP(i - 1)%t
-        dh1  = listTP(i)%h  - listTP(i - 1)%h
+        ddh1 = ftplist(i)%dh - ftplist(i - 1)%dh
+        dt1  = ftplist(i)%t  - ftplist(i - 1)%t
+        dh1  = ftplist(i)%h  - ftplist(i - 1)%h
 
-        ddh2 = listTP(i + 1)%dh - listTP(i)%dh
-        dt2  = listTP(i + 1)%t  - listTP(i)%t
-        dh2  = listTP(i + 1)%h  - listTP(i)%h
+        ddh2 = ftplist(i + 1)%dh - ftplist(i)%dh
+        dt2  = ftplist(i + 1)%t  - ftplist(i)%t
+        dh2  = ftplist(i + 1)%h  - ftplist(i)%h
 
         ddt = ddh1 / dt1 * ddh2 / dt2 
         ddh = ddh1 / dh1 * ddh2 / dh2
@@ -646,12 +645,12 @@ contains
 !-------------------------------------------------------------------------------
 !  mode           name          role                                           
 !-------------------------------------------------------------------------------
-!> \param[in]     t0Ref          reference temperature
+!> \param[in]     t0ref          reference temperature
 !===============================================================================
-  subroutine Buildup_property_relations_from_table(t0Ref)
+  subroutine Buildup_property_relations_from_table(t0ref)
     use mpi_mod
     use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
-    real(WP), intent(in) :: t0Ref
+    real(WP), intent(in) :: t0ref
 
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
@@ -686,36 +685,36 @@ contains
     !-------------------------------------------------------------------------------
     ! to read given table of thermal properties, dimensional
     !-------------------------------------------------------------------------------
-    allocate ( listTP (nlist) )
+    allocate ( ftplist (nlist) )
 
     read(inputUnit, *, iostat = ioerr) str
     do i = 1, nlist
-      call listTP(i)%Get_initialized_thermal_properties()
-      read(inputUnit, *, iostat = ioerr) rtmp, listTP(i)%h, listTP(i)%t, listTP(i)%d, &
-      listTP(i)%m, listTP(i)%k, listTP(i)%cp, listTP(i)%b
-      listTP(i)%dh = listTP(i)%d * listTP(i)%h
+      call ftplist(i)%Get_initialized_thermal_properties()
+      read(inputUnit, *, iostat = ioerr) rtmp, ftplist(i)%h, ftplist(i)%t, ftplist(i)%d, &
+      ftplist(i)%m, ftplist(i)%k, ftplist(i)%cp, ftplist(i)%b
+      ftplist(i)%dh = ftplist(i)%d * ftplist(i)%h
     end do
     close(inputUnit)
     !-------------------------------------------------------------------------------
     ! to sort input date based on Temperature (small to big)
     !-------------------------------------------------------------------------------
-    call Sort_listTP_Tsmall2big ( listTP(:) )
+    call Sort_ftplist_Tsmall2big ( ftplist(:) )
     !-------------------------------------------------------------------------------
     ! to update reference of thermal properties
     !-------------------------------------------------------------------------------
-    tpRef0%t = t0Ref
-    call tpRef0%Refresh_thermal_properties_from_T_dimensional
+    ftp0ref%t = t0ref
+    call ftp0ref%Refresh_thermal_properties_from_T_dimensional
     !-------------------------------------------------------------------------------
     ! to unify/undimensionalize the table of thermal property
     !-------------------------------------------------------------------------------
-    listTP(:)%t = listTP(:)%t / tpRef0%t
-    listTP(:)%d = listTP(:)%d / tpRef0%d
-    listTP(:)%m = listTP(:)%m / tpRef0%m
-    listTP(:)%k = listTP(:)%k / tpRef0%k
-    listTP(:)%b = listTP(:)%b / tpRef0%b
-    listTP(:)%cp = listTP(:)%cp / tpRef0%cp
-    listTP(:)%h = (listTP(:)%h - tpRef0%h) / tpRef0%t / tpRef0%cp
-    listTP(:)%dh = listTP(:)%d * listTP(:)%h
+    ftplist(:)%t = ftplist(:)%t / ftp0ref%t
+    ftplist(:)%d = ftplist(:)%d / ftp0ref%d
+    ftplist(:)%m = ftplist(:)%m / ftp0ref%m
+    ftplist(:)%k = ftplist(:)%k / ftp0ref%k
+    ftplist(:)%b = ftplist(:)%b / ftp0ref%b
+    ftplist(:)%cp = ftplist(:)%cp / ftp0ref%cp
+    ftplist(:)%h = (ftplist(:)%h - ftp0ref%h) / ftp0ref%t / ftp0ref%cp
+    ftplist(:)%dh = ftplist(:)%d * ftplist(:)%h
     return
   end subroutine Buildup_property_relations_from_table
 !===============================================================================
@@ -731,22 +730,22 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]  none          NA
 !===============================================================================
-  subroutine Buildup_property_relations_from_function (T0Ref)
+  subroutine Buildup_property_relations_from_function (t0ref)
     implicit none
-    real(WP), intent(in) :: T0Ref
+    real(WP), intent(in) :: t0ref
     integer :: i
 
     ! to update reference of thermal properties
-    tpRef0%t = T0Ref
-    call tpRef0%Refresh_thermal_properties_from_T_dimensional
+    ftp0ref%t = t0ref
+    call ftp0ref%Refresh_thermal_properties_from_T_dimensional
 
     
     nlist = 1024
-    allocate ( listTP (nlist) )
+    allocate ( ftplist (nlist) )
     do i = 1, nlist
-      call listTP(i)%Get_initialized_thermal_properties()
-      listTP(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / tpRef0%t ! undimensional
-      call listTP(i)%Refresh_thermal_properties_from_T_undim
+      call ftplist(i)%Get_initialized_thermal_properties()
+      ftplist(i)%t = ( Tm0 + (Tb0 - Tm0) * real(i, WP) / real(nlist, WP) ) / ftp0ref%t ! undimensional
+      call ftplist(i)%Refresh_thermal_properties_from_T_undim
     end do
     return
   end subroutine Buildup_property_relations_from_function
@@ -768,33 +767,33 @@ contains
     use parameters_constant_mod
     use decomp_2d
     implicit none
-    type(t_thermoProperty) :: tp
+    type(t_fluidThermoProperty) :: ftp
     integer :: n, i
     real(WP) :: dhmax1, dhmin1
     real(WP) :: dhmax, dhmin
-    integer :: tp_unit
+    integer :: ftp_unit
     logical :: is_dim
 
     if (nrank /= 0) return
 
     n = 128
-    call tp%Get_initialized_thermal_properties
+    call ftp%Get_initialized_thermal_properties
 
     dhmin = ZERO
     dhmax = ZERO
     if(ipropertyState == IPROPERTY_TABLE) then 
-      dhmin = listTP(1)%dh + TRUNCERR
-      dhmax = listTP(nlist)%dh - TRUNCERR
+      dhmin = ftplist(1)%dh + TRUNCERR
+      dhmax = ftplist(nlist)%dh - TRUNCERR
     end if
 
     if(ipropertyState == IPROPERTY_FUNCS) then 
       is_dim = .false.
       
-      tp%t  = TB0 / tpRef0%t
+      ftp%t  = TB0 / ftp0ref%t
       call tp%Refresh_thermal_properties_from_T_undim
       dhmin1 = tp%dh
 
-      tp%t  = TM0 / tpRef0%t
+      ftp%t  = TM0 / ftp0ref%t
       call tp%Refresh_thermal_properties_from_T_undim
       dhmax1 = tp%dh
       
@@ -802,15 +801,15 @@ contains
       dhmax = dmax1( dhmin1, dhmax1) - TRUNCERR
     end if
 
-    open (newunit = tp_unit, file = 'check_tp_from_dh.dat')
-    write(tp_unit, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
+    open (newunit = ftp_unit, file = 'check_tp_from_dh.dat')
+    write(ftp_unit, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
     do i = 1, n
       tp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
-      call tp%Refresh_thermal_properties_from_DH()
-      call tp%is_T_in_scope()
-      write(tp_unit, '(8ES13.5)') tp%h, tp%t, tp%d, tp%m, tp%k, tp%cp, tp%b, tp%dh
+      call ftp%Refresh_thermal_properties_from_DH()
+      call ftp%is_T_in_scope()
+      write(ftp_unit, '(8ES13.5)') ftp%h, ftp%t, ftp%d, ftp%m, ftp%k, ftp%cp, ftp%b, ftp%dh
     end do
-    close (tp_unit)
+    close (ftp_unit)
     return
   end subroutine Write_thermo_property
 !===============================================================================
@@ -937,8 +936,8 @@ contains
 
     ifluid = thermo(1)%ifluid
     call Initialize_thermo_parameters
-    if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table(thermo(1)%T0Ref)
-    if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function(thermo(1)%T0Ref)
+    if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table(thermo(1)%t0ref)
+    if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function(thermo(1)%t0ref)
     call Check_monotonicity_DH_of_HT_list
     call Write_thermo_property ! for test
     return
