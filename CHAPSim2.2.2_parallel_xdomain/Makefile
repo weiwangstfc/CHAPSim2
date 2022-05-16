@@ -54,7 +54,8 @@ OBJS= mpi_mod.o\
       modules.o\
       tools_general.o\
       input_thermo.o\
-	  boundary_conditions.o\
+      boundary_conditions.o\
+      restart.o\
       input_general.o\
       geometry.o\
       domain_decomposition.o\

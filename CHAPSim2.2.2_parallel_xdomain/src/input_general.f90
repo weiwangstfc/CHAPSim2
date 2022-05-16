@@ -477,10 +477,6 @@ contains
         write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
       end if
       !-------------------------------------------------------------------------------
-      !  covert given dimensional boundary (thermal) to undimensional 
-      !-------------------------------------------------------------------------------
-      if(is_any_energyeq) call Convert_thermo_BC_from_dim_to_undim(thermo(i), domain(i))
-      !-------------------------------------------------------------------------------
       !  set up periodic b.c. boolean, based on velocity
       !-------------------------------------------------------------------------------
       domain(i)%is_periodic(:) = .false.

@@ -201,7 +201,7 @@ contains
 !> \param[in]     dm             domain
 !> \param[in]     fm             flow
 !===============================================================================
-  subroutine Calculate_massflux_from_velocity(dm, fl)
+  subroutine Calculate_massflux_from_velocity(fl, dm)
     use udf_type_mod
     use operations
     implicit none

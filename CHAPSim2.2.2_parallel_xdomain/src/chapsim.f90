@@ -118,52 +118,60 @@ subroutine Solve_eqs_iteration
   logical :: is_thermo = .false.
   integer :: i
   integer :: iter, isub
-  integer :: nrsttckpt
+  integer :: iteration
   integer :: niter
 
   if(nrank == 0) call Print_debug_start_msg("Solving the governing equations ...")
 
-  nrsttckpt = HUGE(0)
+  !===============================================================================
+  ! flow advancing/marching iteration/time control
+  !===============================================================================
+  iteration = HUGE(0)
   niter     = 0
   do i = 1, nxdomain
-     if( flow(i)%nrsttckpt < nrsttckpt) nrsttckpt = flow(i)%nrsttckpt
-     
-     if( flow(i)%nIterFlowEnd > niter)  niter     = flow(i)%nIterFlowEnd
+     if( flow(i)%iteration    < iteration) iteration = flow(i)%iteration
+     if( flow(i)%nIterFlowEnd > niter)     niter     = flow(i)%nIterFlowEnd
      if( is_any_energyeq) then
-       if (thermo(i)%nIterThermoEnd > niter) niter = thermo(i)%nIterThermoEnd
+       if (thermo(i)%iteration      < iteration) iteration = thermo(i)%iteration
+       if (thermo(i)%nIterThermoEnd > niter)     niter     = thermo(i)%nIterThermoEnd
      end if
   end do
 
-  do iter = nrsttckpt + 1, niter
+  do iter = iteration + 1, niter
     call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
+    !===============================================================================
+    ! Solver for each domain
+    !===============================================================================
     do i = 1, nxdomain
-!===============================================================================
-!      setting up 1/re, 1/re/prt, gravity, etc
-!===============================================================================
+      !===============================================================================
+      !      setting up 1/re, 1/re/prt, gravity, etc
+      !===============================================================================
       call Update_Re(iter, flow(i))
       if(domain(i)%ithermo == 1) &
       call Update_PrGr(flow(i), thermo(i))
-!===============================================================================
-!      setting up flow solver
-!===============================================================================
+      !===============================================================================
+      !      setting up flow solver
+      !===============================================================================
       if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
         is_flow = .true.
         flow(i)%time = flow(i)%time + domain(i)%dt
+        flow(i)%iteration = flow(i)%iteration + 1
         call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
         call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
-!===============================================================================
-!     setting up thermo solver
-!===============================================================================
+      !===============================================================================
+      !     setting up thermo solver
+      !===============================================================================
       if(domain(i)%ithermo == 1) then
         if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
           is_thermo = .true.
           thermo(i)%time = thermo(i)%time  + domain(i)%dt
+          thermo(i)%iteration = thermo(i)%iteration + 1
         end if
       end if
-!===============================================================================
-!     main solver
-!===============================================================================
+      !===============================================================================
+      !     main solver
+      !===============================================================================
       do isub = 1, domain(i)%nsubitr
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
@@ -173,27 +181,28 @@ subroutine Solve_eqs_iteration
         call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
 #endif
       end do
-!
-    !comment this part code for testing 
-    ! below is for validation
-    ! cpu time will be calculated later today 
-!===============================================================================
-!     validation
-!===============================================================================
+
+      !comment this part code for testing 
+      ! below is for validation
+      ! cpu time will be calculated later today 
+      !===============================================================================
+      !     validation
+      !===============================================================================
       call Check_mass_conservation(flow(i), domain(i)) 
       if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
 
       call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
-!===============================================================================
-!   visualisation
-!===============================================================================
+      !===============================================================================
+      !   visualisation
+      !===============================================================================
       if(MOD(iter, domain(i)%nvisu) == 0) then
         !call Display_vtk_slice(domain, 'xy', 'u', 1, flow(i)%qx, iter)
         !call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
         !call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
       end if
-    end do
-  end do
+    end do ! domain
+
+  end do ! iteration
 
 
   call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)

@@ -325,7 +325,6 @@ module udf_type_mod
     integer  :: nIterIniRen
     integer  :: nIterFlowStart
     integer  :: nIterFlowEnd
-
     integer  :: iteration
 
     real(WP) :: time

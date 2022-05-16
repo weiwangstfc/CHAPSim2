@@ -59,6 +59,7 @@ contains
     use boundary_conditions_mod
     use decomp_2d_io
     use typeconvert_mod
+    use restart_mod
     implicit none
 
     logical :: itest1 = .false.
@@ -101,22 +102,22 @@ contains
       !-------------------------------------------------------------------------------
       if(domain(l)%ithermo == 1) call Allocate_thermo_variables (thermo(l), domain(l))
       !-------------------------------------------------------------------------------
-      ! to intialize variable
+      ! to set up Re, Fr etc 
+      !-------------------------------------------------------------------------------
+      call Update_Re(flow(l)%nrsttckpt, flow(l))
+      if(domain(l)%ithermo == 1) &
+      call Update_PrGr(flow(l), thermo(l))
+      !-------------------------------------------------------------------------------
+      ! to intialize primary variable
       !-------------------------------------------------------------------------------
       if (flow(l)%irestart == INITIAL_RANDOM) then
-        call Update_Re(0, flow(l))
-        if(domain(l)%ithermo == 1) &
-        call Update_PrGr(flow(l), thermo(l))
 
         call Initialize_flow_variables ( flow(l), domain(l) )
         if(domain(l)%ithermo == 1) &
         call Initialize_thermo_variables ( flow(l), thermo(l), domain(l) )
 
-        flow(l)%time = ZERO
-        if(domain(l)%ithermo == 1) &
-        thermo(l)%time = ZERO 
       else if (flow(l)%irestart == INITIAL_RESTART) then
-
+        
         call read_instantanous_flow_raw_data(flow(l), domain(l))
         call restore_flow_variables_from_restart(flow(l), domain(l))
         if(domain(l)%ithermo == 1) then
@@ -126,76 +127,18 @@ contains
 
       else if (flow(l)%irestart == INITIAL_INTERPL) then
 
+        ! to add ...
+
       else
         call Print_error_msg("Error in flow initialisation flag.")
       end if
-
-      if(itest2) then
-        !-------------------------------------------------------------------------------
-        ! to write initial data.
-        !-------------------------------------------------------------------------------
-        ipencil = 1
-        call decomp_2d_write_one(ipencil, flow(l)%qx,      'raw_ux_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dpcc)
-        call decomp_2d_write_one(ipencil, flow(l)%qy,      'raw_uy_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dcpc)
-        call decomp_2d_write_one(ipencil, flow(l)%qz,      'raw_uz_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dccp)
-        call decomp_2d_write_one(ipencil, flow(l)%pres,    'raw_p_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dccc)
-        if(domain(l)%ithermo == 1) &
-        call decomp_2d_write_one(ipencil, thermo(l)%tTemp, 'raw_T_'//trim(real2str(flow(l)%time))//'.dat', domain(l)%dccc)
-        ! write(*,*) 'check ux' 
-        ! dtmp = domain(l)%dpcc
-        ! do k = 1, dtmp%xsz(3)
-        !   do j =  1, dtmp%xsz(2)
-        !     do i =  1, dtmp%xsz(1)
-        !       write(*, *) i, j, k, flow(l)%qx(i, j, k)
-        !     end do
-        !   end do
-        ! end do
-
-        ! write(*,*) 'check uy'
-        ! dtmp = domain(l)%dcpc
-        ! do k = 1, dtmp%xsz(3)
-        !   do j =  1, dtmp%xsz(2)
-        !     do i =  1, dtmp%xsz(1)
-        !       write(*, *) i, j, k, flow(l)%qy(i, j, k)
-        !     end do
-        !   end do
-        ! end do
-
-        ! write(*,*) 'check uz'
-        ! dtmp = domain(l)%dccp
-        ! do k = 1, dtmp%xsz(3)
-        !   do j =  1, dtmp%xsz(2)
-        !     do i =  1, dtmp%xsz(1)
-        !       write(*, *) i, j, k, flow(l)%qz(i, j, k)
-        !     end do
-        !   end do
-        ! end do
-
-        ! write(*,*) 'check p'
-        ! dtmp = domain(l)%dccc
-        ! do k = 1, dtmp%xsz(3)
-        !   do j =  1, dtmp%xsz(2)
-        !     do i =  1, dtmp%xsz(1)
-        !       write(*, *) i, j, k, flow(l)%pres(i, j, k)
-        !     end do
-        !   end do
-        ! end do
-        ! if(domain(l)%ithermo == 1) then
-        !   write(*,*) 'check T'
-        !   dtmp = domain(i)%dccc
-        !   do k = 1, dtmp%xsz(3)
-        !     do j =  1, dtmp%xsz(2)
-        !       do i =  1, dtmp%xsz(1)
-        !         write(*, *) i, j, k, thermo(l)%tTemp(i, j, k)
-        !       end do
-        !     end do
-        !   end do
-        ! end if
-
-      end if
+      !-------------------------------------------------------------------------------
+      ! to write out data for check
+      !-------------------------------------------------------------------------------
+      call write_instantanous_flow_data(flow(l), domain(l))
+      if(domain(l)%ithermo == 1) &
+      call write_instantanous_thermo_data(thermo(l), domain(l))
     end do
-
-
 
 
 !-------------------------------------------------------------------------------
@@ -353,6 +296,11 @@ contains
     !-------------------------------------------------------------------------------
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+    !-------------------------------------------------------------------------------
+    ! to set up flow iterations 
+    !-------------------------------------------------------------------------------
+    fl%time = ZERO
+    fl%iteration = 0
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -375,13 +323,16 @@ contains
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
     call Initialize_thermal_variables (fl, tm)
 
-    call Calculate_massflux_from_velocity (dm, fl)
+    call Calculate_massflux_from_velocity (fl, dm)
     !-------------------------------------------------------------------------------
     ! to set up old arrays 
     !-------------------------------------------------------------------------------
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
-
+    
+    tm%time = ZERO
+    tm%iteration = 0
+    
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
@@ -866,13 +817,13 @@ contains
       INQUIRE(FILE = trim(filename), exist = file_exists)
       if(.not.file_exists) then
         open(newunit = outputunit, file = trim(filename), action = "write", status = "new")
-        write(output_unit, '(A)') 'Time, SD(u), SD(v), SD(p)'
+        write(outputunit, '(A)') 'Time, SD(u), SD(v), SD(p)'
       else
         open(newunit = outputunit, file = trim(filename), action = "write", status = "old", position="append")
       end if
-      write(output_unit, '(1F10.4, 6ES15.7)') fl%time, uerr_work, verr_work, perr_work, &
+      write(outputunit, '(1F10.4, 6ES15.7)') fl%time, uerr_work, verr_work, perr_work, &
             uerrmax_work, verrmax_work, perrmax_work
-      close(output_unit)
+      close(outputunit)
     end if
 
     if(nrank == 0) call Print_debug_end_msg

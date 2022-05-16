@@ -58,6 +58,7 @@ module thermo_info_mod
     integer  :: ifluid
     integer  :: irestart
     integer  :: nrsttckpt
+    integer  :: iteration
     integer  :: nIterThermoStart
     integer  :: nIterThermoEnd
     real(WP) :: lenRef
@@ -790,12 +791,12 @@ contains
       is_dim = .false.
       
       ftp%t  = TB0 / ftp0ref%t
-      call tp%Refresh_thermal_properties_from_T_undim
-      dhmin1 = tp%dh
+      call ftp%Refresh_thermal_properties_from_T_undim
+      dhmin1 = ftp%dh
 
       ftp%t  = TM0 / ftp0ref%t
-      call tp%Refresh_thermal_properties_from_T_undim
-      dhmax1 = tp%dh
+      call ftp%Refresh_thermal_properties_from_T_undim
+      dhmax1 = ftp%dh
       
       dhmin = dmin1( dhmin1, dhmax1) + TRUNCERR
       dhmax = dmax1( dhmin1, dhmax1) - TRUNCERR
@@ -804,7 +805,7 @@ contains
     open (newunit = ftp_unit, file = 'check_tp_from_dh.dat')
     write(ftp_unit, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
     do i = 1, n
-      tp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
+      ftp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
       call ftp%Refresh_thermal_properties_from_DH()
       call ftp%is_T_in_scope()
       write(ftp_unit, '(8ES13.5)') ftp%h, ftp%t, ftp%d, ftp%m, ftp%k, ftp%cp, ftp%b, ftp%dh
@@ -890,28 +891,17 @@ contains
       CoH(-1:3) = CoH_LBE(-1:3)
       CoM(-1:1) = CoM_LBE(-1:1)
 
-    case (ILIQUID_WATER)
-      ipropertyState = IPROPERTY_FUNCS
-      TM0 = TM0_H2O
-      TB0 = TB0_H2O
-      HM0 = HM0_H2O
-      CoD(0:1) = CoD_H2O(0:1)
-      CoK(0:2) = CoK_H2O(0:2)
-      CoB = CoB_H2O
-      CoCp(-2:2) = CoCp_H2O(-2:2)
-      CoH(-1:3) = CoH_H2O(-1:3)
-      CoM(-1:1) = CoM_H2O(-1:1)
     case default
       ipropertyState = IPROPERTY_FUNCS
-      TM0 = TM0_H2O
-      TB0 = TB0_H2O
-      HM0 = HM0_H2O
-      CoD(0:1) = CoD_H2O(0:1)
-      CoK(0:2) = CoK_H2O(0:2)
-      CoB = CoB_H2O
-      CoCp(-2:2) = CoCp_H2O(-2:2)
-      CoH(-1:3) = CoH_H2O(-1:3)
-      CoM(-1:1) = CoM_H2O(-1:1)
+      TM0 = TM0_Na
+      TB0 = TB0_Na
+      HM0 = HM0_Na
+      CoD(0:1) = CoD_Na(0:1)
+      CoK(0:2) = CoK_Na(0:2)
+      CoB = CoB_Na
+      CoCp(-2:2) = CoCp_Na(-2:2)
+      CoH(-1:3) = CoH_Na(-1:3)
+      CoM(-1:1) = CoM_Na(-1:1)
     end select
 
 
@@ -935,6 +925,8 @@ contains
     implicit none
 
     ifluid = thermo(1)%ifluid
+
+    call Convert_thermo_BC_from_dim_to_undim(thermo(1), domain(1))
     call Initialize_thermo_parameters
     if (ipropertyState == IPROPERTY_TABLE) call Buildup_property_relations_from_table(thermo(1)%t0ref)
     if (ipropertyState == IPROPERTY_FUNCS) call Buildup_property_relations_from_function(thermo(1)%t0ref)
