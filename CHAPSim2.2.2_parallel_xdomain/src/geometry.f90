@@ -166,6 +166,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use typeconvert_mod
+    use mpi_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -262,8 +263,10 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine  Buildup_geometry_mesh_info
-
+!===============================================================================
   subroutine Buildup_geometry_mesh_info_all_domains
+  use mpi_mod
+  use vars_df_mod
   implicit none
 
   integer :: i

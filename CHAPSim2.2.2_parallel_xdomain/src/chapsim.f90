@@ -37,13 +37,14 @@ end program
 !===============================================================================
 subroutine Initialize_chapsim
   use code_performance_mod, only : CPU_TIME_CODE_START
-  use input_general_mod, only : nxdomain, is_any_energyeq
+  use input_general_mod, only : is_any_energyeq
   use geometry_mod
   use thermo_info_mod
   use operations
   use domain_decomposition_mod
   !use poisson_mod
   use flow_thermo_initialiasation
+  use mpi_mod
   implicit none
   integer :: i
 
@@ -65,7 +66,10 @@ subroutine Initialize_chapsim
   !-------------------------------------------------------------------------------
   ! build up thermo_mapping_relations, independent of any domains
   !-------------------------------------------------------------------------------
-  if(is_any_energyeq) call Buildup_thermo_mapping_relations
+  if(is_any_energyeq) then
+    i = 1 
+    call Buildup_thermo_mapping_relations(thermo(i), domain(i))
+  end if
 !-------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains
 !-------------------------------------------------------------------------------
@@ -112,6 +116,7 @@ subroutine Solve_eqs_iteration
   use thermo_info_mod
   use vars_df_mod
   use input_general_mod
+  use mpi_mod
   implicit none
 
   logical :: is_flow   = .false.
@@ -138,7 +143,7 @@ subroutine Solve_eqs_iteration
   end do
 
   do iter = iteration + 1, niter
-    call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
+    call Call_cpu_time(CPU_TIME_ITER_START, iteration, niter, iter)
     !===============================================================================
     ! Solver for each domain
     !===============================================================================
@@ -191,7 +196,7 @@ subroutine Solve_eqs_iteration
       call Check_mass_conservation(flow(i), domain(i)) 
       if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
 
-      call Call_cpu_time(CPU_TIME_ITER_END, nrsttckpt, niter, iter)
+      call Call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
       !===============================================================================
       !   visualisation
       !===============================================================================
@@ -205,7 +210,7 @@ subroutine Solve_eqs_iteration
   end do ! iteration
 
 
-  call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
+  call Call_cpu_time(CPU_TIME_CODE_END, iteration, niter)
   call Finalise_mpi()
   return
 end subroutine Solve_eqs_iteration

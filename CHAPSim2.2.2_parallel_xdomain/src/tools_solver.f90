@@ -60,11 +60,11 @@ contains
 !-------------------------------------------------------------------------------
 !  1/(Re*Pr)                                   
 !-------------------------------------------------------------------------------
-    tm%rPrRen = fl%rre * ftp0ref%k / ftp0ref%m / ftp0ref%cp
+    tm%rPrRen = fl%rre * fluidparam%ftp0ref%k / fluidparam%ftp0ref%m / fluidparam%ftp0ref%cp
 !-------------------------------------------------------------------------------
 !  gravity force                          
 !-------------------------------------------------------------------------------  
-    u0 = ONE / fl%rre * ftp0ref%m / ftp0ref%d / tm%lenRef
+    u0 = ONE / fl%rre * fluidparam%ftp0ref%m / fluidparam%ftp0ref%d / tm%lenRef
     rtmp = tm%lenRef / u0 / u0 * GRAVITY
     fl%fgravity(:) = ZERO
     if (fl%igravity == 1 ) then ! flow/gravity same dirction - x
@@ -176,7 +176,7 @@ contains
     integer :: jj, i, j, k
 
     do j = 1, dtmp%xsz(2)
-      jj = j - 1 + xst(2)
+      jj = j - 1 + dtmp%xst(2)
       do k = 1, dtmp%xsz(3)
         do i = 1, dtmp%xsz(1)
           var(:, j, :) = var(:, j, :) - varxz(jj)

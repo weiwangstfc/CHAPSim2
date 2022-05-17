@@ -256,7 +256,7 @@ contains
       do j = dm%dccc%xst(2), dm%dccc%xen(2)
         do i = dm%dccc%xst(1), dm%dccc%xen(1)
           ftp%dh = tm%dh(i, j, k)
-          call ftp%Refresh_thermal_properties_from_DH()
+          call ftp_refresh_thermal_properties_from_DH(ftp)
           tm%hEnth(i, j, k) = ftp%h
           tm%tTemp(i, j, k) = ftp%T
           tm%kCond(i, j, k) = ftp%k

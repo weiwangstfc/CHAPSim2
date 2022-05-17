@@ -50,7 +50,6 @@ contains
     use vars_df_mod
     use thermo_info_mod
     use boundary_conditions_mod
-    use decomp_2d, only: p_col, p_row
     implicit none
 
     character(len = 18) :: flname = 'input_chapsim.ini'

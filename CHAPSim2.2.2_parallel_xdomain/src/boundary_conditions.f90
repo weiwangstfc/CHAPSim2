@@ -1,63 +1,11 @@
 module boundary_conditions_mod
 
-  public :: Convert_thermo_BC_from_dim_to_undim
+
   public :: Apply_BC_velocity
 
 contains
 
-  subroutine Convert_thermo_BC_from_dim_to_undim(tm, dm)
-    use parameters_constant_mod
-    use udf_type_mod
-    use thermo_info_mod
-    implicit none
-    type(t_domain), intent(inout) :: dm
-    type(t_thermo), intent(inout) :: tm
-
-    integer :: i 
-
-    !-------------------------------------------------------------------------------
-    !   for x-pencil
-    !   scale the given thermo b.c. in dimensional to undimensional
-    !-------------------------------------------------------------------------------
-    do i = 1, 2
-
-      if( dm%ibcx(i, 5) == IBC_DIRICHLET ) then
-        ! dimensional T --> undimensional T
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) / tm%t0ref 
-        tm%ftpbcx(i)%t = dm%fbcx(i, 5)
-        call tm%ftpbcx(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
-        ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) * tm%lenRef / ftp0ref%k / ftp0ref%t 
-      else
-      end if
-
-      if( dm%ibcy(i, 5) == IBC_DIRICHLET ) then
-        ! dimensional T --> undimensional T
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) / tm%t0ref 
-        tm%ftpbcy(i)%t = dm%fbcy(i, 5)
-        call tm%ftpbcy(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
-        ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) * tm%lenRef / ftp0ref%k / ftp0ref%t 
-      else
-      end if
-
-      if( dm%ibcz(i, 5) == IBC_DIRICHLET ) then
-        ! dimensional T --> undimensional T
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) / tm%t0ref 
-        tm%ftpbcz(i)%t = dm%fbcz(i, 5)
-        call tm%ftpbcz(i)%Refresh_thermal_properties_from_T_undim
-      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
-        ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) * tm%lenRef / ftp0ref%k / ftp0ref%t 
-      else
-      end if
-
-    end do
-
-    return
-  end subroutine
+  
 !===============================================================================
 !> \brief Apply b.c. conditions 
 !------------------------------------------------------------------------------- 
@@ -79,7 +27,7 @@ contains
     real(WP), intent(inout)       :: ux(:, :, :), &
                                      uy(:, :, :), &
                                      uz(:, :, :)
-    integer :: m, n
+    integer :: m, s
     type(DECOMP_INFO) :: dtmp
 
 !-------------------------------------------------------------------------------
@@ -123,7 +71,7 @@ contains
           uz(:, :, 1) = dm%fbcz(s, m)
         end if
         if(dtmp%xen(m) == dm%np(m)) then
-          uz(:, :, dtmp%xsz(m)) = dm%fbcz(n, m)
+          uz(:, :, dtmp%xsz(m)) = dm%fbcz(s, m)
         end if
       end if
     end do

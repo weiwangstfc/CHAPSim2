@@ -361,7 +361,59 @@ module udf_type_mod
   end type t_flow
 
   
+  type t_fluidThermoProperty
+    real(WP) :: t  ! temperature
+    real(WP) :: d  ! density
+    real(WP) :: m  ! dynviscosity
+    real(WP) :: k  ! thermconductivity
+    real(WP) :: h  ! enthalpy
+    real(WP) :: dh ! mass enthalpy
+    real(WP) :: cp ! specific heat capacity 
+    real(WP) :: b  ! thermal expansion
+  end type t_fluidThermoProperty
 
+  type t_thermo
+    integer :: ifluid
+    integer  :: irestart
+    integer  :: nrsttckpt
+    integer  :: iteration
+    integer  :: nIterThermoStart
+    integer  :: nIterThermoEnd
+    real(WP) :: lenRef
+    real(WP) :: t0ref ! '0' means dimensional 
+    real(WP) :: t0ini
+    real(WP) :: time
+    real(WP) :: rPrRen
+    
+    type(t_fluidThermoProperty) :: ftpbcx(2)  ! undim, xbc state
+    type(t_fluidThermoProperty) :: ftpbcy(2)  ! undim, ybc state
+    type(t_fluidThermoProperty) :: ftpbcz(2)  ! undim, zbc state
+
+    real(WP), allocatable :: dh(:, :, :)
+    real(WP), allocatable :: hEnth(:, :, :)
+    real(WP), allocatable :: kCond(:, :, :)
+    real(WP), allocatable :: tTemp(:, :, :)
+    real(WP), allocatable :: ene_rhs(:, :, :)  ! current step rhs
+    real(WP), allocatable :: ene_rhs0(:, :, :) ! last step rhs
+  end type t_thermo
+
+  type t_fluid_parameter
+    character(len = 64) :: inputProperty
+    integer :: ifluid
+    integer :: ipropertyState
+    integer :: nlist
+    real(WP) :: TM0
+    real(WP) :: TB0
+    real(WP) :: HM0
+    real(WP) :: CoD(0:1)
+    real(WP) :: CoK(0:2)
+    real(WP) :: CoB
+    real(WP) :: CoCp(-2:2)
+    real(WP) :: CoH(-1:3)
+    real(WP) :: CoM(-1:1)
+    type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
+    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
+  end type t_fluid_parameter
 
 
 
@@ -374,6 +426,7 @@ module vars_df_mod
 
   type(t_domain), allocatable, save :: domain(:)
   type(t_flow),   allocatable, save :: flow(:)
+  type(t_thermo), allocatable, save :: thermo(:)
 end module
 !===============================================================================
 !===============================================================================

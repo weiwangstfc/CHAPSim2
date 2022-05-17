@@ -1,8 +1,10 @@
 module restart_mod
   implicit none 
 
-  public :: write_instantanous_raw_data
-  public :: read_instantanous_raw_data
+  public :: write_instantanous_flow_data
+  public :: write_instantanous_thermo_data
+  public :: read_instantanous_flow_raw_data
+  public :: restore_flow_variables_from_restart
 
 contains 
 !===============================================================================
@@ -10,6 +12,8 @@ contains
   subroutine write_instantanous_flow_data(fl, dm)
     use udf_type_mod
     use mpi_mod
+    use parameters_constant_mod
+    use typeconvert_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
@@ -41,8 +45,6 @@ contains
 
     end if
 
-    end if
-
     ipencil = 1
     call decomp_2d_write_one(ipencil, fl%qx,   'instantanous_ux_'//trim(int2str(fl%iteration))//'.dat', dm%dpcc)
     call decomp_2d_write_one(ipencil, fl%qy,   'instantanous_uy_'//trim(int2str(fl%iteration))//'.dat', dm%dcpc)
@@ -58,6 +60,7 @@ contains
     use udf_type_mod
     use thermo_info_mod
     use mpi_mod
+    use typeconvert_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(in) :: tm
@@ -101,9 +104,10 @@ contains
   subroutine read_instantanous_flow_raw_data(fl, dm)
     use udf_type_mod
     use mpi_mod
+    use typeconvert_mod
     implicit none
     type(t_domain), intent(in)    :: dm
-    type(t_flow),   intent(in) :: fl
+    type(t_flow),   intent(inout) :: fl
 
     integer :: ipencil
     character( len = 128) :: filename
@@ -163,9 +167,10 @@ contains
   subroutine restore_flow_variables_from_restart(fl, dm)
     use udf_type_mod
     use mpi_mod
+    use parameters_constant_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    type(t_flow),   intent(in) :: fl
+    type(t_flow),   intent(inout) :: fl
     real(WP) :: ubulk
     
     call Apply_BC_velocity(dm, fl%qx, fl%qx, fl%qx)
@@ -195,11 +200,14 @@ contains
     use udf_type_mod
     use thermo_info_mod
     use mpi_mod
+    use typeconvert_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    type(t_thermo), intent(in) :: tm
+    type(t_thermo), intent(inout) :: tm
 
     integer :: ipencil
+    character( len = 128) :: filename
+    logical :: file_exists = .FALSE.
     integer :: inputunit
     integer :: ioerr
     character( len = 128 ) :: strinfo
@@ -257,8 +265,8 @@ contains
     use thermo_info_mod
     use mpi_mod
     type(t_domain), intent(in) :: dm
-    type(t_flow),   intent(in) :: fl
-    type(t_thermo), intent(in) :: tm
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
 
     if (dm%ithermo /= 1) return
 

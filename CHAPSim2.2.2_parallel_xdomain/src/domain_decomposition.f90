@@ -121,6 +121,7 @@ contains
 !===============================================================================
   subroutine Buildup_mpi_domain_decomposition
     use vars_df_mod, only : domain
+    use mpi_mod
     implicit none
     integer :: i
 

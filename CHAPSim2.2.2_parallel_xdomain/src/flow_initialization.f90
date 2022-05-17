@@ -27,7 +27,6 @@ module flow_thermo_initialiasation
   private :: Initialize_poiseuille_flow
   private :: Initialize_vortexgreen_2dflow
   private :: Initialize_vortexgreen_3dflow
-  private :: Initialize_thermal_variables
   private :: Generate_random_field
 
   private  :: Allocate_flow_variables
@@ -60,11 +59,12 @@ contains
     use decomp_2d_io
     use typeconvert_mod
     use restart_mod
+    use mpi_mod
     implicit none
 
     logical :: itest1 = .false.
     logical :: itest2 = .true.
-    integer :: i, j, k, l, s
+    integer :: i, j, k, l, s, iter
     type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
     integer :: ipencil
     type(DECOMP_INFO) :: dtmp
@@ -170,7 +170,7 @@ contains
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !===============================================================================
-  subroutine Allocate_flow_variables (dm, fl)
+  subroutine Allocate_flow_variables (fl, dm)
     use parameters_constant_mod
     use mpi_mod
     implicit none
@@ -250,7 +250,7 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[in]     dm
 !===============================================================================
-  subroutine Initialize_flow_variables( dm, fl)
+  subroutine Initialize_flow_variables(fl, dm)
     use udf_type_mod
     use solver_tools_mod
     use parameters_constant_mod
@@ -306,7 +306,7 @@ contains
     return
   end subroutine
   !===============================================================================
-  subroutine Initialize_thermo_variables( dm, fl, tm )
+  subroutine Initialize_thermo_variables( fl, tm, dm )
     use udf_type_mod
     use solver_tools_mod
     use thermo_info_mod
@@ -321,7 +321,7 @@ contains
     ! to initialize thermal variables 
     !-------------------------------------------------------------------------------
     if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
-    call Initialize_thermal_variables (fl, tm)
+    call Initialize_thermal_properties (fl, tm)
 
     call Calculate_massflux_from_velocity (fl, dm)
     !-------------------------------------------------------------------------------
@@ -336,54 +336,6 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
-!===============================================================================
-!> \brief Initialise thermal variables if ithermo = 1.     
-!------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   private
-!-------------------------------------------------------------------------------
-! Arguments
-!-------------------------------------------------------------------------------
-!  mode           name          role                                           
-!-------------------------------------------------------------------------------
-!> \param[inout]  fl   flow type
-!> \param[inout]  tm   thermo type
-!===============================================================================
-  subroutine Initialize_thermal_variables (fl, tm)
-    use parameters_constant_mod
-    use thermo_info_mod
-    implicit none
-    type(t_flow),   intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
-    
-    type(t_fluidThermoProperty) :: ftp_ini
-
-    if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
-    !-------------------------------------------------------------------------------
-    !   given initialisation temperature
-    !-------------------------------------------------------------------------------
-    ftp_ini%t = tm%t0ini / tm%t0ref
-    !-------------------------------------------------------------------------------
-    !   update all initial properties based on given temperature
-    !-------------------------------------------------------------------------------
-    call ftp_ini%Refresh_thermal_properties_from_T_undim
-    !-------------------------------------------------------------------------------
-    !   initialise thermal fields
-    !-------------------------------------------------------------------------------
-    fl%dDens(:, :, :) = ftp_ini%d
-    fl%mVisc(:, :, :) = ftp_ini%m
-
-    tm%dh   (:, :, :) = ftp_ini%dh
-    tm%hEnth(:, :, :) = ftp_ini%h
-    tm%kCond(:, :, :) = ftp_ini%k
-    tm%tTemp(:, :, :) = ftp_ini%t
-
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
-
-    if(nrank == 0) call Print_debug_end_msg
-    return
-  end subroutine Initialize_thermal_variables
 
 !===============================================================================
 !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
