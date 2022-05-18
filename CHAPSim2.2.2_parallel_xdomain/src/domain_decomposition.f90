@@ -126,11 +126,12 @@ contains
     integer :: i
 
     !-------------------------------------------------------------------------------
-    ! default, but not used.
+    ! default, used for fft only
     !-------------------------------------------------------------------------------
-    call decomp_2d_init(domain(1)%nc(1), domain(1)%nc(2), domain(1)%nc(3), p_row, p_col)
+    
 
     do i = 1, nxdomain
+      call decomp_2d_init(domain(i)%np_geo(1), domain(i)%np_geo(2), domain(i)%np_geo(3), p_row, p_col)
       call Initialize_domain_decomposition(domain(i))
     end do
 

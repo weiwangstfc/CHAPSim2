@@ -42,10 +42,10 @@ subroutine Initialize_chapsim
   use thermo_info_mod
   use operations
   use domain_decomposition_mod
-  !use poisson_mod
   use flow_thermo_initialiasation
   use mpi_mod
   use code_performance_mod
+  use decomp_2d_poisson
   implicit none
   integer :: i
 
@@ -82,7 +82,10 @@ subroutine Initialize_chapsim
 !-------------------------------------------------------------------------------
 ! build up fft basic info
 !-------------------------------------------------------------------------------
-  !call Prepare_poisson_fft
+  do i = 1, nxdomain
+    call build_up_poisson_interface(domain(i))
+    call decomp_2d_poisson_init()
+  end do
 !-------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
 !-------------------------------------------------------------------------------

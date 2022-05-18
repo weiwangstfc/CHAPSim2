@@ -35,7 +35,7 @@ else ifeq ($(cfg), cray)
 	FOPTS= # -m 3
 	FFLGS= # -s default64
 else
-	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -Wline-truncation  -fwhole-file  -std=gnu \
+	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
 	FFLGS= -DOUBLE_PREC
 endif
@@ -56,12 +56,14 @@ OBJS= mpi_mod.o\
       input_thermo.o\
       boundary_conditions.o\
       input_general.o\
-	  algorithms.o\
-	  operations.o\
+      algorithms.o\
+      operations.o\
       tools_solver.o\
       restart.o\
       geometry.o\
       domain_decomposition.o\
+      poisson_interface.o\
+      poisson.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\

@@ -34,6 +34,7 @@ module parameters_constant_mod
   real(WP), parameter :: ONEPFIVE    = 1.5_WP
   real(WP), parameter :: TWO         = 2.0_WP
   real(WP), parameter :: THREE       = 3.0_WP
+  real(WP), parameter :: threepfive  = 3.5_WP
   real(WP), parameter :: FOUR        = 4.0_WP
   real(WP), parameter :: FIVE        = 5.0_WP
   real(WP), parameter :: SIX         = 6.0_WP
@@ -87,6 +88,8 @@ module parameters_constant_mod
 
   real(WP), parameter :: PI          = dacos( -ONE )
   real(WP), parameter :: TWOPI       = TWO * dacos( -ONE )
+
+  complex(mytype),parameter :: cx_one_one=cmplx(one, one, kind=mytype)
 
   real(WP), parameter, dimension(3, 3) :: KRONECKER_DELTA = &
                                             reshape( (/ &
@@ -450,6 +453,11 @@ module math_mod
     module procedure abs_dp
   end interface abs_wp
 
+  interface abs_prec
+  module procedure abs_sp
+  module procedure abs_dp
+end interface abs_prec
+
   interface sin_wp
     module procedure sin_sp
     module procedure sin_dp
@@ -459,6 +467,11 @@ module math_mod
     module procedure cos_sp
     module procedure cos_dp
   end interface cos_wp
+
+  interface cos_prec
+    module procedure cos_sp
+    module procedure cos_dp
+  end interface cos_prec
 
   interface tan_wp
     module procedure tan_sp
