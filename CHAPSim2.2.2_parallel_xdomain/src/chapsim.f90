@@ -36,8 +36,8 @@ end program
 !! This subroutine is called at beginning of the main program
 !===============================================================================
 subroutine Initialize_chapsim
-  use code_performance_mod, only : CPU_TIME_CODE_START
-  use input_general_mod, only : is_any_energyeq
+  use code_performance_mod
+  use input_general_mod
   use geometry_mod
   use thermo_info_mod
   use operations
@@ -45,6 +45,7 @@ subroutine Initialize_chapsim
   !use poisson_mod
   use flow_thermo_initialiasation
   use mpi_mod
+  use code_performance_mod
   implicit none
   integer :: i
 

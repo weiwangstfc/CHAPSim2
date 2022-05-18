@@ -239,42 +239,11 @@ contains
     return
   end subroutine Compute_energy_rhs
 !===============================================================================
-  subroutine Update_thermal_properties(fl, tm, dm)
-    use udf_type_mod
-    use thermo_info_mod
-    implicit none
-    type(t_domain), intent(in) :: dm
-    type(t_flow),   intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
-
-    integer :: i, j, k
-    type(t_fluidThermoProperty) :: ftp
-!-------------------------------------------------------------------------------
-!   x-pencil
-!-------------------------------------------------------------------------------
-    do k = dm%dccc%xst(3), dm%dccc%xen(3)
-      do j = dm%dccc%xst(2), dm%dccc%xen(2)
-        do i = dm%dccc%xst(1), dm%dccc%xen(1)
-          ftp%dh = tm%dh(i, j, k)
-          call ftp_refresh_thermal_properties_from_DH(ftp)
-          tm%hEnth(i, j, k) = ftp%h
-          tm%tTemp(i, j, k) = ftp%T
-          tm%kCond(i, j, k) = ftp%k
-          fl%dDens(i, j, k) = ftp%d
-          fl%mVisc(i, j, k) = ftp%m
-        end do
-      end do
-    end do
-
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
-
-  return
-  end subroutine Update_thermal_properties
 !===============================================================================
   subroutine Solve_energy_eq(fl, tm, dm, isub)
     use udf_type_mod
     use thermo_info_mod 
+    use solver_tools_mod
     implicit none
     type(t_domain), intent(in)    :: dm
     type(t_flow),   intent(inout) :: fl

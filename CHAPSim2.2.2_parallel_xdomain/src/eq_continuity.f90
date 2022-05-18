@@ -169,7 +169,7 @@ contains
     call Find_maximum_absvar3d(div, divmax)
 
     if(nrank == 0) then
-      call Print_debug_mid_msg("  The maximum value of mass conservation is:")
+      call Print_debug_mid_msg("  Check Mass Conservation:")
       write (OUTPUT_UNIT, "(12X, 1ES13.5)") divmax
     end if
 

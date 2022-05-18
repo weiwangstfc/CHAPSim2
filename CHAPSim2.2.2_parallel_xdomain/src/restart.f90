@@ -14,6 +14,7 @@ contains
     use mpi_mod
     use parameters_constant_mod
     use typeconvert_mod
+    use decomp_2d_io
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
@@ -40,7 +41,7 @@ contains
       else
         open(newunit = outputunit, file = trim(filename), action = "write", status = "old", position="append")
       end if
-      write(outputunit, '(A, 1I10.1, F11.5)') fl%iteration, fl%time
+      write(outputunit, '(1I10.1, F11.5)') fl%iteration, fl%time
       close(outputunit)
 
     end if
@@ -61,6 +62,7 @@ contains
     use thermo_info_mod
     use mpi_mod
     use typeconvert_mod
+    use decomp_2d_io
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(in) :: tm
@@ -105,6 +107,7 @@ contains
     use udf_type_mod
     use mpi_mod
     use typeconvert_mod
+    use decomp_2d_io
     implicit none
     type(t_domain), intent(in)    :: dm
     type(t_flow),   intent(inout) :: fl
@@ -168,6 +171,8 @@ contains
     use udf_type_mod
     use mpi_mod
     use parameters_constant_mod
+    use boundary_conditions_mod
+    use solver_tools_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -201,6 +206,7 @@ contains
     use thermo_info_mod
     use mpi_mod
     use typeconvert_mod
+    use decomp_2d_io
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(inout) :: tm
@@ -264,6 +270,7 @@ contains
     use udf_type_mod
     use thermo_info_mod
     use mpi_mod
+    use solver_tools_mod
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm

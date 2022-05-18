@@ -47,6 +47,7 @@ module thermo_info_mod
   private :: ftp_get_thermal_properties_dimensional_from_T
   private :: ftp_refresh_thermal_properties_from_T_undim
   private :: ftp_refresh_thermal_properties_from_H
+  private :: ftp_convert_undim_to_dim
   private :: ftp_print
   public  :: ftp_refresh_thermal_properties_from_DH
 
@@ -631,18 +632,35 @@ contains
     !-------------------------------------------------------------------------------
     ! to unify/undimensionalize the table of thermal property
     !-------------------------------------------------------------------------------
-    ftplist(:)%t = ftplist(:)%t / fluidparam%ftp0ref%t
-    ftplist(:)%d = ftplist(:)%d / fluidparam%ftp0ref%d
-    ftplist(:)%m = ftplist(:)%m / fluidparam%ftp0ref%m
-    ftplist(:)%k = ftplist(:)%k / fluidparam%ftp0ref%k
-    ftplist(:)%b = ftplist(:)%b / fluidparam%ftp0ref%b
+    ftplist(:)%t  = ftplist(:)%t  / fluidparam%ftp0ref%t
+    ftplist(:)%d  = ftplist(:)%d  / fluidparam%ftp0ref%d
+    ftplist(:)%m  = ftplist(:)%m  / fluidparam%ftp0ref%m
+    ftplist(:)%k  = ftplist(:)%k  / fluidparam%ftp0ref%k
+    ftplist(:)%b  = ftplist(:)%b  / fluidparam%ftp0ref%b
     ftplist(:)%cp = ftplist(:)%cp / fluidparam%ftp0ref%cp
-    ftplist(:)%h = (ftplist(:)%h - fluidparam%ftp0ref%h) / fluidparam%ftp0ref%t / fluidparam%ftp0ref%cp
+    ftplist(:)%h  = (ftplist(:)%h - fluidparam%ftp0ref%h) / fluidparam%ftp0ref%t / fluidparam%ftp0ref%cp
     ftplist(:)%dh = ftplist(:)%d * ftplist(:)%h
 
     is_ftplist_dim = .false.
     return
   end subroutine buildup_property_relations_from_table
+!===============================================================================
+  subroutine ftp_convert_undim_to_dim(ftp_undim, ftp_dim)
+    implicit none
+    type(t_fluidThermoProperty), intent(in) :: ftp_undim
+    type(t_fluidThermoProperty), intent(out) :: ftp_dim
+
+    ftp_dim%t  = ftp_undim%t  * fluidparam%ftp0ref%t
+    ftp_dim%d  = ftp_undim%d  * fluidparam%ftp0ref%d
+    ftp_dim%m  = ftp_undim%m  * fluidparam%ftp0ref%m
+    ftp_dim%k  = ftp_undim%k  * fluidparam%ftp0ref%k
+    ftp_dim%b  = ftp_undim%b  * fluidparam%ftp0ref%b
+    ftp_dim%cp = ftp_undim%cp * fluidparam%ftp0ref%cp
+    ftp_dim%h  = ftp_undim%h  * fluidparam%ftp0ref%t * fluidparam%ftp0ref%cp + fluidparam%ftp0ref%h
+    ftp_dim%dh = ftp_dim%d    * ftp_dim%h
+    return
+  end subroutine
+!===============================================================================
 !===============================================================================
 
 !> \brief Building up the thermal property relations from defined relations.
@@ -692,10 +710,11 @@ contains
     use decomp_2d
     implicit none
     type(t_fluidThermoProperty) :: ftp
+    type(t_fluidThermoProperty) :: ftp_dim
     integer :: n, i
     real(WP) :: dhmax1, dhmin1
     real(WP) :: dhmax, dhmin
-    integer :: ftp_unit
+    integer :: ftp_unit, ftp_unit2
 
     if (nrank /= 0) return
 
@@ -731,6 +750,18 @@ contains
       write(ftp_unit, '(8ES13.5)') ftp%h, ftp%t, ftp%d, ftp%m, ftp%k, ftp%cp, ftp%b, ftp%dh
     end do
     close (ftp_unit)
+
+    open (newunit = ftp_unit2, file = 'check_tp_from_dh_dim.dat')
+    write(ftp_unit2, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
+    do i = 1, n
+      ftp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
+      call ftp_refresh_thermal_properties_from_DH(ftp)
+      call ftp_is_T_in_scope(ftp)
+      call ftp_convert_undim_to_dim(ftp, ftp_dim)
+      write(ftp_unit2, '(8ES13.5)') ftp_dim%h, ftp_dim%t, ftp_dim%d, ftp_dim%m, ftp_dim%k, ftp_dim%cp, ftp_dim%b, ftp_dim%dh
+    end do
+    close (ftp_unit2)
+
     return
   end subroutine Write_thermo_property
 !===============================================================================
