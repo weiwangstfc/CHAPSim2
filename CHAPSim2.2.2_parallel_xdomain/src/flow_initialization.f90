@@ -413,10 +413,11 @@ contains
     use mpi_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    real(WP),       intent(inout) :: ux(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3))
-    real(WP),       intent(inout) :: uy(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3))
-    real(WP),       intent(inout) :: uz(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3))
-    real(WP),    intent(in)    :: lnoise
+    real(WP),       intent(in) :: lnoise
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(inout) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(inout) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(inout) :: uz
+    
     integer :: seed
     integer :: i, j, k! local id
     integer :: n, nsz  
@@ -457,7 +458,6 @@ contains
             if(n == 1) ux(i, j, k) = lnoise * rd
             if(n == 2) uy(i, j, k) = lnoise * rd
             if(n == 3) uz(i, j, k) = lnoise * rd
-
           end do
         end do
       end do
@@ -485,20 +485,22 @@ contains
     use boundary_conditions_mod
     use parameters_constant_mod
     implicit none
-    type(t_domain), intent(in   ) :: dm
-    real(WP),       intent(in   ) :: lnoise   
-    real(WP),       intent(inout) :: ux(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3))
-    real(WP),       intent(inout) :: uy(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3))
-    real(WP),       intent(inout) :: uz(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3))
-    real(WP),       intent(inout) ::  p(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3))
+    type(t_domain), intent(in ) :: dm
+    real(WP),       intent(in ) :: lnoise   
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(out) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: uz
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(out) ::  p
     integer :: pf_unit
-    integer :: j
+    integer :: i, j, k, jj
     real(WP) :: ubulk
     real(WP) :: ux_1c1(dm%nc(2))
     real(WP) :: uxxza (dm%nc(2))
     real(WP) :: uyxza (dm%np(2))
     real(WP) :: uzxza (dm%nc(2))
     real(WP) :: ux_ypencil(dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3))
+
+    type(DECOMP_INFO) :: dtmp
 
     if(nrank == 0) call Print_debug_mid_msg("Initializing Poiseuille flow field ...")
     !-------------------------------------------------------------------------------
@@ -509,37 +511,49 @@ contains
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
     !-------------------------------------------------------------------------------
-    !   x-pencil : to get Poiseuille profile for all ranks
-    !-------------------------------------------------------------------------------
-    ux_1c1(:) = ZERO
-    call Generate_poiseuille_flow_profile ( dm, ux_1c1)
-    !-------------------------------------------------------------------------------
     !   x-pencil : to get random fields [-1,1] for ux, uy, uz
     !-------------------------------------------------------------------------------
     call Generate_random_field(dm, ux, uy, uz, lnoise)
     !-------------------------------------------------------------------------------
-    !   x-pencil : build up boundary
-    !-------------------------------------------------------------------------------
-    call Apply_BC_velocity(dm, ux, uy, uz)
-    !-------------------------------------------------------------------------------
     !   x-pencil : Get the averaged u, v, and w in both the x and z directions
     !-------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Get the u, v, w, averged in x and z directions ...")
-    call Calculate_xz_mean(ux, dm%dpcc, uxxza)
-    call Calculate_xz_mean(uy, dm%dcpc, uyxza)
-    call Calculate_xz_mean(uz, dm%dpcc, uzxza)
+    uxxza = ZERO
+    uyxza = ZERO
+    uzxza = ZERO
+    call Calculate_xz_mean_yprofile(ux, dm%dpcc, uxxza)
+    call Calculate_xz_mean_yprofile(uy, dm%dcpc, uyxza)
+    call Calculate_xz_mean_yprofile(uz, dm%dpcc, uzxza)
     !-------------------------------------------------------------------------------
     !   x-pencil : Ensure u-u_given, v, w, averaged in x and z direction is zero.
     !              added perturbation is zero in mean. 
     !-------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
-    call Adjust_to_xzmean_zero(ux, dm%dpcc, uxxza-ux_1c1)
+    call Adjust_to_xzmean_zero(ux, dm%dpcc, uxxza)
     call Adjust_to_xzmean_zero(uy, dm%dcpc, uyxza )
     call Adjust_to_xzmean_zero(uz, dm%dccp, uzxza )
     !-------------------------------------------------------------------------------
-    !   x-pencil : apply b.c.
+    !   x-pencil : to get Poiseuille profile for all ranks
+    !-------------------------------------------------------------------------------
+    ux_1c1(:) = ZERO
+    call Generate_poiseuille_flow_profile ( dm, ux_1c1)
+    !-------------------------------------------------------------------------------
+    !   x-pencil : to add profile to ux (default: x streamwise)
+    !-------------------------------------------------------------------------------
+    dtmp = dm%dpcc
+    do i = 1, dtmp%xsz(1)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        do k = 1, dtmp%xsz(3)
+          ux(i, j, k) =  ux(i, j, k) + ux_1c1(jj)
+        end do
+      end do
+    end do
+    !-------------------------------------------------------------------------------
+    !   x-pencil : build up boundary
     !-------------------------------------------------------------------------------
     call Apply_BC_velocity(dm, ux, uy, uz)
+    call Check_maximum_velocity(ux, uy, uz)
     !-------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !-------------------------------------------------------------------------------

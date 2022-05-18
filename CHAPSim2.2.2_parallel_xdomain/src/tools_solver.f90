@@ -10,7 +10,7 @@ module solver_tools_mod
 
   public  :: Update_Re
   public  :: Update_PrGr
-  public  :: Calculate_xz_mean
+  public  :: Calculate_xz_mean_yprofile
   public  :: Adjust_to_xzmean_zero
   public  :: Check_maximum_velocity
   public  :: Get_volumetric_average_3d
@@ -102,7 +102,7 @@ contains
 !-------------------------------------------------------------------------------
 !> \param[inout]  none          NA
 !===============================================================================
-  subroutine Calculate_xz_mean(var, dtmp, varxz_work)
+  subroutine Calculate_xz_mean_yprofile(var, dtmp, varxz_work)
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
@@ -622,7 +622,9 @@ contains
     use mpi_mod
     implicit none
 
-    real(WP), intent(in) :: ux(:, :, :), uy(:, :, :), uz(:, :, :)
+    real(WP), intent(in) :: ux(:, :, :)
+    real(WP), intent(in) :: uy(:, :, :)
+    real(WP), intent(in) :: uz(:, :, :)
 
     real(WP)   :: ux_work, uy_work, uz_work
 
@@ -646,7 +648,7 @@ contains
     use mpi_mod
     implicit none
 
-    real(WP), intent(in) :: var(:, :, :)
+    real(WP), intent(in)  :: var(:, :, :)
     real(WP), intent(out) :: varmax_work
 
     real(WP)   :: varmax
@@ -656,7 +658,7 @@ contains
     call mpi_allreduce(varmax, varmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
     return
   end subroutine
-
+!===============================================================================
   subroutine Update_thermal_properties(fl, tm, dm)
     use udf_type_mod
     use thermo_info_mod
