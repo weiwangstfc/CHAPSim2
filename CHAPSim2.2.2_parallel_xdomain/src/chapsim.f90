@@ -46,6 +46,7 @@ subroutine Initialize_chapsim
   use mpi_mod
   use code_performance_mod
   use decomp_2d_poisson
+  use poisson_interface_mod
   implicit none
   integer :: i
 

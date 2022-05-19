@@ -33,6 +33,7 @@ module parameters_constant_mod
   real(WP), parameter :: ONE         = 1.0_WP
   real(WP), parameter :: ONEPFIVE    = 1.5_WP
   real(WP), parameter :: TWO         = 2.0_WP
+  real(WP), parameter :: twopfive    = 2.5_WP
   real(WP), parameter :: THREE       = 3.0_WP
   real(WP), parameter :: threepfive  = 3.5_WP
   real(WP), parameter :: FOUR        = 4.0_WP
@@ -113,10 +114,11 @@ module parameters_constant_mod
                         ICYLINDRICAL = 2
                         
   integer, parameter :: ISTRET_NO     = 0, &
-                        ISTRET_2SIDES = 1, &
-                        ISTRET_BOTTOM = 2, &
-                        ISTRET_TOP    = 3, &
-                        ISTRET_CENTRE = 4
+                        ISTRET_CENTRE = 1, &
+                        ISTRET_2SIDES = 2, &
+                        ISTRET_BOTTOM = 3, &
+                        ISTRET_TOP    = 4
+                        
 
   integer, parameter :: ITIME_RK3    = 3, &
                         ITIME_RK3_CN = 2, &
@@ -462,6 +464,11 @@ end interface abs_prec
     module procedure sin_sp
     module procedure sin_dp
   end interface sin_wp
+
+  interface sin_prec
+    module procedure sin_sp
+    module procedure sin_dp
+  end interface sin_prec
 
   interface cos_wp
     module procedure cos_sp
