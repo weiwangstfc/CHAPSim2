@@ -22,10 +22,11 @@ ifeq ($(cfg), gnu)
 		   -fbacktrace \
 		   -fbounds-check \
 		   -fcheck=all \
-	           -ffpe-trap=invalid,zero,overflow \
+		   -ffpe-trap=invalid,zero,overflow \
 		   -finit-real=snan -ftrapv \
-	           -Wall
-	FFLGS= -DOUBLE_PREC -DDEBUG
+		   -ffree-line-length-512 \
+		   -Wall
+	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused

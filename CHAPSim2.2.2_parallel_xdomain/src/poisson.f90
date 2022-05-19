@@ -1036,6 +1036,7 @@ contains
   subroutine poisson_11x(rhs)
 
     !use dbg_schemes, only: abs_prec
+    use math_mod
     
 
     implicit none
