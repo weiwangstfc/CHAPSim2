@@ -69,7 +69,8 @@ contains
 
     implicit none
 
-    integer :: nx, ny, nz, i
+    !integer :: nx, ny, nz
+    integer :: i
     
     real(mytype) :: rl, iy
     external  rl, iy
@@ -110,9 +111,9 @@ contains
     nz = nz_global
 
     ! pressure-grid having 1 fewer point for non-periodic directions
-    if (bcx==1) nx=nx-1
-    if (bcy==1) ny=ny-1
-    if (bcz==1) nz=nz-1
+    !if (bcx==1) nx=nx-1
+    !if (bcy==1) ny=ny-1
+    !if (bcz==1) nz=nz-1
 
 #ifdef DEBG 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init start'
@@ -314,15 +315,16 @@ contains
 
     real(mytype) :: tmp1, tmp2,x ,y, z
 
-    integer :: nx,ny,nz, i,j,k
+    !integer :: nx,ny,nz
+    integer :: i,j,k
 
     complex(mytype) :: cx
     real(mytype) :: rl, iy
     external cx, rl, iy
 
-    nx = nx_global
-    ny = ny_global
-    nz = nz_global
+    !nx = nx_global
+    !ny = ny_global
+    !nz = nz_global
 
     if (.not. fft_initialised) then
        call decomp_2d_fft_init(PHYSICAL_IN_Z)
@@ -416,6 +418,7 @@ contains
   subroutine poisson_100(rhs)
 
     !use dbg_schemes, only: abs_prec
+    use math_mod, only: abs_prec
 
     implicit none
 
@@ -425,7 +428,8 @@ contains
     real(mytype) :: tmp1, tmp2, tmp3, tmp4
     real(mytype) :: xx1,xx2,xx3,xx4,xx5,xx6,xx7,xx8
 
-    integer :: nx,ny,nz, i,j,k, itmp
+    !integer :: nx,ny,nz
+    integer :: i,j,k, itmp
 
     complex(mytype) :: cx
     real(mytype) :: rl, iy
@@ -433,9 +437,9 @@ contains
 
 100 format(1x,a8,3I4,2F12.6)
 
-    nx = nx_global - 1
-    ny = ny_global
-    nz = nz_global
+    !nx = nx_global - 1
+    !ny = ny_global
+    !nz = nz_global
 
     !write(*,*) 'Poisson_100'
     ! rhs is in Z-pencil but requires global operations in X
@@ -674,6 +678,9 @@ contains
   subroutine poisson_010(rhs)
 
     !use dbg_schemes, only: abs_prec
+    use math_mod, only: abs_prec
+    
+    
 
     implicit none
 
@@ -683,19 +690,20 @@ contains
     real(mytype) :: tmp1, tmp2, tmp3, tmp4
     real(mytype) :: xx1,xx2,xx3,xx4,xx5,xx6,xx7,xx8
 
-    integer :: nx,ny,nz, i,j,k
+    !integer :: nx,ny,nz
+    integer :: i,j,k
 
     complex(mytype) :: cx
     real(mytype) :: rl, iy
     external cx, rl, iy
 
-    real(mytype) :: avg_param
+    !real(mytype) :: avg_param
 
 100 format(1x,a8,3I4,2F12.6)
 
-    nx = nx_global
-    ny = ny_global - 1
-    nz = nz_global
+    !nx = nx_global
+    !ny = ny_global - 1
+    !nz = nz_global
 
 #ifdef DEBG
     if (nrank .eq. 0) write(*,*)'# Poisoon_010 Init'
@@ -1036,7 +1044,7 @@ contains
   subroutine poisson_11x(rhs)
 
     !use dbg_schemes, only: abs_prec
-    use math_mod
+    use math_mod, only: abs_prec
     
 
     implicit none
@@ -1047,7 +1055,8 @@ contains
     real(mytype) :: tmp1, tmp2, tmp3, tmp4
     real(mytype) :: xx1,xx2,xx3,xx4,xx5,xx6,xx7,xx8
 
-    integer :: nx,ny,nz, i,j,k
+    !integer :: nx,ny,nz
+    integer :: i,j,k
 
     complex(mytype) :: cx
     real(mytype) :: rl, iy
@@ -1058,14 +1067,14 @@ contains
 
 100 format(1x,a8,3I4,2F12.6)
 
-    nx = nx_global - 1
-    ny = ny_global - 1
+    !nx = nx_global - 1
+    !ny = ny_global - 1
     !write(*,*) 'Poisson_11x'
-    if (bcz == 1) then
-       nz = nz_global - 1
-    else if (bcz == 0) then
-       nz = nz_global
-    end if
+    !if (bcz == 1) then
+       !nz = nz_global - 1
+    !else if (bcz == 0) then
+       !nz = nz_global
+    !end if
 
     if (bcz == 1) then  
        do j = 1, ph%zsz(2)
@@ -1166,7 +1175,7 @@ contains
     end do
 #ifdef DEBG
     avg_param = zero
-    call avg3d (abs(cw1), avg_param)
+    call avg3d (abs_prec(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Z cw1 ', avg_param
 #endif
 
@@ -1196,7 +1205,7 @@ contains
     end do
 #ifdef DEBG
     avg_param = zero
-    call avg3d (abs(cw2), avg_param)
+    call avg3d (abs_prec(cw2), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Y cw2 ', avg_param
 #endif
 
@@ -1213,7 +1222,7 @@ contains
        end do
     end do
     avg_param = zero
-    call avg3d (cw1, avg_param)
+    call avg3d (abs_prec(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Back to X cw1 ', avg_param
 #endif
 
@@ -1251,7 +1260,7 @@ contains
        end do
     end do
     avg_param = zero
-    call avg3d (abs(cw1b), avg_param)
+    call avg3d (abs_prec(cw1b), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Back to X cw1b ', avg_param
 #endif
 
@@ -1281,7 +1290,7 @@ contains
        end do
 #ifdef DEBUG
        avg_param = zero
-       call avg3d (cw1b, avg_param)
+       call avg3d (abs_prec(cw1b), avg_param)
        if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret 0 ', avg_param
 #endif
 
@@ -1352,7 +1361,7 @@ contains
           enddo
 #ifdef DEBUG
           avg_param = zero
-          call avg3d (cw2b, avg_param)
+          call avg3d (abs_prec(cw2b), avg_param)
           if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret < 3 ', avg_param
 #endif
        else
@@ -1377,7 +1386,7 @@ contains
        endif
 #ifdef DEBUG
           avg_param = zero
-          call avg3d (cw2b, avg_param)
+          call avg3d (abs_prec(cw2b), avg_param)
           if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret = 3 ', avg_param
 #endif
        !we have to go back in X pencils
@@ -1395,7 +1404,7 @@ contains
        end do
     end do
     avg_param = zero
-    call avg3d (cw1b, avg_param)
+    call avg3d (abs_prec(cw1b), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois AFTER ', avg_param
 #endif
     !stop
@@ -1433,7 +1442,7 @@ contains
        end do
     end do
     avg_param = zero
-    call avg3d (cw1, avg_param)
+    call avg3d (abs_prec(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR X ', avg_param
 #endif
 
@@ -1472,7 +1481,7 @@ contains
        end do
     end do
    avg_param = zero
-   call avg3d (abs(cw2b), avg_param)
+   call avg3d (abs_prec(cw2b), avg_param)
    if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR Y ', avg_param
 #endif
     ! back to X-pencil
@@ -1495,7 +1504,7 @@ contains
     end do
 #ifdef DEBUG
     avg_param = zero
-    call avg3d (cw1, avg_param)
+    call avg3d (abs_prec(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR Z ', avg_param
 #endif
 

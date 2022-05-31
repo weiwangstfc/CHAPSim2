@@ -25,6 +25,7 @@ ifeq ($(cfg), gnu)
 		   -ffpe-trap=invalid,zero,overflow \
 		   -finit-real=snan -ftrapv \
 		   -ffree-line-length-512 \
+                   -fallow-argument-mismatch -O2 \
 		   -Wall
 	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
 else ifeq ($(cfg), intel)
