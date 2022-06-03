@@ -1006,17 +1006,17 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to calculate the provisional divergence constrains
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  !call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
+    !if(nrank == 0) call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
     call Calculate_continuity_constrains(fl, dm, isub)
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...")
+    !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...")
     call solve_poisson(fl%pcor, dm)
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("  Updating velocity/mass flux ...")
+    !if(nrank == 0) call Print_debug_mid_msg("  Updating velocity/mass flux ...")
     if ( dm%ithermo == 0) then 
       call Correct_massflux(fl%qx, fl%qy, fl%qz, fl%pcor, dm, isub)
     else
@@ -1032,7 +1032,7 @@ contains
     call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
     call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
 
-    if(nrank == 0) call Print_debug_end_msg
+    !if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Solve_momentum_eq
 

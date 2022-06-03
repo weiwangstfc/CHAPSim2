@@ -69,7 +69,7 @@ contains
     integer :: ipencil
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Initialize flow thermal fields ...")
+    if(nrank == 0) call Print_debug_mid_msg("Initialize flow and thermal fields ...")
     iter = 0
     do l = 1, nxdomain
 
@@ -148,11 +148,9 @@ contains
       call Test_algorithms()
       !call Test_poisson_solver
     end if
-
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! test
 !---------------------------------------------------------------------------------------------------------------------------------------------
-
     if(nrank == 0) call Print_debug_end_msg
      
     return
@@ -259,7 +257,7 @@ contains
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
 
-    if(nrank == 0) call Print_debug_start_msg("Initializing flow and thermal fields ...")
+    if(nrank == 0) call Print_debug_start_msg("Initializing flow variables ...")
 
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to initialize flow velocity and pressure
@@ -269,7 +267,6 @@ contains
     fl%dDensm1(:, :, :) = ONE
     fl%dDensm2(:, :, :) = ONE
 
-    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field ...")
     if ( (dm%icase == ICASE_CHANNEL) .or. &
          (dm%icase == ICASE_PIPE) .or. &
          (dm%icase == ICASE_ANNUAL) ) then
@@ -484,6 +481,7 @@ contains
     use udf_type_mod
     use boundary_conditions_mod
     use parameters_constant_mod
+    use wtformat_mod
     implicit none
     type(t_domain), intent(in ) :: dm
     real(WP),       intent(in ) :: lnoise   
@@ -561,7 +559,7 @@ contains
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      write (OUTPUT_UNIT, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
 
     ux(:, :, :) = ux(:, :, :) / ubulk
@@ -570,7 +568,7 @@ contains
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      write (OUTPUT_UNIT, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
     ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
 

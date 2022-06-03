@@ -122,6 +122,7 @@ subroutine Solve_eqs_iteration
   use vars_df_mod
   use input_general_mod
   use mpi_mod
+  use wtformat_mod
   implicit none
 
   logical :: is_flow   = .false.
@@ -186,9 +187,9 @@ subroutine Solve_eqs_iteration
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
 #ifdef DEBUG
-        if(nrank == 0) write (OUTPUT_UNIT, '(A, I1)') "  Sub-iteration in RK = ", isub
-        call Check_mass_conservation(flow(i), domain(i)) 
+        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1i) "  Sub-iteration in RK = ", isub
         call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
+        call Check_mass_conservation(flow(i), domain(i)) 
 #endif
       end do
 

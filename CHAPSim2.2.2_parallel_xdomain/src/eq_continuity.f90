@@ -141,6 +141,7 @@ contains
     use math_mod                
     use mpi_mod
     use solver_tools_mod
+    use wtformat_mod
     implicit none
 
     type(t_domain), intent( in    ) :: dm
@@ -169,8 +170,7 @@ contains
     call Find_maximum_absvar3d(div, divmax)
 
     if(nrank == 0) then
-      call Print_debug_mid_msg("  Check Mass Conservation:")
-      write (OUTPUT_UNIT, "(12X, 1ES13.5)") divmax
+      write (OUTPUT_UNIT, wrtfmt1e) "  Check Mass Conservation:", divmax
     end if
 
     return

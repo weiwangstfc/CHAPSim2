@@ -170,6 +170,7 @@ contains
     use udf_type_mod
     use typeconvert_mod
     use mpi_mod
+    use wtformat_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -237,7 +238,7 @@ contains
     !---------------------------------------------------------------------------------------------------------------------------------------------
     if(dbg) then
       do i = 1, dm%np_geo(2)
-        write (OUTPUT_UNIT, '(I5, 1F8.4)') i, dm%yp(i)
+        write (OUTPUT_UNIT, wrtfmt1i1r) i, dm%yp(i)
       end do
     end if
 

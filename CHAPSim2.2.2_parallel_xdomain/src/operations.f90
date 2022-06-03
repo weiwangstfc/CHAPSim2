@@ -349,8 +349,8 @@ contains
 
     if(nrank == 0) then
        call Print_debug_start_msg &
-         ("Assigning coefficient matrix for the compact FD ...")
-       write(*, *) "The given numerical accuracy =", iaccu
+         ("Assigning coefficient matrix for the compact schemes ...")
+       !write(*, *) "The given numerical accuracy =", iaccu
     end if
 
 !---------------------------------------------------------------------------------------------------------------------------------------------

@@ -325,6 +325,7 @@ contains
     use parameters_constant_mod
     use iso_fortran_env
     use mpi_mod
+    use wtformat_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
     real(WP), intent(in) :: rre
@@ -335,8 +336,7 @@ contains
     cfl_diff = sum(x2r) * TWO * dt * rre
     if(nrank == 0) then
       if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-      write (OUTPUT_UNIT,*) "  Diffusion number :"
-      write (OUTPUT_UNIT,"(12X, F13.8)") cfl_diff
+      write (OUTPUT_UNIT, wrtfmt1r) "  Diffusion number :", cfl_diff
     end if
     
     return
@@ -361,6 +361,7 @@ contains
     use udf_type_mod
     use operations
     use decomp_2d
+    use wtformat_mod
     implicit none
 
     type(t_domain),               intent(in) :: dm
@@ -457,8 +458,7 @@ contains
 
     if(nrank == 0) then
       if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
-      write (OUTPUT_UNIT,*) "  CFL (convection) :"
-      write (OUTPUT_UNIT,"(12X, F13.8)") cfl_convection_work
+      write (OUTPUT_UNIT, wrtfmt1r) "  CFL (convection) :", cfl_convection_work
     end if
     
     return
@@ -620,6 +620,7 @@ contains
     use precision_mod
     use math_mod
     use mpi_mod
+    use wtformat_mod
     implicit none
 
     real(WP), intent(in) :: ux(:, :, :)
@@ -633,10 +634,7 @@ contains
     call Find_maximum_absvar3d(uz, uz_work)
 
     if(nrank == 0) then
-      Call Print_debug_mid_msg("  The maximum velocities are:")
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Umax : ', ux_work
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Vmax : ', uy_work
-      write (OUTPUT_UNIT, '(5X, A, 1ES13.5)') 'Wmax : ', uz_work
+      write (OUTPUT_UNIT, wrtfmt3r) 'The maximum velocities are:', ux_work, uy_work, uz_work
     end if
 
     return
