@@ -146,6 +146,7 @@ contains
         if(nrank == 0) then
           do i = 1, nxdomain
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
+            write (OUTPUT_UNIT, wrtfmt1s) 'icase option: 1 = CHANNEL, 2 = PIPE, 3 = ANNUAL, 4 = TGV3D, 5 = BURGERS'
             write (OUTPUT_UNIT, wrtfmt1i) '  icase : ', domain(i)%icase
           end do
         end if
@@ -432,8 +433,11 @@ contains
       !     restore domain size to default if not set properly
       !---------------------------------------------------------------------------------------------------------------------------------------------
       if (domain(i)%icase == ICASE_CHANNEL) then
-        if(domain(i)%istret /= ISTRET_2SIDES .and. nrank == 0) &
-        call Print_warning_msg ("Grids are not two-side clustered.")
+        if(domain(i)%istret /= ISTRET_2SIDES .and. nrank == 0) then
+          if(domain(i)%istret /= ISTRET_NO) then
+            call Print_warning_msg ("Grids are neither uniform nor two-side clustered.")
+          end if
+        end if
         domain(i)%lyb = - ONE
         domain(i)%lyt = ONE
       else if (domain(i)%icase == ICASE_PIPE) then
@@ -442,8 +446,11 @@ contains
         domain(i)%lyb = ZERO
         domain(i)%lyt = ONE
       else if (domain(i)%icase == ICASE_ANNUAL) then
-        if(domain(i)%istret /= ISTRET_2SIDES .and. nrank == 0 ) &
-        call Print_warning_msg ("Grids are not two-side clustered.")
+        if(domain(i)%istret /= ISTRET_2SIDES .and. nrank == 0 ) then
+          if(domain(i)%istret /= ISTRET_NO) then
+            call Print_warning_msg ("Grids are neither uniform nor two-side clustered.")
+          end if
+        end if
         domain(i)%lyt = ONE
       else if (domain(i)%icase == ICASE_TGV2D) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &

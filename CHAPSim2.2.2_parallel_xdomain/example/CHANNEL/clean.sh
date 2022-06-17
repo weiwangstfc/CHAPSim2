@@ -4,3 +4,4 @@ rm -f *.out
 rm -f *.log
 rm *.vtk
 rm *.dat
+rm *.png

@@ -243,7 +243,7 @@ module wtformat_mod
   character(len = 17) :: wrtfmt4i   = '(2X, A48, 4I10.1)'
   character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F20.4)'
   character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.4)'
-  character(len = 17) :: wrtfmt3r   = '(2X, A48, 3F10.4)'
+  character(len = 17) :: wrtfmt3r   = '(2X, A48, 3F20.4)'
   character(len = 17) :: wrtfmt1e   = '(2X, A48, 1E20.4)'
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.4)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.4)'
@@ -418,6 +418,8 @@ module udf_type_mod
     real(WP) :: CoCp(-2:2)
     real(WP) :: CoH(-1:3)
     real(WP) :: CoM(-1:1)
+    real(WP) :: dhmax
+    real(WP) :: dhmin
     type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
     type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
   end type t_fluid_parameter
