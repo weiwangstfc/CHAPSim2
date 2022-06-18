@@ -658,16 +658,17 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !   p in x-pencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    dtmp = dm%dccc
-    do j = 1, dtmp%xsz(2)
-      jj = dtmp%xst(2) + j - 1
-      yc = dm%yc(jj)
-      do i = 1, dtmp%xsz(1)
-        ii = dtmp%xst(1) + i - 1
-        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-        p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) / FOUR
-      end do
-    end do
+    p(:, :, :) =  ZERO
+    ! dtmp = dm%dccc
+    ! do j = 1, dtmp%xsz(2)
+    !   jj = dtmp%xst(2) + j - 1
+    !   yc = dm%yc(jj)
+    !   do i = 1, dtmp%xsz(1)
+    !     ii = dtmp%xst(1) + i - 1
+    !     xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+    !     p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) / FOUR
+    !   end do
+    ! end do
     
     if(nrank == 0) call Print_debug_end_msg
     return

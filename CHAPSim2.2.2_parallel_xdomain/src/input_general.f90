@@ -504,12 +504,12 @@ contains
       ! set up constant for time step marching 
       !---------------------------------------------------------------------------------------------------------------------------------------------
       !option 1: to set up pressure treatment, for O(dt^2)
-      domain(i)%sigma1p = ONE
-      domain(i)%sigma2p = HALF
+      !domain(i)%sigma1p = ONE
+      !domain(i)%sigma2p = HALF
   
       !option 2: to set up pressure treatment, for O(dt)
-      !domain(i)%sigma1p = ONE
-      !domain(i)%sigma2p = ONE
+      domain(i)%sigma1p = ONE
+      domain(i)%sigma2p = ONE
   
       if(domain(i)%iTimeScheme == ITIME_RK3     .or. &
          domain(i)%iTimeScheme == ITIME_RK3_CN) then
