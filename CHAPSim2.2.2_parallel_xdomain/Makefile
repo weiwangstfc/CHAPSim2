@@ -39,7 +39,7 @@ else ifeq ($(cfg), cray)
 else
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DOUBLE_PREC
+	FFLGS= -DOUBLE_PREC -pg
 endif
 
 
