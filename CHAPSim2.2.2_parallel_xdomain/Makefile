@@ -25,9 +25,9 @@ ifeq ($(cfg), gnu)
 		   -ffpe-trap=invalid,zero,overflow \
 		   -finit-real=snan -ftrapv \
 		   -ffree-line-length-512 \
-                   -fallow-argument-mismatch -O2 \
+       -fallow-argument-mismatch -O3 \
 		   -Wall
-	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
+	FFLGS= -DOUBLE_PREC -DDEBUG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
@@ -36,10 +36,14 @@ else ifeq ($(cfg), intel)
 else ifeq ($(cfg), cray)
 	FOPTS= # -m 3
 	FFLGS= # -s default64
-else
+else ifeq ($(cfg), pg)
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
 	FFLGS= -DOUBLE_PREC -pg
+else
+	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
+	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
+	FFLGS= -DOUBLE_PREC
 endif
 
 
