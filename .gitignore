@@ -2,8 +2,11 @@
 bin/
 obj/
 mod/
-lib/2decomp_fft/
+## lib/2decomp_fft/
 ## example/
+input/
+obsolete/
+tmp/
 .history/
 test_*/
 *.dat
