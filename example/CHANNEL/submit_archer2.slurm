@@ -1,15 +1,17 @@
 #!/bin/sh
 # slurm job options (job-name, compute nodes, job time)
-#SBATCH --job-name=test
-#SBATCH --time 0:10:00
+#SBATCH --job-name=chapsim2
+#SBATCH --output=job%j.out
+#SBATCH --error=job%j.err
+#SBATCH --time 00:20:00
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=12
+#SBATCH --tasks-per-node=128
 #SBATCH --cpus-per-task=1
 
 # Place [budget code] below with your budget code
-#SBATCH --acount=c01-eng
+#SBATCH --account=c01-eng
 #SBATCH --partition=standard
-#SBATCH --qos=standard
+#SBATCH --qos=short  #standard
 
 # Set the number of threads to 1
 #   This prevents any threaded system libraries from automatically
@@ -20,7 +22,7 @@ export OMP_NUM_THREADS=1
 #   Using 512 MPI processes and 128 MPI processes per node
 #   srun picks up the distribution from the sbatch options
 
-srun --distribution=block:block --hint=nomultithread ./../../bin/CHAPSim < input_chapsim.ini
+srun --distribution=block:block --hint=nomultithread ./../../bin/CHAPSim < input_chapsim.ini  
 
 
 

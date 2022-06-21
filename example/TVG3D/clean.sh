@@ -4,5 +4,4 @@ rm -f *.out
 rm -f *.log
 rm *.case
 rm *.vtk
-rm *.dat
 rm core

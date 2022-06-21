@@ -1,8 +1,0 @@
-# Case ID:                     4
-# Computational Domain - x:     0.0000    6.2832
-# Computational Domain - y:     0.0000    6.2832
-# Computational Domain - z:     0.0000    6.2832
-# Computational cell size:          16        16        16
-# Write flow raw data at iteration (1st col) and time(2nd col)
-         0    0.00000
-         0    0.00000
