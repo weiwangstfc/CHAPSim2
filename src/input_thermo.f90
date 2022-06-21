@@ -83,8 +83,8 @@ contains
 
       if ( ( this%t < ftplist(1)%t     )  .OR. &
            ( this%t > ftplist(nlist)%t ) ) then
-        write(*, wrtfmt3r), 'this T, low T, high T:', this%t, ftplist(1)%t, ftplist(nlist)%t
-        write(*, wrtfmt3r), 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
+        write(*, wrtfmt3r) 'this T, low T, high T:', this%t, ftplist(1)%t, ftplist(nlist)%t
+        write(*, wrtfmt3r) 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
         stop 'temperature exceeds specified range.'
       end if
     end if
@@ -92,8 +92,8 @@ contains
     if(fluidparam%ipropertyState == IPROPERTY_FUNCS) then
       if ( ( this%t < ( fluidparam%TM0 / fluidparam%ftp0ref%t ) ) .OR. &
            ( this%t > ( fluidparam%TB0 / fluidparam%ftp0ref%t ) ) ) then 
-        write(*, wrtfmt3r), 'this T, low T, high T:', this%t, fluidparam%TM0 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
-        write(*, wrtfmt3r), 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
+        write(*, wrtfmt3r) 'this T, low T, high T:', this%t, fluidparam%TM0 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
+        write(*, wrtfmt3r) 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
         stop 'temperature exceeds specified range.'
       end if
     end if
