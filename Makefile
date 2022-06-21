@@ -25,9 +25,10 @@ ifeq ($(cfg), gnu)
 		   -ffpe-trap=invalid,zero,overflow \
 		   -finit-real=snan -ftrapv \
 		   -ffree-line-length-512 \
-       -fallow-argument-mismatch -O3 \
+                   -Wuninitialized \
+                   -fallow-argument-mismatch \
 		   -Wall
-	FFLGS= -DOUBLE_PREC -DDEBUG
+	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
