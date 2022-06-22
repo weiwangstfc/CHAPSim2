@@ -121,9 +121,9 @@ contains
     !---------------------------------------------------------------------------------------------------------------------------------------------
     varxz(:) = ZERO
     varxz_work(:) = ZERO
-    nk = 0
-    ni = 0
     do j = 1, dtmp%xsz(2)
+      nk = 0
+      ni = 0
       jj = j - 1 + dtmp%xst(2)
       do k = 1, dtmp%xsz(3)
         nk = nk + 1
@@ -132,8 +132,9 @@ contains
           varxz(jj) = varxz(jj) + var(i, j, k) !
         end do
       end do
+      varxz(jj) = varxz(jj) / real(nk * ni, wp)
     end do
-    varxz(:) = varxz(:) / real(nk * ni, wp)
+    
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     !call mpi_allreduce(ni, ni_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
@@ -142,7 +143,7 @@ contains
     varxz_work(:) = varxz_work(:) / real(p_col, wp)
     if(PRESENT(varxz_work1)) varxz_work1 = varxz_work
 
-#ifdef DEBUG 
+#ifdef DEBUG
     if (nrank == 0) then
       call Print_debug_mid_msg("xz plane averaged data:")
       do j = 1, n

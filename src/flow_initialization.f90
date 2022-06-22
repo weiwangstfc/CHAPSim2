@@ -253,6 +253,7 @@ contains
     use solver_tools_mod
     use parameters_constant_mod
     use burgers_eq_mod
+    use visulisation_mod
     implicit none
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -284,6 +285,10 @@ contains
     ! to initialize pressure correction term
     !---------------------------------------------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
+    call view_data_in_rank(fl%qx,   dm%dpcc, dm, 'ux', 0)
+    call view_data_in_rank(fl%qy,   dm%dcpc, dm, 'uy', 0)
+    call view_data_in_rank(fl%qz,   dm%dccp, dm, 'uz', 0)
+    call view_data_in_rank(fl%pres, dm%dccc, dm, 'pr', 0)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -519,9 +524,9 @@ contains
     uxxza = ZERO
     uyxza = ZERO
     uzxza = ZERO
-    call Calculate_xz_mean_yprofile(ux, dm%dpcc, dm%nc(1), uxxza)
+    call Calculate_xz_mean_yprofile(ux, dm%dpcc, dm%nc(2), uxxza)
     call Calculate_xz_mean_yprofile(uy, dm%dcpc, dm%np(2), uyxza)
-    call Calculate_xz_mean_yprofile(uz, dm%dpcc, dm%nc(3), uzxza)
+    call Calculate_xz_mean_yprofile(uz, dm%dpcc, dm%nc(2), uzxza)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure u-u_given, v, w, averaged in x and z direction is zero.
     !              added perturbation is zero in mean. 

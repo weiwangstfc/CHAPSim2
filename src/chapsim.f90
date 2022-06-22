@@ -125,6 +125,7 @@ subroutine Solve_eqs_iteration
   use input_general_mod
   use mpi_mod
   use wtformat_mod
+  use visulisation_mod
   implicit none
 
   logical :: is_flow   = .false.
@@ -194,9 +195,10 @@ subroutine Solve_eqs_iteration
         call Check_mass_conservation(flow(i), domain(i)) 
 #endif
 #ifdef DEBUG
-        call Calculate_xz_mean_yprofile(flow(i)%qx, domain(i)%dpcc, domain(i)%nc(1))
-        call Calculate_xz_mean_yprofile(flow(i)%qy, domain(i)%dcpc, domain(i)%np(2))
-        call Calculate_xz_mean_yprofile(flow(i)%qz, domain(i)%dccp, domain(i)%nc(3))
+        call view_data_in_rank(flow(i)%qx,   domain(i)%dpcc, domain(i), 'ux', iter*100+isub)
+        call view_data_in_rank(flow(i)%qy,   domain(i)%dcpc, domain(i), 'uy', iter*100+isub)
+        call view_data_in_rank(flow(i)%qz,   domain(i)%dccp, domain(i), 'uz', iter*100+isub)
+        call view_data_in_rank(flow(i)%pres, domain(i)%dccc, domain(i), 'pr', iter*100+isub)
 #endif
       end do
 

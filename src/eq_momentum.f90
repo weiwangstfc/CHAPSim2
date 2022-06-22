@@ -936,6 +936,7 @@ contains
 
     call transpose_x_to_y (rhs        , rhs_ypencil, dm%dccc)
     call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
+
     call poisson(rhs_zpencil)
 
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
