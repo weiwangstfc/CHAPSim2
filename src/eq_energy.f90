@@ -12,11 +12,10 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     implicit none
-    real(WP), dimension(:, :, :), intent(inout) :: rhs0, rhs1
-    integer,                   intent(in   ) :: isub
-    type(t_domain),               intent(in   ) :: dm
-
-    real(WP), dimension(size(rhs1, 1), size(rhs1, 2), size(rhs1, 3)) :: rhs_dummy
+    type(t_domain), intent(in) :: dm
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(inout) :: rhs0, rhs1
+    integer,  intent(in) :: isub
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: rhs_dummy
 
 
   ! add explicit terms

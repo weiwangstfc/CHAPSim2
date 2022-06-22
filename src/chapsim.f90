@@ -85,7 +85,9 @@ subroutine Initialize_chapsim
 !---------------------------------------------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call build_up_poisson_interface(domain(i))
+    if(nrank == 0 ) call Print_debug_start_msg("Initializing Poisson solver ...")
     call decomp_2d_poisson_init()
+    if(nrank == 0 ) call Print_debug_end_msg
   end do
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
@@ -186,10 +188,15 @@ subroutine Solve_eqs_iteration
       do isub = 1, domain(i)%nsubitr
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
-#ifdef DEBUG
+#ifdef DEBG
         if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1i) "  Sub-iteration in RK = ", isub
         call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
         call Check_mass_conservation(flow(i), domain(i)) 
+#endif
+#ifdef DEBUG
+        call Calculate_xz_mean_yprofile(flow(i)%qx, domain(i)%dpcc, domain(i)%nc(1))
+        call Calculate_xz_mean_yprofile(flow(i)%qy, domain(i)%dcpc, domain(i)%np(2))
+        call Calculate_xz_mean_yprofile(flow(i)%qz, domain(i)%dccp, domain(i)%nc(3))
 #endif
       end do
 

@@ -94,6 +94,7 @@ contains
     type(t_domain), intent(in) :: dm
     
 
+    if (nrank == 0) call Print_debug_start_msg("Building up interface for the poisson solver ...")
 !---------------------------------------------------------------------------------------------------------------------------------------------
     istret = dm%istret
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -209,6 +210,8 @@ contains
     xk2=zero
     allocate(exs(nx))
     exs=zero
+
+    if (nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine build_up_poisson_interface

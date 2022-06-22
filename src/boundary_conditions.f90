@@ -24,9 +24,9 @@ contains
     use udf_type_mod
     implicit none
     type(t_domain), intent(in )   :: dm
-    real(WP), intent(inout)       :: ux(:, :, :), &
-                                     uy(:, :, :), &
-                                     uz(:, :, :)
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(inout) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(inout) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(inout) :: uz
     integer :: m, s
     type(DECOMP_INFO) :: dtmp
 

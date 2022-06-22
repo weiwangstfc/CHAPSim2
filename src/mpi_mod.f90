@@ -7,8 +7,8 @@ module mpi_mod
   implicit none
   integer :: ierror
   integer :: nxdomain
-  integer :: p_row
-  integer :: p_col
+  integer :: p_row ! y-dim
+  integer :: p_col ! z-dim
 
   public :: Initialize_mpi
   public :: Finalise_mpi

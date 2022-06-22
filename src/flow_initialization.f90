@@ -69,7 +69,7 @@ contains
     integer :: ipencil
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Initialize flow and thermal fields ...")
+    if(nrank == 0) call Print_debug_start_msg("Initialize flow and thermal fields ...")
     iter = 0
     do l = 1, nxdomain
 
@@ -151,7 +151,7 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! test
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_end_msg
+    !if(nrank == 0) call Print_debug_end_msg
      
     return
   end subroutine Initialize_flow_thermal_fields
@@ -299,7 +299,7 @@ contains
     fl%time = ZERO
     fl%iteration = 0
 
-    if(nrank == 0) call Print_debug_end_msg
+    !if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
   !=============================================================================================================================================
@@ -422,7 +422,7 @@ contains
     real(WP) :: rd
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Generating random field ...")
+    if(nrank == 0) call Print_debug_start_msg("Generating random field ...")
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   Initialisation in x pencil
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -519,22 +519,22 @@ contains
     uxxza = ZERO
     uyxza = ZERO
     uzxza = ZERO
-    call Calculate_xz_mean_yprofile(ux, dm%dpcc, uxxza)
-    call Calculate_xz_mean_yprofile(uy, dm%dcpc, uyxza)
-    call Calculate_xz_mean_yprofile(uz, dm%dpcc, uzxza)
+    call Calculate_xz_mean_yprofile(ux, dm%dpcc, dm%nc(1), uxxza)
+    call Calculate_xz_mean_yprofile(uy, dm%dcpc, dm%np(2), uyxza)
+    call Calculate_xz_mean_yprofile(uz, dm%dpcc, dm%nc(3), uzxza)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure u-u_given, v, w, averaged in x and z direction is zero.
     !              added perturbation is zero in mean. 
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
-    call Adjust_to_xzmean_zero(ux, dm%dpcc, uxxza)
-    call Adjust_to_xzmean_zero(uy, dm%dcpc, uyxza )
-    call Adjust_to_xzmean_zero(uz, dm%dccp, uzxza )
+    call Adjust_to_xzmean_zero(ux, dm%dpcc, dm%nc(1), uxxza)
+    call Adjust_to_xzmean_zero(uy, dm%dcpc, dm%np(2), uyxza)
+    call Adjust_to_xzmean_zero(uz, dm%dccp, dm%nc(3), uzxza)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ux_1c1(:) = ZERO
-    call Generate_poiseuille_flow_profile ( dm, ux_1c1)
+    call Generate_poiseuille_flow_profile (dm, ux_1c1)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   x-pencil : to add profile to ux (default: x streamwise)
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -584,14 +584,14 @@ contains
               file    = 'check_poiseuille_profile.dat', &
               status  = 'replace',         &
               action  = 'write')
-      write(pf_unit, '(A)') "# :yc, ux_laminar"
+      write(pf_unit, '(A)') "# yc, ux_laminar, ux_real"
       do j = 1, dm%nc(2)
         write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1)/2, j, dm%dpcc%yen(3)/2)
       end do
       close(pf_unit)
     end if
     
-    if(nrank == 0) call Print_debug_end_msg
+    !if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine  Initialize_poiseuille_flow

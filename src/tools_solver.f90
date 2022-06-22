@@ -102,33 +102,23 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !> \param[inout]  none          NA
 !=============================================================================================================================================
-  subroutine Calculate_xz_mean_yprofile(var, dtmp, varxz_work)
+  subroutine Calculate_xz_mean_yprofile(var, dtmp, n, varxz_work1)
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
     implicit none
     type(DECOMP_INFO), intent(in) :: dtmp
-    real(WP),          intent(in) :: var(:, :, :)
-    real(WP),       intent(inout) :: varxz_work(:)
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(in)  :: var ! x-pencil default
+    integer,  intent(in)  :: n
+    real(WP), dimension(n), optional, intent(out) :: varxz_work1
 
-    real(wp) :: varxz( size(varxz_work) )
+    real(wp) :: varxz( n )
     integer :: jj, i, j, k
-    integer :: ist, ien, jst, jen, kst, ken
-    integer :: xst(3), xen(3), xsz(3)
     integer :: nk, ni, nk_work, ni_work
+    real(WP) :: varxz_work(n)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   Default X-pencil
     !---------------------------------------------------------------------------------------------------------------------------------------------
-    xst(:) = dtmp%xst(:)
-    xen(:) = dtmp%xen(:)
-    xsz(:) = dtmp%xsz(:)
-    ist = 1
-    ien = xsz(1)
-    jst = 1
-    jen = xsz(2)
-    kst = 1
-    ken = xsz(3)
-
     varxz(:) = ZERO
     varxz_work(:) = ZERO
     nk = 0
@@ -146,11 +136,22 @@ contains
     varxz(:) = varxz(:) / real(nk * ni, wp)
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(ni, ni_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(nk, nk_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(varxz, varxz_work, size(varxz_work), MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    varxz_work(:) = varxz_work(:) / real(ni_work * nk_work, wp)
+    !call mpi_allreduce(ni, ni_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
+    !call mpi_allreduce(nk, nk_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varxz, varxz_work, n, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
+    varxz_work(:) = varxz_work(:) / real(p_col, wp)
+    if(PRESENT(varxz_work1)) varxz_work1 = varxz_work
 
+#ifdef DEBUG 
+    if (nrank == 0) then
+      call Print_debug_mid_msg("xz plane averaged data:")
+      do j = 1, n
+        write(*, *) n, varxz_work(j)
+      end do
+    end if
+#endif
+    
+    
     return
   end subroutine
 !=============================================================================================================================================
@@ -166,14 +167,15 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !> \param[inout]            
 !=============================================================================================================================================
-  subroutine Adjust_to_xzmean_zero(var, dtmp, varxz)
+  subroutine Adjust_to_xzmean_zero(var, dtmp, n, varxz)
     use mpi_mod
     use udf_type_mod
     implicit none
-    type(DECOMP_INFO),  intent(in)    :: dtmp
-    real(WP),           intent(inout) :: var(:, :, :)
-    real(WP),           intent(in)    :: varxz(:)
-
+    type(DECOMP_INFO),  intent(in) :: dtmp
+    integer,            intent(in) :: n
+    real(WP), dimension(n), intent(in) :: varxz
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(inout) :: var
+    
     integer :: jj, i, j, k
 
     do j = 1, dtmp%xsz(2)

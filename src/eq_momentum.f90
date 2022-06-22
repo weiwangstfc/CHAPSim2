@@ -80,18 +80,20 @@ contains
 !> \param[in]     rhs1_semi     the semi-implicit term
 !> \param[in]     isub          the RK iteration to get correct Coefficient 
 !_______________________________________________________________________________
-  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, dm, isub)
+  subroutine Calculate_momentum_fractional_step(rhs0, rhs1, rhs1_semi, dtmp, dm, isub)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
-    real(WP), dimension(:, :, :), intent(in   ) :: rhs1_semi
-    real(WP), dimension(:, :, :), intent(inout) :: rhs0, rhs1
-    integer,                   intent(in   ) :: isub
+    type(DECOMP_INFO), intent(in) :: dtmp
     type(t_domain), intent(in) :: dm
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(in)    :: rhs1_semi
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(inout) :: rhs0, rhs1
+    integer,  intent(in) :: isub
+    
     
 
     integer :: n(3)
-    real(WP), dimension(size(rhs1, 1), size(rhs1, 2), size(rhs1, 3)) :: rhs_dummy
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)) :: rhs_dummy
 
   ! add explicit terms
     rhs_dummy(:, :, :) = rhs1(:, :, :)
@@ -836,15 +838,15 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
     if(fl%idriven /= IDRVF_NO) &
     call Calculate_xmomentum_driven_source(isub, fl%idriven, fl%drvfc, dm, fl%mx_rhs) 
-    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm, isub)
+    call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_implicit, dm%dpcc, dm, isub)
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_implicit, dm, isub)
+    call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_implicit, dm%dcpc, dm, isub)
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! x-pencil : z-momentum
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_implicit, dm, isub)
+    call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_implicit, dm%dccp, dm, isub)
  
     return
   end subroutine Compute_momentum_rhs
