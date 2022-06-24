@@ -3,10 +3,10 @@ bin/
 obj/
 mod/
 ## lib/2decomp_fft/
-example/notshown/
-input/
-obsolete/
-tmp/
+example/.notshown/
+.input/
+.obsolete/
+.tmp/
 .history/
 test_*/
 *.dat
