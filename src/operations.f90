@@ -272,8 +272,6 @@ module operations
   public  :: Get_y_midp_P2C_3D
   public  :: Get_z_midp_P2C_3D
 
-  
-
   public  :: Get_x_1st_derivative_P2P_1D
   public  :: Get_y_1st_derivative_P2P_1D
   public  :: Get_z_1st_derivative_P2P_1D

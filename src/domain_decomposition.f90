@@ -54,13 +54,13 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! initialize decomp 
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call decomp_info_init(dm%np(1), dm%nc(2), dm%nc(3), dm%dpcc)
-    call decomp_info_init(dm%nc(1), dm%np(2), dm%nc(3), dm%dcpc)
-    call decomp_info_init(dm%nc(1), dm%nc(2), dm%np(3), dm%dccp)
-    call decomp_info_init(dm%nc(1), dm%nc(2), dm%nc(3), dm%dccc)
-    call decomp_info_init(dm%np(1), dm%np(2), dm%nc(3), dm%dppc)
-    call decomp_info_init(dm%nc(1), dm%np(2), dm%np(3), dm%dcpp)
-    call decomp_info_init(dm%np(1), dm%nc(2), dm%np(3), dm%dpcp)
+    call decomp_info_init(dm%np(1), dm%nc(2), dm%nc(3), dm%dpcc) ! for ux, gx
+    call decomp_info_init(dm%nc(1), dm%np(2), dm%nc(3), dm%dcpc) ! for uy, gy
+    call decomp_info_init(dm%nc(1), dm%nc(2), dm%np(3), dm%dccp) ! for uz, gz
+    call decomp_info_init(dm%nc(1), dm%nc(2), dm%nc(3), dm%dccc) ! for p, T, h
+    call decomp_info_init(dm%np(1), dm%np(2), dm%nc(3), dm%dppc) ! for intermediate vars
+    call decomp_info_init(dm%nc(1), dm%np(2), dm%np(3), dm%dcpp) ! for intermediate vars
+    call decomp_info_init(dm%np(1), dm%nc(2), dm%np(3), dm%dpcp) ! for intermediate vars
 
     call decomp_info_init(dm%np(1), dm%np(2), dm%np(3), dm%dppp) ! this is only used in test.
 
