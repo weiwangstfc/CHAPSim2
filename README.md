@@ -14,37 +14,20 @@ Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  021
 * Mehdi Seddighi, Liverpool John Moors University. (m.seddighi@ljmu.ac.uk)
 * Shuisheng He, The University of Sheffield. (s.he@sheffield.ac.uk)
 
----
-# Code Description
-*CHAPSim* is a Fortran-MPI based finite difference code to solve the conservative variables (${\rho u, \rho v, \rho w, \rho h}$) in Navier-Stokes equations with heat transfer.
-
-|                | Methods          | 
-| -------------- |:---------------:| 
-| Parallel       | MPI           |
-| Mesh           | Structured, generated on the fly      |
-| Spacial Discretization | Finite Difference     |
-| Nonlinear terms | Divergence form |
-|                 | 2nd order spacial accuracy |
-|                 | explicit Runge-Kutta & Adams-Bashforth method for temporal discretization|
-| Viscous terms   | implicit Crank-Nicolson method for temporal discretization|
-| Pressure        | FFT and Fractional step method |
-| Thermodynamics  | Quasi-incompressible flow      |
-|                 | Thermal properties updated by table-searching or specified functions of temperature |
-
 # Code Building
 ## Source Download and Compilation
 Acquire the source code by cloning the git repository:
 ```
-git clone git@github.com:WeiWangSTFC/CHAPSim.git
+git clone git@github.com:CHAPSim/CHAPSim2.git
 ```
 Compile the codes:
 ```
-mkdir bin obj
+mkdir bin obj mod
 make all
 ```
 Run the code:
 ```
-mpirun -n 4 ./bin/CHAPSim
+mpirun -n 4 ./bin/CHAPSim2
 ```
 ## Updating an existing source tree
 If you have previously downloaded *CHAPSim* using git clone, you can update the existing source tree using git pull rather than starting a new:
