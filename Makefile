@@ -75,6 +75,7 @@ OBJS= mpi_mod.o\
       eq_energy.o\
       eq_momentum.o\
       test_algrithms.o\
+	  statistics.o\
       visulisation.o\
       flow_initialization.o\
       chapsim.o

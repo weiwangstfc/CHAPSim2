@@ -47,6 +47,7 @@ subroutine Initialize_chapsim
   use code_performance_mod
   use decomp_2d_poisson
   use poisson_interface_mod
+  use statistics
   implicit none
   integer :: i
 
@@ -94,6 +95,8 @@ subroutine Initialize_chapsim
 !---------------------------------------------------------------------------------------------------------------------------------------------
   call Initialize_flow_thermal_fields
 
+! call statistic registration subroutine
+  call chapsim_user_stats
   return
 end subroutine Initialize_chapsim
 
@@ -126,6 +129,7 @@ subroutine Solve_eqs_iteration
   use mpi_mod
   use wtformat_mod
   use visulisation_mod
+  use statistics
   implicit none
 
   logical :: is_flow   = .false.
@@ -220,11 +224,16 @@ subroutine Solve_eqs_iteration
         !call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
         !call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
       end if
+
+
     end do ! domain
+
+    call chapsim_stats_calculate
+    call chapsim_stats_write
 
   end do ! iteration
 
-
+  call chapsim_stats_finalize
   call Call_cpu_time(CPU_TIME_CODE_END, iteration, niter)
   call Finalise_mpi()
   return
