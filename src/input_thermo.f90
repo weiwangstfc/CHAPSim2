@@ -833,7 +833,7 @@ contains
     write(ftp_unit2, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
     do i = 1, n
       ftp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
-      write(*,*) ftp%dh
+      !write(*,*) ftp%dh
       call ftp_refresh_thermal_properties_from_DH(ftp)
       call ftp_is_T_in_scope(ftp)
       write(ftp_unit1, '(8ES13.5)') ftp%h, ftp%t, ftp%d, ftp%m, ftp%k, ftp%cp, ftp%b, ftp%dh

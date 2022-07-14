@@ -60,6 +60,8 @@ contains
     use typeconvert_mod
     use restart_mod
     use mpi_mod
+    use eq_momentum_mod
+    use continuity_eq_mod
     implicit none
 
     logical :: itest1 = .false.
@@ -132,15 +134,21 @@ contains
       else
         call Print_error_msg("Error in flow initialisation flag.")
       end if
-      !---------------------------------------------------------------------------------------------------------------------------------------------
-      ! to write out data for check
-      !---------------------------------------------------------------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! update initial results
+!---------------------------------------------------------------------------------------------------------------------------------------------
+      call Solve_momentum_eq(flow(l), domain(l), 0) ! check, necessary?
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! to write out data for check
+!---------------------------------------------------------------------------------------------------------------------------------------------
       call write_instantanous_flow_data(flow(l), domain(l))
       if(domain(l)%ithermo == 1) &
       call write_instantanous_thermo_data(thermo(l), domain(l))
     end do
 
+    call Check_mass_conservation(flow(l), domain(l)) 
 
+    stop
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to test algorithms based on given values.
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -184,19 +192,9 @@ contains
     call alloc_x(fl%qx,      dm%dpcc) ; fl%qx = ZERO
     call alloc_x(fl%qy,      dm%dcpc) ; fl%qy = ZERO
     call alloc_x(fl%qz,      dm%dccp) ; fl%qz = ZERO
-    
-    call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO
-    call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO
-    call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO
 
     call alloc_x(fl%pres,    dm%dccc) ; fl%pres = ZERO
     call alloc_x(fl%pcor,    dm%dccc) ; fl%pcor = ZERO
-
-    call alloc_x(fl%dDens,   dm%dccc) ; fl%dDens = ONE
-    call alloc_x(fl%mVisc,   dm%dccc) ; fl%mVisc = ONE
-
-    call alloc_x(fl%dDensm1, dm%dccc) ; fl%dDensm1 = ONE
-    call alloc_x(fl%dDensm2, dm%dccc) ; fl%dDensm2 = ONE
 
     call alloc_x(fl%mx_rhs,  dm%dpcc) ; fl%mx_rhs = ZERO
     call alloc_x(fl%my_rhs,  dm%dcpc) ; fl%my_rhs = ZERO
@@ -205,6 +203,17 @@ contains
     call alloc_x(fl%mx_rhs0, dm%dpcc) ; fl%mx_rhs0 = ZERO
     call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
+
+    if(dm%ithermo == 1) then
+      call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO
+      call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO
+      call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO
+      call alloc_x(fl%dDens,   dm%dccc) ; fl%dDens = ONE
+      call alloc_x(fl%mVisc,   dm%dccc) ; fl%mVisc = ONE
+
+      call alloc_x(fl%dDensm1, dm%dccc) ; fl%dDensm1 = ONE
+      call alloc_x(fl%dDensm2, dm%dccc) ; fl%dDensm2 = ONE
+    end if
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -254,20 +263,21 @@ contains
     use parameters_constant_mod
     use burgers_eq_mod
     use visulisation_mod
+#ifdef DEBUG
+    use typeconvert_mod
+#endif
     implicit none
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
+#ifdef DEBUG
+    integer :: i, j, k, jj
+#endif
 
     if(nrank == 0) call Print_debug_start_msg("Initializing flow variables ...")
 
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to initialize flow velocity and pressure
     !---------------------------------------------------------------------------------------------------------------------------------------------
-    fl%dDens  (:, :, :) = ONE
-    fl%mVisc  (:, :, :) = ONE
-    fl%dDensm1(:, :, :) = ONE
-    fl%dDensm2(:, :, :) = ONE
-
     if ( (dm%icase == ICASE_CHANNEL) .or. &
          (dm%icase == ICASE_PIPE) .or. &
          (dm%icase == ICASE_ANNUAL) ) then
@@ -291,15 +301,34 @@ contains
     call view_data_in_rank(fl%qz,   dm%dccp, dm, 'uz', 0)
     call view_data_in_rank(fl%pres, dm%dccc, dm, 'pr', 0)
 #endif
+
+#ifdef DEBUG
+    k = dm%nc(3)/8
+    i = dm%nc(1)/8
+    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+      open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+      do j = 1, dm%dpcc%xsz(2)
+        jj = dm%dpcc%xst(2) + j - 1
+        write(121, *) dm%yc(jj), fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+      end do
+    end if
+
+    k = dm%nc(3)/8
+    j = dm%nc(2)/8
+    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+        open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dm%dpcc%xsz(2)
+          write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+        end do
+      end if
+    end if
+#endif
+
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !---------------------------------------------------------------------------------------------------------------------------------------------
     call Check_maximum_velocity(fl%qx, fl%qy, fl%qz)
-    !---------------------------------------------------------------------------------------------------------------------------------------------
-    ! to set up old arrays 
-    !---------------------------------------------------------------------------------------------------------------------------------------------
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to set up flow iterations 
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -817,7 +846,7 @@ contains
 !> \param[out]    f             flow
 !_______________________________________________________________________________
   subroutine  Initialize_vortexgreen_3dflow(dm, ux, uy, uz, p)
-    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO
+    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO, PI
     use udf_type_mod
     use math_mod
     implicit none
@@ -838,14 +867,14 @@ contains
     dtmp = dm%dpcc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xp = dm%h(1) * real(ii - 1, WP)
-          ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+          xp = dm%h(1) * real(ii - 1, WP) - PI
+          ux(i, j, k) =  sin_wp ( xp )! * cos_wp ( yc ) * cos_wp ( zc )
         end do
       end do
     end do
@@ -855,14 +884,14 @@ contains
     dtmp = dm%dcpc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yp = dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-          uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          !uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
         end do
       end do
     end do
@@ -876,16 +905,15 @@ contains
     dtmp = dm%dccc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-          p(i, j, k)= ( cos_wp( TWO * xc       ) + &
-                        cos_wp( TWO * yc       ) ) * &
-                      ( cos_wp( TWO * zc + TWO ) ) / SIXTEEN
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          !p(i, j, k)= ONE / SIXTEEN * ( cos(TWO * xc) + cos(TWO * yc) ) * &
+          !            (cos(TWO * zc) + TWO)
         end do
       end do
     end do

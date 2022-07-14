@@ -284,7 +284,7 @@ contains
             write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
             write (OUTPUT_UNIT, wrtfmt1r) '  flow Reynolds number   :', flow(i)%ren
             write (OUTPUT_UNIT, wrtfmt1i) '  flow driven force type :', flow(i)%idriven
-            write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force      :', flow(i)%drvfc
+            write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force(cf)  :', flow(i)%drvfc
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -464,8 +464,8 @@ contains
         call Print_warning_msg ("Grids are clustered.")
         domain(i)%lxx = TWO * PI
         domain(i)%lzz = TWO * PI
-        domain(i)%lyt = TWO * PI
-        domain(i)%lyb = ZERO
+        domain(i)%lyt = PI
+        domain(i)%lyb = - PI
       else if (domain(i)%icase == ICASE_BURGERS) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")

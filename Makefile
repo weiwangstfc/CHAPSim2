@@ -19,15 +19,17 @@ PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
 	FOPTS= -g \
+			 -Wall \
 		   -fbacktrace \
 		   -fbounds-check \
 		   -fcheck=all \
 		   -ffpe-trap=invalid,zero,overflow \
 		   -finit-real=snan -ftrapv \
 		   -ffree-line-length-512 \
-                   -Wuninitialized \
-                   -fallow-argument-mismatch \
-		   -Wall
+       -Wuninitialized -Wmaybe-uninitialized\
+			 -Wno-unused\
+       -fallow-argument-mismatch
+		   
 	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \

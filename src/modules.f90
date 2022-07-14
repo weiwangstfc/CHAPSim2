@@ -157,10 +157,11 @@ module parameters_constant_mod
   integer, parameter :: IVIS_EXPLICIT   = 1, &
                         IVIS_SEMIMPLT   = 2
 
-  integer, parameter :: IDRVF_NO        = 0, &
-                        IDRVF_MASSFLUX  = 1, &
-                        IDRVF_SKINFRIC  = 2, &
-                        IDRVF_PRESLOSS  = 3
+  integer, parameter :: IDRVF_NO         = 0, &
+                        IDRVF_X_MASSFLUX = 1, &
+                        IDRVF_X_Cf       = 2, &
+                        IDRVF_Z_MASSFLUX = 3, &
+                        IDRVF_Z_Cf       = 4 
 
   integer, parameter :: THERMAL_BC_CONST_T  = 0, &
                         THERMAL_BC_CONST_H  = 1

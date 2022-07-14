@@ -106,6 +106,8 @@ contains
     ncly = dm%is_periodic(2)
     nclz = dm%is_periodic(3)
 !---------------------------------------------------------------------------------------------------------------------------------------------
+!   nclx1, ncly1, nclz1 are not used for poisson solver but only for debugging.
+!---------------------------------------------------------------------------------------------------------------------------------------------
     if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
       nclx1 = 0
     else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
@@ -113,6 +115,7 @@ contains
     else
       nclx1 = 1
     end if
+
     if(dm%ibcy(1, 1) == IBC_PERIODIC ) then
       ncly1 = 0
     else if (dm%ibcy(1, 1) == IBC_DIRICHLET ) then
@@ -120,6 +123,7 @@ contains
     else
       ncly1 = 1
     end if
+
     if(dm%ibcz(1, 1) == IBC_PERIODIC ) then
       nclz1 = 0
     else if (dm%ibcz(1, 1) == IBC_DIRICHLET ) then
@@ -135,6 +139,7 @@ contains
       nx = dm%np_geo(1)
       nxm = nx - 1
     end if
+
     if (ncly) then
       ny = dm%np_geo(2) - 1
       nym = ny
@@ -142,6 +147,7 @@ contains
       ny = dm%np_geo(2)
       nym = ny - 1
     end if
+
     if (nclz) then
       nz = dm%np_geo(3) - 1
       nzm = nz
