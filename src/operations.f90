@@ -3606,7 +3606,7 @@ contains
     fo = ZERO
     
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_C2P(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bm1x_C2P(:, ibc(1), ibc(2)), &
@@ -3634,7 +3634,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bm1x_P2C(:, ibc(1), ibc(2)), &
@@ -3661,7 +3661,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           am1y_C2P(:, ibc(1), ibc(2)), &
           bm1y_C2P(:, ibc(1), ibc(2)), &
@@ -3688,7 +3688,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:) )
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           am1y_P2C(:, ibc(1), ibc(2)), &
           bm1y_P2C(:, ibc(1), ibc(2)), &
@@ -3715,7 +3715,7 @@ contains
     fo = ZERO
     
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_C2P(:, ibc(1), ibc(2)), &
           bm1z_C2P(:, ibc(1), ibc(2)), &
@@ -3742,7 +3742,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_P2C(:, ibc(1), ibc(2)), &
           bm1z_P2C(:, ibc(1), ibc(2)), &
@@ -3788,7 +3788,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :), dm%h1r(1), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_C2C(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bd1x_C2C(:, ibc(1), ibc(2)), &
@@ -3817,7 +3817,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2P(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bd1x_P2P(:, ibc(1), ibc(2)), &
@@ -3847,7 +3847,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(1), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_C2P(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bd1x_C2P(:, ibc(1), ibc(2)), &
@@ -3876,7 +3876,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(1), ibc(:) )
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2C(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bd1x_P2C(:, ibc(1), ibc(2)), &
@@ -3905,7 +3905,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_C2C(:, ibc(1), ibc(2)), &
           bd1y_C2C(:, ibc(1), ibc(2)), &
@@ -3934,7 +3934,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2P(:, ibc(1), ibc(2)), &
           bd1y_P2P(:, ibc(1), ibc(2)), &
@@ -3963,7 +3963,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(2), ibc(:), fbc(:) )
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_C2P(:, ibc(1), ibc(2)), &
           bd1y_C2P(:, ibc(1), ibc(2)), &
@@ -3992,7 +3992,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(2), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2C(:, ibc(1), ibc(2)), &
           bd1y_P2C(:, ibc(1), ibc(2)), &
@@ -4024,7 +4024,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :), dm%h1r(3), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_C2C(:, ibc(1), ibc(2)), &
           bd1z_C2C(:, ibc(1), ibc(2)), &
@@ -4051,7 +4051,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :), dm%h1r(3), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2P(:, ibc(1), ibc(2)), &
           bd1z_P2P(:, ibc(1), ibc(2)), &
@@ -4078,7 +4078,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :), dm%h1r(3), ibc(:), fbc(:) )
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_C2P(:, ibc(1), ibc(2)), &
           bd1z_C2P(:, ibc(1), ibc(2)), &
@@ -4105,7 +4105,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(3), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2C(:, ibc(1), ibc(2)), &
           bd1z_P2C(:, ibc(1), ibc(2)), &
@@ -4151,7 +4151,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, d2rC2C(:, :, :), dm%h2r(1), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_C2C(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bd2x_C2C(:, ibc(1), ibc(2)), &
@@ -4179,7 +4179,7 @@ contains
     ixsub = dm%idom
 
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(1), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_P2P(:, ibc(1), ibc(2)), &
           xtdma_lhs(ixsub)%bd2x_P2P(:, ibc(1), ibc(2)), &
@@ -4209,7 +4209,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, d2rC2C(:, :, :), dm%h2r(2), ibc(:), fbc(:) )
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_C2C(:, ibc(1), ibc(2)), &
           bd2y_C2C(:, ibc(1), ibc(2)), &
@@ -4220,6 +4220,7 @@ contains
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
       call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo1(:), nsz, d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
+      if (dm%is_compact_scheme) &
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_C2C(:, ibc(1), ibc(2)), &
            bd1y_C2C(:, ibc(1), ibc(2)), &
@@ -4251,7 +4252,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(2), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_P2P(:, ibc(1), ibc(2)), &
           bd2y_P2P(:, ibc(1), ibc(2)), &
@@ -4263,7 +4264,7 @@ contains
       allocate ( fo1(nsz) ); fo1(:) = ZERO
 
       call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:))
-
+      if (dm%is_compact_scheme) &
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_P2P(:, ibc(1), ibc(2)), &
            bd1y_P2P(:, ibc(1), ibc(2)), &
@@ -4295,7 +4296,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_2deri_C2C_RHS_array(fi(:), fo(:), nsz, d2rC2C(:, :, :), dm%h2r(3), ibc(:), fbc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_C2C(:, ibc(1), ibc(2)), &
           bd2z_C2C(:, ibc(1), ibc(2)), &
@@ -4322,7 +4323,7 @@ contains
     fo = ZERO
 
     call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(3), ibc(:))
-
+    if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_P2P(:, ibc(1), ibc(2)), &
           bd2z_P2P(:, ibc(1), ibc(2)), &
