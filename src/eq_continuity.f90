@@ -240,6 +240,9 @@ contains
     use mpi_mod
     use solver_tools_mod
     use wtformat_mod
+#ifdef DEBUG
+    use visulisation_mod
+#endif
     implicit none
 
     type(t_domain), intent( in    ) :: dm
@@ -264,6 +267,11 @@ contains
     else
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
+
+#ifdef DEBUG
+    call view_data_in_rank(div,   dm%dccc, dm, 'div', 0)
+#endif
+    
   
     call Find_maximum_absvar3d(div, divmax)
 

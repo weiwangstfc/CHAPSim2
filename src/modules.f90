@@ -141,8 +141,7 @@ module parameters_constant_mod
 !                        IBC_INLET_DB    = 7, &
 !                        IBC_OUTLET_EXPO = 8, &
 !                        IBC_OUTLET_CONV = 9, &
-!                        IBC_INTERIOR    = 0, &
-                        
+!                        IBC_INTERIOR    = 0, &                   
   integer, parameter :: IACCU_CD2 = 2, &
                         IACCU_CD4 = 3, &
                         IACCU_CP4 = 4, &
@@ -262,6 +261,8 @@ module udf_type_mod
   type t_domain
     logical :: is_periodic(3)
     logical :: is_stretching(3)
+    logical :: is_central_differnece
+    logical :: is_compact_scheme   
     integer :: idom
     integer :: icase
     integer :: icoordinate
@@ -515,13 +516,13 @@ contains
   elemental function abs_csp ( r ) result(d)
   COMPLEX(kind = S6P), intent(in) :: r
   real(kind = S6P) :: d
-    d = cabs ( r )
+    d = abs ( r )
   end function
 
   elemental function abs_cdp ( r ) result (d)
   COMPLEX(kind = D15P), intent(in) :: r
   real(kind = D15P) :: d
-    d = cdabs ( r ) 
+    d = abs ( r ) 
   end function
 
   ! sqrt

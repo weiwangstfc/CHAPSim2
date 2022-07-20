@@ -259,6 +259,15 @@ contains
       else if ( secname(1:slen) == '[schemes]' )  then
         read(inputUnit, *, iostat = ioerr) varname, itmp
         domain(:)%iAccuracy = itmp
+        if(itmp == IACCU_CD2 .or. itmp ==IACCU_CD4) then
+          domain(:)%is_central_differnece = .true.
+          domain(:)%is_compact_scheme = .false.
+        else if (itmp == IACCU_CP4 .or. itmp == IACCU_CP6) then
+          domain(:)%is_central_differnece = .false.
+          domain(:)%is_compact_scheme = .true.
+        else
+          call Print_error_msg("Input error for numerical schemes.")
+        end if
         read(inputUnit, *, iostat = ioerr) varname, itmp
         domain(:)%iviscous = itmp
 

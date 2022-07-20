@@ -201,6 +201,7 @@ subroutine Solve_eqs_iteration
         call view_data_in_rank(flow(i)%pres, domain(i)%dccc, domain(i), 'pr', iter*100+isub)
 #endif
       end do
+      stop
       !comment this part code for testing 
       ! below is for validation
       ! cpu time will be calculated later today 

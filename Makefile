@@ -28,6 +28,7 @@ ifeq ($(cfg), gnu)
 		   -ffree-line-length-512 \
        -Wuninitialized -Wmaybe-uninitialized\
 			 -Wno-unused\
+-fdefault-real-8 -fdefault-double-8\
        -fallow-argument-mismatch
 		   
 	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
@@ -71,13 +72,13 @@ OBJS= mpi_mod.o\
       restart.o\
       geometry.o\
       domain_decomposition.o\
+			visulisation.o\
       poisson_interface.o\
       poisson.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\
       test_algrithms.o\
-      visulisation.o\
       flow_initialization.o\
       chapsim.o
 
@@ -102,6 +103,7 @@ all:
 	@mv *.mod $(DIR_MOD)
 	@mv *.o $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
+	@echo -e "Successful! Done. \a"
 
 clean:
 	@rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)

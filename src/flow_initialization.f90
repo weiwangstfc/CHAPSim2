@@ -137,18 +137,18 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! update initial results
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      call Solve_momentum_eq(flow(l), domain(l), 0) ! check, necessary?
+      !call Solve_momentum_eq(flow(l), domain(l), 0) ! check, necessary?
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to write out data for check
 !---------------------------------------------------------------------------------------------------------------------------------------------
       call write_instantanous_flow_data(flow(l), domain(l))
       if(domain(l)%ithermo == 1) &
       call write_instantanous_thermo_data(thermo(l), domain(l))
+
+      call Check_mass_conservation(flow(l), domain(l)) 
+
     end do
-
-    call Check_mass_conservation(flow(l), domain(l)) 
-
-    stop
+    !stop
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to test algorithms based on given values.
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -318,7 +318,7 @@ contains
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(2)
+        do i = 1, dm%dpcc%xsz(1)
           write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
         end do
       end if
@@ -874,7 +874,7 @@ contains
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
           xp = dm%h(1) * real(ii - 1, WP) - PI
-          ux(i, j, k) =  sin_wp ( xp )! * cos_wp ( yc ) * cos_wp ( zc )
+          ux(i, j, k) =  sin_wp ( xp ) !* cos_wp ( yc ) * cos_wp ( zc )
         end do
       end do
     end do

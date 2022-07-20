@@ -222,6 +222,7 @@ contains
 #ifdef DEBUG   
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc1 
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_debug
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_debug2
     real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc_debug
     real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp_debug
 #endif
@@ -289,12 +290,13 @@ contains
     call transpose_y_to_z (qy_ypencil, qy_zpencil, dm%dcpc) ! qy_zpencil : y-mom, w+o thermal
     call Get_z_midp_C2P_3D(qy_zpencil, qy_cpp_zpencil, dm, dm%ibcz(:,i), dm%fbcz(:,i))  ! qy_cpp_zpencil : y-mom, w+o thermal
 
+    call Get_y_midp_P2C_3D(qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:,i)) !
+
     if(dm%ithermo == 0) then
       call transpose_z_to_y (qy_cpp_zpencil, qy_cpp_ypencil, dm%dcpp) ! qy_cpp_ypencil : z-mom, o thermal
     end if
 
-    if ( dm%ithermo == 1) then
-      call Get_y_midp_P2C_3D(qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:,i)) !
+    if ( dm%ithermo == 1) then 
       call transpose_y_to_x (qy_ccc_ypencil, qy_ccc,         dm%dccc)! qy_ccc: x-mom, w   thermal
       call transpose_y_to_z (qy_ccc_ypencil, qy_ccc_zpencil, dm%dccc)! qy_ccc_zpencil : z-mom, w   thermal
     end if
@@ -317,9 +319,9 @@ contains
     end if
 
     call transpose_y_to_z (qz_ypencil, qz_zpencil, dm%dccp) ! z-pencil : z-mom, w+o   thermal
+    call Get_z_midp_P2C_3D(qz_zpencil, qz_ccc_zpencil, dm, dm%ibcz(:,i)) ! intermediate, accc_zpencil = qz_ccc_zpencil
     if ( dm%ithermo == 1) then
-      call Get_z_midp_P2C_3D(qz_zpencil, qz_ccc_zpencil, dm, dm%ibcz(:,i)) ! intermediate, accc_zpencil = qz_ccc_zpencil
-      call transpose_z_to_y (qz_ccc_zpencil,    qz_ccc_ypencil, dm%dccc) ! y-pencil : y-mom, w   thermal
+      call transpose_z_to_y (qz_ccc_zpencil, qz_ccc_ypencil, dm%dccc) ! y-pencil : y-mom, w   thermal
       call transpose_y_to_x (qz_ccc_ypencil, qz_ccc,         dm%dccc) ! x-pencil : x-mom, w   thermal
     end if
 
@@ -482,6 +484,20 @@ contains
       call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, 1), fbc(:) )
     end if
 
+#ifdef DEBUG
+    ! x-pencil
+    k = dm%nc(3)/8
+    j = dm%nc(2)/8
+    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+        open(221, file = 'debugx_mid_deri_x_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dm%dpcc%xsz(1)
+          write(221, *) i, fl%qx(i, j, k), qx_ccc(i, j, k), apcc(i, j, k)
+        end do
+      end if
+    end if
+#endif
+
     if ( dm%ithermo == 1) then
       do m = 1, 2
         fbc(m) = dm%fbcx(m, 1) * dm%fbcx(m, 1) * dm%fbc_dend(m, 1)
@@ -530,7 +546,7 @@ contains
       open(121, file = 'debugy_convection_x_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dpcc%xsz(2)
         jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), apcc_debug(i, j, k), fl%mx_rhs(i, j, k), apcc1(i, j, k), apcc(i, j, k)
+        write(121, *) dm%yc(jj), apcc_debug(i, j, k)
       end do
     end if
 
@@ -539,8 +555,8 @@ contains
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_convection_x_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(2)
-          write(221, *) i, apcc_debug(i, j, k), fl%mx_rhs(i, j, k), apcc1(i, j, k), apcc(i, j, k)
+        do i = 1, dm%dpcc%xsz(1)
+          write(221, *) i, apcc_debug(i, j, k)
         end do
       end if
     end if
@@ -580,20 +596,24 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! X-pencil : X-mom diffusion term (x-v1-1/7), \mu^x * LL1(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1))
-    if ( dm%ithermo == 0) fl%mx_rhs = fl%mx_rhs +          fl%rre * apcc
+    !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1))
+  
+    call Get_x_1st_derivative_P2C_3D(fl%qx, apcc1, dm, dm%ibcx(:, 1))
+    call Get_x_1st_derivative_C2P_3D(apcc1, apcc,  dm, dm%ibcx(:, 1))
+
+    if ( dm%ithermo == 0) fl%mx_rhs = fl%mx_rhs +         fl%rre * apcc
     if ( dm%ithermo == 1) fl%mx_rhs = fl%mx_rhs + m_pcc * fl%rre * apcc
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * LL2(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     call Get_y_2nd_derivative_C2C_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy(:, 1))
-    if ( dm%ithermo == 0) mx_rhs_ypencil = mx_rhs_ypencil +                  fl%rre * apcc_ypencil
+    if ( dm%ithermo == 0) mx_rhs_ypencil = mx_rhs_ypencil +                 fl%rre * apcc_ypencil
     if ( dm%ithermo == 1) mx_rhs_ypencil = mx_rhs_ypencil + m_pcc_ypencil * fl%rre * apcc_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * LL3(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     call Get_z_2nd_derivative_C2C_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1), dm%fbcz(:, 1))
-    if ( dm%ithermo == 0) mx_rhs_zpencil = mx_rhs_zpencil +                  fl%rre * apcc_zpencil
+    if ( dm%ithermo == 0) mx_rhs_zpencil = mx_rhs_zpencil +                 fl%rre * apcc_zpencil
     if ( dm%ithermo == 1) mx_rhs_zpencil = mx_rhs_zpencil + m_pcc_zpencil * fl%rre * apcc_zpencil
 
     if ( dm%ithermo == 1) then
@@ -639,24 +659,27 @@ contains
       mx_rhs_zpencil = mx_rhs_zpencil + fl%rre * dmdz_pcc_zpencil * apcc_zpencil
     end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
-! x-mom: convert all terms to rhs
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
-    fl%mx_rhs =  fl%mx_rhs + apcc
-    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
-    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
-    fl%mx_rhs =  fl%mx_rhs + apcc
-!---------------------------------------------------------------------------------------------------------------------------------------------
 ! x-pencil : X-mom viscous terms - debug
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
+    ! x-pencil
+    apcc_debug2 = ZERO
+    apcc_debug2 = apcc_debug2 + fl%mx_rhs
+
+    call transpose_y_to_x (mx_rhs_ypencil, apcc1, dm%dpcc)
+    apcc_debug2 = apcc_debug2 + apcc1
+
+    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
+    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
+    apcc_debug2 = apcc_debug2 + apcc
+
     k = dm%nc(3)/8
     i = dm%nc(1)/8 + 1
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      open(121, file = 'debugy_conAvis_x_'//trim(int2str(nrank))//'.dat', position="append")
+      open(121, file = 'debugy_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dpcc%xsz(2)
         jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%mx_rhs(i, j, k)
+        write(121, *) dm%yc(jj), apcc_debug2(i, j, k) - apcc_debug(i, j, k), fl%mx_rhs(i, j, k), apcc1(i, j, k), apcc(i, j, k)
       end do
     end if
     close(121)
@@ -665,14 +688,21 @@ contains
     j = dm%nc(2)/8
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_conAvis_x_'//trim(int2str(nrank))//'.dat', position="append")
+        open(221, file = 'debugx_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, fl%mx_rhs(i, j, k)
+          write(221, *) i, apcc_debug2(i, j, k) - apcc_debug(i, j, k), fl%mx_rhs(i, j, k), apcc1(i, j, k), apcc(i, j, k)
         end do
       end if
     end if
-#endif      
-write(*,*) 'test2'
+#endif   
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! x-mom: convert all terms to rhs
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
+    fl%mx_rhs =  fl%mx_rhs + apcc
+    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
+    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
+    fl%mx_rhs =  fl%mx_rhs + apcc   
 !=============================================================================================================================================
 ! the RHS of Y momentum equation
 !=============================================================================================================================================
@@ -696,7 +726,6 @@ write(*,*) 'test2'
       call Get_x_1st_derivative_P2C_3D( -gx_ppc * qy_ppc, acpc, dm, dm%ibcx(:, 2) )
     end if
     fl%my_rhs = fl%my_rhs + acpc
-    write(*,*) 'test1'
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom convection term (y-c2/3), d(gy * qy)/dy at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -868,10 +897,10 @@ write(*,*) 'test2'
     k = dm%nc(3)/8
     i = dm%nc(1)/8
     if( k >= dm%dcpc%xst(3) .and. k <= dm%dcpc%xen(3)) then
-      open(121, file = 'debugy_conAvis_y_'//trim(int2str(nrank))//'.dat', position="append")
+      open(121, file = 'debugy_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dcpc%xsz(2)
         jj = dm%dcpc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%my_rhs(i, j, k)
+        write(121, *) dm%yc(jj), fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
       end do
     end if
 
@@ -879,9 +908,9 @@ write(*,*) 'test2'
     j = dm%nc(2)/8 + 1
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_conAvis_y_'//trim(int2str(nrank))//'.dat', position="append")
+        open(221, file = 'debugx_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, fl%my_rhs(i, j, k)
+          write(221, *) i, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
         end do
       end if
     end if
@@ -1090,10 +1119,10 @@ write(*,*) 'test2'
     k = dm%nc(3)/8 + 1
     i = dm%nc(1)/8
     if( k >= dm%dccp%xst(3) .and. k <= dm%dccp%xen(3)) then
-      open(121, file = 'debugy_conAvis_z_'//trim(int2str(nrank))//'.dat', position="append")
+      open(121, file = 'debugy_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dccp%xsz(2)
         jj = dm%dccp%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%mz_rhs(i, j, k)
+        write(121, *) dm%yc(jj), fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
       end do
     end if
 
@@ -1101,9 +1130,9 @@ write(*,*) 'test2'
     j = dm%nc(2)/8
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_conAvis_z_'//trim(int2str(nrank))//'.dat', position="append")
+        open(221, file = 'debugx_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, fl%mz_rhs(i, j, k)
+          write(221, *) i, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
         end do
       end if
     end if
@@ -1145,7 +1174,7 @@ write(*,*) 'test2'
 
 !=============================================================================================================================================
 !=============================================================================================================================================
-  subroutine Correct_massflux(ux, uy, uz, phi, dm, isub)
+  subroutine Correct_massflux(ux, uy, uz, phi_ccc, dm, isub)
     use udf_type_mod
     use input_general_mod
     use operations
@@ -1160,67 +1189,88 @@ write(*,*) 'test2'
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ), intent(inout) :: ux
     real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ), intent(inout) :: uy
     real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ), intent(inout) :: uz
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ), intent(in   ) :: phi
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ), intent(in   ) :: phi_ccc
 
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: dphidx
-    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: dphidy
-    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: dphidz
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: dphidx_pcc
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: dphidy_cpc
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: dphidz_ccp
 
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: phi_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dphidy_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: dphidz_ypencil
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: phi_ccc_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: dphidy_cpc_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: dphidz_ccp_ypencil
     
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: phi_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dphidz_zpencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: pphi_ccc_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dphidz_ccp_zpencil
     
 #ifdef DEBUG
     integer :: i, j, k, jj
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
-!   x-pencil, ux = ux - dt * alpha * d(phi)/dx
+!   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
 !_______________________________________________________________________________
-    dphidx = ZERO
-    call Get_x_1st_derivative_C2P_3D(phi,  dphidx, dm, dm%ibcx(:, 4), dm%fbcx(:, 4) )
-
+    dphidx_pcc = ZERO
+    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), dm%fbcx(:, 4) )
+    ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 #ifdef DEBUG
     k = dm%nc(3)/8
     j = dm%nc(2)/8
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_1st_ttt_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(2)
-          write(221, *) i, dphidx(i, j, k), &
-              dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx(i, j, k), &
-              ux(i, j, k), ux(i, j, k) - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx(i, j, k)
+        open(221, file = 'debugx_1st_decomp_u_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dm%dpcc%xsz(1)
+          write(221, *) i, dphidx_pcc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc(i, j, k), ux(i, j, k)
         end do
       end if
     end if
 #endif
 
-    ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx
+!---------------------------------------------------------------------------------------------------------------------------------------------
+!   y-pencil, uy = uy - dt * alpha * d(phi_ccc)/dy
+!_______________________________________________________________________________
+    phi_ccc_ypencil = ZERO
+    dphidy_cpc_ypencil = ZERO
+    dphidy_cpc = ZERO
+    call transpose_x_to_y (phi_ccc, phi_ccc_ypencil, dm%dccc)
+    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%ibcy(:, 4), dm%fbcy(:, 4) )
+    call transpose_y_to_x (dphidy_cpc_ypencil, dphidy_cpc, dm%dcpc)
+    uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
+#ifdef DEBUG
+    k = dm%nc(3)/8
+    j = dm%nc(2)/8+1
+    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+        open(221, file = 'debugx_1st_decomp_v_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dm%dpcc%xsz(1)
+          write(221, *) i, dphidy_cpc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc(i, j, k), uy(i, j, k)
+        end do
+      end if
+    end if
+#endif
+!---------------------------------------------------------------------------------------------------------------------------------------------
+!   z-pencil, uz = uz - dt * alpha * d(phi_ccc)/dz
+!_______________________________________________________________________________
+    pphi_ccc_zpencil =  ZERO
+    dphidz_ccp_zpencil = ZERO
+    dphidz_ccp_ypencil = ZERO
+    dphidz_ccp = ZERO
+    call transpose_y_to_z (phi_ccc_ypencil, pphi_ccc_zpencil, dm%dccc)
+    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%ibcz(:, 4), dm%fbcz(:, 4) )
+    call transpose_z_to_y (dphidz_ccp_zpencil, dphidz_ccp_ypencil, dm%dccp)
+    call transpose_y_to_x (dphidz_ccp_ypencil, dphidz_ccp,         dm%dccp)
+    uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp
 
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!   y-pencil, uy = uy - dt * alpha * d(phi)/dy
-!_______________________________________________________________________________
-    phi_ypencil = ZERO
-    dphidy_ypencil = ZERO
-    dphidy = ZERO
-    call transpose_x_to_y (phi, phi_ypencil, dm%dccc)
-    call Get_y_1st_derivative_C2P_3D(phi_ypencil, dphidy_ypencil, dm, dm%ibcy(:, 4), dm%fbcy(:, 4) )
-    call transpose_y_to_x (dphidy_ypencil, dphidy, dm%dcpc)
-    uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!   z-pencil, uz = uz - dt * alpha * d(phi)/dz
-!_______________________________________________________________________________
-    phi_zpencil =  ZERO
-    dphidz_zpencil = ZERO
-    dphidz_ypencil = ZERO
-    dphidz = ZERO
-    call transpose_y_to_z (phi_ypencil, phi_zpencil, dm%dccc)
-    call Get_z_1st_derivative_C2P_3D(phi_zpencil, dphidz_zpencil, dm, dm%ibcz(:, 4), dm%fbcz(:, 4) )
-    call transpose_z_to_y (dphidz_zpencil, dphidz_ypencil, dm%dccp)
-    call transpose_y_to_x (dphidz_ypencil, dphidz,         dm%dccp)
-    uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz
+#ifdef DEBUG
+    k = dm%nc(3)/8+1
+    j = dm%nc(2)/8
+    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+        open(221, file = 'debugx_1st_decomp_w_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dm%dpcc%xsz(1)
+          write(221, *) i, dphidz_ccp(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp(i, j, k), uz(i, j, k)
+        end do
+      end if
+    end if
+#endif
 
     return
   end subroutine Correct_massflux
@@ -1270,6 +1320,7 @@ write(*,*) 'test2'
     use mpi_mod
 #ifdef DEBUG
     use typeconvert_mod
+    use visulisation_mod
 #endif
     implicit none
 
@@ -1360,6 +1411,16 @@ write(*,*) 'test2'
     !if(nrank == 0) call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
     call Calculate_continuity_constrains(fl, dm, isub)
 #ifdef DEBUG
+    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'before_fft', 0)
+
+    do i = 1, dm%dccc%xsz(1)
+      do j = 1, dm%dccc%xsz(2)
+        do k = 1, dm%dccc%xsz(3)
+          write(*,*) 'bf', i, j, k, fl%pcor(i, j, k)
+        end do
+      end do
+    end do 
+
     k = dm%nc(3)/8
     i = dm%nc(1)/8
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
@@ -1375,7 +1436,7 @@ write(*,*) 'test2'
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(2)
+        do i = 1, dm%dpcc%xsz(1)
           write(221, *) i, fl%pcor(i, j, k)
         end do
       end if
@@ -1388,6 +1449,16 @@ write(*,*) 'test2'
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...")
     call solve_poisson(fl%pcor, dm)
 #ifdef DEBUG
+do i = 1, dm%dccc%xsz(1)
+  do j = 1, dm%dccc%xsz(2)
+    do k = 1, dm%dccc%xsz(3)
+      write(*,*) 'af', i, j, k, fl%pcor(i, j, k)
+    end do
+  end do
+end do 
+
+    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
+
     k = dm%nc(3)/8
     i = dm%nc(1)/8
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
@@ -1403,11 +1474,20 @@ write(*,*) 'test2'
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(2)
+        do i = 1, dm%dpcc%xsz(1)
           write(221, *) i, fl%pcor(i, j, k)
         end do
       end if
     end if
+
+    ! correct this to try
+    do i = 1, dm%dccc%xsz(1)
+      do j = 2, dm%dccc%xsz(2)
+        do k = 2, dm%dccc%xsz(3)
+          fl%pcor(i, j, k) = fl%pcor(i, 1, 1)
+        end do
+      end do
+    end do
 
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1445,7 +1525,7 @@ write(*,*) 'test2'
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_1st_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(2)
+        do i = 1, dm%dpcc%xsz(1)
           write(221, *) i, fl%qx(i, j, k), fl%qy(i, j + 1, k), fl%qz(i, j, k + 1), fl%pres(i, j, k)
         end do
       end if
