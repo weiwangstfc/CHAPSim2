@@ -16,11 +16,11 @@ module decomp_2d_poisson
 
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
-#ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-16_mytype
-#else
-  real(mytype), parameter :: epsilon = 1.e-8_mytype
-#endif
+!#ifdef DOUBLE_PREC
+  real(mytype), parameter :: epsilon = 1.e-17_mytype
+!#else
+!  real(mytype), parameter :: epsilon = 1.e-8_mytype
+!#endif
 
   ! boundary conditions
   integer, save :: bcx, bcy, bcz
@@ -376,7 +376,7 @@ contains
              end if
 
              !Print result in spectal space after Poisson
-             !     if (abs_prec(out(i,j,k)) > 1.0e-4) then
+             !     if (abs_prec(out(i,j,k)) > 1.0e-4_mytype) then
              !        write(*,*) 'AFTER',i,j,k,out(i,j,k),xyzk
              !     end if
 
@@ -474,7 +474,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'START', i, j, k, cw1(i,j,k)
              end if
           end do
@@ -493,7 +493,7 @@ contains
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -510,7 +510,7 @@ contains
                              tmp2 * by(j) - tmp1 * ay(j))
              if (j > (ny/2+1)) cw1(i,j,k) = -cw1(i,j,k)
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'after y',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -543,7 +543,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'after x',i,j,k,cw1b(i,j,k)
              end if
           end do
@@ -571,7 +571,7 @@ contains
                 cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (-tmp1), iy(cw1b(i,j,k)) / (-tmp2))
              end if
 #ifdef DEBUG
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'AFTER',i,j,k,cw1b(i,j,k)
 #endif
           end do
@@ -606,7 +606,7 @@ contains
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -624,7 +624,7 @@ contains
                              tmp2 * by(j) + tmp1 * ay(j))
              if (j > (ny/2+1)) cw1(i,j,k) = -cw1(i,j,k)
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -640,7 +640,7 @@ contains
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -736,7 +736,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -755,7 +755,7 @@ contains
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -772,7 +772,7 @@ contains
                              tmp2 * bx(i) - tmp1 * ax(i))
              if (i.gt.(nx/2+1)) cw1(i,j,k)=-cw1(i,j,k)
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'after x',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -808,7 +808,7 @@ contains
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'after y',i,j,k,cw2b(i,j,k)
                 write(*,*)kxyz(i,j,k)
              end if
@@ -935,7 +935,7 @@ contains
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'AFTER',i,j,k,cw2b(i,j,k)
                 write(*,*)kxyz(i,j,k)
              end if
@@ -974,7 +974,7 @@ contains
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -992,7 +992,7 @@ contains
                              tmp2 * bx(i) + tmp1 * ax(i))
              if (i > (nx/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1008,7 +1008,7 @@ contains
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1148,7 +1148,7 @@ contains
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -1167,7 +1167,7 @@ contains
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1215,7 +1215,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'after y',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -1253,7 +1253,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) then
                 write(*,*) 'BEFORE',i,j,k,cw1b(i,j,k)
              end if
           end do
@@ -1435,7 +1435,7 @@ contains
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -1474,7 +1474,7 @@ contains
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
                 write(*,100) 'AFTER Y',i,j,k,cw2b(i,j,k)
              end if
           end do
@@ -1496,7 +1496,7 @@ contains
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
 #ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do

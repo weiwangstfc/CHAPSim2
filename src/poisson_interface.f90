@@ -296,11 +296,11 @@ subroutine inversion5_v1(aaa_in,eee,spI)
   ! decomposition object for spectral space
   TYPE(DECOMP_INFO) :: spI
 
-#ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-16
-#else
-  real(mytype), parameter :: epsilon = 1.e-8
-#endif
+!#ifdef DOUBLE_PREC
+  real(mytype), parameter :: epsilon = 1.e-17_mytype
+!#else
+!  real(mytype), parameter :: epsilon = 1.e-8
+!#endif
 
   complex(mytype),dimension(spI%yst(1):spI%yen(1),ny/2,spI%yst(3):spI%yen(3),5) :: aaa, aaa_in
   complex(mytype),dimension(spI%yst(1):spI%yen(1),spI%yst(2):spI%yen(2),spI%yst(3):spI%yen(3)) :: eee
