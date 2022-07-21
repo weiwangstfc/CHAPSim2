@@ -20,7 +20,9 @@ module parameters_constant_mod
   implicit none
 
   real(WP), parameter :: ZPONE       = 0.1_WP
+  real(WP), parameter :: EIGHTH      = 0.125_WP
   real(WP), parameter :: ZPTWO       = 0.2_WP
+  real(WP), parameter :: QUARTER     = 0.25_WP
   real(WP), parameter :: ZPTHREE     = 0.3_WP
   real(WP), parameter :: ZPFOUR      = 0.4_WP
   real(WP), parameter :: HALF        = 0.5_WP
@@ -33,7 +35,7 @@ module parameters_constant_mod
   real(WP), parameter :: ONE         = 1.0_WP
   real(WP), parameter :: ONEPFIVE    = 1.5_WP
   real(WP), parameter :: TWO         = 2.0_WP
-  real(WP), parameter :: twopfive    = 2.5_WP
+  real(WP), parameter :: TWOPFIVE    = 2.5_WP
   real(WP), parameter :: THREE       = 3.0_WP
   real(WP), parameter :: threepfive  = 3.5_WP
   real(WP), parameter :: FOUR        = 4.0_WP
@@ -42,8 +44,8 @@ module parameters_constant_mod
   real(WP), parameter :: SEVEN       = 7.0_WP
   real(WP), parameter :: EIGHT       = 8.0_WP
   real(WP), parameter :: NINE        = 9.0_WP
-  real(WP), parameter :: ONE_THIRD   = ONE / THREE
-  real(WP), parameter :: TWO_THIRD   = TWO / THREE
+  real(WP), parameter :: ONE_THIRD   = 0.33333333333333333333_WP
+  real(WP), parameter :: TWO_THIRD   = 0.66666666666666666667_WP
 
   real(WP), parameter :: TEN         = 10.0_WP
   real(WP), parameter :: ELEVEN      = 11.0_WP
@@ -87,8 +89,8 @@ module parameters_constant_mod
 
   
 
-  real(WP), parameter :: PI          = dacos( -ONE )
-  real(WP), parameter :: TWOPI       = TWO * dacos( -ONE )
+  real(WP), parameter :: PI          = 3.14159265358979323846_WP !dacos( -ONE ) 
+  real(WP), parameter :: TWOPI       = 6.28318530717958647692_WP!TWO * dacos( -ONE )
 
   complex(mytype),parameter :: cx_one_one=cmplx(one, one, kind=mytype)
 
@@ -179,63 +181,63 @@ module parameters_constant_mod
   character(len = 64), parameter :: INPUT_SCP_WATER = 'NIST_WATER_23.5MP.DAT'
   character(len = 64), parameter :: INPUT_SCP_CO2   = 'NIST_CO2_8MP.DAT'
 
-  real(WP), parameter :: TM0_Na  = 371.0  ! unit: K, melting temperature at 1 atm for Na
-  real(WP), parameter :: TM0_Pb  = 600.6  ! unit: K, melting temperature at 1 atm for Lead
-  real(WP), parameter :: TM0_BI  = 544.6  ! unit: K, melting temperature at 1 atm for Bismuth
-  real(WP), parameter :: TM0_LBE = 398.0  ! unit: K, melting temperature at 1 atm for LBE
-  real(WP), parameter :: TM0_H2O = 273.15 ! unit: K, melting temperature at 1 atm for water
+  real(WP), parameter :: TM0_Na  = 371.0_WP  ! unit: K, melting temperature at 1 atm for Na
+  real(WP), parameter :: TM0_Pb  = 600.6_WP  ! unit: K, melting temperature at 1 atm for Lead
+  real(WP), parameter :: TM0_BI  = 544.6_WP  ! unit: K, melting temperature at 1 atm for Bismuth
+  real(WP), parameter :: TM0_LBE = 398.0_WP  ! unit: K, melting temperature at 1 atm for LBE
+  real(WP), parameter :: TM0_H2O = 273.15_WP ! unit: K, melting temperature at 1 atm for water
 
-  real(WP), parameter :: TB0_Na  = 1155.0 ! unit: K, boling temperature at 1 atm for Na
-  real(WP), parameter :: TB0_Pb  = 2021.0 ! unit: K, boling temperature at 1 atm for Lead
-  real(WP), parameter :: TB0_BI  = 1831.0 ! unit: K, boling temperature at 1 atm for Bismuth
-  real(WP), parameter :: TB0_LBE = 1927.0 ! unit: K, boling temperature at 1 atm for LBE
-  real(WP), parameter :: TB0_H2O = 373.15 ! unit: K, boling temperature at 1 atm for water
+  real(WP), parameter :: TB0_Na  = 1155.0_WP ! unit: K, boling temperature at 1 atm for Na
+  real(WP), parameter :: TB0_Pb  = 2021.0_WP ! unit: K, boling temperature at 1 atm for Lead
+  real(WP), parameter :: TB0_BI  = 1831.0_WP ! unit: K, boling temperature at 1 atm for Bismuth
+  real(WP), parameter :: TB0_LBE = 1927.0_WP ! unit: K, boling temperature at 1 atm for LBE
+  real(WP), parameter :: TB0_H2O = 373.15_WP ! unit: K, boling temperature at 1 atm for water
 
-  real(WP), parameter :: HM0_Na  = 113.0e3 ! unit: J / Kg, latent melting heat, enthalpy for Na
-  real(WP), parameter :: HM0_Pb  = 23.07e3 ! unit: J / Kg, latent melting heat, enthalpy for Lead
-  real(WP), parameter :: HM0_BI  = 53.3e3  ! unit: J / Kg, latent melting heat, enthalpy for Bismuth
-  real(WP), parameter :: HM0_LBE = 38.6e3  ! unit: J / Kg, latent melting heat, enthalpy for LBE
-  real(WP), parameter :: HM0_H2O = 334.0e3 ! unit: J / Kg, latent melting heat, enthalpy for water
+  real(WP), parameter :: HM0_Na  = 113.0e3_WP ! unit: J / Kg, latent melting heat, enthalpy for Na
+  real(WP), parameter :: HM0_Pb  = 23.07e3_WP ! unit: J / Kg, latent melting heat, enthalpy for Lead
+  real(WP), parameter :: HM0_BI  =  53.3e3_WP ! unit: J / Kg, latent melting heat, enthalpy for Bismuth
+  real(WP), parameter :: HM0_LBE =  38.6e3_WP ! unit: J / Kg, latent melting heat, enthalpy for LBE
+  real(WP), parameter :: HM0_H2O = 334.0e3_WP ! unit: J / Kg, latent melting heat, enthalpy for water
 
   ! D = CoD(0) + CoD(1) * T
-  real(WP), parameter :: CoD_Na(0:1) = (/1014.0, -0.235/)
-  real(WP), parameter :: CoD_Pb(0:1) = (/11441.0, -1.2795/)
-  real(WP), parameter :: CoD_Bi(0:1) = (/10725.0, -1.22 /)
-  real(WP), parameter :: CoD_LBE(0:1) = (/11065.0, 1.293 /)
+  real(WP), parameter :: CoD_Na(0:1)  = (/ 1014.0_WP,  -0.235_WP /)
+  real(WP), parameter :: CoD_Pb(0:1)  = (/11441.0_WP, -1.2795_WP /)
+  real(WP), parameter :: CoD_Bi(0:1)  = (/10725.0_WP,   -1.22_WP /)
+  real(WP), parameter :: CoD_LBE(0:1) = (/11065.0_WP,   1.293_WP /)
 
   ! K = CoK(0) + CoK(1) * T + CoK(2) * T^2
-  real(WP), parameter :: CoK_Na(0:2) = (/104.0, -0.047, 0.0/)
-  real(WP), parameter :: CoK_Pb(0:2) = (/9.2, 0.011, 0.0/)
-  real(WP), parameter :: CoK_Bi(0:2) = (/7.34, 9.5E-3, 0.0/)
-  real(WP), parameter :: CoK_LBE(0:2) = (/ 3.284, 1.617E-2, -2.305E-6/)
+  real(WP), parameter :: CoK_Na(0:2)  = (/104.0_WP,   -0.047_WP,       0.0_WP/)
+  real(WP), parameter :: CoK_Pb(0:2)  = (/  9.2_WP,    0.011_WP,       0.0_WP/)
+  real(WP), parameter :: CoK_Bi(0:2)  = (/ 7.34_WP,   9.5E-3_WP,       0.0_WP/)
+  real(WP), parameter :: CoK_LBE(0:2) = (/3.284_WP, 1.617E-2_WP, -2.305E-6_WP/)
 
   ! B = 1 / (CoB - T)
-  real(WP), parameter :: CoB_Na = 4316.0
-  real(WP), parameter :: CoB_Pb = 8942.0
-  real(WP), parameter :: CoB_BI = 8791.0
-  real(WP), parameter :: CoB_LBE = 8558.0
+  real(WP), parameter :: CoB_Na = 4316.0_WP
+  real(WP), parameter :: CoB_Pb = 8942.0_WP
+  real(WP), parameter :: CoB_BI = 8791.0_WP
+  real(WP), parameter :: CoB_LBE= 8558.0_WP
 
   ! Cp = CoCp(-2) * T^(-2) + CoCp(-1) * T^(-1) + CoCp(0) + CoCp(1) * T + CoCp(2) * T^2
-  real(WP), parameter :: CoCp_Na(-2:2) = (/- 3.001e6, 0.0, 1658.0, -0.8479, 4.454E-4/)
-  real(WP), parameter :: CoCp_Pb(-2:2) = (/- 1.524e6, 0.0, 176.2, -4.923E-2, 1.544E-5/)
-  real(WP), parameter :: CoCp_Bi(-2:2) = (/7.183e6, 0.0, 118.2, 5.934E-3, 0.0/)
-  real(WP), parameter :: CoCp_LBE(-2:2) = (/-4.56e5, 0.0, 164.8, - 3.94E-2, 1.25E-5/)
+  real(WP), parameter :: CoCp_Na(-2:2) = (/-3.001e6_WP, 0.0_WP, 1658.0_WP,   -0.8479_WP, 4.454E-4_WP/)
+  real(WP), parameter :: CoCp_Pb(-2:2) = (/-1.524e6_WP, 0.0_WP,  176.2_WP, -4.923E-2_WP, 1.544E-5_WP/)
+  real(WP), parameter :: CoCp_Bi(-2:2) = (/ 7.183e6_WP, 0.0_WP,  118.2_WP,  5.934E-3_WP,      0.0_WP/)
+  real(WP), parameter :: CoCp_LBE(-2:2)= (/-4.56e5_WP, 0.0_WP,  164.8_WP, - 3.94E-2_WP,  1.25E-5_WP/)
 
   ! H = HM0 + CoH(-1) * (1 / T - 1 / Tm0) + CoH(0) + CoH(1) * (T - Tm0) +  CoH(2) * (T^2 - Tm0^2) +  CoH(3) * (T^3- Tm0^3)
-  real(WP), parameter :: CoH_Na(-1:3) = (/4.56e5, 0.0, 164.8, -1.97E-2, 4.167E-4/)
-  real(WP), parameter :: CoH_Pb(-1:3) = (/1.524e6, 0.0, 176.2, -2.4615E-2, 5.147E-6/)
-  real(WP), parameter :: CoH_Bi(-1:3) = (/-7.183e6, 0.0, 118.2, 2.967E-3, 0.0/)
-  real(WP), parameter :: CoH_LBE(-1:3) = (/4.56e5, 0.0, 164.8, -1.97E-2, 4.167E-4/)! check, WRong from literature.
+  real(WP), parameter :: CoH_Na(-1:3)  = (/  4.56e5_WP, 0.0_WP, 164.8_WP,   -1.97E-2_WP, 4.167E-4_WP/)
+  real(WP), parameter :: CoH_Pb(-1:3)  = (/ 1.524e6_WP, 0.0_WP, 176.2_WP, -2.4615E-2_WP, 5.147E-6_WP/)
+  real(WP), parameter :: CoH_Bi(-1:3)  = (/-7.183e6_WP, 0.0_WP, 118.2_WP,   2.967E-3_WP,      0.0_WP/)
+  real(WP), parameter :: CoH_LBE(-1:3) = (/  4.56e5_WP, 0.0_WP, 164.8_WP,   -1.97E-2_WP, 4.167E-4_WP/)! check, WRong from literature.
 
   ! M = vARies
-  real(WP), parameter :: CoM_Na(-1:1) = (/556.835, -6.4406, -0.3958/) ! M = exp ( CoM(-1) / T + CoM(0) + CoM(1) * ln(T) )
-  real(WP), parameter :: CoM_Pb(-1:1) = (/1069.0, 4.55E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
-  real(WP), parameter :: CoM_Bi(-1:1) = (/780.0, 4.456E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
-  real(WP), parameter :: CoM_LBE(-1:1) = (/754.1, 4.94E-4, 0.0/) ! M = CoM(0) * exp (CoM(-1) / T)
+  real(WP), parameter :: CoM_Na(-1:1) = (/556.835_WP,  -6.4406_WP, -0.3958_WP/) ! M = exp ( CoM(-1) / T + CoM(0) + CoM(1) * ln(T) )
+  real(WP), parameter :: CoM_Pb(-1:1) = (/ 1069.0_WP,  4.55E-4_WP,     0.0_WP/) ! M = CoM(0) * exp (CoM(-1) / T)
+  real(WP), parameter :: CoM_Bi(-1:1) = (/  780.0_WP, 4.456E-4_WP,     0.0_WP/) ! M = CoM(0) * exp (CoM(-1) / T)
+  real(WP), parameter :: CoM_LBE(-1:1)= (/  754.1_WP,  4.94E-4_WP,     0.0_WP/) ! M = CoM(0) * exp (CoM(-1) / T)
 end module parameters_constant_mod
 !=============================================================================================================================================
 module wtformat_mod
-  use iso_fortran_env
+  !use iso_fortran_env
   implicit none
 
   character(len = 17) :: wrtfmt1i   = '(2X, A48, 1I20.1)'

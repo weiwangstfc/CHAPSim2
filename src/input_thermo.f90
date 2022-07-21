@@ -447,7 +447,7 @@ contains
 !> \param[inout]  iomsg         
 !_______________________________________________________________________________
   subroutine ftp_print(this, unit, iotype, v_list, iostat, iomsg)
-    use iso_fortran_env, only : error_unit
+    !use iso_fortran_env, only : error_unit
     type(t_fluidThermoProperty), intent(in) :: this
     integer, intent(in)                 :: unit
     character(len = *), intent(in)      :: iotype
@@ -474,8 +474,8 @@ contains
     end do 
 
     if(iostat /= 0) then
-      write (error_unit, "(A)") "print error : " // trim(iomsg)
-      write (error_unit, "(A, I0)") "  iostat : ", iostat
+      write (*, "(A)") "print error : " // trim(iomsg)
+      write (*, "(A, I0)") "  iostat : ", iostat
     end if
     return
   end subroutine ftp_print
@@ -595,7 +595,7 @@ contains
   subroutine buildup_property_relations_from_table
     use mpi_mod
     use wtformat_mod
-    use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
+    !use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
 
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
@@ -613,8 +613,8 @@ contains
            iostat  = ioerr,         &
            iomsg   = iotxt)
     if(ioerr /= 0) then
-      write (ERROR_UNIT, *) 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
-      write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
+      write (*, *) 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
+      write (*, *) 'Message: ', trim (iotxt)
       stop 4
     end if
 
@@ -670,16 +670,16 @@ contains
 
     if (nrank == 0 ) then
       call Print_debug_start_msg("The reference thermal properties are")
-      write (OUTPUT_UNIT, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
-      write (OUTPUT_UNIT, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
-      write (OUTPUT_UNIT, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
-      write (OUTPUT_UNIT, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
-      write (OUTPUT_UNIT, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
-      write (OUTPUT_UNIT, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (OUTPUT_UNIT, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
+      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
+      write (*, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
+      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
+      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
+      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
+      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
       call Print_debug_mid_msg("The range of the property table (undim)")
-      write (OUTPUT_UNIT, wrtfmt2r) '  Temperature',            ftplist(1)%t, ftplist(fluidparam%nlist)%t
-      write (OUTPUT_UNIT, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
+      write (*, wrtfmt2r) '  Temperature',            ftplist(1)%t, ftplist(fluidparam%nlist)%t
+      write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
     end if
 
     is_ftplist_dim = .false.
@@ -743,16 +743,16 @@ contains
 
     if (nrank == 0 ) then
       call Print_debug_start_msg("The reference thermal properties are")
-      write (OUTPUT_UNIT, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
-      write (OUTPUT_UNIT, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
-      write (OUTPUT_UNIT, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
-      write (OUTPUT_UNIT, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
-      write (OUTPUT_UNIT, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
-      write (OUTPUT_UNIT, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (OUTPUT_UNIT, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
+      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
+      write (*, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
+      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
+      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
+      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
+      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
       call Print_debug_mid_msg("The range of the property table (undim)")
-      write (OUTPUT_UNIT, wrtfmt2r) '  Temperature',            ftplist(1)%t, ftplist(N_FUNC2TABLE)%t
-      write (OUTPUT_UNIT, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
+      write (*, wrtfmt2r) '  Temperature',            ftplist(1)%t, ftplist(N_FUNC2TABLE)%t
+      write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
     end if
 
     return

@@ -112,7 +112,7 @@ end subroutine Initialize_chapsim
 !> \param[out]    none          NA
 !_______________________________________________________________________________
 subroutine Solve_eqs_iteration
-  use iso_fortran_env
+  !use iso_fortran_env
   use solver_tools_mod!,   only : Check_cfl_diffusion, Check_cfl_convection
   use continuity_eq_mod
   !use poisson_mod
@@ -190,8 +190,10 @@ subroutine Solve_eqs_iteration
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
 #ifdef DEBG
-        if(nrank == 0) write (OUTPUT_UNIT, wrtfmt1i) "  Sub-iteration in RK = ", isub
-        call Check_maximum_velocity(flow(i)%qx, flow(i)%qy, flow(i)%qz)
+        if(nrank == 0) write (*, wrtfmt1i) "  Sub-iteration in RK = ", isub
+        call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:")
+        call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:")
+        call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:")
         call Check_mass_conservation(flow(i), domain(i)) 
 #endif
 #ifdef DEBUG

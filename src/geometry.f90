@@ -100,11 +100,13 @@ contains
     gamma = ONE
     delta = ZERO
     if (dm%istret == ISTRET_NO) then
-      y(:) = eta(:)
-      y(:) = y(:) * (dm%lyt - dm%lyb) + dm%lyb
-      mp(:, 1) = ONE
-      mp(:, 2) = ONE
-      mp(:, 3) = ONE
+      do j = 1, n
+        y(j) = eta(j)
+        y(j) = y(j) * (dm%lyt - dm%lyb) + dm%lyb
+        mp(j, 1) = ONE
+        mp(j, 2) = ONE
+        mp(j, 3) = ONE
+      end do
       return
     else if (dm%istret == ISTRET_CENTRE) then
       gamma = ONE
@@ -238,7 +240,7 @@ contains
     !---------------------------------------------------------------------------------------------------------------------------------------------
     if(dbg) then
       do i = 1, dm%np_geo(2)
-        write (OUTPUT_UNIT, wrtfmt1i1r) i, dm%yp(i)
+        write (*, wrtfmt1i1r) i, dm%yp(i)
       end do
     end if
 

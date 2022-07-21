@@ -77,8 +77,8 @@ contains
            iostat  = ioerr, &
            iomsg   = iotxt )
     if(ioerr /= 0) then
-      write (ERROR_UNIT, *) 'Problem openning : ', flname, ' for reading.'
-      write (ERROR_UNIT, *) 'Message: ', trim (iotxt)
+      write (*, *) 'Problem openning : ', flname, ' for reading.'
+      write (*, *) 'Message: ', trim (iotxt)
       stop 1
     end if
 
@@ -118,10 +118,10 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  x-dir domain number             :', nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
-            write (OUTPUT_UNIT, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
+            write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
+            write (*, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -145,9 +145,9 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1s) 'icase option: 1 = CHANNEL, 2 = PIPE, 3 = ANNUAL, 4 = TGV3D, 5 = BURGERS'
-            write (OUTPUT_UNIT, wrtfmt1i) '  icase : ', domain(i)%icase
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1s) 'icase option: 1 = CHANNEL, 2 = PIPE, 3 = ANNUAL, 4 = TGV3D, 5 = BURGERS'
+            write (*, wrtfmt1i) '  icase : ', domain(i)%icase
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -195,23 +195,23 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx(1:2, 1), domain(i)%fbcx(1:2, 1)
-            write (OUTPUT_UNIT, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
-            write (OUTPUT_UNIT, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
-            write (OUTPUT_UNIT, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
-            write (OUTPUT_UNIT, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5)
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx(1:2, 1), domain(i)%fbcx(1:2, 1)
+            write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
+            write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
+            write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
+            write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5)
           end do
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
-          write (OUTPUT_UNIT, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
+          write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
+          write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
+          write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
+          write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
+          write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5)
+          write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
+          write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
+          write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
+          write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
+          write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
       ! [mesh] 
@@ -229,12 +229,12 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  mesh cell number - x     :', domain(i)%nc(1)
-            write (OUTPUT_UNIT, wrtfmt1i) '  mesh cell number - y     :', domain(i)%nc(2)
-            write (OUTPUT_UNIT, wrtfmt1i) '  mesh cell number - z     :', domain(i)%nc(3)
-            write (OUTPUT_UNIT, wrtfmt1i) '  mesh y-stretching type   :', domain(i)%istret
-            write (OUTPUT_UNIT, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  mesh cell number - x     :', domain(i)%nc(1)
+            write (*, wrtfmt1i) '  mesh cell number - y     :', domain(i)%nc(2)
+            write (*, wrtfmt1i) '  mesh cell number - z     :', domain(i)%nc(3)
+            write (*, wrtfmt1i) '  mesh y-stretching type   :', domain(i)%istret
+            write (*, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -248,9 +248,9 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1r) '  physical time step(dt) :', domain(i)%dt
-            write (OUTPUT_UNIT, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1r) '  physical time step(dt) :', domain(i)%dt
+            write (*, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -273,9 +273,9 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  spatial accuracy scheme :', domain(i)%iAccuracy
-            write (OUTPUT_UNIT, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  spatial accuracy scheme :', domain(i)%iAccuracy
+            write (*, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -290,10 +290,10 @@ contains
         
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1r) '  flow Reynolds number   :', flow(i)%ren
-            write (OUTPUT_UNIT, wrtfmt1i) '  flow driven force type :', flow(i)%idriven
-            write (OUTPUT_UNIT, wrtfmt1r) '  flow driven force(cf)  :', flow(i)%drvfc
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1r) '  flow Reynolds number   :', flow(i)%ren
+            write (*, wrtfmt1i) '  flow driven force type :', flow(i)%idriven
+            write (*, wrtfmt1r) '  flow driven force(cf)  :', flow(i)%drvfc
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -322,14 +322,14 @@ contains
 
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
-            write (OUTPUT_UNIT, wrtfmt1r) '  reference length (m)      :', thermo(i)%lenRef
-            write (OUTPUT_UNIT, wrtfmt1r) '  reference temperature (K) :', thermo(i)%t0ref
-            write (OUTPUT_UNIT, wrtfmt1i) '  is thermal field solved   ?', domain(i)%ithermo
-            write (OUTPUT_UNIT, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
-            write (OUTPUT_UNIT, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
-            write (OUTPUT_UNIT, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%t0ini
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
+            write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%lenRef
+            write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%t0ref
+            write (*, wrtfmt1i) '  is thermal field solved   ?', domain(i)%ithermo
+            write (*, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
+            write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
+            write (*, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%t0ini
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -346,12 +346,12 @@ contains
         end do
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  flow restart                       :', flow(i)%irestart
-            write (OUTPUT_UNIT, wrtfmt1i) '  restarting from iteration          :', flow(i)%nrsttckpt
-            write (OUTPUT_UNIT, wrtfmt1i) '  Iteration for initial Reynolds No. :', flow(i)%nIterIniRen
-            write (OUTPUT_UNIT, wrtfmt1r) '  Initial Reynolds No.               :', flow(i)%renIni
-            write (OUTPUT_UNIT, wrtfmt1r) '  Initial velocity influction level  :', flow(i)%initNoise
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  flow restart                       :', flow(i)%irestart
+            write (*, wrtfmt1i) '  restarting from iteration          :', flow(i)%nrsttckpt
+            write (*, wrtfmt1i) '  Iteration for initial Reynolds No. :', flow(i)%nIterIniRen
+            write (*, wrtfmt1r) '  Initial Reynolds No.               :', flow(i)%renIni
+            write (*, wrtfmt1r) '  Initial velocity influction level  :', flow(i)%initNoise
           end do
         end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -367,12 +367,12 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  flow simulation starting from iteration    :', flow(i)%nIterFlowStart
-            write (OUTPUT_UNIT, wrtfmt1i) '  flow simulation ending   at   iteration    :', flow(i)%nIterFlowEnd
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  flow simulation starting from iteration    :', flow(i)%nIterFlowStart
+            write (*, wrtfmt1i) '  flow simulation ending   at   iteration    :', flow(i)%nIterFlowEnd
             if(is_any_energyeq) then
-            write (OUTPUT_UNIT, wrtfmt1i) '  thermal simulation starting from iteration :', thermo(i)%nIterThermoStart
-            write (OUTPUT_UNIT, wrtfmt1i) '  thermal simulation ending   at   iteration :', thermo(i)%nIterThermoEnd
+            write (*, wrtfmt1i) '  thermal simulation starting from iteration :', thermo(i)%nIterThermoStart
+            write (*, wrtfmt1i) '  thermal simulation ending   at   iteration :', thermo(i)%nIterThermoEnd
             end if
           end do
         end if
@@ -387,11 +387,11 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (OUTPUT_UNIT, wrtfmt1i) 'For the domain-x  = ', i
-            write (OUTPUT_UNIT, wrtfmt1i) '  raw  data written freqency  :', domain(i)%nfreqckpt
-            write (OUTPUT_UNIT, wrtfmt1i) '  visu data written freqency  :', domain(i)%nvisu
-            write (OUTPUT_UNIT, wrtfmt1i) '  statistics written from     :', domain(i)%nIterStatsStart
-            write (OUTPUT_UNIT, wrtfmt1i) '  statistics written freqency :', domain(i)%nfreqStats
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '  raw  data written freqency  :', domain(i)%nfreqckpt
+            write (*, wrtfmt1i) '  visu data written freqency  :', domain(i)%nvisu
+            write (*, wrtfmt1i) '  statistics written from     :', domain(i)%nIterStatsStart
+            write (*, wrtfmt1i) '  statistics written freqency :', domain(i)%nfreqStats
           end do
         end if
       else
@@ -401,7 +401,7 @@ contains
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! end of reading, clearing dummies
     !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(ioerr /= IOSTAT_END) &
+    if(.not.IS_IOSTAT_END(ioerr)) &
     call Print_error_msg( 'Problem reading '//flname // &
     'in Subroutine: '// "Read_general_input")
 
@@ -464,15 +464,15 @@ contains
       else if (domain(i)%icase == ICASE_TGV2D) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")
-        domain(i)%lxx = TWO * PI
-        domain(i)%lzz = TWO * PI
+        domain(i)%lxx = TWOPI
+        domain(i)%lzz = TWOPI
         domain(i)%lyt =   PI
         domain(i)%lyb = - PI
       else if (domain(i)%icase == ICASE_TGV3D) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")
-        domain(i)%lxx = TWO * PI
-        domain(i)%lzz = TWO * PI
+        domain(i)%lxx = TWOPI
+        domain(i)%lzz = TWOPI
         domain(i)%lyt = PI
         domain(i)%lyb = - PI
       else if (domain(i)%icase == ICASE_BURGERS) then
@@ -487,9 +487,9 @@ contains
       end if
 
       if( nrank == 0) then
-        write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
-        write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
-        write (OUTPUT_UNIT, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
+        write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
+        write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
+        write (*, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
       end if
       !---------------------------------------------------------------------------------------------------------------------------------------------
       !  set up periodic b.c. boolean, based on velocity
@@ -527,7 +527,7 @@ contains
         domain(i)%tGamma(0) = ONE
         domain(i)%tGamma(1) = EIGHT / FIFTEEN
         domain(i)%tGamma(2) = FIVE / TWELVE
-        domain(i)%tGamma(3) = THREE / FOUR
+        domain(i)%tGamma(3) = THREE * QUARTER
   
         domain(i)%tZeta (0) = ZERO
         domain(i)%tZeta (1) = ZERO
@@ -538,7 +538,7 @@ contains
   
         domain(i)%nsubitr = 1
         domain(i)%tGamma(0) = ONE
-        domain(i)%tGamma(1) = THREE / TWO
+        domain(i)%tGamma(1) = ONEPFIVE
         domain(i)%tGamma(2) = ZERO
         domain(i)%tGamma(3) = ZERO
   

@@ -28,8 +28,9 @@ ifeq ($(cfg), gnu)
 		   -ffree-line-length-512 \
        -Wuninitialized -Wmaybe-uninitialized\
 			 -Wno-unused\
--fdefault-real-8 -fdefault-double-8\
-       -fallow-argument-mismatch
+-fdefault-real-8 -fdefault-double-8
+       
+# -fallow-argument-mismatch
 		   
 	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
 else ifeq ($(cfg), intel)
@@ -103,7 +104,7 @@ all:
 	@mv *.mod $(DIR_MOD)
 	@mv *.o $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
-	@echo -e "Successful! Done. \a"
+	@echo -e "Successfully compiled. \a"
 
 clean:
 	@rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)

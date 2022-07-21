@@ -4,6 +4,7 @@ obj/
 mod/
 ## lib/2decomp_fft/
 example/.notshown/
+example/
 .input/
 .obsolete/
 .tmp/

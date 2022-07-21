@@ -12,7 +12,6 @@ module solver_tools_mod
   public  :: Update_PrGr
   public  :: Calculate_xz_mean_yprofile
   public  :: Adjust_to_xzmean_zero
-  public  :: Check_maximum_velocity
   public  :: Get_volumetric_average_3d
   public  :: Find_maximum_absvar3d
 
@@ -33,7 +32,7 @@ contains
     use thermo_info_mod
     use udf_type_mod
     implicit none
-    integer,     intent(in   ) :: iter  
+    integer,     intent(in ) :: iter  
     type(t_flow),   intent(inout) :: fl
 
   !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -326,7 +325,7 @@ contains
 !=============================================================================================================================================
   subroutine Check_cfl_diffusion(x2r, rre, dt)
     use parameters_constant_mod
-    use iso_fortran_env
+    !use iso_fortran_env
     use mpi_mod
     use wtformat_mod
     implicit none
@@ -339,7 +338,7 @@ contains
     cfl_diff = sum(x2r) * TWO * dt * rre
     if(nrank == 0) then
       if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-      write (OUTPUT_UNIT, wrtfmt1r) "  Diffusion number :", cfl_diff
+      write (*, wrtfmt1r) "  Diffusion number :", cfl_diff
     end if
     
     return
@@ -457,12 +456,12 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(udx_zpencil, cfl_convection_work)
+    call Find_maximum_absvar3d(udx_zpencil, "CFL (convection) :")
 
-    if(nrank == 0) then
-      if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
-      write (OUTPUT_UNIT, wrtfmt1r) "  CFL (convection) :", cfl_convection_work
-    end if
+    ! if(nrank == 0) then
+    !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
+    !   write (*, wrtfmt1r) "  CFL (convection) :", cfl_convection_work
+    ! end if
     
     return
   end subroutine
@@ -605,58 +604,41 @@ contains
   end subroutine Get_volumetric_average_3d
 
 !=============================================================================================================================================
-!>\brief : to find the maximum values of velocity
-!--------------------------------------------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    needed         N/A         pubic
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!> MPI : 
-!>     default x-pencil
-!---------------------------------------------------------------------------------------------------------------------------------------------
-! Arguments
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!> \param[inout]         
-!=============================================================================================================================================
-  subroutine Check_maximum_velocity(ux, uy, uz)
+  subroutine Find_maximum_absvar3d(var,  str)
     use precision_mod
     use math_mod
     use mpi_mod
     use wtformat_mod
     implicit none
 
-    real(WP), intent(in) :: ux(:, :, :)
-    real(WP), intent(in) :: uy(:, :, :)
-    real(WP), intent(in) :: uz(:, :, :)
-
-    real(WP)   :: ux_work, uy_work, uz_work
-
-    call Find_maximum_absvar3d(ux, ux_work)
-    call Find_maximum_absvar3d(uy, uy_work)
-    call Find_maximum_absvar3d(uz, uz_work)
-
-    if(nrank == 0) then
-      write (OUTPUT_UNIT, wrtfmt3r) 'The maximum velocities are:', ux_work, uy_work, uz_work
-    end if
-
-    return
-  end subroutine
-!=============================================================================================================================================
-  subroutine Find_maximum_absvar3d(var, varmax_work)
-    use precision_mod
-    use math_mod
-    use mpi_mod
-    implicit none
-
     real(WP), intent(in)  :: var(:, :, :)
-    real(WP), intent(out) :: varmax_work
-
+    character(len = *), intent(in) :: str
+    
+    real(WP):: varmax_work
     real(WP)   :: varmax
 
-    varmax = MAXVAL( abs_wp( var(:, :, :) ) ) 
+    integer :: i, j, k, nx, ny, nz
+    nx = size(var, 1)
+    ny = size(var, 2)
+    nz = size(var, 3)
+
+    varmax = ZERO
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if(abs_wp(var(i, j, k)) > varmax) varmax = abs_wp(var(i, j, k))
+        end do
+      end do
+    end do
+
+    !varmax = MAXVAL( abs_wp( var(:, :, :) ) ) 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varmax, varmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, wrtfmt1e) str, varmax_work
+    end if
+
     return
   end subroutine
 !=============================================================================================================================================

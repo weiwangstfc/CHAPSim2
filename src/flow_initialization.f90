@@ -137,18 +137,16 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! update initial results
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      !call Solve_momentum_eq(flow(l), domain(l), 0) ! check, necessary?
+      call Solve_momentum_eq(flow(l), domain(l), 0) ! check, necessary?
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to write out data for check
 !---------------------------------------------------------------------------------------------------------------------------------------------
       call write_instantanous_flow_data(flow(l), domain(l))
       if(domain(l)%ithermo == 1) &
-      call write_instantanous_thermo_data(thermo(l), domain(l))
-
-      call Check_mass_conservation(flow(l), domain(l)) 
+      call write_instantanous_thermo_data(thermo(l), domain(l)) 
 
     end do
-    !stop
+    stop
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to test algorithms based on given values.
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -303,8 +301,8 @@ contains
 #endif
 
 #ifdef DEBUG
-    k = dm%nc(3)/8
-    i = dm%nc(1)/8
+    k = 2
+    i = 2
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dpcc%xsz(2)
@@ -313,8 +311,8 @@ contains
       end do
     end if
 
-    k = dm%nc(3)/8
-    j = dm%nc(2)/8
+    k = 2
+    j = 2
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
@@ -328,7 +326,9 @@ contains
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Check_maximum_velocity(fl%qx, fl%qy, fl%qz)
+    call Find_maximum_absvar3d(fl%qx, "maximum ux:")
+    call Find_maximum_absvar3d(fl%qy, "maximum uy:")
+    call Find_maximum_absvar3d(fl%qz, "maximum uz:")
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to set up flow iterations 
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -402,7 +402,7 @@ contains
     ymax = dm%yp( dm%np_geo(2) )
     ymin = dm%yp( 1 )
     if (dm%icase == ICASE_CHANNEL) then
-      a = (ymax - ymin) / TWO
+      a = (ymax - ymin) * HALF
       b = ZERO
       c = ONEPFIVE
     else if (dm%icase == ICASE_PIPE) then
@@ -410,8 +410,8 @@ contains
       b = ZERO
       c = TWO
     else if (dm%icase == ICASE_ANNUAL) then
-      a = (ymax - ymin) / TWO
-      b = (ymax + ymin) / TWO
+      a = (ymax - ymin) * HALF
+      b = (ymax + ymin) * HALF
       c = TWO
     else 
       a = MAXP
@@ -587,7 +587,9 @@ contains
     !   x-pencil : build up boundary
     !---------------------------------------------------------------------------------------------------------------------------------------------
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Check_maximum_velocity(ux, uy, uz)
+    call Find_maximum_absvar3d(ux, "maximum ux:")
+    call Find_maximum_absvar3d(uy, "maximum uy:")
+    call Find_maximum_absvar3d(uz, "maximum uz:")
     !---------------------------------------------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -595,7 +597,7 @@ contains
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
-      write (OUTPUT_UNIT, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
 
     ux(:, :, :) = ux(:, :, :) / ubulk
@@ -604,7 +606,7 @@ contains
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
-      write (OUTPUT_UNIT, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
     ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
 
@@ -650,7 +652,7 @@ contains
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in   ) :: dm
+    type(t_domain), intent(in ) :: dm
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &
@@ -702,7 +704,7 @@ contains
     !   do i = 1, dtmp%xsz(1)
     !     ii = dtmp%xst(1) + i - 1
     !     xc = dm%h(1) * (real(ii - 1, WP) + HALF)
-    !     p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) / FOUR
+    !     p(i, j, :)= ( cos_wp(TWO * xc) + sin(TWO * yc) ) * QUARTER
     !   end do
     ! end do
     
@@ -799,7 +801,7 @@ contains
           ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uc = fl%pres(i, j, k)
-          ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) / FOUR * (exp(- TWO * fl%rre * fl%time))**2
+          ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) * QUARTER * (exp(- TWO * fl%rre * fl%time))**2
           perr = perr + (uc - ue)**2
           if(dabs(uc - ue) > perrmax) perrmax = dabs(uc - ue)
         end do
@@ -850,7 +852,7 @@ contains
     use udf_type_mod
     use math_mod
     implicit none
-    type(t_domain), intent(in   ) :: dm
+    type(t_domain), intent(in ) :: dm
     real(WP),       intent(inout) :: ux(:, :, :) , &
                                      uy(:, :, :) , &
                                      uz(:, :, :) , &

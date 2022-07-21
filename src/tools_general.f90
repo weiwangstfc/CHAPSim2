@@ -1,59 +1,59 @@
 !=============================================================================================================================================
   subroutine Print_error_msg(msg)
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
     
-    write (OUTPUT_UNIT,*) 'ERROR: ' // msg
+    write (*, *) 'ERROR: ' // msg
 
-    write (OUTPUT_UNIT,*) 'Code is terminated in processor = '
+    write (*, *) 'Code is terminated in processor = '
     STOP
 
     return
   end subroutine Print_error_msg
 !=============================================================================================================================================
   subroutine Print_warning_msg(msg)
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
     
-    write (OUTPUT_UNIT,*) 'WARNNING: ' // msg
+    write (*, *) 'WARNNING: ' // msg
 
     return
   end subroutine Print_warning_msg
   !=============================================================================================================================================
   subroutine Print_debug_start_msg(msg)
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
 
-    write (OUTPUT_UNIT,*) "============================================================================================================================================="
-    write (OUTPUT_UNIT,*) msg
+    write (*, *) "============================================================================================================================================="
+    write (*, *) msg
 
     return
   end subroutine Print_debug_start_msg
 !=============================================================================================================================================
   subroutine Print_debug_mid_msg(msg)
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
     character(len=*), intent(IN) :: msg
 
-    write (OUTPUT_UNIT,*) msg
+    write (*, *) msg
     return
   end subroutine Print_debug_mid_msg
 !=============================================================================================================================================
   subroutine Print_debug_end_msg
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
 
-    write (OUTPUT_UNIT,*) "... done."
+    write (*, *) "... done."
     return
   end subroutine Print_debug_end_msg
 
 !=============================================================================================================================================
   subroutine Print_3d_array(var, nx, ny, nz, str)
     use precision_mod
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
     integer, intent(in) :: nx, ny, nz
     real(wp), intent(in) :: var(nx, ny, nz)
@@ -61,11 +61,11 @@
 
     integer :: i, j, k
 
-    write (OUTPUT_UNIT, *) str
+    write (*, *) str
     do k = 1, nz
       do j = 1, ny
         do i = 1, nx
-          write (OUTPUT_UNIT, *) k, j, i, var(i, j, k)
+          write (*, *) k, j, i, var(i, j, k)
         end do
       end do
     end do

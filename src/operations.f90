@@ -389,14 +389,14 @@ contains
           b = ZERO
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-          a = FOUR / THREE
-          b = - ONE / THREE
+          a = FOUR * ONE_THIRD
+          b = - ONE_THIRD
     else if (iaccu == IACCU_CP4) then
-      alpha = ONE / FOUR
-          a = THREE / TWO
+      alpha = QUARTER
+          a = ONEPFIVE
           b = ZERO
     else if (iaccu == IACCU_CP6) then
-      alpha = ONE / THREE
+      alpha = ONE_THIRD
           a = FOURTEEN / NINE
           b = ONE / NINE
     else ! default 2nd CD
@@ -419,8 +419,8 @@ contains
     d1fC2C(1:5, 2, IBC_PERIODIC) = ONE
     d1fC2C(1:5, 3, IBC_PERIODIC) = alpha
 
-    d1rC2C(1:5, 1, IBC_PERIODIC) = a / TWO  ! a/2
-    d1rC2C(1:5, 2, IBC_PERIODIC) = b / FOUR ! b/4
+    d1rC2C(1:5, 1, IBC_PERIODIC) = a * HALF  ! a/2
+    d1rC2C(1:5, 2, IBC_PERIODIC) = b * QUARTER ! b/4
     d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
@@ -525,25 +525,25 @@ contains
         c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
       alpha1 = ZERO
-          a1 = -THREE / TWO
+          a1 = -ONEPFIVE
           b1 = TWO
-          c1 = -ONE / TWO
+          c1 = -HALF
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
     else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
       alpha1 = TWO
-          a1 = -FIVE / TWO
+          a1 = -TWOPFIVE
           b1 = TWO
-          c1 = ONE / TWO
-      alpha2 = ONE / FOUR
-          a2 = THREE / TWO
+          c1 = HALF
+      alpha2 = QUARTER
+          a2 = ONEPFIVE
           b2 = ZERO
     else ! default 2nd CD
       alpha1 = ZERO
-          a1 = -THREE / TWO
+          a1 = -ONEPFIVE
           b1 = TWO
-          c1 = -ONE / TWO
+          c1 = -HALF
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
@@ -575,8 +575,8 @@ contains
     d1fC2C(2, 1,   IBC_INTRPL) = alpha2
     d1fC2C(2, 2,   IBC_INTRPL) = ONE
     d1fC2C(2, 3,   IBC_INTRPL) = alpha2
-    d1rC2C(2, 1,   IBC_INTRPL) = a2 / TWO
-    d1rC2C(2, 2,   IBC_INTRPL) = b2 / FOUR
+    d1rC2C(2, 1,   IBC_INTRPL) = a2 * HALF
+    d1rC2C(2, 2,   IBC_INTRPL) = b2 * QUARTER
     d1rC2C(2, 3,   IBC_INTRPL) = c2  ! not used  
 
     d1fC2C(4, 1,   IBC_INTRPL) = d1fC2C(2, 3, IBC_INTRPL)
@@ -632,8 +632,8 @@ contains
     d1fP2P(2, 1,   IBC_NEUMANN) = alpha2
     d1fP2P(2, 2,   IBC_NEUMANN) = ONE
     d1fP2P(2, 3,   IBC_NEUMANN) = alpha2
-    d1rP2P(2, 1,   IBC_NEUMANN) = a2 / TWO
-    d1rP2P(2, 2,   IBC_NEUMANN) = b2 / FOUR ! not used
+    d1rP2P(2, 1,   IBC_NEUMANN) = a2 * HALF
+    d1rP2P(2, 2,   IBC_NEUMANN) = b2 * QUARTER ! not used
     d1rP2P(2, 3,   IBC_NEUMANN) = c2    
 
     d1fP2P(4, 1,   IBC_NEUMANN) = d1fP2P(2, 3, IBC_NEUMANN)
@@ -662,36 +662,36 @@ contains
         c2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
       alpha1 = ZERO
-          a1 = -FOUR / THREE
+          a1 = -FOUR * ONE_THIRD
           b1 = ONE
-          c1 = ONE / THREE
+          c1 = ONE_THIRD
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
     else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
-      alpha1 = ONE / THREE
+      alpha1 = ONE_THIRD
           a1 = - EIGHT / NINE
           b1 = ZERO
           c1 = EIGHT / NINE
           d1 = ZERO
-      alpha2 = ONE / FOUR
-          a2 = THREE / TWO
+      alpha2 = QUARTER
+          a2 = ONEPFIVE
           b2 = ZERO
     else if (iaccu == IACCU_CP6) then ! degrade to 4th CP
-      alpha1 = TWO / THREE
+      alpha1 = TWO_THIRD
           a1 = - THIRTYTWO / FOURTYFIVE
           b1 = - ONE / TWO
           c1 = TEN / NINE
-          d1 = ONE / TEN
-      alpha2 = ONE / FOUR
-          a2 = THREE / TWO
+          d1 = ONE * ZPONE
+      alpha2 = QUARTER
+          a2 = ONEPFIVE
           b2 = ZERO
     else ! default 2nd CD
       alpha1 = ZERO
-          a1 = -FOUR / THREE
+          a1 = -FOUR * ONE_THIRD
           b1 = ONE
-          c1 = ONE / THREE
+          c1 = ONE_THIRD
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
@@ -725,8 +725,8 @@ contains
     d1fC2C(2, 1,   IBC_DIRICHLET) = alpha2
     d1fC2C(2, 2,   IBC_DIRICHLET) = ONE
     d1fC2C(2, 3,   IBC_DIRICHLET) = alpha2
-    d1rC2C(2, 1,   IBC_DIRICHLET) = a2 / TWO
-    d1rC2C(2, 2,   IBC_DIRICHLET) = b2 / FOUR ! not used
+    d1rC2C(2, 1,   IBC_DIRICHLET) = a2 * HALF
+    d1rC2C(2, 2,   IBC_DIRICHLET) = b2 * QUARTER ! not used
     d1rC2C(2, 3,   IBC_DIRICHLET) = c2    
 
     d1fC2C(4, 1,   IBC_DIRICHLET) = d1fC2C(2, 3, IBC_DIRICHLET)
@@ -757,8 +757,8 @@ contains
           b = ZERO
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-          a = NINE / EIGHT
-          b = -ONE / EIGHT
+          a = NINE * EIGHTH
+          b = -ONE * EIGHTH
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / TWENTYTWO
           a = TWELVE / ELEVEN
@@ -785,7 +785,7 @@ contains
     d1fC2P(1:5, 2, IBC_PERIODIC) = ONE
     d1fC2P(1:5, 3, IBC_PERIODIC) = alpha
     d1rC2P(1:5, 1, IBC_PERIODIC) = a         ! a
-    d1rC2P(1:5, 2, IBC_PERIODIC) = b / THREE ! b/3
+    d1rC2P(1:5, 2, IBC_PERIODIC) = b * ONE_THIRD ! b/3
     d1rC2P(1:5, 3, IBC_PERIODIC) = c         ! not used
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
@@ -945,7 +945,7 @@ contains
     d1fC2P(2, 2, IBC_INTRPL) = ONE
     d1fC2P(2, 3, IBC_INTRPL) = alpha2
     d1rC2P(2, 1, IBC_INTRPL) = a2
-    d1rC2P(2, 2, IBC_INTRPL) = b2 / THREE ! not used
+    d1rC2P(2, 2, IBC_INTRPL) = b2 * ONE_THIRD ! not used
     d1rC2P(2, 3, IBC_INTRPL) = c2 ! not used
 
     d1fC2P(4, 1, IBC_INTRPL) = d1fC2P(2, 1, IBC_INTRPL)
@@ -984,7 +984,7 @@ contains
     d1fC2P(2, 2, IBC_NEUMANN) = ONE
     d1fC2P(2, 3, IBC_NEUMANN) = alpha2
     d1rC2P(2, 1, IBC_NEUMANN) = a2
-    d1rC2P(2, 2, IBC_NEUMANN) = b2 / THREE ! not used
+    d1rC2P(2, 2, IBC_NEUMANN) = b2 * ONE_THIRD ! not used
     d1rC2P(2, 3, IBC_NEUMANN) = c2 ! not used
 
     d1fC2P(4, 1, IBC_NEUMANN) = d1fC2P(2, 1, IBC_NEUMANN)
@@ -1017,9 +1017,9 @@ contains
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
-          a1 = - EIGHT / THREE
+          a1 = - EIGHT * ONE_THIRD
           b1 = THREE
-          c1 = - ONE / THREE
+          c1 = - ONE_THIRD
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
@@ -1029,9 +1029,9 @@ contains
     else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
 
       alpha1 = THREE
-          a1 = - EIGHT / THREE
+          a1 = - EIGHT * ONE_THIRD
           b1 = ZERO
-          c1 = EIGHT / THREE
+          c1 = EIGHT * ONE_THIRD
           d1 = ZERO
       alpha2 = ONE / TWENTYTWO
           a2 = TWELVE / ELEVEN
@@ -1042,8 +1042,8 @@ contains
       alpha1 = FIFTEEN
           a1 = - SIXTEEN / FIFTEEN
           b1 = - FIFTEEN
-          c1 = FIFTY / THREE
-          d1 = - THREE / FIVE
+          c1 = FIFTY * ONE_THIRD
+          d1 = - THREE * ZPTWO
 
       alpha2 = ONE / TWENTYTWO
           a2 = TWELVE / ELEVEN
@@ -1083,7 +1083,7 @@ contains
     d1fC2P(2,   2, IBC_DIRICHLET) = ONE
     d1fC2P(2,   3, IBC_DIRICHLET) = alpha2
     d1rC2P(2,   1, IBC_DIRICHLET) = a2
-    d1rC2P(2,   2, IBC_DIRICHLET) = b2 / THREE ! not used
+    d1rC2P(2,   2, IBC_DIRICHLET) = b2 * ONE_THIRD ! not used
     d1rC2P(2,   3, IBC_DIRICHLET) = c2 ! not used
 
     d1fC2P(4,   1, IBC_DIRICHLET) = d1fC2P(2, 1, IBC_DIRICHLET)
@@ -1191,16 +1191,16 @@ contains
           b = ZERO
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-          a = NINE / EIGHT
-          b = -ONE / EIGHT
+          a = NINE * EIGHTH
+          b = -ONE * EIGHTH
     else if (iaccu == IACCU_CP4) then
       alpha = ONE / SIX
-          a = FOUR / THREE
+          a = FOUR * ONE_THIRD
           b = ZERO
     else if (iaccu == IACCU_CP6) then
-      alpha = THREE / TEN
-          a = THREE / TWO
-          b = ONE / TEN
+      alpha = THREE * ZPONE
+          a = ONEPFIVE
+          b = ONE * ZPONE
     else  ! default 2nd CD
       alpha = ZERO
           a = ONE
@@ -1220,8 +1220,8 @@ contains
     m1fC2P(1:5, 1, IBC_PERIODIC) = alpha
     m1fC2P(1:5, 2, IBC_PERIODIC) = ONE
     m1fC2P(1:5, 3, IBC_PERIODIC) = alpha
-    m1rC2P(1:5, 1, IBC_PERIODIC) = a / TWO
-    m1rC2P(1:5, 2, IBC_PERIODIC) = b / TWO
+    m1rC2P(1:5, 1, IBC_PERIODIC) = a * HALF
+    m1rC2P(1:5, 2, IBC_PERIODIC) = b * HALF
     m1rC2P(1:5, 3, IBC_PERIODIC) = c ! not used
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !interpolation. P2C for periodic b.c.
@@ -1297,9 +1297,9 @@ contains
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
-          a1 = THREE / EIGHT
-          b1 = THREE / FOUR
-          c1 = -ONE / EIGHT
+          a1 = THREE * EIGHTH
+          b1 = THREE * QUARTER
+          c1 = -ONE * EIGHTH
 
       alpha2 = ZERO
           a2 = ONE
@@ -1309,20 +1309,20 @@ contains
     else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
       alpha1 = ONE
-          a1 = ONE / FOUR
-          b1 = THREE / TWO
-          c1 = ONE / FOUR
+          a1 = QUARTER
+          b1 = ONEPFIVE
+          c1 = QUARTER
 
       alpha2 = ONE / SIX
-          a2 = FOUR / THREE
+          a2 = FOUR * ONE_THIRD
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
     else  ! default 2nd CD
       alpha1 = ZERO
-          a1 = THREE / EIGHT
-          b1 = THREE / FOUR
-          c1 = -ONE / EIGHT
+          a1 = THREE * EIGHTH
+          b1 = THREE * QUARTER
+          c1 = -ONE * EIGHTH
 
       alpha2 = ZERO
           a2 = ONE
@@ -1375,9 +1375,9 @@ contains
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
 
       alpha1 = ZERO
-          a1 = FIFTEEN / EIGHT
-          b1 = - FIVE / FOUR
-          c1 = THREE / EIGHT
+          a1 = FIFTEEN * EIGHTH
+          b1 = - FIVE * QUARTER
+          c1 = THREE * EIGHTH
 
       alpha2 = ZERO
           a2 = ONE
@@ -1387,21 +1387,21 @@ contains
     else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
 
       alpha1 = FIVE
-          a1 = FIFTEEN / FOUR
-          b1 = FIVE / TWO
-          c1 = -ONE / FOUR
+          a1 = FIFTEEN * QUARTER
+          b1 = TWOPFIVE
+          c1 = -QUARTER
 
       alpha2 = ONE / SIX 
-          a2 = FOUR / THREE
+          a2 = FOUR * ONE_THIRD
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
     else  ! default 2nd CD
 
       alpha1 = ZERO
-          a1 = FIFTEEN / EIGHT
-          b1 = - FIVE / FOUR
-          c1 = THREE / EIGHT
+          a1 = FIFTEEN * EIGHTH
+          b1 = - FIVE * QUARTER
+          c1 = THREE * EIGHTH
 
       alpha2 = ZERO
           a2 = ONE
@@ -1427,7 +1427,7 @@ contains
     m1fC2P(2, 1, IBC_INTRPL) = alpha2
     m1fC2P(2, 2, IBC_INTRPL) = ONE
     m1fC2P(2, 3, IBC_INTRPL) = alpha2
-    m1rC2P(2, 1, IBC_INTRPL) = a2 / TWO
+    m1rC2P(2, 1, IBC_INTRPL) = a2 * HALF
     m1rC2P(2, 2, IBC_INTRPL) = ZERO ! not used
     m1rC2P(2, 3, IBC_INTRPL) = ZERO ! not used
 
@@ -1481,7 +1481,7 @@ contains
           c1 = ZERO ! not used
 
       alpha2 = ONE / SIX 
-          a2 = FOUR / THREE
+          a2 = FOUR * ONE_THIRD
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
@@ -1516,7 +1516,7 @@ contains
     m1fC2P(2, 1, IBC_DIRICHLET) = alpha2
     m1fC2P(2, 2, IBC_DIRICHLET) = ONE
     m1fC2P(2, 3, IBC_DIRICHLET) = alpha2
-    m1rC2P(2, 1, IBC_DIRICHLET) = a2 / TWO
+    m1rC2P(2, 1, IBC_DIRICHLET) = a2 * HALF
     m1rC2P(2, 2, IBC_DIRICHLET) = ZERO ! not used
     m1rC2P(2, 3, IBC_DIRICHLET) = ZERO ! not used
 
@@ -1543,11 +1543,11 @@ contains
           b = ZERO
     else if (iaccu == IACCU_CD4) then
       alpha = ZERO
-          a = FOUR / THREE
-          b = -ONE / THREE
+          a = FOUR * ONE_THIRD
+          b = - ONE_THIRD
     else if (iaccu == IACCU_CP4) then
-      alpha = ONE / TEN
-          a = SIX / FIVE
+      alpha = ONE * ZPONE
+          a = SIX * ZPTWO
           b = ZERO
     else if (iaccu == IACCU_CP6) then
       alpha = TWO / ELEVEN
@@ -1565,8 +1565,8 @@ contains
     d2fC2C(1:5, 2, IBC_PERIODIC) = ONE
     d2fC2C(1:5, 3, IBC_PERIODIC) = alpha
 
-    d2rC2C(1:5, 1, IBC_PERIODIC) = a / ONE
-    d2rC2C(1:5, 2, IBC_PERIODIC) = b / FOUR
+    d2rC2C(1:5, 1, IBC_PERIODIC) = a
+    d2rC2C(1:5, 2, IBC_PERIODIC) = b * QUARTER
     d2rC2C(1:5, 3, IBC_PERIODIC) = c ! not used
     d2rC2C(1:5, 4, IBC_PERIODIC) = d ! not used
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1653,8 +1653,8 @@ contains
           c1 = FIFTEEN
           d1 = -ONE
 
-      alpha2 = ONE / TEN
-          a2 = SIX / FIVE
+      alpha2 = ONE * ZPONE
+          a2 = SIX * ZPTWO
           b2 = ZERO
           c2 = ZERO ! not used
           d2 = ZERO ! not used
@@ -1740,10 +1740,10 @@ contains
         d2 = ZERO
     if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then
       alpha1 = ZERO
-          a1 = SIXTEEN / FIVE
+          a1 = SIXTEEN * ZPTWO
           b1 = -FIVE
           c1 = TWO
-          d1 = -ONE / FIVE
+          d1 = -ONE * ZPTWO
 
       alpha2 = ZERO
           a2 = ONE
@@ -1751,14 +1751,14 @@ contains
           c2 = ZERO ! not used
           d2 = ZERO ! not used
     else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6 ) then ! degrade to 3rd CP
-      alpha1 = ONE / TWO
-          a1 = SIXTEEN / FIVE
-          b1 = -NINE / TWO
+      alpha1 = HALF
+          a1 = SIXTEEN * ZPTWO
+          b1 = -NINE * HALF
           c1 = ONE
-          d1 = THREE / TEN
+          d1 = THREE * ZPONE
 
-      alpha2 = ONE / TEN
-          a2 = SIX / FIVE
+      alpha2 = ONE * ZPONE
+          a2 = SIX * ZPTWO
           b2 = ZERO
           c2 = ZERO ! not used
           d2 = ZERO ! not used
@@ -2252,7 +2252,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
-    real(WP), intent(inout) :: fo(nc)
+    real(WP), intent(out) :: fo(nc)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     integer,  intent(in ) :: ibc(2)
     !real(WP), optional, intent(in ) :: fbc(2)
@@ -2392,7 +2392,7 @@ contains
 
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
-    real(WP),           intent(inout) :: fo(np)
+    real(WP),           intent(out) :: fo(np)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
@@ -2566,7 +2566,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers
-    real(WP), intent(inout) :: fo(nc)
+    real(WP), intent(out) :: fo(nc)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -2755,7 +2755,7 @@ contains
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
-    real(WP),           intent(inout) :: fo(np)
+    real(WP),           intent(out) :: fo(np)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -2948,7 +2948,7 @@ contains
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
-    real(WP),           intent(inout) :: fo(np)
+    real(WP),           intent(out) :: fo(np)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -3136,7 +3136,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
-    real(WP), intent(inout) :: fo(nc)
+    real(WP), intent(out) :: fo(nc)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -3267,7 +3267,7 @@ contains
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: nc ! unknow numbers
-    real(WP),           intent(inout) :: fo(nc)
+    real(WP),           intent(out) :: fo(nc)
     real(WP),           intent(in ) :: coeff(5, 4, 6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -3439,7 +3439,7 @@ contains
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: np ! unknow numbers
-    real(WP), intent(inout) :: fo(np)
+    real(WP), intent(out) :: fo(np)
     real(WP), intent(in ) :: coeff(5, 4, 6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -3592,11 +3592,11 @@ contains
     use tridiagonal_matrix_algorithm
     implicit none
     
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: ixsub, nsz
 
@@ -3622,11 +3622,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: ixsub, nsz
 
     nsz = size(fo)
@@ -3650,11 +3650,11 @@ contains
     use tridiagonal_matrix_algorithm
     use udf_type_mod
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3677,11 +3677,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
     
     nsz = size(fo)
@@ -3704,11 +3704,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz, i
 
     nsz = size(fo)
@@ -3731,11 +3731,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3776,11 +3776,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: ixsub, nsz
 
     ixsub = dm%idom
@@ -3804,11 +3804,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: ixsub, nsz
 
@@ -3833,11 +3833,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: ixsub, nsz
 
@@ -3863,11 +3863,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz, ixsub
 
     nsz = size(fo)
@@ -3894,11 +3894,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3923,11 +3923,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3952,11 +3952,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -3981,11 +3981,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -4012,11 +4012,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: nsz
 
@@ -4040,11 +4040,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -4067,11 +4067,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -4094,11 +4094,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -4139,11 +4139,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz, ixsub
 
     nsz = size(fo)
@@ -4167,11 +4167,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz, ixsub
 
     nsz = size(fo)
@@ -4197,11 +4197,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
     real(WP), allocatable :: fo1(:)
 
@@ -4239,11 +4239,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: nsz
     real(WP), allocatable :: fo1(:)
@@ -4285,11 +4285,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)
@@ -4312,11 +4312,11 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
-    real(WP),           intent(in   ) :: fi(:)
-    real(WP),           intent(inout) :: fo(:)
-    type(t_domain),     intent(in   ) :: dm
-    integer,            intent(in   ) :: ibc(2)
-    !real(WP), optional, intent(in   ) :: fbc(2)
+    real(WP),           intent(in ) :: fi(:)
+    real(WP),           intent(out) :: fo(:)
+    type(t_domain),     intent(in ) :: dm
+    integer,            intent(in ) :: ibc(2)
+    !real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
     nsz = size(fo)

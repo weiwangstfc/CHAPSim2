@@ -112,8 +112,8 @@ contains
       end do
     end do
 #ifdef DEBUG
-    k = dm%nc(3)/8
-    i = dm%nc(1)/8
+    k = 2
+    i = 2
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       open(121, file = 'debugy_div_x'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dccc%xsz(2)
@@ -122,8 +122,8 @@ contains
       end do
     end if
 
-    k = dm%nc(3)/8
-    j = dm%nc(2)/8
+    k = 2
+    j = 2
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_div_x'//trim(int2str(nrank))//'.dat', position="append")
@@ -150,8 +150,8 @@ contains
       end do
     end do
 #ifdef DEBUG
-    k = dm%nc(3)/8
-    i = dm%nc(1)/8
+    k = 2
+    i = 2
     if( k >= dm%dccc%xst(3) .and. k <= dm%dccc%xen(3)) then
       open(122, file = 'debugy_div_y'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dccc%xsz(2)
@@ -160,8 +160,8 @@ contains
       end do
     end if
 
-    k = dm%nc(3)/8
-    j = dm%nc(2)/8
+    k = 2
+    j = 2
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_div_y'//trim(int2str(nrank))//'.dat', position="append")
@@ -192,8 +192,8 @@ contains
       end do
     end do
 #ifdef DEBUG
-    k = dm%nc(3)/8
-    i = dm%nc(1)/8
+    k = 2
+    i = 2
     if( k >= dm%dccc%xst(3) .and. k <= dm%dccc%xen(3)) then
       open(123, file = 'debugy_div_z'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dccc%xsz(2)
@@ -202,8 +202,8 @@ contains
       end do
     end if
 
-    k = dm%nc(3)/8
-    j = dm%nc(2)/8
+    k = 2
+    j = 2
     if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_div_z'//trim(int2str(nrank))//'.dat', position="append")
@@ -249,7 +249,7 @@ contains
     type(t_flow),   intent( inout ) :: fl                  
 
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: div
-    real(WP)   :: divmax
+    real(WP)   :: divmax 
 
     fl%pcor = ZERO
     div(:, :, :)  = ZERO
@@ -272,12 +272,11 @@ contains
     call view_data_in_rank(div,   dm%dccc, dm, 'div', 0)
 #endif
     
-  
-    call Find_maximum_absvar3d(div, divmax)
+    call Find_maximum_absvar3d(div, "Check Mass Conservation:")
 
-    if(nrank == 0) then
-      write (OUTPUT_UNIT, wrtfmt1e) "  Check Mass Conservation:", divmax
-    end if
+    ! if(nrank == 0) then
+    !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax
+    ! end if
 
     return
   end subroutine Check_mass_conservation

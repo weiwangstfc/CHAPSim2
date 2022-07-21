@@ -109,7 +109,7 @@ contains
   end subroutine
 !=============================================================================================================================================
   subroutine Test_TDMA_noncyclic
-    use iso_fortran_env
+    !use iso_fortran_env
     use precision_mod
     implicit none
     integer, parameter :: n = 10
@@ -137,18 +137,18 @@ contains
     d(:) = 0.0
 
     call Preprocess_TDMA_coeffs(a(:), b(:), c(:), d(:), n)
-    !write (OUTPUT_UNIT,'(A,7F8.4)') 'a', a(:)
-    !write (OUTPUT_UNIT,'(A,7F8.4)') 'b', b(:)
-    !write (OUTPUT_UNIT,'(A,7F8.4)') 'c', c(:)
-    !write (OUTPUT_UNIT,'(A,7F8.4)') 'd', d(:)
-    !write (OUTPUT_UNIT,'(A,7F8.4)') 'r', r(:)
+    !write (*,'(A,7F8.4)') 'a', a(:)
+    !write (*,'(A,7F8.4)') 'b', b(:)
+    !write (*,'(A,7F8.4)') 'c', c(:)
+    !write (*,'(A,7F8.4)') 'd', d(:)
+    !write (*,'(A,7F8.4)') 'r', r(:)
 
     call Solve_TDMA(.false., r(:), a(:), b(:), c(:), d(:), n)
-    !write (OUTPUT_UNIT,'(A,7F8.4)') 'o', r(:)
+    !write (*,'(A,7F8.4)') 'o', r(:)
     ! data output
-    write (OUTPUT_UNIT, '(A)') 'Test_TDMA_noncyclic: cal, ref, diff'
+    write (*, '(A)') 'Test_TDMA_noncyclic: cal, ref, diff'
     do i = 1, n
-      write (OUTPUT_UNIT, '(I3, 2F8.4, 1ES15.7)') i, r(i), ref(i), dabs(r(i)-ref(i))
+      write (*, '(I3, 2F8.4, 1ES15.7)') i, r(i), ref(i), dabs(r(i)-ref(i))
     end do
     
     return
@@ -156,7 +156,7 @@ contains
 !=============================================================================================================================================
   subroutine Test_TDMA_cyclic
     use precision_mod
-    use iso_fortran_env
+    !use iso_fortran_env
     implicit none
     integer, parameter :: n = 10
     real(WP) :: a(n), b(n), c(n), d(n), r(n)
@@ -177,9 +177,9 @@ contains
     ref=[518663._WP/174746._WP, -299297._WP/174746._WP, 182180._WP/87373._WP, &
          5419._WP/3718._WP, 480243._WP/174746._WP, -370592._WP/87373._WP, 566251._WP/174746._WP, &
          1212441._WP/174746._WP, -76._WP/47._WP, -187761._WP/174746._WP]
-    write (OUTPUT_UNIT, '(A)') 'Test_TDMA_cyclic: cal, ref, diff'
+    write (*, '(A)') 'Test_TDMA_cyclic: cal, ref, diff'
     do i = 1, n
-      write (OUTPUT_UNIT, '(I3, 2F8.4, 1ES15.7)') i, r(i), ref(i), dabs(r(i)-ref(i))
+      write (*, '(I3, 2F8.4, 1ES15.7)') i, r(i), ref(i), dabs(r(i)-ref(i))
     end do
 
     return

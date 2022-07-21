@@ -30,6 +30,14 @@ contains
     integer :: m, s
     type(DECOMP_INFO) :: dtmp
 
+
+    if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
+       dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
+       dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
+       dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
+       dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
+       dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
+
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !   ux at x-pencil
 !---------------------------------------------------------------------------------------------------------------------------------------------

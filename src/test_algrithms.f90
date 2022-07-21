@@ -48,7 +48,7 @@ contains
       shift = ZERO
     else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
       scale = ONE
-      shift = PI / TWO
+      shift = PI * HALF
     else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
       scale = TWO
       shift = ZERO
@@ -56,21 +56,21 @@ contains
       scale = THREE
       shift = ZERO
       dm%fbcx(1, 5) = ZERO
-      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcx(2, 5) = sin_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
       scale = THREE
       shift = ZERO
-      dm%fbcx(1, 5) = ONE / THREE * cos_wp(ZERO / THREE)
-      dm%fbcx(2, 5) = ONE / THREE * cos_wp(TWO * PI / THREE)
+      dm%fbcx(1, 5) = ONE_THIRD * cos_wp(ZERO * ONE_THIRD)
+      dm%fbcx(2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     else 
       scale = THREE
       shift = ZERO
       dm%fbcx(1, 5) = ZERO
-      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcx(2, 5) = sin_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     end if
@@ -241,7 +241,7 @@ contains
       shift = ZERO
     else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
       scale = ONE
-      shift = PI / TWO
+      shift = PI * HALF
     else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
       scale = TWO
       shift = ZERO
@@ -249,21 +249,21 @@ contains
       scale = THREE
       shift = ZERO
       dm%fbcx(1, 5) = ZERO
-      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcx(2, 5) = sin_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
       scale = THREE
       shift = ZERO
-      dm%fbcx(1, 5) = ONE / THREE * cos_wp(ZERO / THREE + shift)
-      dm%fbcx(2, 5) = ONE / THREE * cos_wp(TWO * PI / THREE + shift)
+      dm%fbcx(1, 5) = ONE_THIRD * cos_wp(ZERO * ONE_THIRD + shift)
+      dm%fbcx(2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD + shift)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     else 
       scale = THREE
       shift = ZERO
       dm%fbcx(1, 5) = ZERO
-      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcx(2, 5) = sin_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     end if
@@ -523,7 +523,7 @@ contains
       shift = ZERO
     else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
       scale = ONE
-      shift = PI / TWO
+      shift = PI * HALF
     else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
       scale = TWO
       shift = ZERO
@@ -531,21 +531,21 @@ contains
       scale = THREE
       shift = ZERO
       dm%fbcx(1, 5) = ZERO
-      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcx(2, 5) = sin_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
       scale = THREE
       shift = ZERO
-      dm%fbcx(1, 5) = ONE / THREE * cos_wp(ZERO / THREE)
-      dm%fbcx(2, 5) = ONE / THREE * cos_wp(TWO * PI / THREE)
+      dm%fbcx(1, 5) = ONE_THIRD * cos_wp(ZERO * ONE_THIRD)
+      dm%fbcx(2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     else 
       scale = THREE
       shift = ZERO
       dm%fbcx(1, 5) = ZERO
-      dm%fbcx(2, 5) = sin_wp(TWO * PI / THREE)
+      dm%fbcx(2, 5) = sin_wp(TWOPI * ONE_THIRD)
       dm%fbcy(:, 5) = dm%fbcx(:, 5)
       dm%fbcz(:, 5) = dm%fbcx(:, 5)
     end if
@@ -775,8 +775,8 @@ contains
     implicit none
 
     type(t_flow),   intent(inout) :: fl
-    type(t_domain), intent(in   ) :: dm
-    integer(4),     intent(in   ) :: isub  
+    type(t_domain), intent(in ) :: dm
+    integer(4),     intent(in ) :: isub  
 
     real(WP) :: fbc(2)
     integer :: i
@@ -920,7 +920,7 @@ contains
     implicit none
 
     type(t_flow),   intent(inout) :: fl
-    type(t_domain), intent(in   ) :: dm
+    type(t_domain), intent(in ) :: dm
     integer :: i, j, k
     real(WP) :: xp, ux, uerr, uerr2, uerrmax, wavenum
     real(WP) :: uerr2_work, uerrmax_work
@@ -937,17 +937,17 @@ contains
 
     dd = dm%h(idir)
     if(idir == 1) then
-      wavenum = TWO * PI / dm%lxx
+      wavenum = TWOPI / dm%lxx
       nx = dm%dpcc%xsz(1)
       ny = dm%dpcc%xsz(2)
       nz = dm%dpcc%xsz(3)
     else if (idir == 2) then
-      wavenum = TWO * PI / dm%lyt
+      wavenum = TWOPI / dm%lyt
       nx = dm%dcpc%xsz(1)
       ny = dm%dcpc%xsz(2)
       nz = dm%dcpc%xsz(3)
     else if (idir == 3) then
-      wavenum = TWO * PI / dm%lzz
+      wavenum = TWOPI / dm%lzz
       nx = dm%dccp%xsz(1)
       ny = dm%dccp%xsz(2)
       nz = dm%dccp%xsz(3)
@@ -1023,7 +1023,7 @@ contains
     implicit none
 
     type(t_flow),   intent(inout) :: fl
-    type(t_domain), intent(in   ) :: dm
+    type(t_domain), intent(in ) :: dm
     integer, intent(in) :: iter
     integer :: i, j, k
     real(WP) :: xp, ux, uerr, uerr2, uerrmax, wavenum

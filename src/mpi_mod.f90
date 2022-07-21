@@ -3,7 +3,7 @@ module mpi_mod
   !include "mpif.h"
   use MPI
   use decomp_2d
-  use iso_fortran_env
+  !use iso_fortran_env
   implicit none
   integer :: ierror
   integer :: nxdomain
