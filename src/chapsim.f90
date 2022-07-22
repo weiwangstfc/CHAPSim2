@@ -29,6 +29,7 @@ program chapsim
 
   call Initialize_chapsim
   call Solve_eqs_iteration
+  call Finalise_chapsim
   
 end program
 !=============================================================================================================================================
@@ -187,23 +188,13 @@ subroutine Solve_eqs_iteration
       !     main solver
       !=============================================================================================================================================
       do isub = 1, domain(i)%nsubitr
+#ifdef DEBG
+        if(nrank == 0) write (*, wrtfmt1i) " --- Sub-iteration in RK = ", isub
+#endif
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
-#ifdef DEBG
-        if(nrank == 0) write (*, wrtfmt1i) "  Sub-iteration in RK = ", isub
-        call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:")
-        call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:")
-        call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:")
-        call Check_mass_conservation(flow(i), domain(i)) 
-#endif
-#ifdef DEBUG
-        call view_data_in_rank(flow(i)%qx,   domain(i)%dpcc, domain(i), 'ux', iter*100+isub)
-        call view_data_in_rank(flow(i)%qy,   domain(i)%dcpc, domain(i), 'uy', iter*100+isub)
-        call view_data_in_rank(flow(i)%qz,   domain(i)%dccp, domain(i), 'uz', iter*100+isub)
-        call view_data_in_rank(flow(i)%pres, domain(i)%dccc, domain(i), 'pr', iter*100+isub)
-#endif
       end do
-      stop
+      !stop
       !comment this part code for testing 
       ! below is for validation
       ! cpu time will be calculated later today 
@@ -211,7 +202,7 @@ subroutine Solve_eqs_iteration
       !     validation
       !=============================================================================================================================================
       call Check_mass_conservation(flow(i), domain(i)) 
-      if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
+      !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
 
       call Call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
       !=============================================================================================================================================
@@ -232,3 +223,11 @@ subroutine Solve_eqs_iteration
   return
 end subroutine Solve_eqs_iteration
 
+
+subroutine Finalise_chapsim
+  use mpi_mod
+  implicit none
+
+  call Finalise_mpi()
+  return
+end subroutine

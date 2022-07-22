@@ -80,6 +80,7 @@ module parameters_constant_mod
 
   real(WP), parameter :: MINP        = 1.0E-20_WP
   real(WP), parameter :: MAXP        = 1.0E20_WP
+  real(WP), parameter :: MAXVELO     = 1.0E3_WP
 
   real(WP), parameter :: MINN        = -1.0E20_WP
   real(WP), parameter :: MAXN        = -1.0E-20_WP
@@ -243,12 +244,12 @@ module wtformat_mod
   character(len = 17) :: wrtfmt1i   = '(2X, A48, 1I20.1)'
   character(len = 17) :: wrtfmt2i   = '(2X, A48, 2I10.1)'
   character(len = 17) :: wrtfmt4i   = '(2X, A48, 4I10.1)'
-  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F20.4)'
-  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.4)'
-  character(len = 17) :: wrtfmt3r   = '(2X, A48, 3F20.4)'
-  character(len = 17) :: wrtfmt1e   = '(2X, A48, 1E20.4)'
-  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.4)'
-  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.4)'
+  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F20.6)'
+  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.6)'
+  character(len = 17) :: wrtfmt3r   = '(2X, A48, 3F20.6)'
+  character(len = 17) :: wrtfmt1e   = '(2X, A48, 1E20.6)'
+  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.6)'
+  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.6)'
   character(len = 14) :: wrtfmt1s   = '(2X, A48, A20)'
 
 end module wtformat_mod

@@ -609,6 +609,7 @@ contains
     use math_mod
     use mpi_mod
     use wtformat_mod
+    use parameters_constant_mod
     implicit none
 
     real(WP), intent(in)  :: var(:, :, :)
@@ -638,7 +639,9 @@ contains
     if(nrank == 0) then
       write (*, wrtfmt1e) str, varmax_work
     end if
-
+#ifdef DEBG
+    if(varmax_work > MAXVELO) stop ! test
+#endif
     return
   end subroutine
 !=============================================================================================================================================

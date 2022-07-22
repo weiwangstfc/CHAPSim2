@@ -596,7 +596,7 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! X-pencil : X-mom diffusion term (x-v1-1/7), \mu^x * LL1(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1))
+    !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1)) ! check
   
     call Get_x_1st_derivative_P2C_3D(fl%qx, apcc1, dm, dm%ibcx(:, 1))
     call Get_x_1st_derivative_C2P_3D(apcc1, apcc,  dm, dm%ibcx(:, 1))
@@ -606,13 +606,19 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * LL2(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_C2C_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy(:, 1))
+    !call Get_y_2nd_derivative_C2C_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy(:, 1))
+    call Get_y_1st_derivative_C2P_3D(qx_ypencil,   appc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy(:, 1))
+    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1))
+
     if ( dm%ithermo == 0) mx_rhs_ypencil = mx_rhs_ypencil +                 fl%rre * apcc_ypencil
     if ( dm%ithermo == 1) mx_rhs_ypencil = mx_rhs_ypencil + m_pcc_ypencil * fl%rre * apcc_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * LL3(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_z_2nd_derivative_C2C_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1), dm%fbcz(:, 1))
+    !call Get_z_2nd_derivative_C2C_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1), dm%fbcz(:, 1))
+    call Get_z_1st_derivative_C2P_3D(qx_zpencil,   apcp_zpencil, dm, dm%ibcz(:, 1), dm%fbcz(:, 1))
+    call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1))
+
     if ( dm%ithermo == 0) mx_rhs_zpencil = mx_rhs_zpencil +                 fl%rre * apcc_zpencil
     if ( dm%ithermo == 1) mx_rhs_zpencil = mx_rhs_zpencil + m_pcc_zpencil * fl%rre * apcc_zpencil
 
@@ -659,27 +665,14 @@ contains
       mx_rhs_zpencil = mx_rhs_zpencil + fl%rre * dmdz_pcc_zpencil * apcc_zpencil
     end if   
 !---------------------------------------------------------------------------------------------------------------------------------------------
-! x-mom: convert all terms to rhs
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
-    fl%mx_rhs =  fl%mx_rhs + apcc
-    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
-    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
-    fl%mx_rhs =  fl%mx_rhs + apcc 
-!---------------------------------------------------------------------------------------------------------------------------------------------
 ! x-pencil : X-mom viscous terms - debug
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
     ! x-pencil
-    apcc_debug2 = ZERO
-    apcc_debug2 = apcc_debug2 + fl%mx_rhs
+    call transpose_y_to_x (apcc_ypencil, apcc1, dm%dpcc)
 
-    call transpose_y_to_x (mx_rhs_ypencil, apcc1, dm%dpcc)
-    apcc_debug2 = apcc_debug2 + apcc1
-
-    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
-    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
-    apcc_debug2 = apcc_debug2 + apcc
+    call transpose_z_to_y (apcc_zpencil, apcc_ypencil, dm%dpcc)
+    call transpose_y_to_x (apcc_ypencil, apcc_debug, dm%dpcc)
 
     k = 2
     i = 2 + 1
@@ -687,7 +680,7 @@ contains
       open(121, file = 'debugy_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dpcc%xsz(2)
         jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), apcc_debug2(i, j, k) - apcc_debug(i, j, k), fl%mx_rhs(i, j, k), apcc1(i, j, k), apcc(i, j, k)
+        write(121, *) dm%yc(jj), apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
       end do
     end if
     close(121)
@@ -698,11 +691,20 @@ contains
       if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
         open(221, file = 'debugx_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, apcc_debug2(i, j, k) - apcc_debug(i, j, k), fl%mx_rhs(i, j, k), apcc1(i, j, k), apcc(i, j, k)
+          write(221, *) i, apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
         end do
       end if
     end if
 #endif
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! x-mom: convert all terms to rhs
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
+    fl%mx_rhs =  fl%mx_rhs + apcc
+    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
+    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
+    fl%mx_rhs =  fl%mx_rhs + apcc 
+
 !=============================================================================================================================================
 ! the RHS of Y momentum equation
 !=============================================================================================================================================
@@ -823,19 +825,25 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! X-pencil : Y-mom diffusion term (y-v1-1/7), \mu * LL1(uy) at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_x_2nd_derivative_C2C_3D(fl%qy, acpc, dm, dm%ibcx(:, 2) )
-    if ( dm%ithermo == 0) fl%my_rhs = fl%my_rhs +          fl%rre * acpc
+    !call Get_x_2nd_derivative_C2C_3D(fl%qy, acpc, dm, dm%ibcx(:, 2) )
+    call Get_x_1st_derivative_C2P_3D(fl%qy, appc, dm, dm%ibcx(:, 2), dm%fbcx(:, 2) )
+    call Get_x_1st_derivative_P2C_3D(appc,  acpc, dm, dm%ibcx(:, 2) )
+    if ( dm%ithermo == 0) fl%my_rhs = fl%my_rhs +         fl%rre * acpc
     if ( dm%ithermo == 1) fl%my_rhs = fl%my_rhs + m_cpc * fl%rre * acpc
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v1-2/7), \mu * LL2(uy) at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
+    !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
+    call Get_y_1st_derivative_P2C_3D(qy_ypencil,   accc_ypencil, dm, dm%ibcy(:, 2))
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
     if ( dm%ithermo == 0) my_rhs_ypencil = my_rhs_ypencil +                  fl%rre * acpc_ypencil
     if ( dm%ithermo == 1) my_rhs_ypencil = my_rhs_ypencil + m_cpc_ypencil * fl%rre * acpc_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Y-mom diffusion term (y-v1-3/7), \mu * LL3(uy) at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_z_2nd_derivative_C2C_3D(qy_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2))
+    !call Get_z_2nd_derivative_C2C_3D(qy_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2))
+    call Get_z_1st_derivative_C2P_3D(qy_zpencil,   acpp_zpencil, dm, dm%ibcz(:, 2))
+    call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2))
     if ( dm%ithermo == 0) my_rhs_zpencil = my_rhs_zpencil +                  fl%rre * acpc_zpencil
     if ( dm%ithermo == 1) my_rhs_zpencil = my_rhs_zpencil + m_cpc_zpencil * fl%rre * acpc_zpencil
 
@@ -1043,19 +1051,25 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! X-pencil : Z-mom diffusion term (z-v1-1/7), \mu * L11(uz) at (i, j, k')
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_x_2nd_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3) )
+    !call Get_x_2nd_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3) )
+    call Get_x_1st_derivative_C2P_3D(fl%qz, apcp, dm, dm%ibcx(:, 3),  dm%fbcx(:, 3))
+    call Get_x_1st_derivative_P2C_3D(apcp,  accp, dm, dm%ibcx(:, 3) )
     if ( dm%ithermo == 0) fl%mz_rhs = fl%mz_rhs +          fl%rre * accp
     if ( dm%ithermo == 1) fl%mz_rhs = fl%mz_rhs + m_ccp * fl%rre * accp
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Z-mom diffusion term (z-v1-2/1), \mu * L22(uz) at (i, j, k')
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_y_2nd_derivative_C2C_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy(:, 3))
+    !call Get_y_2nd_derivative_C2C_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy(:, 3))
+    call Get_y_1st_derivative_C2P_3D( qz_ypencil,   acpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy(:, 3))
+    call Get_y_1st_derivative_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, 3))
     if ( dm%ithermo == 0) mz_rhs_ypencil = mz_rhs_ypencil +                  fl%rre * accp_ypencil
     if ( dm%ithermo == 1) mz_rhs_ypencil = mz_rhs_ypencil + m_ccp_ypencil * fl%rre * accp_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v1-3/7), \mu * L33(uz) at (i, j, k')
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
+    !call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
+    call Get_z_1st_derivative_P2C_3D(qz_zpencil,   accc_zpencil, dm, dm%ibcz(:, 3))
+    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
     if ( dm%ithermo == 0) mz_rhs_zpencil = mz_rhs_zpencil +                  fl%rre * accp_zpencil
     if ( dm%ithermo == 1) mz_rhs_zpencil = mz_rhs_zpencil + m_ccp_zpencil * fl%rre * accp_zpencil
 
@@ -1285,12 +1299,36 @@ contains
 
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
+    real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
+                         dm%dccc%zst(2) : dm%dccc%zen(2), &
+                         dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_global_id_zpencil
+    integer :: i, j, k, jj, ii
 
 
     call transpose_x_to_y (rhs        , rhs_ypencil, dm%dccc)
     call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
 
-    call poisson(rhs_zpencil)
+    do k = 1, dm%dccc%zsz(3)
+      do j = 1, dm%dccc%zsz(2)
+          jj = dm%dccc%zsz(2) + j - 1
+        do i = 1, dm%dcc%zsz(1)
+          ii = dm%dccc%zsz(1) + i - 1
+          rhs_global_id_zpencil(ii, jj, k) = rhs_zpencil(i, j, k)
+        end do
+      end do
+    end do
+
+    call poisson(rhs_global_id_zpencil)
+
+    do k = 1, dm%dccc%zsz(3)
+      do j = 1, dm%dccc%zsz(2)
+          jj = dm%dccc%zsz(2) + j - 1
+        do i = 1, dm%dcc%zsz(1)
+          ii = dm%dccc%zsz(1) + i - 1
+          rhs_zpencil(i, j, k) = rhs_global_id_zpencil(ii, jj, k)
+        end do
+      end do
+    end do
 
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, rhs        , dm%dccc)
@@ -1570,19 +1608,14 @@ contains
       end if
     end if
 
-    do k = 1, dm%nc(3)
-      do j = 1, dm%nc(2)
-        do i = 1, dm%nc(1)
-          write(*,*) i, j, k, fl%qx(i, j, k)
-        end do
-      end do
-    end do
-    call view_data_in_rank(fl%qx, dm%dpcc, dm, 'ux', 111)
-
     call Find_maximum_absvar3d(fl%qx, "maximum ux:")
     call Find_maximum_absvar3d(fl%qy, "maximum uy:")
     call Find_maximum_absvar3d(fl%qz, "maximum uz:")
     call Check_mass_conservation(fl, dm) 
+
+    call view_data_in_rank(fl%qx, dm%dpcc, dm, 'ux', 111)
+
+    
 
 
 #endif

@@ -66,7 +66,10 @@ contains
     integer, allocatable  :: itmpx(:)
     integer :: i, j, k
     
-    if(nrank == 0) call Print_debug_start_msg("CHAPSim2.0 Starts ...")
+    if(nrank == 0) then
+      call Print_debug_start_msg("CHAPSim2.0 Starts ...")
+      write (*, wrtfmt1i) '  The precision is   :', WP
+    end if
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! open file
     !---------------------------------------------------------------------------------------------------------------------------------------------

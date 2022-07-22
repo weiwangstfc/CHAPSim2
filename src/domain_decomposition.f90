@@ -44,7 +44,7 @@ contains
 !   In a 2D pencil decomposition, there is always one dimension which completely 
 !   resides in local memory. So by definition, below relations hold 
 !   xsize(1)==nx_global, ysize(2)==ny_global and zsize(3)==nz_global
-! xstart(i), ystart(i), zstart(i), xend(i), yend(i), zend(i), i=1,2,3 :
+! xstart(i), ystart(i), zstart(i), xend(i), yend(i), zend(i), i=1,2,3 : (Global index)
 !   the starting and ending indices for each sub-domain, as in the global coordinate system. 
 !   Obviously, it can be seen that xsize(i)=xend(i)-xstart(i)+1. 
 !   It may be convenient for certain applications to use global coordinate 
