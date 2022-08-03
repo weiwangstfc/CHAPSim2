@@ -201,7 +201,7 @@ subroutine Solve_eqs_iteration
       !=============================================================================================================================================
       !     validation
       !=============================================================================================================================================
-      call Check_mass_conservation(flow(i), domain(i)) 
+      !call Check_mass_conservation(flow(i), domain(i)) 
       !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
 
       call Call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)

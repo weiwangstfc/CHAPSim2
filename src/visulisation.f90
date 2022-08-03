@@ -40,19 +40,19 @@ contains
       write(outputunit, '(A, I10.1, 1X, A)') 'X_COORDINATES', dtmp%xsz(1), 'float'
       do i = 1, dtmp%xsz(1)
           lx = dm%h(1) * real( i + dtmp%xst(1) - 1, WP)
-          write(outputunit, '(1ES15.7)') lx
+          write(outputunit, '(1ES17.7E3)') lx
       end do
 
       write(outputunit, '(A, I10.1, 1X, A)') 'Y_COORDINATES', dtmp%xsz(2), 'float'
       do j = 1, dtmp%xsz(2)
         ly = dm%yp( j + dtmp%xst(2) - 1 )
-        write(outputunit, '(1ES15.7)') ly
+        write(outputunit, '(1ES17.7E3)') ly
       end do
 
       write(outputunit, '(A, I10.1, 1X, A)') 'Z_COORDINATES', dtmp%xsz(3), 'float'
       do k = 1, dtmp%xsz(3)
           lz = dm%h(3) * real( k + dtmp%xst(3) - 1, WP)
-          write(outputunit, '(1ES15.7)') lz
+          write(outputunit, '(1ES17.7E3)') lz
       end do
   
     else
@@ -65,7 +65,7 @@ contains
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
           do i = 1, dtmp%xsz(1)
-              write(outputunit, '(1ES15.7)') var(i, j, k)
+              write(outputunit, '(1ES17.7E3)') var(i, j, k)
           end do
       end do
     end do

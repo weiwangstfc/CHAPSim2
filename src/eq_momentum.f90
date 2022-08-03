@@ -37,7 +37,7 @@ contains
     real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(inout) :: rhs0, rhs1
     integer,  intent(in) :: isub
     
-    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)) :: rhs_dummy
+    real(WP) :: rhs_explicit_current, rhs_explicit_last, rhs_total
     integer :: i, j, k 
 
     do k = 1, dtmp%xsz(3)
@@ -45,17 +45,18 @@ contains
         do i = 1, dtmp%xsz(1)
 
       ! add explicit terms : convection+viscous rhs
-          rhs_dummy(i, j, k) = rhs1(i, j, k) 
-          rhs1(i, j, k) = dm%tGamma(isub) * rhs1(i, j, k) + &
-                          dm%tZeta (isub) * rhs0(i, j, k)
-          rhs0(i, j, k) = rhs_dummy(i, j, k)
+          rhs_explicit_current = rhs1(i, j, k) 
+          rhs_explicit_last    = rhs0(i, j, k)
+          rhs_total = dm%tGamma(isub) * rhs_explicit_current + &
+                      dm%tZeta (isub) * rhs_explicit_last
+          rhs0(i, j, k) = rhs_explicit_current
 
       ! add pressure gradient
-          rhs1(i, j, k) = rhs1(i, j, k) + &
-                          dm%tAlpha(isub) * rhs1_pfc(i, j, k)
+          rhs_total = rhs_total + &
+                      dm%tAlpha(isub) * rhs1_pfc(i, j, k)
 
       ! times the time step 
-          rhs1(i, j, k) = dm%dt * rhs1(i, j, k)
+          rhs1(i, j, k) = dm%dt * rhs_total
 
         end do
       end do
@@ -225,6 +226,7 @@ contains
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_debug2
     real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc_debug
     real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp_debug
+    type(DECOMP_INFO) :: dtmp
 #endif
     real(WP) :: one_third_rre, two_third_rre, two_rre
     real(WP) :: fbc(2)
@@ -484,20 +486,6 @@ contains
       call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, 1), fbc(:) )
     end if
 
-#ifdef DEBUG
-    ! x-pencil
-    k = 2
-    j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_mid_deri_x_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, fl%qx(i, j, k), qx_ccc(i, j, k), apcc(i, j, k)
-        end do
-      end if
-    end if
-#endif
-
     if ( dm%ithermo == 1) then
       do m = 1, 2
         fbc(m) = dm%fbcx(m, 1) * dm%fbcx(m, 1) * dm%fbc_dend(m, 1)
@@ -540,26 +528,37 @@ contains
     call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
     apcc_debug = apcc_debug + apcc
     
+    dtmp = dm%dpcc
     k = 2
     i = 2 + 1
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_convection_x_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), apcc_debug(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, apcc_debug(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_convection_x_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, apcc_debug(i, j, k)
         end do
       end if
     end if
+
+    i = 2 + 1
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_convection_x_'//trim(int2str(nrank))//'.dat', position="append")
+      do k= 1, dtmp%xsz(3)
+        write(321, *) k, apcc_debug(i, j, k)
+      end do
+    end if
+
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! X-pencil : X-mom, pressure gradient in x direction, sigma_1*d(p)/dx
@@ -570,26 +569,37 @@ contains
 ! x-pencil : X-mom pressure gradient - debug
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
+    dtmp = dm%dpcc
+
     k = 2
     i = 2 + 1
     !write(*,*) 'test_scale_x', dm%tAlpha(isub), dm%dt
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_dp_x_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), mx_rhs_pfc(i, j, k), mx_rhs_pfc(i, j, k)*dm%tAlpha(isub)*dm%dt
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, mx_rhs_pfc(i, j, k), mx_rhs_pfc(i, j, k)*dm%tAlpha(isub)*dm%dt
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_dp_x_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, mx_rhs_pfc(i, j, k), mx_rhs_pfc(i, j, k)*dm%tAlpha(isub)*dm%dt
         end do
       end if
+    end if
+
+    i = 2 + 1
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_dp_x_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, mx_rhs_pfc(i, j, k), mx_rhs_pfc(i, j, k)*dm%tAlpha(isub)*dm%dt
+      end do
     end if
 
 #endif
@@ -597,9 +607,8 @@ contains
 ! X-pencil : X-mom diffusion term (x-v1-1/7), \mu^x * LL1(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1)) ! check
-  
-    call Get_x_1st_derivative_P2C_3D(fl%qx, apcc1, dm, dm%ibcx(:, 1))
-    call Get_x_1st_derivative_C2P_3D(apcc1, apcc,  dm, dm%ibcx(:, 1))
+    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, 1))
+    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, 1))
 
     if ( dm%ithermo == 0) fl%mx_rhs = fl%mx_rhs +         fl%rre * apcc
     if ( dm%ithermo == 1) fl%mx_rhs = fl%mx_rhs + m_pcc * fl%rre * apcc
@@ -674,27 +683,39 @@ contains
     call transpose_z_to_y (apcc_zpencil, apcc_ypencil, dm%dpcc)
     call transpose_y_to_x (apcc_ypencil, apcc_debug, dm%dpcc)
 
+    dtmp = dm%dpcc
+
     k = 2
     i = 2 + 1
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre
       end do
     end if
     close(121)
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
+        do i = 1, dtmp%xsz(1)
+          write(221, *) i, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre
         end do
       end if
     end if
+
+    i = 2 + 1
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre
+      end do
+    end if
+
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! x-mom: convert all terms to rhs
@@ -769,26 +790,39 @@ contains
     call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
     acpc_debug = acpc_debug + acpc
     
+    dtmp = dm%dcpc
+
     k = 2
     i = 2
-    if( k >= dm%dcpc%xst(3) .and. k <= dm%dcpc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_convection_y_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dcpc%xsz(2)
-        jj = dm%dcpc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), acpc_debug(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, acpc_debug(i, j, k)
       end do
     end if
 
     k = 2
     j = 2 + 1
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_convection_y_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, acpc_debug(i, j, k)
         end do
       end if
     end if
+
+    i = 2
+    j = 2 + 1
+    
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_convection_y_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, acpc_debug(i, j, k)
+      end do
+    end if
+
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom pressure gradient in y direction, d(sigma_1 p)
@@ -800,27 +834,42 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
     call transpose_y_to_x (my_rhs_pfc_ypencil, acpc, dm%dcpc)
+
+    dtmp = dm%dcpc
+
     k = 2
     i = 2
     !write(*,*) 'test_scale_x', dm%tAlpha(isub), dm%dt
-    if( k >= dm%dcpc%xst(3) .and. k <= dm%dcpc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_dp_y_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dcpc%xsz(2)
-        jj = dm%dcpc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), acpc(i, j, k), acpc(i, j, k)*dm%tAlpha(isub)*dm%dt
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, acpc(i, j, k), acpc(i, j, k)*dm%tAlpha(isub)*dm%dt
       end do
     end if
 
     k = 2
     j = 2 +  1
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_dp_y_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, acpc(i, j, k), acpc(i, j, k)*dm%tAlpha(isub)*dm%dt
         end do
       end if
     end if
+
+    i = 2
+    j = 2 +  1
+    
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_dp_y_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, acpc(i, j, k), acpc(i, j, k)*dm%tAlpha(isub)*dm%dt
+      end do
+    end if
+
+
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! X-pencil : Y-mom diffusion term (y-v1-1/7), \mu * LL1(uy) at (i, j', k)
@@ -902,26 +951,39 @@ contains
 ! x-pencil : Y-mom viscous terms - debug
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
+    dtmp = dm%dcpc
+
     k = 2
     i = 2
-    if( k >= dm%dcpc%xst(3) .and. k <= dm%dcpc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dcpc%xsz(2)
         jj = dm%dcpc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
+        write(121, *) jj, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
       end do
     end if
 
     k = 2
     j = 2 + 1
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dm%dcpc%xsz(1)
           write(221, *) i, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
         end do
       end if
     end if
+
+    i = 1
+    j = 2 + 1
+    
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dm%dcpc%xsz(3)
+        write(321, *) k, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
+      end do
+    end if
+
 
 #endif  
 
@@ -992,23 +1054,33 @@ contains
     
     k = 2 + 1
     i = 2
-    if( k >= dm%dccp%xst(3) .and. k <= dm%dccp%xen(3)) then
+    dtmp = dm%dccp
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_convection_z_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dccp%xsz(2)
-        jj = dm%dccp%xst(2) + j - 1
-        write(121, *) dm%yc(jj), accp_debug(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, accp_debug(i, j, k)
       end do
     end if
 
     k = 2 + 1
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_convection_z_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, accp_debug(i, j, k)
         end do
       end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_convection_z_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, accp_debug(i, j, k)
+      end do
     end if
 
 #endif
@@ -1026,25 +1098,37 @@ contains
 
     call transpose_z_to_y (mz_rhs_pfc_zpencil, accp_ypencil, dm%dccp)
     call transpose_y_to_x (accp_ypencil, accp, dm%dccp)
+
+    dtmp = dm%dccp
+
     k = 2 + 1
     i = 2
-    if( k >= dm%dccp%xst(3) .and. k <= dm%dccp%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_dp_z_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dccp%xsz(2)
         jj = dm%dccp%xst(2) + j - 1
-        write(121, *) dm%yc(jj), accp(i, j, k), accp(i, j, k)*dm%tAlpha(isub)*dm%dt
+        write(121, *) jj, accp(i, j, k), accp(i, j, k)*dm%tAlpha(isub)*dm%dt
       end do
     end if
 
     k = 2 + 1
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_dp_z_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dm%dccp%xsz(1)
           write(221, *) i, accp(i, j, k), accp(i, j, k)*dm%tAlpha(isub)*dm%dt
         end do
       end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_dp_z_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dm%dccp%xsz(3)
+        write(321, *) k, accp(i, j, k), accp(i, j, k)*dm%tAlpha(isub)*dm%dt
+      end do
     end if
 
 #endif
@@ -1054,7 +1138,7 @@ contains
     !call Get_x_2nd_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3) )
     call Get_x_1st_derivative_C2P_3D(fl%qz, apcp, dm, dm%ibcx(:, 3),  dm%fbcx(:, 3))
     call Get_x_1st_derivative_P2C_3D(apcp,  accp, dm, dm%ibcx(:, 3) )
-    if ( dm%ithermo == 0) fl%mz_rhs = fl%mz_rhs +          fl%rre * accp
+    if ( dm%ithermo == 0) fl%mz_rhs = fl%mz_rhs +         fl%rre * accp
     if ( dm%ithermo == 1) fl%mz_rhs = fl%mz_rhs + m_ccp * fl%rre * accp
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Z-mom diffusion term (z-v1-2/1), \mu * L22(uz) at (i, j, k')
@@ -1062,7 +1146,7 @@ contains
     !call Get_y_2nd_derivative_C2C_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy(:, 3))
     call Get_y_1st_derivative_C2P_3D( qz_ypencil,   acpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy(:, 3))
     call Get_y_1st_derivative_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, 3))
-    if ( dm%ithermo == 0) mz_rhs_ypencil = mz_rhs_ypencil +                  fl%rre * accp_ypencil
+    if ( dm%ithermo == 0) mz_rhs_ypencil = mz_rhs_ypencil +                 fl%rre * accp_ypencil
     if ( dm%ithermo == 1) mz_rhs_ypencil = mz_rhs_ypencil + m_ccp_ypencil * fl%rre * accp_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v1-3/7), \mu * L33(uz) at (i, j, k')
@@ -1070,7 +1154,7 @@ contains
     !call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
     call Get_z_1st_derivative_P2C_3D(qz_zpencil,   accc_zpencil, dm, dm%ibcz(:, 3))
     call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
-    if ( dm%ithermo == 0) mz_rhs_zpencil = mz_rhs_zpencil +                  fl%rre * accp_zpencil
+    if ( dm%ithermo == 0) mz_rhs_zpencil = mz_rhs_zpencil +                 fl%rre * accp_zpencil
     if ( dm%ithermo == 1) mz_rhs_zpencil = mz_rhs_zpencil + m_ccp_zpencil * fl%rre * accp_zpencil
 
     if ( dm%ithermo == 1) then
@@ -1127,28 +1211,40 @@ contains
     call transpose_y_to_x (accp_ypencil, mz_rhs_pfc, dm%dccp)
     
 !---------------------------------------------------------------------------------------------------------------------------------------------
-! x-pencil : Y-mom viscous terms - debug
+! x-pencil : Z-mom viscous terms - debug
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
+
+    dtmp = dm%dccp
+
     k = 2 + 1
     i = 2
-    if( k >= dm%dccp%xst(3) .and. k <= dm%dccp%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dccp%xsz(2)
-        jj = dm%dccp%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
       end do
     end if
 
     k = 2 + 1
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
         end do
       end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
+      end do
     end if
 
 #endif 
@@ -1175,11 +1271,13 @@ contains
       fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_X_Cf) then
       rhsx_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
+      fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_Z_MASSFLUX) then
       call Get_volumetric_average_3d(.false., dm%ibcy(:, 3), dm%fbcy(:, 3), dm, dm%dccp, fl%mz_rhs, rhsz_bulk)
       fl%mz_rhs(:, :, :) = fl%mz_rhs(:, :, :) - rhsz_bulk
     else if (fl%idriven == IDRVF_Z_Cf) then
       rhsz_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
+      fl%mz_rhs(:, :, :) = fl%mz_rhs(:, :, :) - rhsz_bulk
     else
     end if
  
@@ -1218,6 +1316,7 @@ contains
     
 #ifdef DEBUG
     integer :: i, j, k, jj
+    type(DECOMP_INFO) :: dtmp
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
@@ -1226,15 +1325,34 @@ contains
     call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), dm%fbcx(:, 4) )
     ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 #ifdef DEBUG
+    dtmp = dm%dpcc
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_1st_decomp_u_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, dphidx_pcc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc(i, j, k), ux(i, j, k)
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(121, file = 'debugx_1st_decomp_u_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(121, *) i, dphidx_pcc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc(i, j, k), ux(i, j, k)
         end do
       end if
+    end if
+
+    k = 2
+    i = 3
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+        open(221, file = 'debugy_1st_decomp_u_'//trim(int2str(nrank))//'.dat', position="append")
+        do j = 1, dtmp%xsz(2)
+          write(221, *) j, dphidx_pcc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc(i, j, k), ux(i, j, k)
+        end do
+    end if
+
+    i = 3
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(321, file = 'debugz_1st_decomp_u_'//trim(int2str(nrank))//'.dat', position="append")
+        do k = 1, dtmp%xsz(3)
+          write(321, *) k, dphidx_pcc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc(i, j, k), ux(i, j, k)
+        end do
     end if
 #endif
 
@@ -1249,16 +1367,37 @@ contains
     call transpose_y_to_x (dphidy_cpc_ypencil, dphidy_cpc, dm%dcpc)
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
 #ifdef DEBUG
+    dtmp = dm%dcpc
+
     k = 2
     j = 2+1
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_1st_decomp_v_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, dphidy_cpc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc(i, j, k), uy(i, j, k)
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(122, file = 'debugx_1st_decomp_v_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(122, *) i, dphidy_cpc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc(i, j, k), uy(i, j, k)
         end do
       end if
     end if
+
+    k = 2
+    i = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+        open(222, file = 'debugy_1st_decomp_v_'//trim(int2str(nrank))//'.dat', position="append")
+        do j = 1, dtmp%xsz(2)
+          write(222, *) j, dphidy_cpc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc(i, j, k), uy(i, j, k)
+        end do
+    end if
+
+    i = 2
+    j = 2+1
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(223, file = 'debugz_1st_decomp_v_'//trim(int2str(nrank))//'.dat', position="append")
+        do k = 1, dtmp%xsz(3)
+          write(223, *) k, dphidy_cpc(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc(i, j, k), uy(i, j, k)
+        end do
+      end if
+
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !   z-pencil, uz = uz - dt * alpha * d(phi_ccc)/dz
@@ -1274,16 +1413,36 @@ contains
     uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp
 
 #ifdef DEBUG
+    dtmp = dm%dccp
     k = 2+1
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_1st_decomp_w_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, dphidz_ccp(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp(i, j, k), uz(i, j, k)
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(321, file = 'debugx_1st_decomp_w_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(321, *) i, dphidz_ccp(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp(i, j, k), uz(i, j, k)
         end do
       end if
     end if
+
+    k = 2+1
+    i = 2
+      if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+        open(323, file = 'debugy_1st_decomp_w_'//trim(int2str(nrank))//'.dat', position="append")
+        do j = 1, dtmp%xsz(2)
+          write(323, *) j, dphidz_ccp(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp(i, j, k), uz(i, j, k)
+        end do
+      end if
+
+    i = 2
+    j = 2
+    
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(323, file = 'debugz_1st_decomp_w_'//trim(int2str(nrank))//'.dat', position="append")
+        do k = 1, dtmp%xsz(3)
+          write(323, *) k, dphidz_ccp(i, j, k), dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp(i, j, k), uz(i, j, k)
+        end do
+      end if
 #endif
 
     return
@@ -1310,21 +1469,21 @@ contains
 
     do k = 1, dm%dccc%zsz(3)
       do j = 1, dm%dccc%zsz(2)
-          jj = dm%dccc%zsz(2) + j - 1
-        do i = 1, dm%dcc%zsz(1)
-          ii = dm%dccc%zsz(1) + i - 1
+          jj = dm%dccc%zst(2) + j - 1
+        do i = 1, dm%dccc%zsz(1)
+          ii = dm%dccc%zst(1) + i - 1
           rhs_global_id_zpencil(ii, jj, k) = rhs_zpencil(i, j, k)
         end do
       end do
-    end do
+    end do ! check, test shows there is no difference for global or local index 
 
     call poisson(rhs_global_id_zpencil)
 
     do k = 1, dm%dccc%zsz(3)
       do j = 1, dm%dccc%zsz(2)
-          jj = dm%dccc%zsz(2) + j - 1
-        do i = 1, dm%dcc%zsz(1)
-          ii = dm%dccc%zsz(1) + i - 1
+          jj = dm%dccc%zst(2) + j - 1
+        do i = 1, dm%dccc%zsz(1)
+          ii = dm%dccc%zst(1) + i - 1
           rhs_zpencil(i, j, k) = rhs_global_id_zpencil(ii, jj, k)
         end do
       end do
@@ -1368,6 +1527,7 @@ contains
     integer,      intent(in) :: isub
 #ifdef DEBUG
     integer :: i, j, k, jj
+    type(DECOMP_INFO) :: dtmp
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
@@ -1377,37 +1537,51 @@ contains
 ! to update intermediate (\hat{q}) or (\hat{g})
 !_______________________________________________________________________________
 #ifdef DEBUG
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_rhs_uvw_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%mx_rhs(i+1, j, k), fl%my_rhs(i, j, k), fl%mz_rhs(i, j, k+1)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%mx_rhs(i+1, j, k), fl%my_rhs(i, j, k), fl%mz_rhs(i, j, k+1)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_rhs_uvw_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, fl%mx_rhs(i, j, k), fl%my_rhs(i, j+1, k), fl%mz_rhs(i, j, k+1)
         end do
       end if
     end if
 
-#endif
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_rhs_uvw_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%mx_rhs(i+1, j, k), fl%my_rhs(i, j+1, k), fl%mz_rhs(i, j, k)
+      end do
+    end if
 
+#endif
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! to update velocity to get intermediate data
+!_______________________________________________________________________________ 
     if ( dm%ithermo == 0) then 
       fl%qx = fl%qx + fl%mx_rhs
       fl%qy = fl%qy + fl%my_rhs
       fl%qz = fl%qz + fl%mz_rhs
-    else
+    else if ( dm%ithermo == 1) then 
       fl%gx = fl%gx + fl%mx_rhs
       fl%gy = fl%gy + fl%my_rhs
       fl%gz = fl%gz + fl%mz_rhs
+    else
+      call Print_error_msg("Error in velocity updating")
     end if
 
     !in order for a high order spacial accuracy
@@ -1422,25 +1596,35 @@ contains
     call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
     if(dm%ithermo ==  1) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
 #ifdef DEBUG
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_before_correction_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_before_correction_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
         end do
       end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_before_correction_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
+      end do
     end if
 
 #endif
@@ -1452,115 +1636,102 @@ contains
 #ifdef DEBUG
     call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'before_fft', 0)
 
-    ! do i = 1, dm%dccc%xsz(1)
-    !   do j = 1, dm%dccc%xsz(2)
+    ! do j = 1, dm%dccc%xsz(2)
+    !   do i = 1, dm%dccc%xsz(1)
     !     do k = 1, dm%dccc%xsz(3)
-    !       write(*,*) 'bf', i, j, k, fl%pcor(i, j, k)
+    !       write(*,*) 'bf fft', j, i, k, fl%pcor(i, j, k)
     !     end do
     !   end do
     ! end do 
-
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%pcor(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%pcor(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, fl%pcor(i, j, k)
         end do
       end if
     end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%pcor(i, j, k)
+      end do
+    end if
+
+
 
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...")
+    !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
     call solve_poisson(fl%pcor, dm)
+
 #ifdef DEBUG
-! do i = 1, dm%dccc%xsz(1)
-!   do j = 1, dm%dccc%xsz(2)
-!     do k = 1, dm%dccc%xsz(3)
-!       write(*,*) 'af', i, j, k, fl%pcor(i, j, k)
-!     end do
-!   end do
-! end do 
+    ! do j = 1, dm%dccc%xsz(2)
+    !   do i = 1, dm%dccc%xsz(1)
+    !     do k = 1, dm%dccc%xsz(3)
+    !       write(*,*) 'af fft', j, i, k, fl%pcor(i, j, k)
+    !     end do
+    !   end do
+    ! end do 
 
     call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
 
+    ! open(321, file = 'debug_after_fft_kij'//trim(int2str(nrank))//'.dat', position="append")
+    ! do j = 1, dm%dccc%xsz(2)
+    !     do i = 1, dm%dccc%xsz(1)
+    !       do k = 1, dm%dccc%xsz(3)
+    !         write(321, *) dm%dccc%xst(3) + k - 1, dm%dccc%xst(1) + i - 1, dm%dccc%xst(2) + j - 1,  fl%pcor(i, j, k)
+    !       end do
+    !     end do
+    ! end do
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%pcor(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%pcor(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, fl%pcor(i, j, k)
         end do
       end if
     end if
 
-
-    !       fl%pcor( 1, 1, 1) =  100.15426258177015_WP     
-    !       fl%pcor( 2, 1, 1) =  96.250114327046006_WP     
-    !       fl%pcor( 3, 1, 1) =  88.600267332355060_WP     
-    !       fl%pcor( 4, 1, 1) =  77.514250350088986_WP     
-    !       fl%pcor( 5, 1, 1) =  63.438409095289835_WP     
-    !       fl%pcor( 6, 1, 1) =  46.935660457699946_WP     
-    !       fl%pcor( 7, 1, 1) =  28.660512112137365_WP     
-    !       fl%pcor( 8, 1, 1) =  9.3308171831700992_WP     
-    !       fl%pcor( 9, 1, 1) = -10.302179706499556_WP     
-    !       fl%pcor(10, 1, 1) = -29.483993496713108_WP     
-    !       fl%pcor(11, 1, 1) = -47.485893127597656_WP     
-    !       fl%pcor(12, 1, 1) = -63.631625114389180_WP     
-    !       fl%pcor(13, 1, 1) = -77.321034330989647_WP     
-    !       fl%pcor(14, 1, 1) = -88.050034662457350_WP     
-    !       fl%pcor(15, 1, 1) = -95.426632942470277_WP     
-    !       fl%pcor(16, 1, 1) = -99.182900058440708_WP     
-    !       fl%pcor(17, 1, 1) = -99.182900058440708_WP     
-    !       fl%pcor(18, 1, 1) = -95.426632942470277_WP     
-    !       fl%pcor(19, 1, 1) = -88.050034662457364_WP     
-    !       fl%pcor(20, 1, 1) = -77.321034330989647_WP     
-    !       fl%pcor(21, 1, 1) = -63.631625114389173_WP     
-    !       fl%pcor(22, 1, 1) = -47.485893127597656_WP     
-    !       fl%pcor(23, 1, 1) = -29.483993496713101_WP     
-    !       fl%pcor(24, 1, 1) = -10.302179706499542_WP     
-    !       fl%pcor(25, 1, 1) =  9.3308171831701134_WP     
-    !       fl%pcor(26, 1, 1) =  28.660512112137372_WP     
-    !       fl%pcor(27, 1, 1) =  46.935660457699946_WP     
-    !       fl%pcor(28, 1, 1) =  63.438409095289842_WP     
-    !       fl%pcor(29, 1, 1) =  77.514250350088986_WP     
-    !       fl%pcor(30, 1, 1) =  88.600267332355074_WP     
-    !       fl%pcor(31, 1, 1) =  96.250114327046006_WP     
-    !       fl%pcor(32, 1, 1) =  100.15426258177015_WP  
-
-    ! ! correct this to try
-    ! do i = 1, dm%dccc%xsz(1)
-    !   do j = 2, dm%dccc%xsz(2)
-    !     do k = 2, dm%dccc%xsz(3)
-    !       fl%pcor(i, j, k) = fl%pcor(i, 1, 1)
-    !     end do
-    !   end do
-    ! end do
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%pcor(i, j, k)
+      end do
+    end if
 
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1587,26 +1758,38 @@ contains
     if ( dm%ithermo == 1) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
     
 #ifdef DEBUG
+    dtmp =  dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_1st_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_1st_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, fl%qx(i, j, k), fl%qy(i, j + 1, k), fl%qz(i, j, k + 1), fl%pres(i, j, k)
         end do
       end if
     end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_1st_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
+      end do
+    end if
+
+
 
     call Find_maximum_absvar3d(fl%qx, "maximum ux:")
     call Find_maximum_absvar3d(fl%qy, "maximum uy:")

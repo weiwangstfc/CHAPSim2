@@ -97,6 +97,7 @@ contains
     integer :: i, j, k
 #ifdef DEBUG
     integer :: jj
+    type(DECOMP_INFO) :: dtmp
 #endif
     div(:, :, :) = ZERO
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -111,26 +112,38 @@ contains
         end do
       end do
     end do
+
 #ifdef DEBUG
+
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_div_x'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dccc%xsz(2)
-        jj = dm%dccc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), ux(i, j, k), div0(i, j, k), div(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj =dtmp%xst(2) + j - 1
+        write(121, *) jj, ux(i, j, k), div0(i, j, k), div(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_div_x'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dtmp%xsz(1)
           write(221, *) i, ux(i, j, k), div0(i, j, k), div(i, j, k)
         end do
       end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_div_x'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, ux(i, j, k), div0(i, j, k), div(i, j, k)
+      end do
     end if
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -150,25 +163,36 @@ contains
       end do
     end do
 #ifdef DEBUG
+
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dccc%xst(3) .and. k <= dm%dccc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(122, file = 'debugy_div_y'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dccc%xsz(2)
-        jj = dm%dccc%xst(2) + j - 1
-        write(122, *) dm%yc(jj), uy(i, j, k), div0(i, j, k), div(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(122, *) jj, uy(i, j, k), div0(i, j, k), div(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_div_y'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, uy(i, j, k), div0(i, j, k), div(i, j, k)
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(222, file = 'debugx_div_y'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(222, *) i, uy(i, j, k), div0(i, j, k), div(i, j, k)
         end do
       end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(323, file = 'debugz_div_y'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(323, *) k, uy(i, j, k), div0(i, j, k), div(i, j, k)
+      end do
     end if
 #endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -192,25 +216,36 @@ contains
       end do
     end do
 #ifdef DEBUG
+
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dccc%xst(3) .and. k <= dm%dccc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(123, file = 'debugy_div_z'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dccc%xsz(2)
-        jj = dm%dccc%xst(2) + j - 1
-        write(123, *) dm%yc(jj), uz(i, j, k), div0(i, j, k), div(i, j, k)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(123, *) jj, uz(i, j, k), div0(i, j, k), div(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
-        open(221, file = 'debugx_div_z'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
-          write(221, *) i, uz(i, j, k), div0(i, j, k), div(i, j, k)
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(223, file = 'debugx_div_z'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(223, *) i, uz(i, j, k), div0(i, j, k), div(i, j, k)
         end do
       end if
+    end if
+
+    j = 2
+    i = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(323, file = 'debugz_div_z'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(323, *) k, uz(i, j, k), div0(i, j, k), div(i, j, k)
+      end do
     end if
 
 #endif

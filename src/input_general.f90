@@ -476,15 +476,15 @@ contains
         call Print_warning_msg ("Grids are clustered.")
         domain(i)%lxx = TWOPI
         domain(i)%lzz = TWOPI
-        domain(i)%lyt = PI
-        domain(i)%lyb = - PI
+        domain(i)%lyt = TWOPI
+        domain(i)%lyb = ZERO
       else if (domain(i)%icase == ICASE_BURGERS) then
         if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
         call Print_warning_msg ("Grids are clustered.")
-        domain(i)%lxx = TWO
-        domain(i)%lzz = TWO
-        domain(i)%lyt = TWO
-        domain(i)%lyb = ZERO
+        ! domain(i)%lxx = TWO
+        ! domain(i)%lzz = TWO
+        ! domain(i)%lyt = TWO
+        ! domain(i)%lyb = ZERO
       else 
         ! do nothing...
       end if

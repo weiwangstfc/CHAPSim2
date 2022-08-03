@@ -64,8 +64,6 @@ contains
     use continuity_eq_mod
     implicit none
 
-    logical :: itest1 = .false.
-    logical :: itest2 = .true.
     integer :: i, j, k, l, s, iter
     type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
     integer :: ipencil
@@ -134,6 +132,9 @@ contains
       else
         call Print_error_msg("Error in flow initialisation flag.")
       end if
+
+      call Test_algorithms()
+
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! update initial results
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -146,14 +147,11 @@ contains
       call write_instantanous_thermo_data(thermo(l), domain(l)) 
 
     end do
-    !stop
+    stop
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to test algorithms based on given values.
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(itest1) then
-      call Test_algorithms()
-      !call Test_poisson_solver
-    end if
+    
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! test
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -269,6 +267,7 @@ contains
     type(t_flow),   intent(inout) :: fl
 #ifdef DEBUG
     integer :: i, j, k, jj
+    type(DECOMP_INFO) :: dtmp
 #endif
 
     if(nrank == 0) call Print_debug_start_msg("Initializing flow variables ...")
@@ -285,7 +284,7 @@ contains
     else if (dm%icase == ICASE_TGV3D) then
       call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
     else if (dm%icase == ICASE_BURGERS) then
-      call Initialize_burgers_flow       (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+      call Initialize_burgers_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
     else 
       if(nrank == 0) call Print_error_msg("No such case defined" )
     end if
@@ -301,26 +300,37 @@ contains
 #endif
 
 #ifdef DEBUG
+    dtmp = dm%dccc
     k = 2
     i = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2)
+      do j = 1, dm%dpcc%xsz(2) 
         jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) dm%yc(jj), fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+        write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
       end do
     end if
 
     k = 2
     j = 2
-    if( k >= dm%dpcc%xst(3) .and. k <= dm%dpcc%xen(3)) then
-      if( j >= dm%dpcc%xst(2) .and. j <= dm%dpcc%xen(2)) then
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dm%dpcc%xsz(1)
           write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
         end do
       end if
     end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dm%dccp%xsz(3)
+        write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
+      end do
+    end if
+
 #endif
 
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -824,7 +834,7 @@ contains
       else
         open(newunit = outputunit, file = trim(filename), action = "write", status = "old", position="append")
       end if
-      write(outputunit, '(1F10.4, 6ES15.7)') fl%time, uerr_work, verr_work, perr_work, &
+      write(outputunit, '(1F10.4, 6ES17.7E3)') fl%time, uerr_work, verr_work, perr_work, &
             uerrmax_work, verrmax_work, perrmax_work
       close(outputunit)
     end if
@@ -848,7 +858,7 @@ contains
 !> \param[out]    f             flow
 !_______________________________________________________________________________
   subroutine  Initialize_vortexgreen_3dflow(dm, ux, uy, uz, p)
-    use parameters_constant_mod, only : HALF, ZERO, SIXTEEN, TWO, PI
+    use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO, PI
     use udf_type_mod
     use math_mod
     implicit none
@@ -858,7 +868,7 @@ contains
                                      uz(:, :, :) , &
                                      p (:, :, :)
     real(WP) :: xc, yc, zc
-    real(WP) :: xp, yp!, zp
+    real(WP) :: xp, yp, zp
     integer :: i, j, k, ii, jj, kk
     type(DECOMP_INFO) :: dtmp
 
@@ -869,14 +879,19 @@ contains
     dtmp = dm%dpcc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)! - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xp = dm%h(1) * real(ii - 1, WP) - PI
-          ux(i, j, k) =  sin_wp ( xp ) !* cos_wp ( yc ) * cos_wp ( zc )
+          xp = dm%h(1) * real(ii - 1, WP)! - PI
+          !ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+          ! if(i<=dtmp%xsz(1)/2 + 1) then
+          !   ux(i, j, k) =  xp
+          ! else
+          !   ux(i, j, k) = -xp + twopi
+          !end if
         end do
       end do
     end do
@@ -886,34 +901,49 @@ contains
     dtmp = dm%dcpc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)! - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yp = dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
-          !uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)! - PI
+          !uy(i, j, k) =sin_wp ( yp ) ! -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          ! if(jj<=dtmp%ysz(2)/2 + 1) then
+          !   uy(i, j, k) =  yp
+          ! else
+          !   uy(i, j, k) = -yp + twopi
+          ! end if
         end do
       end do
     end do
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !   uz in x-pencil
 !--------------------------------------------------------------------------------------------------------------------------------------------- 
-    uz(:, :, :) =  ZERO
+    !uz(:, :, :) =  ZERO
+    dtmp = dm%dccp
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
+      zp = dm%h(3) * real(kk - 1, WP)! - PI
+      do j = 1, dtmp%xsz(2)
+        do i = 1, dtmp%xsz(1)
+          uz(i, j, k) = sin_wp(zp) !ZERO
+        end do
+      end do
+    end do
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !   p in x-pencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
     dtmp = dm%dccc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)! - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)! - PI
           !p(i, j, k)= ONE / SIXTEEN * ( cos(TWO * xc) + cos(TWO * yc) ) * &
           !            (cos(TWO * zc) + TWO)
         end do

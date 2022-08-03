@@ -17,7 +17,7 @@ module decomp_2d_poisson
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
 !#ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-17_mytype
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 !#else
 !  real(mytype), parameter :: epsilon = 1.e-8_mytype
 !#endif

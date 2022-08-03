@@ -1,8 +1,8 @@
 module poisson_interface_mod
   use decomp_2d
   use mpi_mod
-  use parameters_constant_mod, only: zero, half, one, onepfive, two, twopfive, &
-                                     three, pi, threepfive, four, twopi, cx_one_one
+  use parameters_constant_mod, disabled => WP!, only: zero, half, one, onepfive, two, twopfive, &
+                             !        three, pi, threepfive, four, twopi, cx_one_one
   use math_mod, only: cos_prec, abs_prec, sin_prec
   use geometry_mod, only: alpha, beta
   implicit none
@@ -92,9 +92,11 @@ contains
     use operations
     implicit none
     type(t_domain), intent(in) :: dm
+
+    real(WP) :: alcai, aci, bci
     
 
-    if (nrank == 0) call Print_debug_start_msg("Building up interface for the poisson solver ...")
+    if (nrank == 0) call Print_debug_start_msg("Building up the interface for the poisson solver ...")
 !---------------------------------------------------------------------------------------------------------------------------------------------
     istret = dm%istret
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -157,37 +159,64 @@ contains
     end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
     dx = dm%h(1)
-    dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! computational or physical grid spacing?
+    dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! computational or physical grid spacing (yes))?
     dz = dm%h(3)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !alpha, beta from geo 
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
-    acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
-    bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
+    if(dm%iAccuracy == IACCU_CD2) then
+      alcai = ZERO
+      aci = ONE 
+      bci = ZERO
+    else
+      alcai = NINE / SIXTYTWO
+      aci = SIXTYTHREE / SIXTYTWO
+      bci = SEVENTEEN / SIXTYTWO / THREE
+    end if
+    
+    alcaix6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    acix6   = aci / dx !d1rC2P(3, 1, IBC_PERIODIC) / dx
+    bcix6   = bci / dx !d1rC2P(3, 2, IBC_PERIODIC) / dx
+
+    alcaiy6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    aciy6   = aci / dy !d1rC2P(3, 1, IBC_PERIODIC) / dy
+    bciy6   = bci / dy !d1rC2P(3, 2, IBC_PERIODIC) / dy
+
+    alcaiz6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    aciz6   = aci / dz !d1rC2P(3, 1, IBC_PERIODIC) / dz
+    bciz6   = bci / dz !d1rC2P(3, 2, IBC_PERIODIC) / dz
 !---------------------------------------------------------------------------------------------------------------------------------------------
-    alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
-    aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
-    bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
-    aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
-    bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!   only classic interpolation, no optimized schemes added here. See paper S. Lele 1992
-!   check pros of optimized schemes, to do
-    ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
-    aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
-    bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
-    cicix6   = zero
-    dicix6   = zero
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!   only classic interpolation, no optimized schemes added here. check paper S. Lele 1992
+!   check pros of optimized schemes, to do (see below info from xcompact3d)
+!*``ipinter=1``: conventional sixth-order interpolation coefficients as described in `Lele 1992 <https://www.sciencedirect.com/science/article/pii/002199919290324R>`_\
+!*``ipinter=2``: optimal sixth-order interpolation coefficients designed to be as close as possible to spectral interpolators.
+!*``ipinter=3``: aggressive sixth-order interpolation coefficients designed to add some numerical dissipation at small scales but they could result in spurious oscillations close to a wall.
+    if(dm%iAccuracy == IACCU_CD2) then
+      ailcaix6 = ZERO
+      aicix6 = HALF 
+      bicix6 = ZERO
+      cicix6 = ZERO
+      dicix6 = ZERO
+    else
+      ailcaix6 = THREE * ZPONE
+      aicix6 = ONEPFIVE * HALF
+      bicix6 = ONE * ZPONE * HALF
+      cicix6 = ZERO
+      dicix6 = ZERO
+    end if
+
+    !ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
+    !aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
+    !bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
+    !cicix6   = zero
+    !dicix6   = zero
+
     ailcaiy6 = ailcaix6
     aiciy6   = aicix6
     biciy6   = bicix6
     ciciy6   = cicix6
     diciy6   = dicix6
-!---------------------------------------------------------------------------------------------------------------------------------------------
+
     ailcaiz6 = ailcaix6
     aiciz6   = aicix6
     biciz6   = bicix6
@@ -297,9 +326,9 @@ subroutine inversion5_v1(aaa_in,eee,spI)
   TYPE(DECOMP_INFO) :: spI
 
 !#ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-17_mytype
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 !#else
-!  real(mytype), parameter :: epsilon = 1.e-8
+!  real(mytype), parameter :: epsilon = 1.e-8_mytype
 !#endif
 
   complex(mytype),dimension(spI%yst(1):spI%yen(1),ny/2,spI%yst(3):spI%yen(3),5) :: aaa, aaa_in
@@ -441,9 +470,9 @@ subroutine inversion5_v2(aaa,eee,spI)
   TYPE(DECOMP_INFO) :: spI
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-16
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 #else
-  real(mytype), parameter :: epsilon = 1.e-8
+  real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
 
   complex(mytype),dimension(spI%yst(1):spI%yen(1),nym,spI%yst(3):spI%yen(3),5) :: aaa
