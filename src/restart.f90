@@ -153,7 +153,7 @@ contains
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_bcast(fl%iteration, 1, MPI_INTEGER,          0, MPI_COMM_WORLD, ierror)
-    call mpi_bcast(fl%time,      1, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierror)
+    call mpi_bcast(fl%time,      1, MPI_REAL_WP, 0, MPI_COMM_WORLD, ierror)
     call mpi_barrier(MPI_COMM_WORLD, ierror)
 
     ipencil = 1
@@ -195,6 +195,7 @@ contains
     ! to set up other parameters for flow only, which will be updated in thermo flow.
     !---------------------------------------------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
+    fl%pcor_zpencil_ggg(:, :, :) = ZERO
     fl%dDens  (:, :, :) = ONE
     fl%mVisc  (:, :, :) = ONE
     fl%dDensm1(:, :, :) = ONE
@@ -256,7 +257,7 @@ contains
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_bcast(tm%iteration, 1, MPI_INTEGER,          0, MPI_COMM_WORLD, ierror)
-    call mpi_bcast(tm%time,      1, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierror)
+    call mpi_bcast(tm%time,      1, MPI_REAL_WP, 0, MPI_COMM_WORLD, ierror)
     call mpi_barrier(MPI_COMM_WORLD, ierror)
 
 

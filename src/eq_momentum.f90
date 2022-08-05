@@ -224,7 +224,9 @@ contains
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc1 
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_debug
     real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_debug2
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc1
     real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc_debug
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp1
     real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp_debug
     type(DECOMP_INFO) :: dtmp
 #endif
@@ -607,8 +609,10 @@ contains
 ! X-pencil : X-mom diffusion term (x-v1-1/7), \mu^x * LL1(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1)) ! check
+    accc = ZERO
+    apcc = ZERO
     call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, 1))
-    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, 1))
+    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, 1), dm%fbcx(:, 1))
 
     if ( dm%ithermo == 0) fl%mx_rhs = fl%mx_rhs +         fl%rre * apcc
     if ( dm%ithermo == 1) fl%mx_rhs = fl%mx_rhs + m_pcc * fl%rre * apcc
@@ -616,6 +620,8 @@ contains
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * LL2(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_y_2nd_derivative_C2C_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy(:, 1))
+    appc_ypencil = ZERO
+    apcc_ypencil = ZERO
     call Get_y_1st_derivative_C2P_3D(qx_ypencil,   appc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy(:, 1))
     call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1))
 
@@ -625,6 +631,8 @@ contains
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * LL3(ux) at (i', j, k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_z_2nd_derivative_C2C_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1), dm%fbcz(:, 1))
+    apcp_zpencil = ZERO 
+    apcc_zpencil = ZERO
     call Get_z_1st_derivative_C2P_3D(qx_zpencil,   apcp_zpencil, dm, dm%ibcz(:, 1), dm%fbcz(:, 1))
     call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1))
 
@@ -648,7 +656,8 @@ contains
 !   X-pencil : X-mom diffusion term (x-v3/7), -2/3 * d\mu/dx * (div(u)^x) +  
 !                                                    2 * d\mu/dx * du/dx
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      call Get_x_midp_C2P_3D (div, apcc, dm, dm%ibcx(:, 1) ) ! apcc = div_pcc
+      fbc(:) = ZERO ! check
+      call Get_x_midp_C2P_3D (div, apcc, dm, dm%ibcx(:, 1), fbc ) ! apcc = div_pcc
       fl%mx_rhs = fl%mx_rhs - two_third_rre * dmdx_pcc * apcc
       call Get_x_1st_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1), dm%fbcx(:, 1) ) ! apcc = d(qx)/dx_pcc
       fl%mx_rhs = fl%mx_rhs + two_rre       * dmdx_pcc * apcc
@@ -691,7 +700,8 @@ contains
       open(121, file = 'debugy_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre
+        write(121, *) jj, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre,&
+              apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
       end do
     end if
     close(121)
@@ -702,7 +712,8 @@ contains
       if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dtmp%xsz(1)
-          write(221, *) i, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre
+          write(221, *) i, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre, &
+          apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
         end do
       end if
     end if
@@ -712,7 +723,8 @@ contains
     if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
       open(321, file = 'debugz_vis_x_'//trim(int2str(nrank))//'.dat', position="append")
       do k = 1, dtmp%xsz(3)
-        write(321, *) k, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre
+        write(321, *) k, apcc(i, j, k)*fl%rre+apcc1(i, j, k)*fl%rre+apcc_debug(i, j, k)*fl%rre, &
+        apcc(i, j, k)*fl%rre, apcc1(i, j, k)*fl%rre, apcc_debug(i, j, k)*fl%rre
       end do
     end if
 
@@ -875,6 +887,8 @@ contains
 ! X-pencil : Y-mom diffusion term (y-v1-1/7), \mu * LL1(uy) at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_x_2nd_derivative_C2C_3D(fl%qy, acpc, dm, dm%ibcx(:, 2) )
+    appc = ZERO
+    acpc = ZERO
     call Get_x_1st_derivative_C2P_3D(fl%qy, appc, dm, dm%ibcx(:, 2), dm%fbcx(:, 2) )
     call Get_x_1st_derivative_P2C_3D(appc,  acpc, dm, dm%ibcx(:, 2) )
     if ( dm%ithermo == 0) fl%my_rhs = fl%my_rhs +         fl%rre * acpc
@@ -884,14 +898,14 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
     call Get_y_1st_derivative_P2C_3D(qy_ypencil,   accc_ypencil, dm, dm%ibcy(:, 2))
-    call Get_y_1st_derivative_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy(:, 2))
     if ( dm%ithermo == 0) my_rhs_ypencil = my_rhs_ypencil +                  fl%rre * acpc_ypencil
     if ( dm%ithermo == 1) my_rhs_ypencil = my_rhs_ypencil + m_cpc_ypencil * fl%rre * acpc_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Y-mom diffusion term (y-v1-3/7), \mu * LL3(uy) at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_z_2nd_derivative_C2C_3D(qy_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2))
-    call Get_z_1st_derivative_C2P_3D(qy_zpencil,   acpp_zpencil, dm, dm%ibcz(:, 2))
+    call Get_z_1st_derivative_C2P_3D(qy_zpencil,   acpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz(:, 2))
     call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2))
     if ( dm%ithermo == 0) my_rhs_zpencil = my_rhs_zpencil +                  fl%rre * acpc_zpencil
     if ( dm%ithermo == 1) my_rhs_zpencil = my_rhs_zpencil + m_cpc_zpencil * fl%rre * acpc_zpencil
@@ -907,12 +921,14 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v2/7), \mu^y * 1/3 * d (div)/dy at (i, j', k)
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      call Get_y_1st_derivative_C2P_3D(div_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
+      fbc = ZERO ! check
+      call Get_y_1st_derivative_C2P_3D(div_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2), fbc)
       my_rhs_ypencil = my_rhs_ypencil + one_third_rre * m_cpc_ypencil * acpc_ypencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v3/7), 2d\mu/dy * (-1/3 * div(u)) +  2d\mu/dy * dv/dy
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      call Get_y_midp_C2P_3D (div_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2) )
+      fbc = ZERO ! check
+      call Get_y_midp_C2P_3D (div_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2), fbc )
       my_rhs_ypencil = my_rhs_ypencil - two_third_rre * dmdy_cpc_ypencil * acpc_ypencil
       call Get_y_1st_derivative_P2P_3D(qy_ypencil,  acpc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy(:, 2) )
       my_rhs_ypencil = my_rhs_ypencil + two_rre       * dmdy_cpc_ypencil * acpc_ypencil
@@ -938,20 +954,15 @@ contains
       my_rhs_zpencil =  my_rhs_zpencil + fl%rre * dmdz_cpc_zpencil * acpc_zpencil
     end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
-! y-mom: convert all terms to x-pencil
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    call transpose_y_to_x (my_rhs_ypencil, acpc, dm%dcpc)
-    fl%my_rhs =  fl%my_rhs + acpc
-    call transpose_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
-    call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
-    fl%my_rhs =  fl%my_rhs + acpc
-
-    call transpose_y_to_x (my_rhs_pfc_ypencil,  my_rhs_pfc,  dm%dcpc)
-!---------------------------------------------------------------------------------------------------------------------------------------------
 ! x-pencil : Y-mom viscous terms - debug
 !---------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef DEBUG
     dtmp = dm%dcpc
+
+    call transpose_y_to_x (acpc_ypencil, acpc1, dm%dcpc)
+
+    call transpose_z_to_y (acpc_zpencil, acpc_ypencil, dm%dcpc)
+    call transpose_y_to_x (acpc_ypencil, acpc_debug, dm%dcpc)
 
     k = 2
     i = 2
@@ -959,7 +970,8 @@ contains
       open(121, file = 'debugy_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
       do j = 1, dm%dcpc%xsz(2)
         jj = dm%dcpc%xst(2) + j - 1
-        write(121, *) jj, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
+        write(121, *) jj, acpc(i, j, k)*fl%rre+ acpc1(i, j, k)*fl%rre+ acpc_debug(i, j, k)*fl%rre, &
+        acpc(i, j, k)*fl%rre, acpc1(i, j, k)*fl%rre, acpc_debug(i, j, k)*fl%rre
       end do
     end if
 
@@ -969,23 +981,36 @@ contains
       if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
         do i = 1, dm%dcpc%xsz(1)
-          write(221, *) i, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
+          write(221, *) i, acpc(i, j, k)*fl%rre+ acpc1(i, j, k)*fl%rre+ acpc_debug(i, j, k)*fl%rre, &
+          acpc(i, j, k)*fl%rre, acpc1(i, j, k)*fl%rre, acpc_debug(i, j, k)*fl%rre
         end do
       end if
     end if
 
-    i = 1
+    i = 2
     j = 2 + 1
     
     if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
       open(321, file = 'debugz_vis_y_'//trim(int2str(nrank))//'.dat', position="append")
       do k = 1, dm%dcpc%xsz(3)
-        write(321, *) k, fl%my_rhs(i, j, k)-acpc_debug(i, j, k)
+        write(321, *) k, acpc(i, j, k)*fl%rre+ acpc1(i, j, k)*fl%rre+ acpc_debug(i, j, k)*fl%rre, &
+        acpc(i, j, k)*fl%rre, acpc1(i, j, k)*fl%rre, acpc_debug(i, j, k)*fl%rre
       end do
     end if
 
 
 #endif  
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! y-mom: convert all terms to x-pencil
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    call transpose_y_to_x (my_rhs_ypencil, acpc, dm%dcpc)
+    fl%my_rhs =  fl%my_rhs + acpc
+    call transpose_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
+    call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
+    fl%my_rhs =  fl%my_rhs + acpc
+
+    call transpose_y_to_x (my_rhs_pfc_ypencil,  my_rhs_pfc,  dm%dcpc)
+
 
 !=============================================================================================================================================
 ! the RHS of Z momentum equation
@@ -1153,7 +1178,7 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
     call Get_z_1st_derivative_P2C_3D(qz_zpencil,   accc_zpencil, dm, dm%ibcz(:, 3))
-    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
+    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, 3), dm%fbcz(:, 3))
     if ( dm%ithermo == 0) mz_rhs_zpencil = mz_rhs_zpencil +                 fl%rre * accp_zpencil
     if ( dm%ithermo == 1) mz_rhs_zpencil = mz_rhs_zpencil + m_ccp_zpencil * fl%rre * accp_zpencil
 
@@ -1168,12 +1193,14 @@ contains
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v2/7), \mu * 1/3 * d (div)/dz at (i, j, k')
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      call Get_z_1st_derivative_C2P_3D(div_zpencil, accp_zpencil, dm, dm%ibcz(:, 3) )
+      fbc = ZERO
+      call Get_z_1st_derivative_C2P_3D(div_zpencil, accp_zpencil, dm, dm%ibcz(:, 3), fbc )
       mz_rhs_zpencil = mz_rhs_zpencil + one_third_rre * m_ccp_zpencil * accp_zpencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v3/7), 2d\mu/dz * (-1/3 * div(u)) +  2d\mu/dz * dw/dz
 !---------------------------------------------------------------------------------------------------------------------------------------------
-      call Get_z_midp_C2P_3D(div_zpencil, accp_zpencil, dm,  dm%ibcz(:, 3) )
+      fbc = ZERO
+      call Get_z_midp_C2P_3D(div_zpencil, accp_zpencil, dm,  dm%ibcz(:, 3), fbc )
       mz_rhs_zpencil = mz_rhs_zpencil - two_third_rre * dmdz_ccp_zpencil * accp_zpencil
       call Get_z_1st_derivative_P2P_3D( qz_zpencil,  accp_zpencil, dm, dm%ibcz(:, 3), dm%fbcz(:, 3) )
       mz_rhs_zpencil = mz_rhs_zpencil + two_rre * dmdz_ccp_zpencil * accp_zpencil
@@ -1198,6 +1225,53 @@ contains
       call Get_y_1st_derivative_C2C_3D(qz_ypencil, accp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy(:, 3) )
       mz_rhs_ypencil =  mz_rhs_ypencil + fl%rre * dmdy_ccp_ypencil * accp_ypencil
     end if
+  
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! x-pencil : Z-mom viscous terms - debug
+!---------------------------------------------------------------------------------------------------------------------------------------------
+#ifdef DEBUG
+
+dtmp = dm%dccp
+
+call transpose_y_to_x (accp_ypencil, accp1, dm%dccp)
+
+call transpose_z_to_y (accp_zpencil, accp_ypencil, dm%dccp)
+call transpose_y_to_x (accp_ypencil, accp_debug,   dm%dccp)
+
+k = 2 + 1
+i = 2
+if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+  open(121, file = 'debugy_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
+  do j = 1, dtmp%xsz(2)
+    jj = dtmp%xst(2) + j - 1
+    write(121, *) jj, accp(i, j, k)*fl%rre+ accp1(i, j, k)*fl%rre+ accp_debug(i, j, k)*fl%rre, &
+    accp(i, j, k)*fl%rre, accp1(i, j, k)*fl%rre, accp_debug(i, j, k)*fl%rre
+  end do
+end if
+
+k = 2 + 1
+j = 2
+if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+  if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    open(221, file = 'debugx_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
+    do i = 1, dtmp%xsz(1)
+      write(221, *) i, accp(i, j, k)*fl%rre+ accp1(i, j, k)*fl%rre+ accp_debug(i, j, k)*fl%rre, &
+      accp(i, j, k)*fl%rre, accp1(i, j, k)*fl%rre, accp_debug(i, j, k)*fl%rre
+    end do
+  end if
+end if
+
+i = 2
+j = 2
+if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+  open(321, file = 'debugz_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
+  do k = 1, dtmp%xsz(3)
+    write(321, *) k, accp(i, j, k)*fl%rre+ accp1(i, j, k)*fl%rre+ accp_debug(i, j, k)*fl%rre, &
+    accp(i, j, k)*fl%rre, accp1(i, j, k)*fl%rre, accp_debug(i, j, k)*fl%rre
+  end do
+end if
+
+#endif 
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! z-mom: convert all terms to x-pencil
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -1210,44 +1284,6 @@ contains
     call transpose_z_to_y (mz_rhs_pfc_zpencil, accp_ypencil, dm%dccp)
     call transpose_y_to_x (accp_ypencil, mz_rhs_pfc, dm%dccp)
     
-!---------------------------------------------------------------------------------------------------------------------------------------------
-! x-pencil : Z-mom viscous terms - debug
-!---------------------------------------------------------------------------------------------------------------------------------------------
-#ifdef DEBUG
-
-    dtmp = dm%dccp
-
-    k = 2 + 1
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
-      end do
-    end if
-
-    k = 2 + 1
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
-        end do
-      end if
-    end if
-
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_vis_z_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, fl%mz_rhs(i, j, k)-accp_debug(i, j, k)
-      end do
-    end if
-
-#endif 
 !=============================================================================================================================================
 ! x-pencil : to build up rhs in total, in all directions
 !=============================================================================================================================================
@@ -1449,49 +1485,293 @@ contains
   end subroutine Correct_massflux
 
 !=============================================================================================================================================
-  subroutine solve_poisson(rhs, dm)
+  subroutine solve_poisson(fl, dm, isub)
     use udf_type_mod
+    use parameters_constant_mod
     use decomp_2d_poisson
+    use decomp_extended_mod
+    use continuity_eq_mod
+#ifdef DEBUG
+    use typeconvert_mod
+    use visulisation_mod
+#endif
     implicit none
-    type(t_domain),  intent(in) :: dm
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ), intent(inout) :: rhs
+    type(t_domain), intent( in    ) :: dm
+    type(t_flow),   intent( inout ) :: fl                  
+    integer,        intent( in    ) :: isub
 
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
+
+  
+
     real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
                          dm%dccc%zst(2) : dm%dccc%zen(2), &
-                         dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_global_id_zpencil
+                         dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
     integer :: i, j, k, jj, ii
 
+#ifdef DEBUG
+    type(DECOMP_INFO) :: dtmp
+#endif
+!=============================================================================================================================================
+! RHS of Poisson Eq.
+!=============================================================================================================================================
+    fl%pcor = ZERO
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! $d\rho / dt$ at cell centre
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    if (dm%ithermo == 1) then
+      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
+    end if
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! $d(\rho u_i)) / dx_i $ at cell centre
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    div  = ZERO
+    if (dm%ithermo == 1) then
+      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
+    else
+      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
+    end if
 
-    call transpose_x_to_y (rhs        , rhs_ypencil, dm%dccc)
+    fl%pcor = fl%pcor + div
+    fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
+
+!=============================================================================================================================================
+!   convert RHS from xpencil gll to zpencil ggg
+!=============================================================================================================================================
+    call transpose_x_to_y (fl%pcor    , rhs_ypencil, dm%dccc)
     call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
+    call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
 
-    do k = 1, dm%dccc%zsz(3)
-      do j = 1, dm%dccc%zsz(2)
-          jj = dm%dccc%zst(2) + j - 1
-        do i = 1, dm%dccc%zsz(1)
-          ii = dm%dccc%zst(1) + i - 1
-          rhs_global_id_zpencil(ii, jj, k) = rhs_zpencil(i, j, k)
-        end do
+#ifdef DEBUG
+    call view_data_in_rank(rhs_zpencil_ggg,   dm%dccc, dm, 'before_fft', 0)
+
+    dtmp = dm%dccc
+    k = 2
+    i = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, rhs_zpencil_ggg(i, j, k)
       end do
-    end do ! check, test shows there is no difference for global or local index 
+    end if
 
-    call poisson(rhs_global_id_zpencil)
-
-    do k = 1, dm%dccc%zsz(3)
-      do j = 1, dm%dccc%zsz(2)
-          jj = dm%dccc%zst(2) + j - 1
-        do i = 1, dm%dccc%zsz(1)
-          ii = dm%dccc%zst(1) + i - 1
-          rhs_zpencil(i, j, k) = rhs_global_id_zpencil(ii, jj, k)
+    k = 2
+    j = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(221, *) i, rhs_zpencil_ggg(i, j, k)
         end do
-      end do
-    end do
+      end if
+    end if
 
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, rhs_zpencil_ggg(i, j, k)
+      end do
+    end if
+    !print '("zzz 30s...")'
+    !call sleep(30)
+
+#endif
+
+!=============================================================================================================================================
+!   solve Poisson
+!=============================================================================================================================================
+    call poisson(rhs_zpencil_ggg)
+!=============================================================================================================================================
+!   convert back RHS from zpencil ggg to xpencil gll
+!=============================================================================================================================================
+    call zpencil_index_ggg2llg(rhs_zpencil_ggg, rhs_zpencil, dm%dccc)
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
-    call transpose_y_to_x (rhs_ypencil, rhs        , dm%dccc)
+    call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
+#ifdef DEBUG
 
+    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
+
+    dtmp = dm%dccc
+    k = 2
+    i = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%pcor(i, j, k)
+      end do
+    end if
+
+    k = 2
+    j = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(221, *) i, fl%pcor(i, j, k)
+        end do
+      end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%pcor(i, j, k)
+      end do
+    end if
+
+#endif
+    return
+  end subroutine
+!=============================================================================================================================================
+  subroutine solve_poisson_x2z(fl, dm, isub)
+    use udf_type_mod
+    use parameters_constant_mod
+    use decomp_2d_poisson
+    use decomp_extended_mod
+    use continuity_eq_mod
+#ifdef DEBUG
+    use typeconvert_mod
+    use visulisation_mod
+#endif
+    implicit none
+    type(t_domain), intent( in    ) :: dm
+    type(t_flow),   intent( inout ) :: fl                  
+    integer,        intent( in    ) :: isub
+
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: rhs
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
+
+  
+
+    real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
+                         dm%dccc%zst(2) : dm%dccc%zen(2), &
+                         dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
+    integer :: i, j, k, jj, ii
+#ifdef DEBUG
+    type(DECOMP_INFO) :: dtmp
+#endif
+!=============================================================================================================================================
+! RHS of Poisson Eq.
+!=============================================================================================================================================
+    fl%pcor_zpencil_ggg = ZERO
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! $d\rho / dt$ at cell centre
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    if (dm%ithermo == 1) then
+      rhs = ZERO
+      rhs_ypencil = ZERO
+      rhs_zpencil = ZERO
+      rhs_zpencil_ggg = ZERO
+      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, rhs)
+      call transpose_x_to_y(rhs,         rhs_ypencil)
+      call transpose_y_to_z(rhs_ypencil, rhs_zpencil)
+      call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
+      fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
+    end if
+!---------------------------------------------------------------------------------------------------------------------------------------------
+! $d(\rho u_i)) / dx_i $ at cell centre
+!---------------------------------------------------------------------------------------------------------------------------------------------
+    rhs_zpencil_ggg  = ZERO
+    if (dm%ithermo == 1) then
+      call Get_divergence_vel_x2z(fl%gx, fl%gy, fl%gz, rhs_zpencil_ggg, dm)
+    else
+      call Get_divergence_vel_x2z(fl%qx, fl%qy, fl%qz, rhs_zpencil_ggg, dm)
+    end if
+
+    fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
+    fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
+
+#ifdef DEBUG
+    call view_data_in_rank(fl%pcor_zpencil_ggg,   dm%dccc, dm, 'before_fft', 0)
+
+    dtmp = dm%dccc
+    k = 2
+    i = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%pcor_zpencil_ggg(i, j, k)
+      end do
+    end if
+
+    k = 2
+    j = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(221, *) i, fl%pcor_zpencil_ggg(i, j, k)
+        end do
+      end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%pcor_zpencil_ggg(i, j, k)
+      end do
+    end if
+    !print '("zzz 30s...")'
+    !call sleep(30)
+
+#endif
+!=============================================================================================================================================
+!   solve Poisson
+!=============================================================================================================================================
+    call poisson(fl%pcor_zpencil_ggg)
+!=============================================================================================================================================
+!   convert back RHS from zpencil ggg to xpencil gll
+!=============================================================================================================================================
+    call zpencil_index_ggg2llg(fl%pcor_zpencil_ggg, rhs_zpencil, dm%dccc)
+    call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
+    call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
+#ifdef DEBUG
+    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
+
+    dtmp = dm%dccc
+    k = 2
+    i = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        write(121, *) jj, fl%pcor(i, j, k)
+      end do
+    end if
+
+    k = 2
+    j = 2
+    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+        open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+        do i = 1, dtmp%xsz(1)
+          write(221, *) i, fl%pcor(i, j, k)
+        end do
+      end if
+    end if
+
+    i = 2
+    j = 2
+    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+      open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+      do k = 1, dtmp%xsz(3)
+        write(321, *) k, fl%pcor(i, j, k)
+      end do
+    end if
+
+#endif
     return
   end subroutine
 
@@ -1628,112 +1908,13 @@ contains
     end if
 
 #endif
-!---------------------------------------------------------------------------------------------------------------------------------------------
-! to calculate the provisional divergence constrains
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    !if(nrank == 0) call Print_debug_mid_msg("  Computing provisional divergence constrains ...")
-    call Calculate_continuity_constrains(fl, dm, isub)
-#ifdef DEBUG
-    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'before_fft', 0)
 
-    ! do j = 1, dm%dccc%xsz(2)
-    !   do i = 1, dm%dccc%xsz(1)
-    !     do k = 1, dm%dccc%xsz(3)
-    !       write(*,*) 'bf fft', j, i, k, fl%pcor(i, j, k)
-    !     end do
-    !   end do
-    ! end do 
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, fl%pcor(i, j, k)
-      end do
-    end if
-
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, fl%pcor(i, j, k)
-        end do
-      end if
-    end if
-
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, fl%pcor(i, j, k)
-      end do
-    end if
-
-
-
-#endif
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
 !---------------------------------------------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
-    call solve_poisson(fl%pcor, dm)
-
-#ifdef DEBUG
-    ! do j = 1, dm%dccc%xsz(2)
-    !   do i = 1, dm%dccc%xsz(1)
-    !     do k = 1, dm%dccc%xsz(3)
-    !       write(*,*) 'af fft', j, i, k, fl%pcor(i, j, k)
-    !     end do
-    !   end do
-    ! end do 
-
-    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
-
-    ! open(321, file = 'debug_after_fft_kij'//trim(int2str(nrank))//'.dat', position="append")
-    ! do j = 1, dm%dccc%xsz(2)
-    !     do i = 1, dm%dccc%xsz(1)
-    !       do k = 1, dm%dccc%xsz(3)
-    !         write(321, *) dm%dccc%xst(3) + k - 1, dm%dccc%xst(1) + i - 1, dm%dccc%xst(2) + j - 1,  fl%pcor(i, j, k)
-    !       end do
-    !     end do
-    ! end do
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, fl%pcor(i, j, k)
-      end do
-    end if
-
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, fl%pcor(i, j, k)
-        end do
-      end if
-    end if
-
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, fl%pcor(i, j, k)
-      end do
-    end if
-
-#endif
+    call solve_poisson_x2z(fl, dm, isub)
+    !call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
 !---------------------------------------------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !---------------------------------------------------------------------------------------------------------------------------------------------

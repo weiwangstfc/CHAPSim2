@@ -16,11 +16,11 @@ module decomp_2d_poisson
 
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
-!#ifdef DOUBLE_PREC
+#ifdef DOUBLE_PREC
   real(mytype), parameter :: epsilon = 1.e-16_mytype
-!#else
-!  real(mytype), parameter :: epsilon = 1.e-8_mytype
-!#endif
+#else
+  real(mytype), parameter :: epsilon = 1.e-8_mytype
+#endif
 
   ! boundary conditions
   integer, save :: bcx, bcy, bcz
@@ -69,8 +69,7 @@ contains
 
     implicit none
 
-    !integer :: nx, ny, nz
-    integer :: i
+    !integer :: nx, ny, nz, i
     
     real(mytype) :: rl, iy
     external  rl, iy
@@ -106,9 +105,9 @@ contains
        stop 'boundary condition not supported'
     end if
 
-    nx = nx_global
-    ny = ny_global
-    nz = nz_global
+    !nx = nx_global
+    !ny = ny_global
+    !nz = nz_global
 
     ! pressure-grid having 1 fewer point for non-periodic directions
     !if (bcx==1) nx=nx-1
@@ -316,7 +315,7 @@ contains
     real(mytype) :: tmp1, tmp2,x ,y, z
 
     !integer :: nx,ny,nz
-    integer :: i,j,k
+    integer i,j,k
 
     complex(mytype) :: cx
     real(mytype) :: rl, iy
@@ -327,7 +326,7 @@ contains
     !nz = nz_global
 
     if (.not. fft_initialised) then
-       call decomp_2d_fft_init(PHYSICAL_IN_Z)
+       call decomp_2d_fft_init(PHYSICAL_IN_Z,nx,ny,nz)
        fft_initialised = .true.
     end if
 

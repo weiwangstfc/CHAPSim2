@@ -1,17 +1,24 @@
 !=============================================================================================================================================
 module precision_mod
-  use decomp_2d, only : mytype
+  use mpi_mod
   implicit none
 
+  public
   integer, parameter :: I4 = selected_int_kind( 4 )
   integer, parameter :: I8 = selected_int_kind( 8 )
   integer, parameter :: I15 = selected_int_kind( 15 )
   integer, parameter :: S6P = selected_real_kind( p = 6, r = 37 )
   integer, parameter :: D15P = selected_real_kind( p = 15, r = 307 )
   integer, parameter :: Q33P = selected_real_kind( p = 33, r = 4931 )
-
+#ifdef DOUBLE_PREC
   integer, parameter :: WP = D15P
-  !integer, parameter :: WP = mytype ! inherit from decomp_2d, flag of -DDOUBLE_PREC is required.
+  integer, parameter :: MPI_REAL_WP = MPI_DOUBLE_PRECISION
+  integer, parameter :: MPI_CPLX_WP = MPI_DOUBLE_COMPLEX
+#else
+  integer, parameter :: WP = S6P !D15P
+  integer, parameter :: MPI_REAL_WP = MPI_REAL
+  integer, parameter :: MPI_CPLX_WP = MPI_COMPLEX
+#endif
 
 end module precision_mod
 !=============================================================================================================================================
@@ -356,6 +363,7 @@ module udf_type_mod
 
     real(WP), allocatable :: pres(:, :, :)
     real(WP), allocatable :: pcor(:, :, :)
+    real(WP), allocatable :: pcor_zpencil_ggg(:, :, :)
 
     real(WP), allocatable :: dDens(:, :, :)
     real(WP), allocatable :: mVisc(:, :, :)

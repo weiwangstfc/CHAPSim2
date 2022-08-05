@@ -179,7 +179,6 @@ contains
 
     integer    :: i, j, k
     integer    :: outputunit
-    logical    :: dbg = .false.
     logical    :: file_exists = .FALSE.
     character( len = 128) :: filename
     
@@ -202,26 +201,10 @@ contains
       end if
     end do
     !---------------------------------------------------------------------------------------------------------------------------------------------
-    ! set dy for un-stretching grids; ds for stretching grids (computational domain).
-    !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(dm%is_stretching(2)) then
-      dm%h(2) = ONE / real(dm%nc(2), WP)
-    else 
-      dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP)
-    end if
-    !---------------------------------------------------------------------------------------------------------------------------------------------
     ! set dx, dz for uniform grids
     !---------------------------------------------------------------------------------------------------------------------------------------------
     dm%h(1) = dm%lxx / real(dm%nc(1), WP)
     dm%h(3) = dm%lzz / real(dm%nc(3), WP)
-
-    !---------------------------------------------------------------------------------------------------------------------------------------------
-    ! set 1/dx, 1/(dx)^2
-    !---------------------------------------------------------------------------------------------------------------------------------------------
-    do i = 1, NDIM
-      dm%h2r(i) = ONE / (dm%h(i) * dm%h(i))
-      dm%h1r(i) = ONE / dm%h(i)
-    end do
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! allocate  variables for mapping physical domain to computational domain
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -230,22 +213,41 @@ contains
     dm%yp(:) = ZERO
     dm%yc(:) = ZERO
 
-    allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) )
-    allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
-    dm%yMappingpt(:, :) = ONE
-    dm%yMappingcc(:, :) = ONE
-
-    call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
-    call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
-
+    if(dm%is_stretching(2)) then
+      allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) )
+      allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
+      dm%yMappingpt(:, :) = ONE
+      dm%yMappingcc(:, :) = ONE
+      dm%h(2) = ONE / real(dm%nc(2), WP)
+      call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
+      call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
+    else
+      dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP)
+      do i = 1, dm%np_geo(2)
+        dm%yp(i) = real(i - 1, WP) * dm%h(2) + dm%lyb
+      end do
+      do i = 1, dm%nc(2)
+        dm%yc(i) = real(i - 1, WP) * dm%h(2) + dm%h(2) * HALF + dm%lyb
+      end do
+    end if
+    !---------------------------------------------------------------------------------------------------------------------------------------------
+    ! set 1/dx, 1/(dx)^2
+    !---------------------------------------------------------------------------------------------------------------------------------------------
+    do i = 1, NDIM
+      dm%h2r(i) = ONE / (dm%h(i) * dm%h(i))
+      dm%h1r(i) = ONE / dm%h(i)
+    end do
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! print out data for debugging
     !---------------------------------------------------------------------------------------------------------------------------------------------
-    if(dbg) then
+#ifdef DEBUG
+    if(nrank == 0) then
+      open(221, file = 'mesh_yp.dat')
       do i = 1, dm%np_geo(2)
-        write (*, wrtfmt1i1r) i, dm%yp(i)
+        write (221, *) i, dm%yp(i)
       end do
     end if
+#endif
 
     ! print out for postprocessing
     ndm = ndm + 1

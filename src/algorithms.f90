@@ -111,6 +111,7 @@ contains
   subroutine Test_TDMA_noncyclic
     !use iso_fortran_env
     use precision_mod
+    use math_mod
     implicit none
     integer, parameter :: n = 10
     real(WP) :: a(n), b(n), c(n), d(n), r(n)
@@ -148,7 +149,7 @@ contains
     ! data output
     write (*, '(A)') 'Test_TDMA_noncyclic: cal, ref, diff'
     do i = 1, n
-      write (*, '(I3, 2F8.4, 1ES17.7E3)') i, r(i), ref(i), dabs(r(i)-ref(i))
+      write (*, '(I3, 2F8.4, 1ES17.7E3)') i, r(i), ref(i), abs_wp(r(i)-ref(i))
     end do
     
     return
@@ -156,6 +157,7 @@ contains
 !=============================================================================================================================================
   subroutine Test_TDMA_cyclic
     use precision_mod
+    use math_mod
     !use iso_fortran_env
     implicit none
     integer, parameter :: n = 10
@@ -179,7 +181,7 @@ contains
          1212441._WP/174746._WP, -76._WP/47._WP, -187761._WP/174746._WP]
     write (*, '(A)') 'Test_TDMA_cyclic: cal, ref, diff'
     do i = 1, n
-      write (*, '(I3, 2F8.4, 1ES17.7E3)') i, r(i), ref(i), dabs(r(i)-ref(i))
+      write (*, '(I3, 2F8.4, 1ES17.7E3)') i, r(i), ref(i), abs_wp(r(i)-ref(i))
     end do
 
     return

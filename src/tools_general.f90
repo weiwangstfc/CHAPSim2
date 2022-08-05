@@ -149,14 +149,14 @@ module code_performance_mod
 
       t_this_iter = t_iter_end - t_iter_start
       call mpi_barrier(MPI_COMM_WORLD, ierror)
-      call mpi_allreduce(t_this_iter, t_this_iter0, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_this_iter, t_this_iter0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       if(nrank == 0) call Print_debug_mid_msg ("  Code Performance Info :")
       if(nrank == 0) call Print_debug_mid_msg ("    Time for this time step : " // &
           trim(real2str(t_this_iter0))//' s')
 
       t_elaspsed  = t_iter_end - t_code_start
       call mpi_barrier(MPI_COMM_WORLD, ierror)
-      call mpi_allreduce(t_elaspsed, t_elaspsed0, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_elaspsed, t_elaspsed0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       call Convert_sec_to_hms (t_elaspsed0, hrs, mins, secs)
       if(nrank == 0) call Print_debug_mid_msg ("    Elaspsed Wallclock Time : "// &
            trim(int2str(hrs)) // ' h ' // &
@@ -165,7 +165,7 @@ module code_performance_mod
 
       t_remaining= t_elaspsed / real(iter - nrsttckpt, wp) * real(niter - iter, wp)
       call mpi_barrier(MPI_COMM_WORLD, ierror)
-      call mpi_allreduce(t_remaining, t_remaining0, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_remaining, t_remaining0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       call Convert_sec_to_hms (t_remaining0, hrs, mins, secs)
       if(nrank == 0) call Print_debug_mid_msg ("    Remaning Wallclock Time : "// &
            trim(int2str(hrs)) // ' h ' // &
@@ -178,8 +178,8 @@ module code_performance_mod
       t_total = t_code_end - t_code_start
       t_aveiter = t_total / real(niter - nrsttckpt, WP)
       call mpi_barrier(MPI_COMM_WORLD, ierror)
-      call mpi_allreduce(t_total,   t_total0,   1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
-      call mpi_allreduce(t_aveiter, t_aveiter0, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_total,   t_total0,   1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_aveiter, t_aveiter0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       if(nrank == 0) call Print_debug_mid_msg ("Average wallclock time per step  : "// &
            trim(real2str(t_aveiter0))//' s')
       

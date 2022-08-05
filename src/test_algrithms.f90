@@ -88,7 +88,7 @@ contains
     do i = 1, dm%np(1)
       xp = dm%h(1) * real(i - 1, WP)
       ref = sin_wp(xp / scale + shift)
-      err = dabs(fgxp(i) - ref)
+      err = abs_wp(fgxp(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-interp-c2p ', i, xp, ref, fgxp(i), err !test
@@ -108,7 +108,7 @@ contains
     do j = 1, dm%np(2)
       yp = dm%yp(j)
       ref = sin_wp(yp / scale + shift)
-      err = dabs(fgyp(j) - ref)
+      err = abs_wp(fgyp(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-interp-c2p ', j, yp, ref, fgyp(j), err !test
@@ -128,7 +128,7 @@ contains
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
       ref = sin_wp(zp / scale + shift)
-      err = dabs(fgzp(k) - ref)
+      err = abs_wp(fgzp(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-interp-c2p ', k, zp, ref, fgzp(k), err !test
@@ -148,7 +148,7 @@ contains
     do i = 1, dm%nc(1)
       xc = dm%h(1) * (real(i - 1, WP) + HALF)
       ref = sin_wp(xc / scale + shift)
-      err = dabs(fgxc(i) - ref)
+      err = abs_wp(fgxc(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-interp-p2c ', i, xc, ref, fgxc(i), err !test
@@ -168,7 +168,7 @@ contains
     do j = 1, dm%nc(2)
       yc = dm%yc(j)
       ref = sin_wp(yc / scale + shift)
-      err = dabs(fgyc(j) - ref)
+      err = abs_wp(fgyc(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-interp-p2c ', j, yc, ref, fgyc(j), err !test
@@ -189,7 +189,7 @@ contains
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
       ref = sin_wp(zc / scale + shift)
-      err = dabs(fgzc(k) - ref)
+      err = abs_wp(fgzc(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-interp-p2c ', k, zc, ref, fgzc(k), err !test
@@ -282,7 +282,7 @@ contains
     do i = 1, dm%nc(1)
       xc = dm%h(1) * (real(i - 1, WP) + HALF)
       ref = ONE/scale * cos_wp(xc / scale + shift)
-      err = dabs(fgxc(i) - ref)
+      err = abs_wp(fgxc(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2c ', i, xc, ref, fgxc(i), err !test
@@ -302,7 +302,7 @@ contains
     do j = 1, dm%nc(2)
       yc = dm%yc(j)
       ref = ONE/scale * cos_wp(yc / scale + shift)
-      err = dabs(fgyc(j) - ref)
+      err = abs_wp(fgyc(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2c ', j, yc, ref, fgyc(j), err !test
@@ -322,7 +322,7 @@ contains
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
       ref = ONE/scale * cos_wp(zc / scale + shift)
-      err = dabs(fgzc(k) - ref)
+      err = abs_wp(fgzc(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2c ', k, zc, ref, fgzc(k), err !test
@@ -342,7 +342,7 @@ contains
     do i = 1, dm%np(1)
       xp = dm%h(1) * real(i - 1, WP)
       ref = ONE/scale * cos_wp(xp / scale + shift)
-      err = dabs(fgxp(i) - ref)
+      err = abs_wp(fgxp(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2p', i, xp, ref, fgxp(i), err !test
@@ -361,7 +361,7 @@ contains
     do j = 1, dm%np(2)
       yp = dm%yp(j)
       ref = ONE/scale * cos_wp(yp / scale + shift)
-      err = dabs(fgyp(j) - ref)
+      err = abs_wp(fgyp(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2p ', j, yp, ref, fgyp(j), err !test
@@ -380,7 +380,7 @@ contains
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
       ref = ONE/scale * cos_wp(zp / scale + shift)
-      err = dabs(fgzp(k) - ref)
+      err = abs_wp(fgzp(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2p ', k, zp, ref, fgzp(k), err !test
@@ -395,7 +395,7 @@ contains
     do i = 1, dm%np(1)
       xp = dm%h(1) * real(i - 1, WP)
       ref = ONE/scale * cos_wp(xp / scale + shift)
-      err = dabs(fgxp(i) - ref)
+      err = abs_wp(fgxp(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2p ', i, xp, ref, fgxp(i), err !test
@@ -410,7 +410,7 @@ contains
     do j = 1, dm%np(2)
       yp = dm%yp(j)
       ref = ONE/scale * cos_wp(yp / scale + shift)
-      err = dabs(fgyp(j) - ref)
+      err = abs_wp(fgyp(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2p ', j, yp, ref, fgyp(j), err !test
@@ -425,7 +425,7 @@ contains
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
       ref = ONE/scale * cos_wp(zp / scale + shift)
-      err = dabs(fgzp(k) - ref)
+      err = abs_wp(fgzp(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2p ', k, zp, ref, fgzp(k), err !test
@@ -440,7 +440,7 @@ contains
     do i = 1, dm%nc(1)
       xc = dm%h(1) * (real(i - 1, WP) + HALF)
       ref = ONE/scale * cos_wp(xc / scale + shift)
-      err = dabs(fgxc(i) - ref)
+      err = abs_wp(fgxc(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2c ', i, xc, ref, fgxc(i), err !test
@@ -455,7 +455,7 @@ contains
     do j = 1, dm%nc(2)
       yc = dm%yc(j)
       ref = ONE/scale * cos_wp(yc / scale + shift)
-      err = dabs(fgyc(j) - ref)
+      err = abs_wp(fgyc(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2c ', j, yc, ref, fgyc(j), err !test
@@ -470,7 +470,7 @@ contains
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
       ref = ONE/scale * cos_wp(zc / scale + shift)
-      err = dabs(fgzc(k) - ref)
+      err = abs_wp(fgzc(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2c ', k, zc, ref, fgzc(k), err !test
@@ -564,7 +564,7 @@ contains
     do i = 1, dm%nc(1)
       xc = dm%h(1) * (real(i - 1, WP) + HALF)
       ref = - (ONE/scale)**2 * sin_wp(xc / scale + shift)
-      err = dabs(fgxc(i) - ref)
+      err = abs_wp(fgxc(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-c2c ', i, xc, ref, fgxc(i), err !test
@@ -584,7 +584,7 @@ contains
     do j = 1, dm%nc(2)
       yc = dm%yc(j)
       ref = - (ONE/scale)**2 * sin_wp(yc / scale + shift)
-      err = dabs(fgyc(j) - ref)
+      err = abs_wp(fgyc(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
      ! !write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-c2c ', j, yc, ref, fgyc(j), err !test
@@ -604,7 +604,7 @@ contains
     do k = 1, dm%nc(3)
       zc = dm%h(3) * (real(k - 1, WP) + HALF)
       ref = - (ONE/scale)**2 * sin_wp(zc / scale + shift)
-      err = dabs(fgzc(k) - ref)
+      err = abs_wp(fgzc(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-c2c ', k, zc, ref, fgzc(k), err !test
@@ -624,7 +624,7 @@ contains
     do i = 1, dm%np(1)
       xp = dm%h(1) * real(i - 1, WP)
       ref = - (ONE/scale)**2 * sin_wp(xp / scale + shift)
-      err = dabs(fgxp(i) - ref)
+      err = abs_wp(fgxp(i) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-p2p ', i, xp, ref, fgxp(i), err !test
@@ -645,7 +645,7 @@ contains
     do j = 1, dm%np(2)
       yp = dm%yp(j)
       ref = - (ONE/scale)**2 * sin_wp(yp / scale + shift)
-      err = dabs(fgyp(j) - ref)
+      err = abs_wp(fgyp(j) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-p2p ', j, yp, ref, fgyp(j), err !test
@@ -666,7 +666,7 @@ contains
     do k = 1, dm%np(3)
       zp = dm%h(3) * real(k - 1, WP)
       ref = - (ONE/scale)**2 * sin_wp(zp / scale + shift)
-      err = dabs(fgzp(k) - ref)
+      err = abs_wp(fgzp(k) - ref)
       if(err > err_Linf) err_Linf = err
       err_L2 = err_L2 + err**2
       !write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-p2p ', k, zp, ref, fgzp(k), err !test
@@ -1062,15 +1062,15 @@ contains
           if(idir == 3) uerr = fl%qz(i, j, k) - ux
 
           uerr2 = uerr2 + uerr**2
-          if(dabs(uerr) > uerrmax) uerrmax = dabs(uerr)
+          if(abs_wp(uerr) > uerrmax) uerrmax = abs_wp(uerr)
           !if(k==d%nc(3)/2 .and. j == d%nc(2)/2) write(*,*) k, j, i, ux, fl%qx(i, j, k), uerr
         end do 
       end do
     end do
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(uerr2,   uerr2_work,   1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(uerrmax, uerrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(uerr2,   uerr2_work,   1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(uerrmax, uerrmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     uerr2_work = sqrt_wp(uerr2_work / real(nsz, WP) )
     uerr2_work = sqrt_wp(uerr2_work)
 

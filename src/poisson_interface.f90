@@ -32,55 +32,55 @@ module poisson_interface_mod
   integer :: ncly1 
   integer :: nclz1
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  integer :: nx ! computational node number
-  integer :: ny
-  integer :: nz
+  integer, save :: nx ! computational node number
+  integer, save :: ny
+  integer, save :: nz
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  integer :: nxm ! number of spacing 
-  integer :: nym
-  integer :: nzm
+  integer, save :: nxm ! number of spacing 
+  integer, save :: nym
+  integer, save :: nzm
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: dx
-  real(mytype) :: dy ! physical grid spacing
-  real(mytype) :: dz
+  real(mytype), save :: dx
+  real(mytype), save :: dy ! physical grid spacing
+  real(mytype), save :: dz
 !--------------------------------------------------------------------------------------------------------------------------------------------- 
   !real(mytype) :: alpha
   !real(mytype) :: beta
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: alcaix6 
-  real(mytype) :: acix6
-  real(mytype) :: bcix6
+  real(mytype), save :: alcaix6 
+  real(mytype), save :: acix6
+  real(mytype), save :: bcix6
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: alcaiy6 
-  real(mytype) :: aciy6
-  real(mytype) :: bciy6
+  real(mytype), save :: alcaiy6 
+  real(mytype), save :: aciy6
+  real(mytype), save :: bciy6
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: alcaiz6
-  real(mytype) :: aciz6
-  real(mytype) :: bciz6
+  real(mytype), save :: alcaiz6
+  real(mytype), save :: aciz6
+  real(mytype), save :: bciz6
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: ailcaix6 
-  real(mytype) :: aicix6
-  real(mytype) :: bicix6
-  real(mytype) :: cicix6
-  real(mytype) :: dicix6
+  real(mytype), save :: ailcaix6 
+  real(mytype), save :: aicix6
+  real(mytype), save :: bicix6
+  real(mytype), save :: cicix6
+  real(mytype), save :: dicix6
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: ailcaiy6 
-  real(mytype) :: aiciy6
-  real(mytype) :: biciy6
-  real(mytype) :: ciciy6
-  real(mytype) :: diciy6
+  real(mytype), save :: ailcaiy6 
+  real(mytype), save :: aiciy6
+  real(mytype), save :: biciy6
+  real(mytype), save :: ciciy6
+  real(mytype), save :: diciy6
 !---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: ailcaiz6
-  real(mytype) :: aiciz6
-  real(mytype) :: biciz6
-  real(mytype) :: ciciz6
-  real(mytype) :: diciz6
+  real(mytype), save :: ailcaiz6
+  real(mytype), save :: aiciz6
+  real(mytype), save :: biciz6
+  real(mytype), save :: ciciz6
+  real(mytype), save :: diciz6
 !---------------------------------------------------------------------------------------------------------------------------------------------
   !module waves
-  complex(mytype),allocatable,dimension(:) :: zkz,zk2,ezs
-  complex(mytype),allocatable,dimension(:) :: yky,yk2,eys
-  complex(mytype),allocatable,dimension(:) :: xkx,xk2,exs
+  complex(mytype),allocatable,dimension(:), save :: zkz,zk2,ezs
+  complex(mytype),allocatable,dimension(:), save :: yky,yk2,eys
+  complex(mytype),allocatable,dimension(:), save :: xkx,xk2,exs
 
   public :: build_up_poisson_interface
 
@@ -325,11 +325,11 @@ subroutine inversion5_v1(aaa_in,eee,spI)
   ! decomposition object for spectral space
   TYPE(DECOMP_INFO) :: spI
 
-!#ifdef DOUBLE_PREC
+#ifdef DOUBLE_PREC
   real(mytype), parameter :: epsilon = 1.e-16_mytype
-!#else
-!  real(mytype), parameter :: epsilon = 1.e-8_mytype
-!#endif
+#else
+  real(mytype), parameter :: epsilon = 1.e-8_mytype
+#endif
 
   complex(mytype),dimension(spI%yst(1):spI%yen(1),ny/2,spI%yst(3):spI%yen(3),5) :: aaa, aaa_in
   complex(mytype),dimension(spI%yst(1):spI%yen(1),spI%yst(2):spI%yen(2),spI%yst(3):spI%yen(3)) :: eee
@@ -591,3 +591,88 @@ subroutine inversion5_v2(aaa,eee,spI)
   return
 
 end subroutine inversion5_v2
+
+
+
+module decomp_extended_mod
+  use parameters_constant_mod
+  implicit none
+
+
+  public :: ypencil_index_lgl2ggl
+  public :: zpencil_index_llg2ggg
+  public :: zpencil_index_ggg2llg
+
+  contains
+
+  subroutine ypencil_index_lgl2ggl(vin, vou, dtmp)
+    use decomp_2d
+    implicit none
+
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(dtmp%ysz(1),               dtmp%ysz(2), dtmp%ysz(3)), intent(in)  :: vin
+    real(WP), dimension(dtmp%yst(1) : dtmp%yen(2), dtmp%ysz(2), dtmp%zsz(3)), intent(out) :: vou
+
+    integer :: i, j, k, ii
+    vou = ZERO
+    do k = 1, dtmp%ysz(3)
+      do j = 1, dtmp%ysz(2)
+        do i = 1, dtmp%ysz(1)
+          ii = dtmp%yst(1) + i - 1
+          vou(ii, j, k) = vin(i, j, k)
+        end do
+      end do
+    end do
+    return
+  end subroutine 
+
+  subroutine zpencil_index_llg2ggg(vin, vou, dtmp)
+    use decomp_2d
+    implicit none
+
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(dtmp%zsz(1),               dtmp%zsz(2),               dtmp%zsz(3)), intent(in)  :: vin
+    real(WP), dimension(dtmp%zst(1) : dtmp%zen(2), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(out) :: vou
+
+    integer :: i, j, k, jj, ii
+
+    vou = ZERO
+    do k = 1, dtmp%zsz(3)
+      do j = 1, dtmp%zsz(2)
+        jj = dtmp%zst(2) + j - 1
+        do i = 1, dtmp%zsz(1)
+          ii = dtmp%zst(1) + i - 1
+          vou(ii, jj, k) = vin(i, j, k)
+        end do
+      end do
+    end do
+    return
+  end subroutine
+  
+  subroutine zpencil_index_ggg2llg(vin, vou, dtmp)
+    use decomp_2d
+    implicit none
+
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(dtmp%zst(1) : dtmp%zen(2), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(in)   :: vin
+    real(WP), dimension(dtmp%zsz(1),               dtmp%zsz(2),               dtmp%zsz(3)), intent(out)  :: vou
+    
+
+    integer :: i, j, k, jj, ii
+
+    vou = ZERO
+    do k = 1, dtmp%zsz(3)
+      do j = 1, dtmp%zsz(2)
+        jj = dtmp%zst(2) + j - 1
+        do i = 1, dtmp%zsz(1)
+          ii = dtmp%zst(1) + i - 1
+          vou(i, j, k) = vin(ii, jj, k)
+        end do
+      end do
+    end do
+    return
+  end subroutine
+
+  
+
+end module 

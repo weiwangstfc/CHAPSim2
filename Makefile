@@ -19,20 +19,19 @@ PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
 	FOPTS= -g \
-			 -Wall \
-		   -fbacktrace \
-		   -fbounds-check \
-		   -fcheck=all \
-		   -ffpe-trap=invalid,zero,overflow \
-		   -finit-real=snan -ftrapv \
-		   -ffree-line-length-512 \
-       -Wuninitialized -Wmaybe-uninitialized\
-			 -Wno-unused\
--fdefault-real-8 -fdefault-double-8
+		-Wall \
+	 -fbacktrace \
+	 -fbounds-check \
+	 -fcheck=all \
+	 -ffpe-trap=invalid,zero,overflow \
+         -finit-real=snan -ftrapv \
+	 -ffree-line-length-512 \
+         -Wuninitialized -Wmaybe-uninitialized\
+         -Wno-unused
        
 # -fallow-argument-mismatch
 		   
-	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
+	FFLGS= -DDOUBLE_PREC -DDEBUG -DDEBG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused

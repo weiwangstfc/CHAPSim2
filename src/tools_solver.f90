@@ -138,7 +138,7 @@ contains
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     !call mpi_allreduce(ni, ni_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
     !call mpi_allreduce(nk, nk_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(varxz, varxz_work, n, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varxz, varxz_work, n, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     varxz_work(:) = varxz_work(:) / real(p_col, wp)
     if(PRESENT(varxz_work1)) varxz_work1 = varxz_work
 
@@ -207,6 +207,7 @@ contains
   subroutine Calculate_massflux_from_velocity(fl, dm)
     use udf_type_mod
     use operations
+    use decomp_2d
     implicit none
     type(t_domain), intent(in )   :: dm
     type(t_flow  ), intent(inout) :: fl
@@ -496,6 +497,7 @@ contains
     use udf_type_mod
     use parameters_constant_mod
     use operations
+    use decomp_2d
     implicit none
     type(t_domain),  intent(in) :: dm
     logical,           intent(in) :: is_ynp
@@ -596,8 +598,8 @@ contains
     end if
     
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce( fo,  fo_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(vol, vol_work, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce( fo,  fo_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     fo_work = fo_work / vol_work
 
     return 
@@ -634,7 +636,7 @@ contains
 
     !varmax = MAXVAL( abs_wp( var(:, :, :) ) ) 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(varmax, varmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
       write (*, wrtfmt1e) str, varmax_work

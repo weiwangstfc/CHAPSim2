@@ -191,6 +191,7 @@ contains
 
     call alloc_x(fl%pres,    dm%dccc) ; fl%pres = ZERO
     call alloc_x(fl%pcor,    dm%dccc) ; fl%pcor = ZERO
+    call alloc_x(fl%pcor_zpencil_ggg,    dm%dccc, .true.) ; fl%pcor_zpencil_ggg = ZERO
 
     call alloc_x(fl%mx_rhs,  dm%dpcc) ; fl%mx_rhs = ZERO
     call alloc_x(fl%my_rhs,  dm%dcpc) ; fl%my_rhs = ZERO
@@ -305,7 +306,7 @@ contains
     i = 2
     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dpcc%xsz(2) 
+      do j = 1, dm%dccc%xsz(2) 
         jj = dm%dpcc%xst(2) + j - 1
         write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
       end do
@@ -316,7 +317,7 @@ contains
     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
       if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
         open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dpcc%xsz(1)
+        do i = 1, dm%dccc%xsz(1)
           write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
         end do
       end if
@@ -326,7 +327,7 @@ contains
     j = 2
     if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
       open(321, file = 'debugz_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dm%dccp%xsz(3)
+      do k = 1, dm%dccc%xsz(3)
         write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
       end do
     end if
@@ -339,6 +340,7 @@ contains
     call Find_maximum_absvar3d(fl%qx, "maximum ux:")
     call Find_maximum_absvar3d(fl%qy, "maximum uy:")
     call Find_maximum_absvar3d(fl%qz, "maximum uz:")
+    !call Check_mass_conservation(fl, dm) 
     !---------------------------------------------------------------------------------------------------------------------------------------------
     ! to set up flow iterations 
     !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -763,13 +765,13 @@ contains
           uc = fl%qx(i, j, k)
           ue = sin_wp ( xp ) * cos_wp ( yc ) * exp(- TWO * fl%rre * fl%time)
           uerr = uerr + (uc - ue)**2
-          if(dabs(uc - ue) > uerrmax) uerrmax = dabs(uc - ue)
+          if(abs_wp(uc - ue) > uerrmax) uerrmax = abs_wp(uc - ue)
         end do
       end do
     end do
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(uerr,    uerr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(uerrmax, uerrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(uerr,    uerr_work,    1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(uerrmax, uerrmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     uerr_work = uerr_work / real(dm%np(1), wp) / real(dm%nc(2), wp) / real(dm%nc(3), wp)
     uerr_work = sqrt_wp(uerr_work)
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -788,13 +790,13 @@ contains
           uc = fl%qy(i, j, k)
           ue = - cos_wp ( xc ) * sin_wp ( yp ) * exp(- TWO * fl%rre * fl%time)
           verr = verr + (uc - ue)**2
-          if(dabs(uc - ue) > verrmax) verrmax = dabs(uc - ue)
+          if(abs_wp(uc - ue) > verrmax) verrmax = abs_wp(uc - ue)
         end do
       end do
     end do
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(verr,    verr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(verrmax, verrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(verr,    verr_work,    1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(verrmax, verrmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     verr_work = verr_work / real(dm%nc(1), wp) / real(dm%np(2), wp) / real(dm%nc(3), wp)
     verr_work = sqrt_wp(verr_work)
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -813,13 +815,13 @@ contains
           uc = fl%pres(i, j, k)
           ue = ( cos_wp ( TWO * xc ) + sin_wp ( TWO * yc ) ) * QUARTER * (exp(- TWO * fl%rre * fl%time))**2
           perr = perr + (uc - ue)**2
-          if(dabs(uc - ue) > perrmax) perrmax = dabs(uc - ue)
+          if(abs_wp(uc - ue) > perrmax) perrmax = abs_wp(uc - ue)
         end do
       end do
     end do
     call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(perr,    perr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(perrmax, perrmax_work, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(perr,    perr_work,    1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(perrmax, perrmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     perr_work = perr_work / real(dm%nc(1), wp) / real(dm%nc(2), wp) / real(dm%nc(3), wp)
     perr_work = sqrt_wp(perr_work)
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -879,14 +881,14 @@ contains
     dtmp = dm%dpcc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)! - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xp = dm%h(1) * real(ii - 1, WP)! - PI
-          !ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
+          xp = dm%h(1) * real(ii - 1, WP) - PI
+          ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
           ! if(i<=dtmp%xsz(1)/2 + 1) then
           !   ux(i, j, k) =  xp
           ! else
@@ -901,14 +903,15 @@ contains
     dtmp = dm%dcpc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)! - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yp = dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF)! - PI
-          !uy(i, j, k) =sin_wp ( yp ) ! -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          !uy(i, j, k) = sin_wp(yp)
+          uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
           ! if(jj<=dtmp%ysz(2)/2 + 1) then
           !   uy(i, j, k) =  yp
           ! else
@@ -924,10 +927,12 @@ contains
     dtmp = dm%dccp
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zp = dm%h(3) * real(kk - 1, WP)! - PI
+      zp = dm%h(3) * real(kk - 1, WP) - PI
       do j = 1, dtmp%xsz(2)
+        yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
-          uz(i, j, k) = sin_wp(zp) !ZERO
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          !uz(i, j, k) = -cos_wp ( xc ) *  cos_wp ( yc ) * sin_wp ( zp )
         end do
       end do
     end do
@@ -937,15 +942,15 @@ contains
     dtmp = dm%dccc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF)! - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF)! - PI
-          !p(i, j, k)= ONE / SIXTEEN * ( cos(TWO * xc) + cos(TWO * yc) ) * &
-          !            (cos(TWO * zc) + TWO)
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          p(i, j, k)= ONE / SIXTEEN * ( cos(TWO * xc) + cos(TWO * yc) ) * &
+                      (cos(TWO * zc) + TWO)
         end do
       end do
     end do

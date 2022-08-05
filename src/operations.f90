@@ -258,35 +258,35 @@ module operations
 
   public  :: Prepare_LHS_coeffs_for_operations
 
-  public  :: Get_x_midp_C2P_1D
-  public  :: Get_y_midp_C2P_1D
-  public  :: Get_z_midp_C2P_1D
-  public  :: Get_x_midp_P2C_1D
-  public  :: Get_y_midp_P2C_1D 
-  public  :: Get_z_midp_P2C_1D
+  public  :: Get_x_midp_C2P_1D ! need fbc for Dirichlet
+  public  :: Get_y_midp_C2P_1D ! need fbc for Dirichlet
+  public  :: Get_z_midp_C2P_1D ! need fbc for Dirichlet
+  public  :: Get_x_midp_P2C_1D ! no fbc
+  public  :: Get_y_midp_P2C_1D ! no fbc
+  public  :: Get_z_midp_P2C_1D ! no fbc
 
-  public  :: Get_x_midp_C2P_3D
-  public  :: Get_y_midp_C2P_3D
-  public  :: Get_z_midp_C2P_3D
-  public  :: Get_x_midp_P2C_3D
-  public  :: Get_y_midp_P2C_3D
-  public  :: Get_z_midp_P2C_3D
+  public  :: Get_x_midp_C2P_3D ! need fbc for Dirichlet
+  public  :: Get_y_midp_C2P_3D ! need fbc for Dirichlet
+  public  :: Get_z_midp_C2P_3D ! need fbc for Dirichlet
+  public  :: Get_x_midp_P2C_3D ! no fbc
+  public  :: Get_y_midp_P2C_3D ! no fbc
+  public  :: Get_z_midp_P2C_3D ! no fbc
 
-  public  :: Get_x_1st_derivative_P2P_1D
-  public  :: Get_y_1st_derivative_P2P_1D
-  public  :: Get_z_1st_derivative_P2P_1D
+  public  :: Get_x_1st_derivative_P2P_1D ! need fbc for Neumann, Dirichlet
+  public  :: Get_y_1st_derivative_P2P_1D ! need fbc for Neumann, Dirichlet
+  public  :: Get_z_1st_derivative_P2P_1D ! need fbc for Neumann, Dirichlet
 
-  public  :: Get_x_1st_derivative_C2P_1D
-  public  :: Get_y_1st_derivative_C2P_1D
-  public  :: Get_z_1st_derivative_C2P_1D
+  public  :: Get_x_1st_derivative_C2P_1D ! need fbc for Neumann
+  public  :: Get_y_1st_derivative_C2P_1D ! need fbc for Neumann
+  public  :: Get_z_1st_derivative_C2P_1D ! need fbc for Neumann
 
-  public  :: Get_x_1st_derivative_C2C_1D
-  public  :: Get_y_1st_derivative_C2C_1D
-  public  :: Get_z_1st_derivative_C2C_1D
+  public  :: Get_x_1st_derivative_C2C_1D ! need fbc to reconstruction
+  public  :: Get_y_1st_derivative_C2C_1D ! need fbc to reconstruction
+  public  :: Get_z_1st_derivative_C2C_1D ! need fbc to reconstruction
 
-  public  :: Get_x_1st_derivative_P2C_1D
-  public  :: Get_y_1st_derivative_P2C_1D
-  public  :: Get_z_1st_derivative_P2C_1D
+  public  :: Get_x_1st_derivative_P2C_1D ! no fbc
+  public  :: Get_y_1st_derivative_P2C_1D ! no fbc
+  public  :: Get_z_1st_derivative_P2C_1D ! no fbc
 
   public  :: Get_x_1st_derivative_P2P_3D
   public  :: Get_y_1st_derivative_P2P_3D
@@ -304,13 +304,13 @@ module operations
   public  :: Get_y_1st_derivative_P2C_3D
   public  :: Get_z_1st_derivative_P2C_3D
 
-  public  :: Get_x_2nd_derivative_C2C_1D
-  public  :: Get_y_2nd_derivative_C2C_1D
-  public  :: Get_z_2nd_derivative_C2C_1D
+  public  :: Get_x_2nd_derivative_C2C_1D ! need fbc to reconstruction
+  public  :: Get_y_2nd_derivative_C2C_1D ! need fbc to reconstruction
+  public  :: Get_z_2nd_derivative_C2C_1D ! need fbc to reconstruction
 
-  public  :: Get_x_2nd_derivative_P2P_1D
-  public  :: Get_y_2nd_derivative_P2P_1D
-  public  :: Get_z_2nd_derivative_P2P_1D
+  public  :: Get_x_2nd_derivative_P2P_1D ! need fbc for Neumann
+  public  :: Get_y_2nd_derivative_P2P_1D ! need fbc for Neumann
+  public  :: Get_z_2nd_derivative_P2P_1D ! need fbc for Neumann
 
   public  :: Get_x_2nd_derivative_C2C_3D
   public  :: Get_y_2nd_derivative_C2C_3D
@@ -2434,7 +2434,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_interp_C2P_RHS_array')
       fo(i) = fbc(m)
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
@@ -2504,7 +2504,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * (-fi(np - 1) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * (-fi(np - 2) + fi(i - 2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_interp_C2P_RHS_array')
       fo(i) = fbc(m)
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &
@@ -2611,7 +2611,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) + fi(1   ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(2   ) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
               coeff( l, 2, ibc(m) ) * fi(i  )  + &
               coeff( l, 3, ibc(m) ) * fi(i+1)  + &
@@ -2689,7 +2689,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * (-fi(nc -1) - fi(i - 2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
               coeff( l, 2, ibc(m) ) * fi(i    ) + &
               coeff( l, 3, ibc(m) ) * fi(i - 1) + &
@@ -2991,10 +2991,10 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fi(2) )
     else if (ibc(m) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
               coeff( l, 2, ibc(m) ) * fi(i    ) + &
               coeff( l, 3, ibc(m) ) * fi(i + 1) + &
@@ -3066,7 +3066,7 @@ contains
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = coeff( l, 1, ibc(m)) * fbc(m)    + &
               coeff( l, 2, ibc(m)) * fi(i - 1) + &
               coeff( l, 3, ibc(m)) * fi(i - 2) + &
@@ -3310,7 +3310,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) - fi(1    ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) - fi(2    ) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_2deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
               coeff( l, 2, ibc(m) ) * fi(i  )  + &
               coeff( l, 3, ibc(m) ) * fi(i+1)  + &
@@ -3385,7 +3385,7 @@ contains
       fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - TWO * fi(i) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * (-fi(nc- 1) - TWO * fi(i) + fi(i - 2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_2deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
               coeff( l, 2, ibc(m) ) * fi(i    ) + &
               coeff( l, 3, ibc(m) ) * fi(i - 1) + &
@@ -3600,6 +3600,11 @@ contains
 
     integer :: ixsub, nsz
 
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_midp_C2P_1D')
+    end if
+
     ixsub = dm%idom
     
     nsz = size(fo)
@@ -3657,6 +3662,11 @@ contains
     real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_midp_C2P_1D')
+    end if
+
     nsz = size(fo)
     fo = ZERO
 
@@ -3710,6 +3720,11 @@ contains
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz, i
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_midp_C2P_1D')
+    end if
 
     nsz = size(fo)
     fo = ZERO
@@ -3812,6 +3827,11 @@ contains
 
     integer :: ixsub, nsz
 
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_P2P_1D')
+    end if
+
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
@@ -3840,6 +3860,16 @@ contains
     real(WP), optional, intent(in ) :: fbc(2)
 
     integer :: ixsub, nsz
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_C2P_1D')
+    end if
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2P_1D')
+    end if
 
     nsz = size(fo)
     fo = ZERO
@@ -3930,6 +3960,11 @@ contains
     real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_P2P_1D')
+    end if
+
     nsz = size(fo)
     fo = ZERO
 
@@ -3958,6 +3993,16 @@ contains
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_C2P_1D')
+    end if
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_1st_derivative_C2P_1D')
+    end if
 
     nsz = size(fo)
     fo = ZERO
@@ -4047,6 +4092,11 @@ contains
     real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
 
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_P2P_1D')
+    end if
+
     nsz = size(fo)
     fo = ZERO
 
@@ -4073,6 +4123,16 @@ contains
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2)
     integer :: nsz
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_C2P_1D')
+    end if
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_1st_derivative_C2P_1D')
+    end if
 
     nsz = size(fo)
     fo = ZERO
@@ -4364,6 +4424,11 @@ contains
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_midp_C2P_3D')
+    end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4420,6 +4485,11 @@ contains
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
     integer :: k, i
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_midp_C2P_3D')
+    end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  default : y-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4476,6 +4546,11 @@ contains
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer :: j, i
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_midp_C2P_3D')
+    end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4579,6 +4654,12 @@ contains
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_P2P_3D')
+    end if
+
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4607,6 +4688,17 @@ contains
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_C2P_3D')
+    end if
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2P_3D')
+    end if
+
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4691,6 +4783,11 @@ contains
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
     integer :: k, i
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_P2P_3D')
+    end if
 !!---------------------------------------------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4719,6 +4816,16 @@ contains
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
     integer :: k, i
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_C2P_3D')
+    end if
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_1st_derivative_C2P_3D')
+    end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4806,6 +4913,11 @@ contains
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer :: j, i
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_P2P_3D')
+    end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
@@ -4834,6 +4946,16 @@ contains
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer :: j, i
+
+    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_C2P_3D')
+    end if
+
+    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
+      if(.not. present(fbc)) &
+      call Print_error_msg('Lack of fbc info for IBCDIRICHLET @ Get_z_1st_derivative_C2P_3D')
+    end if
 !---------------------------------------------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !---------------------------------------------------------------------------------------------------------------------------------------------
