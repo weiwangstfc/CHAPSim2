@@ -2,31 +2,152 @@ module fft99_mod
   use precision_mod
 
 
+  real(wp), allocatable, save :: ak1(:)
+  real(wp), allocatable, save :: ak3(:)
+
+  real(WP), allocatable, save  :: trigxx1(:)
+  real(WP), allocatable, save  :: trigxx2(:)
+  real(WP), allocatable, save  :: trigxx3(:)
+  real(WP), allocatable, save  :: trigxc1(:)
+  real(WP), allocatable, save  :: trigxc2(:)
+  real(WP), allocatable, save  :: trigxc3(:)
+
+  integer(4), save   :: ifxx1(13)
+  integer(4), save   :: ifxx2(13)
+  integer(4), save   :: ifxx3(13)
+  integer(4), save   :: ifxc3(13)
+  integer(4), save   :: ifxc1(13)
+  integer(4), save   :: ifxc2(13)
+
+
+  integer :: nx, ny, nz ! nx = L, ny = M, nz = N
+  
+  real(WP)     :: dx2r, dz2r
+
+  real(WP), allocatable     :: xr(:,:)
+  real(WP), allocatable     :: wr(:,:)
+
+  complex(WP), allocatable  :: xc(:,:)
+  complex(WP), allocatable  :: wc(:,:)
+
+  
+  
+  real(WP), allocatable  :: AMJP(:,:,:)
+  real(WP), allocatable  :: ACJP(:,:,:)
+  real(WP), allocatable  :: APJP(:,:,:)
+
+  real(WP), allocatable :: RHSLLPHIRe(:,:,:)
+  real(WP), allocatable :: RHSLLPHIIm(:,:,:)
+
+  real(WP), allocatable :: FJ(:,:)
+  real(WP), allocatable :: BCJ(:,:)
+  real(WP), allocatable :: F(:,:,:)
+
+  public :: fft99_initilisation
+
 contains
-
-  subroutine 
-
-
-  end subroutine
-
-
-  subroutine poisson3d_xzperiodic_fft99(rhs, dm)
+!==========================================================================================================
+!==========================================================================================================
+  subroutine fft99_initilisation(dm)
     implicit none
-    real(WP), intent(inout) :: rhs(:, :, :)
+    type(t_domain), intent(inout)   :: dm
 
     nx = dm%nc(1)
     ny = dm%nc(2)
     nz = dm%nc(3)
 
-    nxhalf = nx / 2 + 1
+    dx2r = dm%h2r(1)
+    dz2r = dm%h2r(3)
+    
+    allocate ( ak1(nx) ); ak1 = ZERO
+    allocate ( ak3(nz) ); ak3 = ZERO
 
-!---------------------------------------------------------------------------------------------------------------------------------------------
+    allocate ( trigxx1(3 * nx / 2 + 1) ); trigxx1 = ZERO
+    allocate ( trigxx2(3 * ny / 2 + 1) ); trigxx2 = ZERO
+    allocate ( trigxx3(3 * nz / 2 + 1) ); trigxx3 = ZERO
+
+    allocate ( trigxc1(2 * nx) ); trigxc1 = ZERO
+    allocate ( trigxc2(2 * ny) ); trigxc2 = ZERO
+    allocate ( trigxc3(2 * nz) ); trigxc3 = ZERO
+
+    allocate (  xr(nx + 2, nz)  )
+    allocate (  wr(nx + 2, nz)  )
+    allocate (  xc(nz, nx)  )
+    allocate (  wc(nz, nx)  )
+
+    allocate ( amjp(nx/2 + 1, ny, dm%dccc%xsz(3)) )  ; amjp  = 0.0_WP
+    allocate ( acjp(nx/2 + 1, ny, dm%dccc%xsz(3)) )  ; acjp  = 0.0_WP
+    allocate ( apjp(nx/2 + 1, ny, dm%dccc%xsz(3)) )  ; apjp  = 0.0_WP
+    allocate ( rhsre(nx/2 + 1, dm%dccc%xsz(2), nz) ) ; rhsre = 0.0_WP
+    allocate ( rhsim(nx/2 + 1, dm%dccc%xsz(2), nz) ) ; rhsim = 0.0_WP
+    allocate ( fxzj (nx/2 + 1, ny) ); fxzj  = 0.0_wp
+    allocate ( bxzj (nx/2 + 1, 2 ) ); bxzj = 0.0_wp
+
+    allocate (fxz (nx / 2 + 1, ny2, dm%dccc%xsz(3)));  fxz = 0.0_WP
+
+    call fft99_root
+    
+
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine fft99_root
+    use parameters_constant_mod
+    implicit none
+    real(WP), allocatable :: an(:)
+
+    call fftfax(nx, ifxx1, trigxx1)
+    call fftfax(nz, ifxx3, trigxx3)
+
+    call cftfax(nz, ifxc3, trigxc3)
+    call cftfax(nx, ifxc1, trigxc1)
+
+    !----------------------------------------------------------------------------------------------------------
+    ! calculate 2(1-cos(2pi/nz))/dz^2 for z direction
+    !----------------------------------------------------------------------------------------------------------
+    allocate( an(nz) )
+    an = ZERO
+    do k = 1, nz/2
+      an(k) = real(k - 1, WP) * TWOPI
+    end do 
+    do k = nz/2 + 1, nz
+      an(k) = - real(nz - k + 1, WP) * TWOPI
+    end do
+    do k = 1, nz
+      ak3(k) = TWO * ( ONE - COS_WP(an(k) / real(nz, WP)) ) * dz2r
+    end do
+    deallocate (an)
+    !----------------------------------------------------------------------------------------------------------
+    ! calculate 2(1-cos(2pi/nx))/dz^2 for z direction
+    !----------------------------------------------------------------------------------------------------------
+    allocate( an(nx) )
+    an = ZERO
+    do i = 1, nx/2
+      an(i) = real(i - 1, WP) * TWOPI
+    end do 
+    do i = nx/2 + 1, nx
+      an(i) = - real(nx - i + 1, WP) * TWOPI
+    end do
+    do i = 1, nx
+      ak1(i) = TWO * ( ONE - COS_WP(an(i) / real(nx, WP)) ) * dx2r
+    end do
+    deallocate (an)
+
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine poisson3d_xzperiodic_fft99(rhs, dm)
+    implicit none
+    real(WP), intent(inout) :: rhs(:, :, :)
+
+!----------------------------------------------------------------------------------------------------------
 ! fft for x-direction
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
     do j = 1, dm%dccc%xsz(2)
 
       do kk = 1, nz
         k = kk + 1 - dm%dccc%xst(3)
+
         xr(1     , kk) = rhs(nx, j, k)
         xr(nx + 2, kk) = rhs(1,  j, k)
 
@@ -34,9 +155,10 @@ contains
           xr(i + 1, kk) = rhs(i, j, k)
           work(i,   kk) = ZERO
         end do
+
       end do 
       
-      call mpi_allreduce(xr,    uerr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(xr, xr_work,    1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror)
 
       call FFT99(xr, work, TRIGXX1, IFXX1, 1, nx+2, nx, 0, -1)
 

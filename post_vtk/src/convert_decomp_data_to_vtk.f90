@@ -12,14 +12,14 @@ module mpi_mod
   public :: Finalise_mpi
 
 contains 
-!=============================================================================================================================================
+!==========================================================================================================
   subroutine Initialize_mpi()
     call MPI_INIT(IERROR)
     call MPI_COMM_RANK(MPI_COMM_WORLD, nrank, IERROR)
     call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, IERROR)
     return
   end subroutine Initialize_mpi
-!=============================================================================================================================================
+!==========================================================================================================
   subroutine Finalise_mpi()  
     call MPI_FINALIZE(IERROR)
   end subroutine Finalise_mpi

@@ -35,7 +35,7 @@ ifeq ($(cfg), gnu)
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
-	FFLGS= -DOUBLE_PREC -DDEBUG
+	FFLGS= -DDOUBLE_PREC -DDEBUG
 	FOPTS= -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=gnu
 else ifeq ($(cfg), cray)
 	FOPTS= # -m 3
@@ -43,11 +43,11 @@ else ifeq ($(cfg), cray)
 else ifeq ($(cfg), pg)
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DOUBLE_PREC -pg
+	FFLGS= -DDOUBLE_PREC -pg
 else
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DOUBLE_PREC
+	FFLGS= -DDOUBLE_PREC
 endif
 
 
