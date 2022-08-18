@@ -632,7 +632,7 @@ module decomp_extended_mod
 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP), dimension(dtmp%zsz(1),               dtmp%zsz(2),               dtmp%zsz(3)), intent(in)  :: vin
-    real(WP), dimension(dtmp%zst(1) : dtmp%zen(2), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(out) :: vou
+    real(WP), dimension(dtmp%zst(1) : dtmp%zen(1), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(out) :: vou
 
     integer :: i, j, k, jj, ii
 
@@ -654,11 +654,13 @@ module decomp_extended_mod
     implicit none
 
     type(DECOMP_INFO), intent(in) :: dtmp
-    real(WP), dimension(dtmp%zst(1) : dtmp%zen(2), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(in)   :: vin
+    real(WP), dimension(dtmp%zst(1) : dtmp%zen(1), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(in)   :: vin
     real(WP), dimension(dtmp%zsz(1),               dtmp%zsz(2),               dtmp%zsz(3)), intent(out)  :: vou
     
 
     integer :: i, j, k, jj, ii
+!write(*,*) 'vin', nrank, size(vin, 1), size(vin, 2),size(vin, 3)
+!write(*,*) 'vou', nrank, size(vou, 1), size(vou, 2),size(vou, 3)
 
     vou = ZERO
     do k = 1, dtmp%zsz(3)

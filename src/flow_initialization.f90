@@ -191,7 +191,7 @@ contains
 
     call alloc_x(fl%pres,    dm%dccc) ; fl%pres = ZERO
     call alloc_x(fl%pcor,    dm%dccc) ; fl%pcor = ZERO
-    call alloc_x(fl%pcor_zpencil_ggg,    dm%dccc, .true.) ; fl%pcor_zpencil_ggg = ZERO
+    call alloc_z(fl%pcor_zpencil_ggg,    dm%dccc, .true.) ; fl%pcor_zpencil_ggg = ZERO
 
     call alloc_x(fl%mx_rhs,  dm%dpcc) ; fl%mx_rhs = ZERO
     call alloc_x(fl%my_rhs,  dm%dcpc) ; fl%my_rhs = ZERO

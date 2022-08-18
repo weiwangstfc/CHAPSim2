@@ -2475,4 +2475,3 @@ subroutine avg3d (var, avg)
 end subroutine avg3d
 
 end module decomp_2d_poisson
-

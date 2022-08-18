@@ -1547,38 +1547,38 @@ end if
 #ifdef DEBUG
     call view_data_in_rank(rhs_zpencil_ggg,   dm%dccc, dm, 'before_fft', 0)
 
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, rhs_zpencil_ggg(i, j, k)
-      end do
-    end if
+    ! dtmp = dm%dccc
+    ! k = 2
+    ! i = 2
+    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+    !   open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do j = 1, dtmp%xsz(2)
+    !     jj = dtmp%xst(2) + j - 1
+    !     write(121, *) jj, rhs_zpencil_ggg(i, j, k)
+    !   end do
+    ! end if
 
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, rhs_zpencil_ggg(i, j, k)
-        end do
-      end if
-    end if
+    ! k = 2
+    ! j = 2
+    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    !     open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !     do i = 1, dtmp%xsz(1)
+    !       write(221, *) i, rhs_zpencil_ggg(i, j, k)
+    !     end do
+    !   end if
+    ! end if
 
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, rhs_zpencil_ggg(i, j, k)
-      end do
-    end if
-    !print '("zzz 30s...")'
-    !call sleep(30)
+    ! i = 2
+    ! j = 2
+    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    !   open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do k = 1, dtmp%xsz(3)
+    !     write(321, *) k, rhs_zpencil_ggg(i, j, k)
+    !   end do
+    ! end if
+    ! !print '("zzz 30s...")'
+    ! !call sleep(30)
 
 #endif
 
@@ -1594,38 +1594,38 @@ end if
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 #ifdef DEBUG
 
-    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
+    ! call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
 
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, fl%pcor(i, j, k)
-      end do
-    end if
+    ! dtmp = dm%dccc
+    ! k = 2
+    ! i = 2
+    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+    !   open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do j = 1, dtmp%xsz(2)
+    !     jj = dtmp%xst(2) + j - 1
+    !     write(121, *) jj, fl%pcor(i, j, k)
+    !   end do
+    ! end if
 
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, fl%pcor(i, j, k)
-        end do
-      end if
-    end if
+    ! k = 2
+    ! j = 2
+    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    !     open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !     do i = 1, dtmp%xsz(1)
+    !       write(221, *) i, fl%pcor(i, j, k)
+    !     end do
+    !   end if
+    ! end if
 
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, fl%pcor(i, j, k)
-      end do
-    end if
+    ! i = 2
+    ! j = 2
+    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    !   open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do k = 1, dtmp%xsz(3)
+    !     write(321, *) k, fl%pcor(i, j, k)
+    !   end do
+    ! end if
 
 #endif
     return
@@ -1686,43 +1686,42 @@ end if
     else
       call Get_divergence_vel_x2z(fl%qx, fl%qy, fl%qz, rhs_zpencil_ggg, dm)
     end if
-
     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
 
 #ifdef DEBUG
     call view_data_in_rank(fl%pcor_zpencil_ggg,   dm%dccc, dm, 'before_fft', 0)
 
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, fl%pcor_zpencil_ggg(i, j, k)
-      end do
-    end if
+    ! dtmp = dm%dccc
+    ! k = 2
+    ! i = 2
+    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+    !   open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do j = 1, dtmp%xsz(2)
+    !     jj = dtmp%xst(2) + j - 1
+    !     write(121, *) jj, fl%pcor_zpencil_ggg(i, j, k)
+    !   end do
+    ! end if
 
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, fl%pcor_zpencil_ggg(i, j, k)
-        end do
-      end if
-    end if
+    ! k = 2
+    ! j = 2
+    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
+    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    !     open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !     do i = 1, dtmp%xsz(1)
+    !       write(221, *) i, fl%pcor_zpencil_ggg(i, j, k)
+    !     end do
+    !   end if
+    ! end if
 
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, fl%pcor_zpencil_ggg(i, j, k)
-      end do
-    end if
+    ! i = 2
+    ! j = 2
+    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
+    !   open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do k = 1, dtmp%xsz(3)
+    !     write(321, *) k, fl%pcor_zpencil_ggg(i, j, k)
+    !   end do
+    ! end if
     !print '("zzz 30s...")'
     !call sleep(30)
 
@@ -1913,8 +1912,8 @@ end if
 ! to solve Poisson equation
 !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
-    call solve_poisson_x2z(fl, dm, isub)
-    !call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
+    !call solve_poisson_x2z(fl, dm, isub) ! mpi=4 error, to check
+    call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !----------------------------------------------------------------------------------------------------------

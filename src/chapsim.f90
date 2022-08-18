@@ -188,7 +188,7 @@ subroutine Solve_eqs_iteration
       !     main solver
       !==========================================================================================================
       do isub = 1, domain(i)%nsubitr
-#ifdef DEBG
+#ifdef DEBUG
         if(nrank == 0) write (*, wrtfmt1i) " --- Sub-iteration in RK = ", isub
 #endif
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
