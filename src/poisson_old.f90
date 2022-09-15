@@ -17,7 +17,7 @@ module decomp_2d_poisson
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-16_mytype
+  real(mytype), parameter :: epsilon = 1.e-20_mytype
 #else
   real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
@@ -312,7 +312,7 @@ contains
     complex(mytype) :: xtt1,ytt1,ztt1,zt1,zt2
 
 
-    real(mytype) :: tmp1, tmp2,x ,y, z
+    real(mytype) :: tmp1, tmp2,x ,y, z, avg_param
 
     integer :: nx,ny,nz, i,j,k
 
@@ -329,13 +329,22 @@ contains
        fft_initialised = .true.
     end if
 
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (rhs, avg_param)
+    if (nrank == 0) write(*,*)'## rhs physical ', avg_param
+#endif
     ! compute r2c transform 
     call decomp_2d_fft_3d(rhs,cw1)
 
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (abs_prec(cw1), avg_param)
+    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk) ', avg_param
+#endif
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
@@ -366,7 +375,7 @@ contains
              tmp1 = rl(kxyz(i,j,k))
              tmp2 = iy(kxyz(i,j,k))
              ! CANNOT DO A DIVISION BY ZERO
-             if ((tmp1 < epsilon).or.(tmp2 < epsilon)) then
+             if ((abs_prec(tmp1) < epsilon).or.(abs_prec(tmp2) < epsilon)) then
                 cw1(i,j,k) = zero
              else
                 cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (-tmp1), &
@@ -403,12 +412,20 @@ contains
           end do
        end do
     end do
-
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (abs_prec(cw1), avg_param)
+    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk/wave) ', avg_param
+#endif
     ! compute c2r transform
     call decomp_2d_fft_3d(cw1,rhs)
 
     !   call decomp_2d_fft_finalize
-
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (rhs, avg_param)
+    if (nrank == 0) write(*,*)'## rhs_ijk physical new', avg_param
+#endif
     return
   end subroutine poisson_000
 

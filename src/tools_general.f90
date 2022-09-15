@@ -80,17 +80,21 @@ module code_performance_mod
   implicit none
   
   integer, parameter :: CPU_TIME_CODE_START = 1, &
-                           CPU_TIME_ITER_START = 2, &
-                           CPU_TIME_ITER_END   = 3, &
-                           CPU_TIME_CODE_END   = 4
+                        CPU_TIME_STEP_START = 2, &
+                        CPU_TIME_ITER_START = 3, &
+                        CPU_TIME_ITER_END   = 4, &
+                        CPU_TIME_STEP_END   = 5, &
+                        CPU_TIME_CODE_END   = 6
 
   real(wp), save :: t_code_start
+  real(wp), save :: t_step_start
   real(wp), save :: t_iter_start
   real(wp), save :: t_iter_end
+  real(wp), save :: t_step_end
   real(wp), save :: t_code_end
 
   private :: Convert_sec_to_hms
-  public :: Call_cpu_time
+  public :: call_cpu_time
 
   contains
 
@@ -114,7 +118,7 @@ module code_performance_mod
     return
   end subroutine 
 
-  subroutine Call_cpu_time(itype, nrsttckpt, niter, iter)
+  subroutine call_cpu_time(itype, nrsttckpt, niter, iter)
     use parameters_constant_mod
     use typeconvert_mod
     use mpi_mod
@@ -125,24 +129,29 @@ module code_performance_mod
     integer, intent(in), optional :: iter
     integer :: hrs, mins
     real(wp) :: secs
-    real(WP) :: t_total, t_elaspsed,t_remaining, t_aveiter, t_this_iter
-    real(WP) :: t_total0, t_elaspsed0,t_remaining0, t_aveiter0, t_this_iter0
-
+    real(WP) :: t_total, t_elaspsed, t_remaining, t_aveiter, t_this_iter, t_preparation, t_postprocessing
+    real(WP) :: t_total0, t_elaspsed0,t_remaining0, t_aveiter0, t_this_iter0, t_preparation0, t_postprocessing0
+!----------------------------------------------------------------------------------------------------------
     if(itype == CPU_TIME_CODE_START) then
-
       t_code_start = ZERO
-      t_iter_start = ZERO
-      t_iter_end   = ZERO
-      t_code_end   = ZERO
       call cpu_time(t_code_start)
-
+!----------------------------------------------------------------------------------------------------------
+    else if (itype == CPU_TIME_STEP_START) then
+      t_step_start = ZERO
+      call cpu_time(t_step_start)
+      t_preparation = t_step_start - t_code_start
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_preparation, t_preparation0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+      if(nrank == 0) call Print_debug_start_msg ("  Code Performance Info :")
+      if(nrank == 0) call Print_debug_mid_msg ("    Time for code preparation : " // &
+          trim(real2str(t_preparation0))//' s')
+!----------------------------------------------------------------------------------------------------------
     else if (itype == CPU_TIME_ITER_START) then
-
+      t_iter_start = ZERO
       call cpu_time(t_iter_start)
-
       if(nrank == 0) call Print_debug_start_msg ("Time Step = "//trim(int2str(iter))// &
           '/'//trim(int2str(niter-nrsttckpt)))
-
+!----------------------------------------------------------------------------------------------------------
     else if (itype == CPU_TIME_ITER_END) then
       if(.not.present(iter)) call Print_error_msg("Error in calculating CPU Time.")
       call cpu_time(t_iter_end)
@@ -154,7 +163,7 @@ module code_performance_mod
       if(nrank == 0) call Print_debug_mid_msg ("    Time for this time step : " // &
           trim(real2str(t_this_iter0))//' s')
 
-      t_elaspsed  = t_iter_end - t_code_start
+      t_elaspsed  = t_iter_end - t_step_start
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_elaspsed, t_elaspsed0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       call Convert_sec_to_hms (t_elaspsed0, hrs, mins, secs)
@@ -163,34 +172,64 @@ module code_performance_mod
            trim(int2str(mins)) // ' m ' // &
            trim(real2str(secs)) // ' s ')
 
-      t_remaining= t_elaspsed / real(iter - nrsttckpt, wp) * real(niter - iter, wp)
+      t_aveiter   = t_elaspsed / real(iter - nrsttckpt, WP)
+      t_remaining = t_aveiter * real(niter - iter, wp)
       call mpi_barrier(MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_aveiter,   t_aveiter0,   1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_remaining, t_remaining0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+      
       call Convert_sec_to_hms (t_remaining0, hrs, mins, secs)
-      if(nrank == 0) call Print_debug_mid_msg ("    Remaning Wallclock Time : "// &
+
+      if(nrank == 0) then
+        call Print_debug_mid_msg ("    Remaning Wallclock Time : "// &
            trim(int2str(hrs)) // ' h ' // &
            trim(int2str(mins)) // ' m ' // &
            trim(real2str(secs)) // ' s ')
+        call Print_debug_mid_msg ("    Moving averaged time per iteration  : "// &
+           trim(real2str(t_aveiter0))//' s')
+        
+      end if
+!----------------------------------------------------------------------------------------------------------
+    else if (itype == CPU_TIME_STEP_END) then
 
-    else if (itype == CPU_TIME_CODE_END) then
-
-      call cpu_time(t_code_end)
-      t_total = t_code_end - t_code_start
-      t_aveiter = t_total / real(niter - nrsttckpt, WP)
+      call cpu_time(t_step_end)
+      t_total = t_step_end - t_step_start
+      t_aveiter= t_total / real(niter - nrsttckpt, WP)
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_total,   t_total0,   1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_aveiter, t_aveiter0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
-      if(nrank == 0) call Print_debug_mid_msg ("Average wallclock time per step  : "// &
-           trim(real2str(t_aveiter0))//' s')
       
       call Convert_sec_to_hms (t_total0, hrs, mins, secs)
-      if(nrank == 0) call Print_debug_mid_msg ("Total wallclock time of this run : "// &
+      if(nrank == 0) then
+        call Print_debug_start_msg ("  Code Performance Info :")
+        call Print_debug_mid_msg   ("    Averaged time per iteration  : "// &
+           trim(real2str(t_aveiter0))//' s')
+        call Print_debug_mid_msg ("    Wallclock time of all iterations : "// &
            trim(int2str(hrs)) // ' h ' // &
            trim(int2str(mins)) // ' m ' // &
            trim(real2str(secs)) // ' s ')
-           if(nrank == 0) call Print_debug_start_msg(' ')
+      end if
+!----------------------------------------------------------------------------------------------------------
+    else if (itype == CPU_TIME_CODE_END) then
 
-      if(nrank == 0) call Print_debug_start_msg("CHAPSim Simulation is finished successfully.")
+      call cpu_time(t_code_end)
+      t_total  = t_code_end - t_code_start
+      t_postprocessing = t_code_end - t_step_end
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_total,          t_total0,          1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(t_postprocessing, t_postprocessing0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+      
+      call Convert_sec_to_hms (t_total0, hrs, mins, secs)
+      if(nrank == 0) then
+        call Print_debug_start_msg ("  Code Performance Info :")
+        call Print_debug_mid_msg    ("    Wallclock time for postprocessing : "// &
+           trim(real2str(t_postprocessing0))//' s')
+        call Print_debug_mid_msg ("    Total wallclock time of this run : "// &
+           trim(int2str(hrs)) // ' h ' // &
+           trim(int2str(mins)) // ' m ' // &
+           trim(real2str(secs)) // ' s ')
+        call Print_debug_mid_msg("CHAPSim Simulation is finished successfully.")
+      end if
     else
     end if
 

@@ -1194,7 +1194,7 @@ contains
     end do
 
     do iter = nrsttckpt + 1, niter
-      call Call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
+      call call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
       do i = 1, nxdomain
 !==========================================================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
@@ -1240,7 +1240,7 @@ contains
     end do
   
   
-    call Call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
+    call call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
     call Finalise_mpi()
     stop
     return

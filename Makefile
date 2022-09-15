@@ -52,8 +52,8 @@ endif
 
 
 include ./lib/2decomp_fft/src/Makefile.inc
-INCLUDE = -I ./lib/2decomp_fft/include
-LIBS = -L ./lib/2decomp_fft/lib -l2decomp_fft
+INCLUDE = -I ./lib/2decomp_fft/include -I /usr/local/include
+LIBS = -L ./lib/2decomp_fft/lib -l2decomp_fft -L /usr/local/lib -lfftw3
 
 DIR_SRC= ./src
 DIR_BIN= ./bin
@@ -74,7 +74,7 @@ OBJS= mpi_mod.o\
       domain_decomposition.o\
 			visulisation.o\
       poisson_interface.o\
-      poisson.o\
+      poisson_c2c.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\

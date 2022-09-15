@@ -312,7 +312,7 @@ contains
     complex(mytype) :: xtt1,ytt1,ztt1,zt1,zt2
 
 
-    real(mytype) :: tmp1, tmp2,x ,y, z
+    real(mytype) :: tmp1, tmp2,x ,y, z, avg_param
 
     integer :: nx,ny,nz, i,j,k
 
@@ -329,13 +329,22 @@ contains
        fft_initialised = .true.
     end if
 
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (rhs, avg_param)
+    if (nrank == 0) write(*,*)'## rhs physical ', avg_param
+#endif
     ! compute r2c transform 
     call decomp_2d_fft_3d(rhs,cw1)
 
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (abs_prec(cw1), avg_param)
+    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk) ', avg_param
+#endif
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
@@ -405,12 +414,20 @@ contains
           end do
        end do
     end do
-
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (abs_prec(cw1), avg_param)
+    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk/wave) ', avg_param
+#endif
     ! compute c2r transform
     call decomp_2d_fft_3d(cw1,rhs)
 
     !   call decomp_2d_fft_finalize
-
+#ifdef DEBG
+    avg_param = zero
+    call avg3d (rhs, avg_param)
+    if (nrank == 0) write(*,*)'## rhs_ijk physical new', avg_param
+#endif
     return
   end subroutine poisson_000
 
@@ -1671,7 +1688,7 @@ contains
           !wp = acix6 * one  * dx * sin_prec(one * w) + &
           !     bcix6 * half * dx * sin_prec(two * w)    ! = a/dx dx sin(w) + b/dx * dx/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           wp = acix6 * two  * (cos_prec(one * w) - one) + &
-               bcix6 * half * (cos_prec(one * w) - one)
+               bcix6 * half * (cos_prec(two * w) - one)
           wp = wp / (one + two * alcaix6 * cos_prec(w)) ! = [ a sin(w) + b/2 sin(2w) ]/ [1 + 2 alpha cos (w)]
 !
           !xkx(i) = cx_one_one * (nx * wp / xlx) ! k'_x = [ a sin(w) + b/2 sin(2w) ]/ [1 + 2 alpha cos (w)] / dx
@@ -1691,7 +1708,7 @@ contains
           !wp = acix6 * one  * dx * sin_prec(one * w) + &
           !     bcix6 * half * dx * sin_prec(two * w)    ! k'_x = a/dx dx sin(w) + b/dx * dx/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           wp = acix6 * two  * (cos_prec(one * w) - one) + &
-               bcix6 * half * (cos_prec(one * w) - one)
+               bcix6 * half * (cos_prec(two * w) - one)
           wp = wp / (one + two * alcaix6 * cos_prec(w)) 
 !
           !xkx(i) = cx_one_one * nxm * wp / xlx  !
@@ -1712,7 +1729,7 @@ contains
           !wp = aciy6 * one  * dy * sin_prec(one * w) + &
           !     bciy6 * half * dy * sin_prec(two * w)    ! = a/dy dy sin(w) + b/dy * dy/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           wp = aciy6 * two  * (cos_prec(one * w) - one) + &
-               bciy6 * half * (cos_prec(one * w) - one)
+               bciy6 * half * (cos_prec(two * w) - one)
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
           !if (istret == 0) yky(j) = cx_one_one * (ny * wp / yly)
@@ -1733,7 +1750,7 @@ contains
           !wp = aciy6 * one  * dy * sin_prec(one * w) + &
           !     bciy6 * half * dy * sin_prec(two * w)    ! = a/dy dy sin(w) + b/dy * dy/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           wp = aciy6 * two  * (cos_prec(one * w) - one) + &
-               bciy6 * half * (cos_prec(one * w) - one)
+               bciy6 * half * (cos_prec(two * w) - one)
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
           !if (istret == 0) yky(j) = cx_one_one * (nym * wp / yly)
@@ -1755,7 +1772,7 @@ contains
           !wp = aciz6 * one  * dz * sin_prec(one * w) + &
           !     bciz6 * half * dz * sin_prec(two * w)    ! = a/dz dz sin(w) + b/dz * dz/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           wp = aciz6 * two  * (cos_prec(one * w) - one) + &
-               bciz6 * half * (cos_prec(one * w) - one)
+               bciz6 * half * (cos_prec(two * w) - one)
           wp = wp / (one + two * alcaiz6 * cos_prec(w))
 !
           !zkz(k) = cx_one_one * (nz * wp / zlz) ! k'_z
@@ -1771,13 +1788,13 @@ contains
           !wp = aciz6 * one  * dz * sin_prec(one * w) + &
           !     bciz6 * half * dz * sin_prec(two * w)    ! = a/dz dz sin(w) + b/dz * dz/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           wp = aciz6 * two  * (cos_prec(one * w) - one) + &
-               bciz6 * half * (cos_prec(one * w) - one)
+               bciz6 * half * (cos_prec(two * w) - one)
           wp = wp / (one + two * alcaiz6 * cos_prec(w))
           !w1p = aciz6 * two * dz * sin_prec(w1 * half) + (bciz6 * two * dz) * sin_prec(three * half * w1)
           !w1p = aciz6 * one  * dz * sin_prec(one * w) + &
           !      bciz6 * half * dz * sin_prec(two * w)    ! = a/dz dz sin(w) + b/dz * dz/2 * sin(2w) = a sin(w) + b/2 sin(2w)
           w1p = aciz6 * two  * (cos_prec(one * w) - one) + &
-                bciz6 * half * (cos_prec(one * w) - one)
+                bciz6 * half * (cos_prec(two * w) - one)
           w1p = w1p / (one + two * alcaiz6 * cos_prec(w1))
 !
           !zkz(k) = cx(nzm * wp / zlz, -nzm * w1p / zlz)
@@ -1959,6 +1976,16 @@ contains
 !
        endif
     endif
+
+#ifdef DEBG
+  !  do k = sp%xst(3), sp%xen(3)
+  !    do j = sp%xst(2), sp%xen(2)
+  !      do i = sp%xst(1), sp%xen(1)
+  !        write(*,*) 'kxyz', k, j, i, kxyz(i,j,k)
+  !      end do
+  !    end do
+  !  end do
+#endif
 
   return
   end subroutine waves

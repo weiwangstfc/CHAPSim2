@@ -940,12 +940,13 @@ contains
     dtmp = dm%dccp
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zp = dm%h(3) * real(kk - 1, WP) - PI
+      !zp = dm%h(3) * real(kk - 1, WP) - PI
       do j = 1, dtmp%xsz(2)
-        yc = dm%yc(jj)
+        !yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          !xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
           !uz(i, j, k) = -cos_wp ( xc ) *  cos_wp ( yc ) * sin_wp ( zp )
+          uz(i, j, k) = zero
         end do
       end do
     end do

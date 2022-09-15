@@ -28,6 +28,7 @@ module input_general_mod
   implicit none
 
   logical :: is_any_energyeq
+  integer :: nfrecpu
   public  :: Read_input_parameters
 
 contains
@@ -383,6 +384,7 @@ contains
       ! [ioparams]
       !----------------------------------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[ioparams]' ) then
+        read(inputUnit, *, iostat = ioerr) varname, nfrecpu
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nfreqckpt
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nvisu
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nIterStatsStart

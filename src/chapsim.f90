@@ -54,8 +54,8 @@ subroutine Initialize_chapsim
   !----------------------------------------------------------------------------------------------------------
   ! initialisation of mpi, nrank, nproc
   !----------------------------------------------------------------------------------------------------------
+  call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi
-  call Call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   !----------------------------------------------------------------------------------------------------------
   ! reading input parameters
   !----------------------------------------------------------------------------------------------------------
@@ -136,8 +136,7 @@ subroutine Solve_eqs_iteration
   integer :: iteration
   integer :: niter
 
-  if(nrank == 0) call Print_debug_start_msg("Solving the governing equations ...")
-
+  
   !==========================================================================================================
   ! flow advancing/marching iteration/time control
   !==========================================================================================================
@@ -152,8 +151,12 @@ subroutine Solve_eqs_iteration
      end if
   end do
 
+  call call_cpu_time(CPU_TIME_STEP_START, iteration, niter)
+
+  if(nrank == 0) call Print_debug_start_msg("Solving the governing equations ...")
+
   do iter = iteration + 1, niter
-    call Call_cpu_time(CPU_TIME_ITER_START, iteration, niter, iter)
+    if( mod(iter, nfrecpu) == 0) call call_cpu_time(CPU_TIME_ITER_START, iteration, niter, iter)
     !==========================================================================================================
     ! Solver for each domain
     !==========================================================================================================
@@ -171,8 +174,8 @@ subroutine Solve_eqs_iteration
         is_flow = .true.
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
-        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
-        call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+        if (mod(iter, domain(i)%nfreqckpt) == 0) call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+        if (mod(iter, domain(i)%nfreqckpt) == 0) call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
       !==========================================================================================================
       !     setting up thermo solver
@@ -201,10 +204,8 @@ subroutine Solve_eqs_iteration
       !==========================================================================================================
       !     validation
       !==========================================================================================================
-      call Check_mass_conservation(flow(i), domain(i)) 
+      if (mod(iter, domain(i)%nfreqckpt) == 0) call Check_mass_conservation(flow(i), domain(i)) 
       !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
-
-      call Call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
       !==========================================================================================================
       !   visualisation
       !==========================================================================================================
@@ -214,20 +215,22 @@ subroutine Solve_eqs_iteration
         !call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
       end if
     end do ! domain
+    if( mod(iter, nfrecpu) == 0) call call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
 
   end do ! iteration
 
-
-  call Call_cpu_time(CPU_TIME_CODE_END, iteration, niter)
-  call Finalise_mpi()
+  call call_cpu_time(CPU_TIME_STEP_END, iteration, niter)
+  
   return
 end subroutine Solve_eqs_iteration
 
 
 subroutine Finalise_chapsim
   use mpi_mod
+  use code_performance_mod
   implicit none
 
+  call call_cpu_time(CPU_TIME_CODE_END, 0, 0)
   call Finalise_mpi()
   return
 end subroutine
