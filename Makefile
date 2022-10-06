@@ -31,7 +31,7 @@ ifeq ($(cfg), gnu)
        
 # -fallow-argument-mismatch
 		   
-	FFLGS= -DDOUBLE_PREC -DDEBUG -DDEBG
+	FFLGS= -DDOUBLE_PREC -DDEBUG  #  -DDEBG
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused

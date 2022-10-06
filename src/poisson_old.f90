@@ -329,22 +329,13 @@ contains
        fft_initialised = .true.
     end if
 
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (rhs, avg_param)
-    if (nrank == 0) write(*,*)'## rhs physical ', avg_param
-#endif
     ! compute r2c transform 
     call decomp_2d_fft_3d(rhs,cw1)
 
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
-    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk) ', avg_param
-#endif
+
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
@@ -375,7 +366,7 @@ contains
              tmp1 = rl(kxyz(i,j,k))
              tmp2 = iy(kxyz(i,j,k))
              ! CANNOT DO A DIVISION BY ZERO
-             if ((abs_prec(tmp1) < epsilon).or.(abs_prec(tmp2) < epsilon)) then
+             if ((tmp1 < epsilon).or.(tmp2 < epsilon)) then
                 cw1(i,j,k) = zero
              else
                 cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (-tmp1), &
@@ -383,7 +374,7 @@ contains
              end if
 
              !Print result in spectal space after Poisson
-             !     if (abs_prec(out(i,j,k)) > 1.0e-4_mytype) then
+             !     if (abs_prec(out(i,j,k)) > 1.0e-4) then
              !        write(*,*) 'AFTER',i,j,k,out(i,j,k),xyzk
              !     end if
 
@@ -412,20 +403,12 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
-    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk/wave) ', avg_param
-#endif
+
     ! compute c2r transform
     call decomp_2d_fft_3d(cw1,rhs)
 
     !   call decomp_2d_fft_finalize
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (rhs, avg_param)
-    if (nrank == 0) write(*,*)'## rhs_ijk physical new', avg_param
-#endif
+
     return
   end subroutine poisson_000
 
@@ -484,11 +467,11 @@ contains
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'START', i, j, k, cw1(i,j,k)
              end if
           end do
@@ -506,8 +489,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -523,8 +506,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
                              tmp2 * by(j) - tmp1 * ay(j))
              if (j > (ny/2+1)) cw1(i,j,k) = -cw1(i,j,k)
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after y',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -553,11 +536,11 @@ contains
           end do
        end do
     end do
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) then
                 write(*,100) 'after x',i,j,k,cw1b(i,j,k)
              end if
           end do
@@ -584,8 +567,8 @@ contains
              if ((abs_prec(tmp1) >= epsilon).and.(abs_prec(tmp2) >= epsilon)) then
                 cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (-tmp1), iy(cw1b(i,j,k)) / (-tmp2))
              end if
-#ifdef DEBUG
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) &
                   write(*,100) 'AFTER',i,j,k,cw1b(i,j,k)
 #endif
           end do
@@ -616,11 +599,11 @@ contains
           end do
        end do
     end do
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -637,8 +620,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * by(j) - tmp2 * ay(j), &
                              tmp2 * by(j) + tmp1 * ay(j))
              if (j > (ny/2+1)) cw1(i,j,k) = -cw1(i,j,k)
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -653,8 +636,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -745,11 +728,11 @@ contains
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -767,8 +750,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -784,8 +767,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
                              tmp2 * bx(i) - tmp1 * ax(i))
              if (i.gt.(nx/2+1)) cw1(i,j,k)=-cw1(i,j,k)
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after x',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -817,11 +800,11 @@ contains
           end do
        end do
     end do
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
                 write(*,100) 'after y',i,j,k,cw2b(i,j,k)
                 write(*,*)kxyz(i,j,k)
              end if
@@ -944,11 +927,11 @@ contains
           endif
        enddo
     enddo
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER',i,j,k,cw2b(i,j,k)
                 write(*,*)kxyz(i,j,k)
              end if
@@ -983,11 +966,11 @@ contains
 
     ! Back to X-pencil
     call transpose_y_to_x(cw2,cw1,sp)
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -1004,8 +987,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * bx(i) - tmp2 * ax(i), &
                              tmp2 * bx(i) + tmp1 * ax(i))
              if (i > (nx/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1020,8 +1003,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1156,11 +1139,11 @@ contains
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -1178,8 +1161,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1187,7 +1170,7 @@ contains
     end do
 #ifdef DEBG
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (abs(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Z cw1 ', avg_param
 #endif
 
@@ -1217,24 +1200,24 @@ contains
     end do
 #ifdef DEBG
     avg_param = zero
-    call avg3d (abs_prec(cw2), avg_param)
+    call avg3d (abs(cw2), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Y cw2 ', avg_param
 #endif
 
     ! back to X-pencil
     call transpose_y_to_x(cw2b,cw1,sp)
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'after y',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (cw1, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Back to X cw1 ', avg_param
 #endif
 
@@ -1261,18 +1244,18 @@ contains
        end do
     end do
 
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) then
                 write(*,*) 'BEFORE',i,j,k,cw1b(i,j,k)
              end if
           end do
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1b), avg_param)
+    call avg3d (abs(cw1b), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Back to X cw1b ', avg_param
 #endif
 
@@ -1300,9 +1283,9 @@ contains
              end do
           end do
        end do
-#ifdef DEBUG
+#ifdef DEBG
        avg_param = zero
-       call avg3d (abs_prec(cw1b), avg_param)
+       call avg3d (cw1b, avg_param)
        if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret 0 ', avg_param
 #endif
 
@@ -1371,9 +1354,9 @@ contains
                 enddo
              enddo
           enddo
-#ifdef DEBUG
+#ifdef DEBG
           avg_param = zero
-          call avg3d (abs_prec(cw2b), avg_param)
+          call avg3d (cw2b, avg_param)
           if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret < 3 ', avg_param
 #endif
        else
@@ -1396,16 +1379,16 @@ contains
              enddo
           enddo
        endif
-#ifdef DEBUG
+#ifdef DEBG
           avg_param = zero
-          call avg3d (abs_prec(cw2b), avg_param)
+          call avg3d (cw2b, avg_param)
           if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret = 3 ', avg_param
 #endif
        !we have to go back in X pencils
        call transpose_y_to_x(cw2b,cw1b,sp)
     endif
 
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
@@ -1416,7 +1399,7 @@ contains
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1b), avg_param)
+    call avg3d (cw1b, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois AFTER ', avg_param
 #endif
     !stop
@@ -1443,18 +1426,18 @@ contains
           end do
        end do
     end do
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (cw1, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR X ', avg_param
 #endif
 
@@ -1482,18 +1465,18 @@ contains
           end do
        end do
     end do
-#ifdef DEBUG
+#ifdef DEBG
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER Y',i,j,k,cw2b(i,j,k)
              end if
           end do
        end do
     end do
    avg_param = zero
-   call avg3d (abs_prec(cw2b), avg_param)
+   call avg3d (abs(cw2b), avg_param)
    if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR Y ', avg_param
 #endif
     ! back to X-pencil
@@ -1507,22 +1490,22 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
-#ifdef DEBUG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
        end do
     end do
-#ifdef DEBUG
+#ifdef DEBG
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (cw1, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR Z ', avg_param
 #endif
 
     ! compute c2r transform, back to physical space
     call decomp_2d_fft_3d(cw1,rhs)
-#ifdef DEBUG
+#ifdef DEBG
     avg_param = zero
     call avg3d (rhs, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois Back Phy RHS ', avg_param
@@ -1682,12 +1665,12 @@ contains
     if (bcx == 0) then
        do i = 1, nx/2 + 1
           w = twopi * (i-1) / nx
-          wp = acix6 * two * dx * sin_prec(w * half) + bcix6 * two * dx * sin_prec(three * half * w)
+          wp = acix6 * two * dx * sin_prec(w * half) + bcix6 * two / three * dx * sin_prec(three * half * w)
           wp = wp / (one + two * alcaix6 * cos_prec(w))
 !
-          xkx(i) = cx_one_one * real(nx, mytype) * wp / xlx)
-          exs(i) = cx_one_one * real(nx, mytype) * w / xlx)
-          xk2(i) = cx_one_one * real(nx, mytype) * wp / xlx)**2
+          xkx(i) = cx_one_one * (nx * wp / xlx)
+          exs(i) = cx_one_one * (nx * w / xlx)
+          xk2(i) = cx_one_one * (nx * wp / xlx)**2
 !
        enddo
        do i = nx/2 + 2, nx
@@ -1698,12 +1681,12 @@ contains
     else
        do i = 1, nx
           w = twopi * half * (i-1) / nxm
-          wp = acix6 * two * dx * sin_prec(w * half) +(bcix6 * two * dx) * sin_prec(three * half * w)
+          wp = acix6 * two * dx * sin_prec(w * half) +(bcix6 * two / three * dx) * sin_prec(three * half * w)
           wp = wp / (one + two * alcaix6 * cos_prec(w))
 !
           xkx(i) = cx_one_one * nxm * wp / xlx
           exs(i) = cx_one_one * nxm * w / xlx
-          xk2(i) = cx_one_one * real(nxm, mytype) * wp / xlx)**2
+          xk2(i) = cx_one_one * (nxm * wp / xlx)**2
 !      
        enddo
        xkx(1) = zero
@@ -1714,8 +1697,8 @@ contains
     !WAVE NUMBER IN Y
     if (bcy == 0) then
        do j = 1, ny/2 + 1
-          w = twopi *  real(j-1, mytype)/real(ny, mytype)
-          wp = aciy6 * two * dy * sin_prec(w * half) + bciy6 * two * dy * sin_prec(three * half * w)
+          w = twopi * (j-1) / ny
+          wp = aciy6 * two * dy * sin_prec(w * half) + bciy6 * two / three * dy * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
           if (istret == 0) yky(j) = cx_one_one * (ny * wp / yly)
@@ -1731,8 +1714,8 @@ contains
        enddo
     else
        do j = 1, ny
-          w = twopi * half *  real(j-1, mytype)/real(nym, mytype)
-          wp = aciy6 * two * dy * sin_prec(w * half) +(bciy6 * two *dy) * sin_prec(three * half * w)
+          w = twopi * half * (j-1) / nym
+          wp = aciy6 * two * dy * sin_prec(w * half) +(bciy6 * two / three *dy) * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
           if (istret == 0) yky(j) = cx_one_one * (nym * wp / yly)
@@ -1749,8 +1732,8 @@ contains
     !WAVE NUMBER IN Z
     if (bcz == 0) then
        do k = 1, nz/2 + 1
-          w = twopi *  real(k-1, mytype)/real(nz, mytype)
-          wp = aciz6 * two * dz * sin_prec(w * half) + (bciz6 * two * dz) * sin_prec(three * half * w)
+          w = twopi * (k-1) / nz
+          wp = aciz6 * two * dz * sin_prec(w * half) + (bciz6 * two / three * dz) * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiz6 * cos_prec(w))
 !
           zkz(k) = cx_one_one * (nz * wp / zlz)
@@ -1760,11 +1743,11 @@ contains
        enddo
     else
        do k= 1, nz/2 + 1
-          w = pi *  real(k-1, mytype)/real(nzm, mytype)
+          w = pi * (k-1) / nzm
           w1 = pi * (nzm-k+1) / nzm
-          wp = aciz6 * two * dz * sin_prec(w * half)+(bciz6 * two * dz) * sin_prec(three * half * w)
+          wp = aciz6 * two * dz * sin_prec(w * half)+(bciz6 * two / three * dz) * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiz6 * cos_prec(w))
-          w1p = aciz6 * two * dz * sin_prec(w1 * half) + (bciz6 * two * dz) * sin_prec(three * half * w1)
+          w1p = aciz6 * two * dz * sin_prec(w1 * half) + (bciz6 * two / three * dz) * sin_prec(three * half * w1)
           w1p = w1p / (one + two * alcaiz6 * cos_prec(w1))
 !
           zkz(k) = cx(nzm * wp / zlz, -nzm * w1p / zlz)
@@ -2373,6 +2356,7 @@ contains
 !=====================================
 subroutine avg3d (var, avg)
 
+  use decomp_2d, only: real_type, xsize, xend
   use decomp_2d, only: real_type, xsize, xend
   !use param
   !use dbg_schemes, only: sqrt_prec

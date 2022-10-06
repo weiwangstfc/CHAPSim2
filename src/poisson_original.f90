@@ -6,9 +6,9 @@ module decomp_2d_poisson
 
   use decomp_2d
   use decomp_2d_fft
-  use poisson_interface_mod
-  !use param
-  !use variables
+
+  use param
+  use variables
 
   implicit none
 
@@ -17,7 +17,7 @@ module decomp_2d_poisson
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-20_mytype
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 #else
   real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
@@ -296,9 +296,9 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine poisson_000(rhs)
 
-    !use derivX
-    !use derivY
-    !use derivZ
+    use derivX
+    use derivY
+    use derivZ
 
     ! right-hand-side of Poisson as input
     ! solution of Poisson as output
@@ -312,7 +312,7 @@ contains
     complex(mytype) :: xtt1,ytt1,ztt1,zt1,zt2
 
 
-    real(mytype) :: tmp1, tmp2,x ,y, z, avg_param
+    real(mytype) :: tmp1, tmp2,x ,y, z
 
     integer :: nx,ny,nz, i,j,k
 
@@ -329,29 +329,20 @@ contains
        fft_initialised = .true.
     end if
 
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (rhs, avg_param)
-    if (nrank == 0) write(*,*)'## rhs physical ', avg_param
-#endif
     ! compute r2c transform 
     call decomp_2d_fft_3d(rhs,cw1)
 
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
-    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk) ', avg_param
-#endif
+
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
 
              ! post-processing in spectral space
 
-             !POST PROCESSING IN Z
+             ! POST PROCESSING IN Z
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
@@ -369,74 +360,62 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
                              tmp2 * bx(i) - tmp1 * ax(i))
-
              if (i > (nx/2+1)) cw1(i,j,k) = -cw1(i,j,k)
-             !write(*,*) 'BEFORE',i,j,k,kxyz(i,j,k),cw1(i,j,k)
+
              ! Solve Poisson
              tmp1 = rl(kxyz(i,j,k))
              tmp2 = iy(kxyz(i,j,k))
              ! CANNOT DO A DIVISION BY ZERO
-             if ((abs_prec(tmp1) < epsilon).or.(abs_prec(tmp2) < epsilon)) then
+             if ((tmp1 < epsilon).or.(tmp2 < epsilon)) then
                 cw1(i,j,k) = zero
              else
-                !cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (-tmp1), &
-                !                iy(cw1(i,j,k)) / (-tmp2))
-                cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (tmp1), &
-                               iy(cw1(i,j,k)) / (tmp2))
+                cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (-tmp1), &
+                                iy(cw1(i,j,k)) / (-tmp2))
              end if
 
-            !Print result in spectal space after Poisson
-                !if (abs_prec(out(i,j,k)) > 1.0e-4_mytype) then
-                   !write(*,*) 'AFTER',i,j,k,kxyz(i,j,k),cw1(i,j,k)
-                !end if
+             !Print result in spectal space after Poisson
+             !     if (abs_prec(out(i,j,k)) > 1.0e-4) then
+             !        write(*,*) 'AFTER',i,j,k,out(i,j,k),xyzk
+             !     end if
 
              ! post-processing backward
-
-             ! POST PROCESSING IN X
-             tmp1 = rl(cw1(i,j,k))
-             tmp2 = iy(cw1(i,j,k))
-             cw1(i,j,k) = cx(tmp1 * bx(i) - tmp2 * ax(i), &
-                             tmp2 * bx(i) + tmp1 * ax(i))
-             if (i > (nx/2+1)) cw1(i,j,k) = -cw1(i,j,k)
-
-             ! POST PROCESSING IN Y
-             tmp1 = rl(cw1(i,j,k))
-             tmp2 = iy(cw1(i,j,k))
-             cw1(i,j,k) = cx(tmp1 * by(j) - tmp2 * ay(j), &
-                             tmp2 * by(j) + tmp1 * ay(j))
-             if (j > (ny/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
 
              ! POST PROCESSING IN Z
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
-                             tmp2 * bz(k) + tmp1 * az(k))
+                            -tmp2 * bz(k) - tmp1 * az(k))
+
+             ! POST PROCESSING IN Y
+             tmp1 = rl(cw1(i,j,k))
+             tmp2 = iy(cw1(i,j,k))
+             cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
+                             tmp2 * by(j) - tmp1 * ay(j))
+             if (j > (ny/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
+
+             ! POST PROCESSING IN X
+             tmp1 = rl(cw1(i,j,k))
+             tmp2 = iy(cw1(i,j,k))
+             cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
+                            -tmp2 * bx(i) + tmp1 * ax(i))
+             if (i > (nx/2+1)) cw1(i,j,k) = -cw1(i,j,k)
 
           end do
        end do
     end do
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
-    if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk/wave) ', avg_param
-#endif
+
     ! compute c2r transform
     call decomp_2d_fft_3d(cw1,rhs)
 
     !   call decomp_2d_fft_finalize
-#ifdef DEBG
-    avg_param = zero
-    call avg3d (rhs, avg_param)
-    if (nrank == 0) write(*,*)'## rhs_ijk physical new', avg_param
-#endif
+
     return
   end subroutine poisson_000
 
 
   subroutine poisson_100(rhs)
 
-    !use dbg_schemes, only: abs_prec
-    use math_mod, only: abs_prec
+    use dbg_schemes, only: abs_prec
 
     implicit none
 
@@ -487,11 +466,11 @@ contains
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'START', i, j, k, cw1(i,j,k)
              end if
           end do
@@ -509,8 +488,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -526,8 +505,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
                              tmp2 * by(j) - tmp1 * ay(j))
              if (j > (ny/2+1)) cw1(i,j,k) = -cw1(i,j,k)
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after y',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -556,11 +535,11 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) then
                 write(*,100) 'after x',i,j,k,cw1b(i,j,k)
              end if
           end do
@@ -579,19 +558,16 @@ contains
                 cw1b(i,j,k)=cx(zero, zero)
              end if
              if ((abs_prec(tmp1) < epsilon).and.(abs_prec(tmp2) >= epsilon)) then
-                !cw1b(i,j,k)=cx(zero, iy(cw1b(i,j,k)) / (-tmp2))
-                cw1b(i,j,k)=cx(zero, iy(cw1b(i,j,k)) / (tmp2))
+                cw1b(i,j,k)=cx(zero, iy(cw1b(i,j,k)) / (-tmp2))
              end if
              if ((abs_prec(tmp1) >= epsilon).and.(abs_prec(tmp2) < epsilon)) then    
-                !cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (-tmp1), zero)
-                cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (tmp1), zero)
+                cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (-tmp1), zero)
              end if
              if ((abs_prec(tmp1) >= epsilon).and.(abs_prec(tmp2) >= epsilon)) then
-                !cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (-tmp1), iy(cw1b(i,j,k)) / (-tmp2))
-                cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (tmp1), iy(cw1b(i,j,k)) / (tmp2))
+                cw1b(i,j,k)=cx(rl(cw1b(i,j,k)) / (-tmp1), iy(cw1b(i,j,k)) / (-tmp2))
              end if
-#ifdef DEBG
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) &
                   write(*,100) 'AFTER',i,j,k,cw1b(i,j,k)
 #endif
           end do
@@ -622,11 +598,11 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -643,8 +619,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * by(j) - tmp2 * ay(j), &
                              tmp2 * by(j) + tmp1 * ay(j))
              if (j > (ny/2+1)) cw1(i,j,k) = -cw1(i,j,k)
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -659,8 +635,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -697,10 +673,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine poisson_010(rhs)
 
-    !use dbg_schemes, only: abs_prec
-    use math_mod, only: abs_prec
-    
-    
+    use dbg_schemes, only: abs_prec
 
     implicit none
 
@@ -716,7 +689,7 @@ contains
     real(mytype) :: rl, iy
     external cx, rl, iy
 
-    !real(mytype) :: avg_param
+    real(mytype) :: avg_param
 
 100 format(1x,a8,3I4,2F12.6)
 
@@ -726,9 +699,6 @@ contains
 
 #ifdef DEBG
     if (nrank .eq. 0) write(*,*)'# Poisoon_010 Init'
-    if (nrank .eq. 0) then
-      write(*,*) 'FFT nx, ny, nz =', nx, ny, nz
-    end if
 #endif
     ! rhs is in Z-pencil but requires global operations in Y
     call transpose_z_to_y(rhs,rw2,ph)
@@ -742,22 +712,8 @@ contains
           enddo
        enddo
     end do
-
-#ifdef DEBG
-    ! do k = ph%yst(3), ph%yen(3)
-    !    do j = ph%yst(2), ph%yen(2)
-    !       do i = ph%yst(1), ph%yen(1)
-    !          !if (abs_prec(rw2b(i,j,k)) > 1.0e-4_mytype) then
-    !             write(*,*) 'BEFORE',i,j,k,rw2b(i,j,k)
-    !          !end if
-    !       end do
-    !    end do
-    ! end do
-#endif
-
     call transpose_y_to_z(rw2b,rhs,ph)
 
-    
     if (.not. fft_initialised) then
        call decomp_2d_fft_init(PHYSICAL_IN_Z,nx,ny,nz)
        fft_initialised = .true.
@@ -768,16 +724,16 @@ contains
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBG
-    ! do k = sp%xst(3), sp%xen(3)
-    !    do j = sp%xst(2), sp%xen(2)
-    !       do i = sp%xst(1), sp%xen(1)
-    !          if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
-    !             write(*,100) 'START',i,j,k,cw1(i,j,k)
-    !          end if
-    !       end do
-    !    end do
-    ! end do
+#ifdef DEBUG
+    do k = sp%xst(3), sp%xen(3)
+       do j = sp%xst(2), sp%xen(2)
+          do i = sp%xst(1), sp%xen(1)
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+                write(*,100) 'START',i,j,k,cw1(i,j,k)
+             end if
+          end do
+       end do
+    end do
 #endif
 
     ! post-processing in spectral space
@@ -790,15 +746,15 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
        end do
     end do
 
-    !POST PROCESSING IN X
+    ! POST PROCESSING IN X
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
@@ -807,8 +763,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
                              tmp2 * bx(i) - tmp1 * ax(i))
              if (i.gt.(nx/2+1)) cw1(i,j,k)=-cw1(i,j,k)
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after x',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -817,7 +773,7 @@ contains
 
     ! POST PROCESSING IN Y
     ! NEED TO BE IN Y PENCILS!!!!!!!!!!!!!!!
-      call transpose_x_to_y(cw1,cw2,sp)
+    call transpose_x_to_y(cw1,cw2,sp)
 
     do k = sp%yst(3), sp%yen(3)
        do i = sp%yst(1), sp%yen(1)
@@ -836,23 +792,22 @@ contains
              xx7 = tmp4 * by(j)
              xx8 = tmp4 * ay(j)
              cw2b(i,j,k) = half * cx(xx1+xx4+xx5-xx8, &
-                                  -xx2+xx3+xx6+xx7)
-             !cw2b(i, j, k) = half * cw2(i,j,k) + cw2(i,ny-j+2,k)
+                                    -xx2+xx3+xx6+xx7)
           end do
        end do
     end do
-! #ifdef DEBG
-!     do k = sp%yst(3), sp%yen(3)
-!        do j = sp%yst(2), sp%yen(2)
-!           do i = sp%yst(1), sp%yen(1)
-!              if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
-!                 write(*,100) 'after y',i,j,k,cw2b(i,j,k)
-!                 write(*,*)kxyz(i,j,k)
-!              end if
-!           end do
-!        end do
-!     end do
-! #endif
+#ifdef DEBUG
+    do k = sp%yst(3), sp%yen(3)
+       do j = sp%yst(2), sp%yen(2)
+          do i = sp%yst(1), sp%yen(1)
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
+                write(*,100) 'after y',i,j,k,cw2b(i,j,k)
+                write(*,*)kxyz(i,j,k)
+             end if
+          end do
+       end do
+    end do
+#endif
 
     if (istret == 0) then 
 
@@ -864,29 +819,24 @@ contains
                 tmp1 = rl(kxyz(i,j,k))
                 tmp2 = iy(kxyz(i,j,k))
                 !CANNOT DO A DIVISION BY ZERO
-                if ((abs_prec(tmp1) < epsilon).or.(abs_prec(tmp2) < epsilon)) then    
+                if ((abs_prec(tmp1) < epsilon).and.(abs_prec(tmp2) < epsilon)) then    
                    cw2b(i,j,k) = cx(zero, zero)
                 end if
                 if ((abs_prec(tmp1) < epsilon).and.(abs_prec(tmp2) >= epsilon)) then
-                   !cw2b(i,j,k) = cx(zero, iy(cw2b(i,j,k)) / (-tmp2))
-                   cw2b(i,j,k) = cx(zero, iy(cw2b(i,j,k)) / (tmp2))
+                   cw2b(i,j,k) = cx(zero, iy(cw2b(i,j,k)) / (-tmp2))
                 end if
                 if ((abs_prec(tmp1) >= epsilon).and.(abs_prec(tmp2) < epsilon)) then    
-                   !cw2b(i,j,k) = cx(rl(cw2b(i,j,k)) / (-tmp1), zero)
-                   cw2b(i,j,k) = cx(rl(cw2b(i,j,k)) / (tmp1), zero)
+                   cw2b(i,j,k) = cx(rl(cw2b(i,j,k)) / (-tmp1), zero)
                 end if
                 if ((abs_prec(tmp1) >= epsilon).and.(abs_prec(tmp2) >= epsilon)) then
-                   !cw2b(i,j,k) = cx(rl(cw2b(i,j,k)) / (-tmp1), iy(cw2b(i,j,k)) / (-tmp2))
-
-                   cw2b(i,j,k) = cx(rl(cw2b(i,j,k)) / (tmp1), iy(cw2b(i,j,k)) / (tmp2))
-
+                   cw2b(i,j,k) = cx(rl(cw2b(i,j,k)) / (-tmp1), iy(cw2b(i,j,k)) / (-tmp2))
                 end if
              end do
           end do
        end do
 
     else
-       call matrice_refinement()
+       !call matrice_refinement()
        !write(*,*) 'PO_010 ii1 A rl ', rl(a(1,1,1,1)),rl(a(1,1,1,2)),rl(a(1,1,1,3)),&
        !                              rl(a(1,1,1,4)),rl(a(1,1,1,5))
        !write(*,*) 'PO_010 ii1 A iy ', iy(a(1,1,1,1)),iy(a(1,1,1,2)),iy(a(1,1,1,3)),&
@@ -973,16 +923,17 @@ contains
           endif
        enddo
     enddo
-#ifdef DEBG
-    ! do k = sp%yst(3), sp%yen(3)
-    !    do j = sp%yst(2), sp%yen(2)
-    !       do i = sp%yst(1), sp%yen(1)
-    !          !if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
-    !             write(*,*) 'AFTER',i,j,k,cw2b(i,j,k),kxyz(i,j,k)
-    !          !end if
-    !       end do
-    !    end do
-    ! end do
+#ifdef DEBUG
+    do k = sp%yst(3), sp%yen(3)
+       do j = sp%yst(2), sp%yen(2)
+          do i = sp%yst(1), sp%yen(1)
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
+                write(*,100) 'AFTER',i,j,k,cw2b(i,j,k)
+                write(*,*)kxyz(i,j,k)
+             end if
+          end do
+       end do
+    end do
 #endif
     ! post-processing backward
 
@@ -1005,24 +956,23 @@ contains
              xx8 = tmp4 * ay(j)
              cw2(i,j,k) = cx(xx1-xx4+xx6+xx7, &
                           -(-xx2-xx3+xx5-xx8))
-             !cw2(i,j,k) = half*(cw2b(i,j,k) + cw2b(i,ny-j+2,k))
           end do
        end do
     end do
 
-!     ! Back to X-pencil
-     call transpose_y_to_x(cw2,cw1,sp)
-! #ifdef DEBG
-!     do k = sp%xst(3),sp%xen(3)
-!        do j = sp%xst(2),sp%xen(2)
-!           do i = sp%xst(1),sp%xen(1)
-!              if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
-!                 write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
-!              end if
-!           end do
-!        end do
-!     end do
-! #endif
+    ! Back to X-pencil
+    call transpose_y_to_x(cw2,cw1,sp)
+#ifdef DEBUG
+    do k = sp%xst(3),sp%xen(3)
+       do j = sp%xst(2),sp%xen(2)
+          do i = sp%xst(1),sp%xen(1)
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
+                write(*,100) 'AFTER Y',i,j,k,cw1(i,j,k)
+             end if
+          end do
+       end do
+    end do
+#endif
 
     ! POST PROCESSING IN X
     do k = sp%xst(3), sp%xen(3)
@@ -1033,8 +983,8 @@ contains
              cw1(i,j,k) = cx(tmp1 * bx(i) - tmp2 * ax(i), &
                              tmp2 * bx(i) + tmp1 * ax(i))
              if (i > (nx/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1049,8 +999,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1085,8 +1035,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine poisson_11x(rhs)
 
-    !use dbg_schemes, only: abs_prec
-    use math_mod, only: abs_prec
+    use dbg_schemes, only: abs_prec
     
 
     implicit none
@@ -1185,11 +1134,11 @@ contains
     ! normalisation
     cw1 = cw1 / real(nx, kind=mytype) /real(ny, kind=mytype) &
          / real(nz, kind=mytype)
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'START',i,j,k,cw1(i,j,k)
              end if
           end do
@@ -1207,8 +1156,8 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) + tmp2 * az(k), &
                              tmp2 * bz(k) - tmp1 * az(k))
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'after z',i,j,k,cw1(i,j,k)
 #endif
           end do
@@ -1216,7 +1165,7 @@ contains
     end do
 #ifdef DEBG
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (abs(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Z cw1 ', avg_param
 #endif
 
@@ -1246,24 +1195,24 @@ contains
     end do
 #ifdef DEBG
     avg_param = zero
-    call avg3d (abs_prec(cw2), avg_param)
+    call avg3d (abs(cw2), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Y cw2 ', avg_param
 #endif
 
     ! back to X-pencil
     call transpose_y_to_x(cw2b,cw1,sp)
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'after y',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (cw1, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Back to X cw1 ', avg_param
 #endif
 
@@ -1290,18 +1239,18 @@ contains
        end do
     end do
 
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1b(i,j,k)) > 1.0e-4) then
                 write(*,*) 'BEFORE',i,j,k,cw1b(i,j,k)
              end if
           end do
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1b), avg_param)
+    call avg3d (abs(cw1b), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Back to X cw1b ', avg_param
 #endif
 
@@ -1329,9 +1278,9 @@ contains
              end do
           end do
        end do
-#ifdef DEBG
+#ifdef DEBUG
        avg_param = zero
-       call avg3d (abs_prec(cw1b), avg_param)
+       call avg3d (cw1b, avg_param)
        if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret 0 ', avg_param
 #endif
 
@@ -1400,9 +1349,9 @@ contains
                 enddo
              enddo
           enddo
-#ifdef DEBG
+#ifdef DEBUG
           avg_param = zero
-          call avg3d (abs_prec(cw2b), avg_param)
+          call avg3d (cw2b, avg_param)
           if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret < 3 ', avg_param
 #endif
        else
@@ -1425,16 +1374,16 @@ contains
              enddo
           enddo
        endif
-#ifdef DEBG
+#ifdef DEBUG
           avg_param = zero
-          call avg3d (abs_prec(cw2b), avg_param)
+          call avg3d (cw2b, avg_param)
           if (nrank == 0) write(*,*)'## Poisson11X Solve Pois istret = 3 ', avg_param
 #endif
        !we have to go back in X pencils
        call transpose_y_to_x(cw2b,cw1b,sp)
     endif
 
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3),sp%xen(3)
        do j = sp%xst(2),sp%xen(2)
           do i = sp%xst(1),sp%xen(1)
@@ -1445,7 +1394,7 @@ contains
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1b), avg_param)
+    call avg3d (cw1b, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois AFTER ', avg_param
 #endif
     !stop
@@ -1472,18 +1421,18 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER X',i,j,k,cw1(i,j,k)
              end if
           end do
        end do
     end do
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (cw1, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR X ', avg_param
 #endif
 
@@ -1511,18 +1460,18 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
           do i = sp%yst(1), sp%yen(1)
-             if (abs_prec(cw2b(i,j,k)) > 1.0e-4_mytype) then
+             if (abs_prec(cw2b(i,j,k)) > 1.0e-4) then
                 write(*,100) 'AFTER Y',i,j,k,cw2b(i,j,k)
              end if
           end do
        end do
     end do
    avg_param = zero
-   call avg3d (abs_prec(cw2b), avg_param)
+   call avg3d (abs(cw2b), avg_param)
    if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR Y ', avg_param
 #endif
     ! back to X-pencil
@@ -1536,22 +1485,22 @@ contains
              tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                              tmp2 * bz(k) + tmp1 * az(k))
-#ifdef DEBG
-             if (abs_prec(cw1(i,j,k)) > 1.0e-4_mytype) &
+#ifdef DEBUG
+             if (abs_prec(cw1(i,j,k)) > 1.0e-4) &
                   write(*,100) 'END',i,j,k,cw1(i,j,k)
 #endif
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG
     avg_param = zero
-    call avg3d (abs_prec(cw1), avg_param)
+    call avg3d (cw1, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois POSTPR Z ', avg_param
 #endif
 
     ! compute c2r transform, back to physical space
     call decomp_2d_fft_3d(cw1,rhs)
-#ifdef DEBG
+#ifdef DEBUG
     avg_param = zero
     call avg3d (rhs, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Solve Pois Back Phy RHS ', avg_param
@@ -1606,8 +1555,8 @@ contains
 
   subroutine abxyz(ax,ay,az,bx,by,bz,nx,ny,nz,bcx,bcy,bcz)
 
-    !use param
-    !use dbg_schemes, only: sin_prec, cos_prec
+    use param
+    use dbg_schemes, only: sin_prec, cos_prec
 
     implicit none
 
@@ -1670,15 +1619,14 @@ contains
     !
     !***********************************************************
 
-    !use derivX 
-    !use derivY 
-    !use derivZ 
-    !use param
+    use derivX 
+    use derivY 
+    use derivZ 
+    use param
     use decomp_2d
-    !use variables
+    use variables
     use decomp_2d_fft
-    !use dbg_schemes, only: sin_prec, cos_prec
-    use poisson_interface_mod
+    use dbg_schemes, only: sin_prec, cos_prec
 
     implicit none
 
@@ -1710,127 +1658,95 @@ contains
     !WAVE NUMBER IN X
     if (bcx == 0) then
        do i = 1, nx/2 + 1
-          w = twopi * real(i-1, mytype) / real(nx, mytype)
-          !wp = acix6 * two * dx * sin_prec(w * half) + bcix6 * two * dx * sin_prec(three * half * w)
-          !wp = acix6 * one  * dx * sin_prec(one * w) + &
-          !     bcix6 * half * dx * sin_prec(two * w)    ! = a/dx dx sin(w) + b/dx * dx/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-          wp = acix6 * two  * (cos_prec(one * w) - one) + &
-               bcix6 * half * (cos_prec(two * w) - one)
-          wp = wp / (one + two * alcaix6 * cos_prec(w)) ! = [ a sin(w) + b/2 sin(2w) ]/ [1 + 2 alpha cos (w)]
+          w = twopi * (i-1) / nx
+          wp = acix6 * two * dx * sin_prec(w * half) + bcix6 * two * dx * sin_prec(three * half * w)
+          wp = wp / (one + two * alcaix6 * cos_prec(w))
 !
-          !xkx(i) = cx_one_one * real(nx, mytype) * wp / xlx) ! k'_x = [ a sin(w) + b/2 sin(2w) ]/ [1 + 2 alpha cos (w)] / dx
-          !exs(i) = cx_one_one * real(nx, mytype) * w / xlx) 
-          xk2(i) = cx_one_one * wp * (real(nx, mytype) / xlx)!**2 ! [k'_x]^2
+          xkx(i) = cx_one_one * (nx * wp / xlx)
+          exs(i) = cx_one_one * (nx * w / xlx)
+          xk2(i) = cx_one_one * (nx * wp / xlx)**2
 !
        enddo
        do i = nx/2 + 2, nx
-          !xkx(i) = xkx(nx-i+2)
-          !exs(i) = exs(nx-i+2)
+          xkx(i) = xkx(nx-i+2)
+          exs(i) = exs(nx-i+2)
           xk2(i) = xk2(nx-i+2)
        enddo
     else
        do i = 1, nx
-          w = twopi * half * real(i-1, mytype) / real(nxm, mytype)
-          !wp = acix6 * two * dx * sin_prec(w * half) +(bcix6 * two * dx) * sin_prec(three * half * w)
-          !wp = acix6 * one  * dx * sin_prec(one * w) + &
-          !     bcix6 * half * dx * sin_prec(two * w)    ! k'_x = a/dx dx sin(w) + b/dx * dx/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-          wp = acix6 * two  * (cos_prec(one * w) - one) + &
-               bcix6 * half * (cos_prec(two * w) - one)
-          wp = wp / (one + two * alcaix6 * cos_prec(w)) 
+          w = twopi * half * (i-1) / nxm
+          wp = acix6 * two * dx * sin_prec(w * half) +(bcix6 * two * dx) * sin_prec(three * half * w)
+          wp = wp / (one + two * alcaix6 * cos_prec(w))
 !
-          !xkx(i) = cx_one_one * nxm * wp / xlx  !
-          !exs(i) = cx_one_one * nxm * w / xlx
-          xk2(i) = cx_one_one * wp * (real(nxm, mytype)  / xlx)!**2
+          xkx(i) = cx_one_one * nxm * wp / xlx
+          exs(i) = cx_one_one * nxm * w / xlx
+          xk2(i) = cx_one_one * (nxm * wp / xlx)**2
 !      
        enddo
-       !xkx(1) = zero
-       !exs(1) = zero
+       xkx(1) = zero
+       exs(1) = zero
        xk2(1) = zero
     endif
 !
     !WAVE NUMBER IN Y
     if (bcy == 0) then
        do j = 1, ny/2 + 1
-          w = twopi *  real(j-1, mytype)/real(ny, mytype)
-          !wp = aciy6 * two * dy * sin_prec(w * half) + bciy6 * two * dy * sin_prec(three * half * w)
-          !wp = aciy6 * one  * dy * sin_prec(one * w) + &
-          !     bciy6 * half * dy * sin_prec(two * w)    ! = a/dy dy sin(w) + b/dy * dy/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-          wp = aciy6 * two  * (cos_prec(one * w) - one) + &
-               bciy6 * half * (cos_prec(two * w) - one)
+          w = twopi * (j-1) / ny
+          wp = aciy6 * two * dy * sin_prec(w * half) + bciy6 * two * dy * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
-          !if (istret == 0) yky(j) = cx_one_one * (ny * wp / yly)
-          !if (istret /= 0) yky(j) = cx_one_one * (ny * wp) ! k'_y
-          !eys(j) = cx_one_one * (ny * w / yly)
-          yk2(j) = cx_one_one * wp * (real(ny,mytype)  / yly)!**2 ! [k'_y]^2
+          if (istret == 0) yky(j) = cx_one_one * (ny * wp / yly)
+          if (istret /= 0) yky(j) = cx_one_one * (ny * wp)
+          eys(j) = cx_one_one * (ny * w / yly)
+          yk2(j) = cx_one_one * (ny * wp / yly)**2
 !      
        enddo
        do j = ny/2 + 2, ny
-          !yky(j) = yky(ny-j+2)
-          !eys(j) = eys(ny-j+2)
+          yky(j) = yky(ny-j+2)
+          eys(j) = eys(ny-j+2)
           yk2(j) = yk2(ny-j+2)
        enddo
     else
-       !write(*,*) 'ny, nym', ny, nym
        do j = 1, ny
-          w = twopi * half * real(j-1, mytype) / real(nym, mytype)
-           !wp = aciy6 * two * dy * sin_prec(w * half) +(bciy6 * two *dy) * sin_prec(three * half * w)
-           !wp = aciy6 * one  * dy * sin_prec(one * w) + &
-           !     bciy6 * half * dy * sin_prec(two * w)    ! = a/dy dy sin(w) + b/dy * dy/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-           wp = aciy6 * two  * (cos_prec(one * w) - one) + &
-                bciy6 * half * (cos_prec(two * w) - one)
-           wp = wp / (one + two * alcaiy6 * cos_prec(w))
- !
-           !if (istret == 0) yky(j) = cx_one_one * (nym * wp / yly)
-           !if (istret /= 0) yky(j) = cx_one_one * (nym * wp)
-           !eys(j)=cx_one_one * (nym * w / yly)
-           yk2(j)=cx_one_one * (nym * wp / yly)!**2      
+          w = twopi * half * (j-1) / nym
+          wp = aciy6 * two * dy * sin_prec(w * half) +(bciy6 * two *dy) * sin_prec(three * half * w)
+          wp = wp / (one + two * alcaiy6 * cos_prec(w))
+!
+          if (istret == 0) yky(j) = cx_one_one * (nym * wp / yly)
+          if (istret /= 0) yky(j) = cx_one_one * (nym * wp)
+          eys(j)=cx_one_one * (nym * w / yly)
+          yk2(j)=cx_one_one * (nym * wp / yly)**2
 !      
-        enddo
-        yky(1) = zero
-        !eys(1) = zero
-        !yk2(1) = zero
+       enddo
+       yky(1) = zero
+       eys(1) = zero
+       yk2(1) = zero
     endif
 
     !WAVE NUMBER IN Z
     if (bcz == 0) then
        do k = 1, nz/2 + 1
-          w = twopi *  real(k-1, mytype)/real(nz, mytype)
-          !wp = aciz6 * two * dz * sin_prec(w * half) + (bciz6 * two * dz) * sin_prec(three * half * w)
-          !wp = aciz6 * one  * dz * sin_prec(one * w) + &
-          !     bciz6 * half * dz * sin_prec(two * w)    ! = a/dz dz sin(w) + b/dz * dz/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-          wp = aciz6 * two  * (cos_prec(one * w) - one) + &
-               bciz6 * half * (cos_prec(two * w) - one)
+          w = twopi * (k-1) / nz
+          wp = aciz6 * two * dz * sin_prec(w * half) + (bciz6 * two * dz) * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiz6 * cos_prec(w))
 !
-          !zkz(k) = cx_one_one * (nz * wp / zlz) ! k'_z
-          !ezs(k) = cx_one_one * (nz * w / zlz)
-          zk2(k) = cx_one_one * wp * (real(nz,mytype)  / zlz)!**2 ! [k'_z]^2
+          zkz(k) = cx_one_one * (nz * wp / zlz)
+          ezs(k) = cx_one_one * (nz * w / zlz)
+          zk2(k) = cx_one_one * (nz * wp / zlz)**2
 !
        enddo
     else
        do k= 1, nz/2 + 1
-          w = pi *  real(k-1, mytype)/real(nzm, mytype)
+          w = pi * (k-1) / nzm
           w1 = pi * (nzm-k+1) / nzm
-          !wp = aciz6 * two * dz * sin_prec(w * half)+(bciz6 * two * dz) * sin_prec(three * half * w)
-          !wp = aciz6 * one  * dz * sin_prec(one * w) + &
-          !     bciz6 * half * dz * sin_prec(two * w)    ! = a/dz dz sin(w) + b/dz * dz/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-          wp = aciz6 * two  * (cos_prec(one * w) - one) + &
-               bciz6 * half * (cos_prec(two * w) - one)
+          wp = aciz6 * two * dz * sin_prec(w * half)+(bciz6 * two * dz) * sin_prec(three * half * w)
           wp = wp / (one + two * alcaiz6 * cos_prec(w))
-          !w1p = aciz6 * two * dz * sin_prec(w1 * half) + (bciz6 * two * dz) * sin_prec(three * half * w1)
-          !w1p = aciz6 * one  * dz * sin_prec(one * w) + &
-          !      bciz6 * half * dz * sin_prec(two * w)    ! = a/dz dz sin(w) + b/dz * dz/2 * sin(2w) = a sin(w) + b/2 sin(2w)
-          w1p = aciz6 * two  * (cos_prec(one * w) - one) + &
-                bciz6 * half * (cos_prec(two * w) - one)
+          w1p = aciz6 * two * dz * sin_prec(w1 * half) + (bciz6 * two * dz) * sin_prec(three * half * w1)
           w1p = w1p / (one + two * alcaiz6 * cos_prec(w1))
 !
-          !zkz(k) = cx(nzm * wp / zlz, -nzm * w1p / zlz)
-          !ezs(k) = cx(nzm * w / zlz, nzm * w1 / zlz)
-          !zk2(k) = cx((nzm * wp / zlz)**2, (nzm * w1p / zlz)**2)
-          !zk2(k) = cx( wp * (real(nzm,mytype) / zlz)**2,  &
-          !            w1p * (real(nzm,mytype) / zlz)**2 )
-          zk2(k) = cx( wp * (real(nzm,mytype) / zlz),  w1p * (real(nzm,mytype) / zlz) )
+          zkz(k) = cx(nzm * wp / zlz, -nzm * w1p / zlz)
+          ezs(k) = cx(nzm * w / zlz, nzm * w1 / zlz)
+          zk2(k) = cx((nzm * wp / zlz)**2, (nzm * w1p / zlz)**2)
 !
        enddo
     endif
@@ -1838,47 +1754,40 @@ contains
     if ((bcx == 0).and.(bcz == 0).and.(bcy /= 0)) then
        do k = sp%yst(3), sp%yen(3)
 !
-          !rlezs = rl(ezs(k)) * dz
+          rlezs = rl(ezs(k)) * dz
 !
           do j = sp%yst(2), sp%yen(2)
 !
-             !rleys = rl(eys(j)) * dy
+             rleys = rl(eys(j)) * dy
 !
              do i = sp%yst(1), sp%yen(1)
 !
-                !rlexs = rl(exs(i)) * dx
+                rlexs = rl(exs(i)) * dx
 !
-                !xtt_rl = two * &
-                !         (bicix6 * cos_prec(rlexs * onepfive) + &
-                !          cicix6 * cos_prec(rlexs * twopfive) + &
-                !          dicix6 * cos_prec(rlexs * threepfive))
+                xtt_rl = two * &
+     (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
 !
-                !ytt_rl = two * &
-                !        (biciy6 * cos_prec(rleys * onepfive) + &
-                !          ciciy6 * cos_prec(rleys * twopfive) + &
-                !          diciy6 * cos_prec(rleys * threepfive))
+                ytt_rl = two * &
+     (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
 !
-                !ztt_rl = two * &
-                !         (biciz6 * cos_prec(rlezs * onepfive) + &
-                !          ciciz6 * cos_prec(rlezs * twopfive) + &
-                !          diciz6 * cos_prec(rlezs * threepfive))
+                ztt_rl = two * &
+     (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
 !
-                !xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
-                !ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
-                !ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
+                xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
+                ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
+                ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
 !
-                !xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
-                !yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
-                !zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
+                xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
+                yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
+                zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
 !
-                !xt2 = xk2(i) * ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-                !yt2 = yk2(j) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-                !zt2 = zk2(k) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
+                xt2 = xk2(i) * ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                yt2 = yk2(j) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                zt2 = zk2(k) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
 !
-                !xyzk = xt2 + yt2 + zt2
-                !kxyz(i,j,k) = xyzk
+                xyzk = xt2 + yt2 + zt2
+                kxyz(i,j,k) = xyzk
 !
-                kxyz(i,j,k) = xk2(i) + yk2(j) + zk2(k)
              enddo
           enddo
        enddo
@@ -1887,47 +1796,39 @@ contains
        if (bcz==0) then
           do k = sp%xst(3),sp%xen(3)
 !
-             !rlezs = rl(ezs(k)) * dz
+             rlezs = rl(ezs(k)) * dz
 !
              do j = sp%xst(2),sp%xen(2)
 !
-                !rleys = rl(eys(j)) * dy
+                rleys = rl(eys(j)) * dy
 !
                 do i = sp%xst(1),sp%xen(1)
 !
-!                    rlexs = rl(exs(i)) * dx
-! !
-!                    xtt_rl = two * &  
-!                             (bicix6 * cos_prec(rlexs * onepfive) + &
-!                              cicix6 * cos_prec(rlexs * twopfive) + &
-!                              dicix6 * cos_prec(rlexs * threepfive))
-! !
-!                    ytt_rl = two * &
-!                             (biciy6 * cos_prec(rleys * onepfive) + &
-!                              ciciy6 * cos_prec(rleys * twopfive) + &
-!                              diciy6 * cos_prec(rleys * threepfive))
-! !
-!                    ztt_rl = two * &
-!                             (biciz6 * cos_prec(rlezs * onepfive) + &
-!                              ciciz6 * cos_prec(rlezs * twopfive) + &
-!                              diciz6 * cos_prec(rlezs * threepfive))
-! !
-!                    xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
-!                    ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
-!                    ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
-! !
-!                    xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
-!                    yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
-!                    zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
-! !
-!                    xt2 = xk2(i) * ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-!                    yt2 = yk2(j) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-!                    zt2 = zk2(k) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
-! !
-!                    xyzk = xt2 + yt2 + zt2
-!                    kxyz(i,j,k) = xyzk
-
-                  kxyz(i,j,k) = xk2(i) + yk2(j) + zk2(k)
+                   rlexs = rl(exs(i)) * dx
+!
+                   xtt_rl = two * &  
+  (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
+!
+                   ytt_rl = two * &
+  (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
+!
+                   ztt_rl = two * &
+  (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
+!
+                   xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
+                   ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
+                   ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
+!
+                   xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
+                   yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
+                   zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
+!
+                   xt2 = xk2(i) * ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                   yt2 = yk2(j) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                   zt2 = zk2(k) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
+!
+                   xyzk = xt2 + yt2 + zt2
+                   kxyz(i,j,k) = xyzk
 !
                 enddo
              enddo
@@ -1947,78 +1848,56 @@ contains
 !
                    rlexs = rl(exs(i)) * dx
 !
-!                    xtt_rl = two * &
-!                             (bicix6 * cos_prec(rlexs * onepfive) + &
-!                              cicix6 * cos_prec(rlexs * twopfive) + &
-!                              dicix6 * cos_prec(rlexs * threepfive))
-! !
-!                    ytt_rl = two * &
-!                             (biciy6 * cos_prec(rleys * onepfive) + &
-!                              ciciy6 * cos_prec(rleys * twopfive) + &
-!                              diciy6 * cos_prec(rleys * threepfive))
-! !
-!                    ztt = two * cx( &
-!                           biciz6 * cos_prec(rlezs * onepfive) + &
-!                           ciciz6 * cos_prec(rlezs * twopfive) + &
-!                           diciz6 * cos_prec(rlezs * threepfive), &
-!                           biciz6 * cos_prec(iyezs * onepfive) + &
-!                           ciciz6 * cos_prec(iyezs * twopfive) + &
-!                           diciz6 * cos_prec(iyezs * threepfive))
-! !
-!                    xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
-!                    ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
-! !
-!                    ztt1 = two * cx(aiciz6 * cos_prec(rlezs * half),&
-!                                    aiciz6 * cos_prec(iyezs * half))
-! !
-!                    xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
-!                    yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
-! !
-!                    zt1 = cx((one + two * ailcaiz6 * cos_prec(rlezs)),&
-!                             (one + two * ailcaiz6 * cos_prec(iyezs)))
-! !
-!                    tmp1 = cx(rl(ztt1 + ztt) / rl(zt1),&
-!                              iy(ztt1 + ztt) / iy(zt1))
-! !
-!                    tmp2 = cx_one_one * (ytt1_rl + ytt_rl) / yt1_rl
-! !
-!                    tmp3 = cx_one_one * (xtt1_rl + xtt_rl) / xt1_rl
-! !
-!                    tmp4 = rl(tmp2)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
-! !
-!                    tmp5 = rl(tmp3)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
-! !
-!                    tmp6 = (rl(tmp3) * rl(tmp2))**2 * cx_one_one
-! !
-!                    tmp1 = cx(rl(tmp4) * rl(xk2(i)), iy(tmp4) * iy(xk2(i)))
-! !
-!                    tmp2 = cx(rl(tmp5) * rl(yk2(j)), iy(tmp5) * iy(yk2(j)))
-! !
-!                    tmp3 = rl(tmp6) * zk2(k)
-! !
-!                    xyzk = tmp1 + tmp2 + tmp3
-!                    kxyz(i,j,k) = xyzk
+                   xtt_rl = two * &
+  (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
 !
-                   tmp1 = cx(rl(xk2(i)), iy(xk2(i)))
-                   tmp2 = cx(rl(yk2(i)), iy(yk2(i)))
-                   tmp3 = cx(rl(zk2(i)), iy(zk2(i)))
-                   kxyz(i,j,k) = tmp1 + tmp2 + tmp3
+                   ytt_rl = two * &
+  (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
+!
+                   ztt = two * cx( &
+  biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive),&
+  biciz6 * cos_prec(iyezs * onepfive) + ciciz6 * cos_prec(iyezs * twopfive) + diciz6 * cos_prec(iyezs * threepfive))
+!
+                   xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
+                   ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
+!
+                   ztt1 = two * cx(aiciz6 * cos_prec(rlezs * half),&
+                                   aiciz6 * cos_prec(iyezs * half))
+!
+                   xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
+                   yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
+!
+                   zt1 = cx((one + two * ailcaiz6 * cos_prec(rlezs)),&
+                            (one + two * ailcaiz6 * cos_prec(iyezs)))
+!
+                   tmp1 = cx(rl(ztt1 + ztt) / rl(zt1),&
+                             iy(ztt1 + ztt) / iy(zt1))
+!
+                   tmp2 = cx_one_one * (ytt1_rl + ytt_rl) / yt1_rl
+!
+                   tmp3 = cx_one_one * (xtt1_rl + xtt_rl) / xt1_rl
+!
+                   tmp4 = rl(tmp2)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
+!
+                   tmp5 = rl(tmp3)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
+!
+                   tmp6 = (rl(tmp3) * rl(tmp2))**2 * cx_one_one
+!
+                   tmp1 = cx(rl(tmp4) * rl(xk2(i)), iy(tmp4) * iy(xk2(i)))
+!
+                   tmp2 = cx(rl(tmp5) * rl(yk2(j)), iy(tmp5) * iy(yk2(j)))
+!
+                   tmp3 = rl(tmp6) * zk2(k)
+!
+                   xyzk = tmp1 + tmp2 + tmp3
+                   kxyz(i,j,k) = xyzk
+!
                 enddo
              enddo
           enddo
 !
        endif
     endif
-
-#ifdef DEBG
-  !  do k = sp%xst(3), sp%xen(3)
-  !    do j = sp%xst(2), sp%xen(2)
-  !      do i = sp%xst(1), sp%xen(1)
-  !        write(*,*) 'kxyz', k, j, i, kxyz(i,j,k)
-  !      end do
-  !    end do
-  !  end do
-#endif
 
   return
   end subroutine waves
@@ -2030,14 +1909,14 @@ contains
     !**************************************************************************
 
     use decomp_2d
-    !use variables
-    !use param
-    !use var
-    !use MPI
-    !use derivX 
-    !use derivY 
-    !use derivZ 
-    !use dbg_schemes, only: cos_prec
+    use variables
+    use param
+    use var
+    use MPI
+    use derivX 
+    use derivY 
+    use derivZ 
+    use dbg_schemes, only: cos_prec
 
     implicit none
 
@@ -2472,10 +2351,10 @@ contains
 subroutine avg3d (var, avg)
 
   use decomp_2d, only: real_type, xsize, xend
-  !use param
-  !use dbg_schemes, only: sqrt_prec
-  !use variables, only: nx,ny,nz,nxm,nym,nzm
-  !use mpi
+  use param
+  use dbg_schemes, only: sqrt_prec
+  use variables, only: nx,ny,nz,nxm,nym,nzm
+  use mpi
 
   implicit none
 
