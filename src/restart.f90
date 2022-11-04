@@ -188,9 +188,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(fl%qx, "maximum ux:")
-    call Find_maximum_absvar3d(fl%qy, "maximum uy:")
-    call Find_maximum_absvar3d(fl%qz, "maximum uz:")
+    call Find_maximum_absvar3d(fl%qx, "maximum ux:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qy, "maximum uy:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qz, "maximum uz:", wrtfmt1e)
     !----------------------------------------------------------------------------------------------------------
     ! to set up other parameters for flow only, which will be updated in thermo flow.
     !----------------------------------------------------------------------------------------------------------

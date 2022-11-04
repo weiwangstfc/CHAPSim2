@@ -28,10 +28,10 @@ contains
     implicit none
     type(t_domain), intent(inout)   :: dm
     
-#ifdef DEBUG
-    type(DECOMP_INFO) :: dtmp
-    integer :: i
-#endif 
+! #ifdef DEBUG_STEPS
+!     type(DECOMP_INFO) :: dtmp
+!     integer :: i
+! #endif 
 !----------------------------------------------------------------------------------------------------------
 ! basic 2D decompistion API
 ! limits: p_row <= min(nx, ny)
@@ -64,48 +64,48 @@ contains
 
     call decomp_info_init(dm%np(1), dm%np(2), dm%np(3), dm%dppp) ! this is only used in test.
 
-#ifdef DEBUG
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    do i = 1, 7
-      select case(i)
-      case(1)
-        dtmp = dm%dpcc
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - pcc grids (for ux, gx) :'
-      case(2)
-        dtmp = dm%dcpc
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - cpc grids (for uy, gy) :'
-      case(3)
-        dtmp = dm%dccp
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - ccp grids (for uz, gz) :'
-      case(4)
-        dtmp = dm%dccc
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - ccc grids (for rho, p) :'
-      case(5)
-        dtmp = dm%dppc
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - ppc grids (for dux/dy, duy/dx) :'
-      case(6)
-        dtmp = dm%dcpp
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - cpp grids (for duy/dz, duz/dy) :'
-      case(7)
-        dtmp = dm%dpcp
-        if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - pcp grids (for dux/dz, duz/dx) :'
-      case default
-      end select
-      call mpi_barrier(MPI_COMM_WORLD, ierror)
-      write (*, wrtfmt4i) 'x-pencil, x id in rank ', nrank, dtmp%xst(1), dtmp%xen(1), dtmp%xsz(1)
-      write (*, wrtfmt4i) 'x-pencil, y id in rank ', nrank, dtmp%xst(2), dtmp%xen(2), dtmp%xsz(2)
-      write (*, wrtfmt4i) 'x-pencil, z id in rank ', nrank, dtmp%xst(3), dtmp%xen(3), dtmp%xsz(3)
-      call mpi_barrier(MPI_COMM_WORLD, ierror)
-      write (*, wrtfmt4i) 'y-pencil, x id in rank ', nrank, dtmp%yst(1), dtmp%yen(1), dtmp%ysz(1)
-      write (*, wrtfmt4i) 'y-pencil, y id in rank ', nrank, dtmp%yst(2), dtmp%yen(2), dtmp%ysz(2)
-      write (*, wrtfmt4i) 'y-pencil, z id in rank ', nrank, dtmp%yst(3), dtmp%yen(3), dtmp%ysz(3)
-      call mpi_barrier(MPI_COMM_WORLD, ierror)
-      write (*, wrtfmt4i) 'z-pencil, x id in rank ', nrank, dtmp%zst(1), dtmp%zen(1), dtmp%zsz(1)
-      write (*, wrtfmt4i) 'z-pencil, y id in rank ', nrank, dtmp%zst(2), dtmp%zen(2), dtmp%zsz(2)
-      write (*, wrtfmt4i) 'z-pencil, z id in rank ', nrank, dtmp%zst(3), dtmp%zen(3), dtmp%zsz(3)
-      call mpi_barrier(MPI_COMM_WORLD, ierror)
-    end do
-#endif
+! #ifdef DEBUG_STEPS
+!     call mpi_barrier(MPI_COMM_WORLD, ierror)
+!     do i = 1, 7
+!       select case(i)
+!       case(1)
+!         dtmp = dm%dpcc
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - pcc grids (for ux, gx) :'
+!       case(2)
+!         dtmp = dm%dcpc
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - cpc grids (for uy, gy) :'
+!       case(3)
+!         dtmp = dm%dccp
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - ccp grids (for uz, gz) :'
+!       case(4)
+!         dtmp = dm%dccc
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - ccc grids (for rho, p) :'
+!       case(5)
+!         dtmp = dm%dppc
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - ppc grids (for dux/dy, duy/dx) :'
+!       case(6)
+!         dtmp = dm%dcpp
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - cpp grids (for duy/dz, duz/dy) :'
+!       case(7)
+!         dtmp = dm%dpcp
+!         if (nrank == 0) write (*, wrtfmt1s) 'In the decomp - pcp grids (for dux/dz, duz/dx) :'
+!       case default
+!       end select
+!       call mpi_barrier(MPI_COMM_WORLD, ierror)
+!       write (*, wrtfmt4i) 'x-pencil, x id in rank ', nrank, dtmp%xst(1), dtmp%xen(1), dtmp%xsz(1)
+!       write (*, wrtfmt4i) 'x-pencil, y id in rank ', nrank, dtmp%xst(2), dtmp%xen(2), dtmp%xsz(2)
+!       write (*, wrtfmt4i) 'x-pencil, z id in rank ', nrank, dtmp%xst(3), dtmp%xen(3), dtmp%xsz(3)
+!       call mpi_barrier(MPI_COMM_WORLD, ierror)
+!       write (*, wrtfmt4i) 'y-pencil, x id in rank ', nrank, dtmp%yst(1), dtmp%yen(1), dtmp%ysz(1)
+!       write (*, wrtfmt4i) 'y-pencil, y id in rank ', nrank, dtmp%yst(2), dtmp%yen(2), dtmp%ysz(2)
+!       write (*, wrtfmt4i) 'y-pencil, z id in rank ', nrank, dtmp%yst(3), dtmp%yen(3), dtmp%ysz(3)
+!       call mpi_barrier(MPI_COMM_WORLD, ierror)
+!       write (*, wrtfmt4i) 'z-pencil, x id in rank ', nrank, dtmp%zst(1), dtmp%zen(1), dtmp%zsz(1)
+!       write (*, wrtfmt4i) 'z-pencil, y id in rank ', nrank, dtmp%zst(2), dtmp%zen(2), dtmp%zsz(2)
+!       write (*, wrtfmt4i) 'z-pencil, z id in rank ', nrank, dtmp%zst(3), dtmp%zen(3), dtmp%zsz(3)
+!       call mpi_barrier(MPI_COMM_WORLD, ierror)
+!     end do
+! #endif
 
     return
   end subroutine Initialize_domain_decomposition

@@ -259,17 +259,20 @@ contains
     use solver_tools_mod
     use parameters_constant_mod
     use burgers_eq_mod
+#ifdef DEBUG_STEPS
     use visulisation_mod
-#ifdef DEBUG
-    use typeconvert_mod
 #endif
+    use wtformat_mod
+! #ifdef DEBUG_STEPS
+!     use typeconvert_mod
+! #endif
     implicit none
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
-#ifdef DEBUG
-    integer :: i, j, k, jj
-    type(DECOMP_INFO) :: dtmp
-#endif
+! #ifdef DEBUG_STEPS
+!     integer :: i, j, k, jj
+!     type(DECOMP_INFO) :: dtmp
+! #endif
 
     if(nrank == 0) call Print_debug_start_msg("Initializing flow variables ...")
 
@@ -293,53 +296,54 @@ contains
     ! to initialize pressure correction term
     !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
-#ifdef DEBUG
+#ifdef DEBUG_VISU
     call view_data_in_rank(fl%qx,   dm%dpcc, dm, 'ux', 0)
     call view_data_in_rank(fl%qy,   dm%dcpc, dm, 'uy', 0)
     call view_data_in_rank(fl%qz,   dm%dccp, dm, 'uz', 0)
     call view_data_in_rank(fl%pres, dm%dccc, dm, 'pr', 0)
 #endif
 
-#ifdef DEBUG
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dm%dccc%xsz(2) 
-        jj = dm%dpcc%xst(2) + j - 1
-        write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
-      end do
-    end if
+!#ifdef DEBUG_STEPS
+    ! dtmp = dm%dccc
 
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dm%dccc%xsz(1)
-          write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
-        end do
-      end if
-    end if
+    ! k = 2
+    ! j = 2
+    ! if( k >= dtmp%xst(3) .and. (k+1) <= dtmp%xen(3)) then
+    !   if( j >= dtmp%xst(2) .and. (j+1) <= dtmp%xen(2)) then
+    !     open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+    !     do i = 1, dm%dccc%xsz(1)
+    !       write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+    !     end do
+    !   end if
+    ! end if
 
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dm%dccc%xsz(3)
-        write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
-      end do
-    end if
+    ! k = 2
+    ! i = 2
+    ! if( k >= dtmp%xst(3) .and. (k+1) <= dtmp%xen(3)) then
+    !   open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do j = 1, dm%dccc%xsz(2) 
+    !     jj = dm%dpcc%xst(2) + j - 1
+    !     write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
+    !   end do
+    ! end if
 
-#endif
+    ! i = 2
+    ! j = 2
+    ! if( j >= dtmp%xst(2) .and. (j+1) <= dtmp%xen(2)) then
+    !   open(321, file = 'debugz_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
+    !   do k = 1, dm%dccc%xsz(3)
+    !     write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
+    !   end do
+    ! end if
+
+!#endif
 
     !----------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(fl%qx, "maximum ux:")
-    call Find_maximum_absvar3d(fl%qy, "maximum uy:")
-    call Find_maximum_absvar3d(fl%qz, "maximum uz:")
+    call Find_maximum_absvar3d(fl%qx, "maximum ux:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qy, "maximum uy:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qz, "maximum uz:", wrtfmt1e)
     !call Check_mass_conservation(fl, dm) 
     !----------------------------------------------------------------------------------------------------------
     ! to set up flow iterations 
@@ -611,9 +615,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     call Apply_BC_velocity(dm, ux, uy, uz)
     if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for random velocities + given profile")
-    call Find_maximum_absvar3d(ux, "maximum ux:")
-    call Find_maximum_absvar3d(uy, "maximum uy:")
-    call Find_maximum_absvar3d(uz, "maximum uz:")
+    call Find_maximum_absvar3d(ux, "maximum ux:", wrtfmt1e)
+    call Find_maximum_absvar3d(uy, "maximum uy:", wrtfmt1e)
+    call Find_maximum_absvar3d(uz, "maximum uz:", wrtfmt1e)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------

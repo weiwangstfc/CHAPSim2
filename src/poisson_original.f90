@@ -114,7 +114,7 @@ contains
     if (bcy==1) ny=ny-1
     if (bcz==1) nz=nz-1
 
-#ifdef DEBG 
+#ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init start'
 #endif
 
@@ -123,14 +123,14 @@ contains
     allocate(az(nz),bz(nz))
     call abxyz(ax,ay,az,bx,by,bz,nx,ny,nz,bcx,bcy,bcz)
 
-#ifdef DEBG 
+#ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init decomp_info_init'
 #endif
 
     call decomp_info_init(nx, ny, nz, ph)
     call decomp_info_init(nx, ny, nz/2+1, sp)
 
-#ifdef DEBG 
+#ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init decomp_info_init ok'
 #endif
 
@@ -210,7 +210,7 @@ contains
        allocate(a3(sp%yst(1):sp%yen(1),nym,sp%yst(3):sp%yen(3),5))      
     end if
 
-#ifdef DEBG 
+#ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init before waves'
 #endif
 
@@ -246,7 +246,7 @@ contains
     !write(*,*) 'POinit ii5 a3iy ', iy(a3(5,5,5,1)),iy(a3(5,5,5,2)),iy(a3(5,5,5,3)),&
     !                               iy(a3(5,5,5,4)),iy(a3(5,5,5,5))
 
-#ifdef DEBG 
+#ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init end'
 #endif
 
@@ -697,7 +697,7 @@ contains
     ny = ny_global - 1
     nz = nz_global
 
-#ifdef DEBG
+#ifdef DEBUG_FFT
     if (nrank .eq. 0) write(*,*)'# Poisoon_010 Init'
 #endif
     ! rhs is in Z-pencil but requires global operations in Y
@@ -1051,7 +1051,7 @@ contains
     complex(mytype) :: cx
     real(mytype) :: rl, iy
     external cx, rl, iy
-#ifdef DEBG
+#ifdef DEBUG_FFT
     real(mytype) avg_param
 #endif
 
@@ -1093,7 +1093,7 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG_FFT
     avg_param = zero
     call avg3d (rw2b, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Start rw2 ', avg_param
@@ -1112,7 +1112,7 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG_FFT
     avg_param = zero
     call avg3d (rw1b, avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Start rw1 ', avg_param
@@ -1163,7 +1163,7 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG_FFT
     avg_param = zero
     call avg3d (abs(cw1), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Z cw1 ', avg_param
@@ -1193,7 +1193,7 @@ contains
           end do
        end do
     end do
-#ifdef DEBG
+#ifdef DEBUG_FFT
     avg_param = zero
     call avg3d (abs(cw2), avg_param)
     if (nrank == 0) write(*,*)'## Poisson11X Post in Y cw2 ', avg_param

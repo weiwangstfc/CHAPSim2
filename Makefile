@@ -9,45 +9,43 @@
 # mpirun -np 4 valgrind --leak-check=full --track-origins=yes \                                 #
 #                       --log-file=valgrind_output.txt ./CHAPSIM*                               #
 #                          < solver_input > solver_output                                       #
-#                                                                                               #
+# add flags for debug:
+#    -DDEBUG_STEPS  : serial debug for each step                                                #
+#    -DDEBUG_FFT    : fft debug                                                                 #
+#    -DDEBUG_VISU   : output visulisation                                                       #
 #################################################################################################
-
-.PHONY: debug default clean
 .SUFFIXES:
+.PHONY: debug default clean
 
 PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
-	FOPTS= -g \
-		-Wall \
-	 -fbacktrace \
-	 -fbounds-check \
-	 -fcheck=all \
-	 -ffpe-trap=invalid,zero,overflow \
-         -finit-real=snan -ftrapv \
-	 -ffree-line-length-512 \
-         -Wuninitialized -Wmaybe-uninitialized\
-         -Wno-unused
-       
+	FOPTS= -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
+   -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
+   -Wno-unused
 # -fallow-argument-mismatch
 		   
-	FFLGS= -DDOUBLE_PREC -DDEBUG  #  -DDEBG
+	FFLGS= -DDOUBLE_PREC
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), intel)
 	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
 	FFLGS= -DDOUBLE_PREC -DDEBUG
-	FOPTS= -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=gnu
+	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 else ifeq ($(cfg), cray)
 	FOPTS= # -m 3
 	FFLGS= # -s default64
+	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 else ifeq ($(cfg), pg)
-	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
+	FOPTS= -O3 -pg -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DDOUBLE_PREC -pg
+	FFLGS= -DDOUBLE_PREC 
+	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 else
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
 	FFLGS= -DDOUBLE_PREC
+	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 endif
 
 
@@ -58,9 +56,8 @@ LIBS = -L ./lib/2decomp_fft/lib -l2decomp_fft -L /usr/local/lib -lfftw3
 DIR_SRC= ./src
 DIR_BIN= ./bin
 DIR_OBJ= ./obj
-DIR_MOD= ./mod
 
-OBJS= mpi_mod.o\
+OBJS1= mpi_mod.o\
       modules.o\
       tools_general.o\
       input_thermo.o\
@@ -81,27 +78,25 @@ OBJS= mpi_mod.o\
       test_algrithms.o\
       flow_initialization.o\
       chapsim.o
-
+OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 
 default :
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_MOD)
-	@mv *.o $(DIR_OBJ)
+	@mv *.mod $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
 
 $(PROGRAM): $(OBJS)
-	$(F90) -o $@ $(OBJS) $(FOPTS) $(FFLGS) $(LIBS)
+	$(F90) $(FOPTS) $(FFLGS) $(FDEBG) $(LIBS) -o $@ $(OBJS) 
 
-%.o : $(DIR_SRC)/%.f90
-	$(F90) $(INCLUDE) $(FOPTS) $(FFLGS) $(F90FLAGS) -c $<
+$(DIR_OBJ)/%.o : $(DIR_SRC)/%.f90
+	$(F90) $(INCLUDE) $(FOPTS) $(FFLGS) $(FDEBG) $(F90FLAGS)  -c  -o $@ $<
 
 all:
 	@make clean
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_MOD)
-	@mv *.o $(DIR_OBJ)
+	@mv *.mod $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
 	@echo -e "Successfully compiled. \a"
 

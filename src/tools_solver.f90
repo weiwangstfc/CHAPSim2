@@ -142,7 +142,7 @@ contains
     varxz_work(:) = varxz_work(:) / real(p_col * p_col, wp)
     if(PRESENT(varxz_work1)) varxz_work1 = varxz_work
 
-#ifdef DEBUG
+#ifdef DEBUG_STEPS
     if (nrank == 0) then
       open(121, file = 'check_calculate_xz_mean_yprofile.dat', position="append")
       do j = 1, dtmp%xsz(2)
@@ -188,7 +188,7 @@ contains
       end do
     end do
 
-#ifdef DEBUG
+#ifdef DEBUG_STEPS
     open(121, file = 'check_adjust_to_xzmean_zero.dat', position="append")
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
@@ -470,7 +470,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(udx_zpencil, "CFL (convection) :")
+    call Find_maximum_absvar3d(udx_zpencil, "CFL (convection) :", wrtfmt1r)
 
     ! if(nrank == 0) then
     !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
@@ -511,6 +511,7 @@ contains
     use parameters_constant_mod
     use operations
     use decomp_2d
+    use wtformat_mod
     implicit none
     type(t_domain),  intent(in) :: dm
     logical,           intent(in) :: is_ynp
@@ -525,6 +526,10 @@ contains
     real(WP)   :: vol, fo, vol_work
     integer :: i, j, k, noy, jp
 
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_start_msg("Calculating volumeric average in 3-D ...")
+#endif
   !----------------------------------------------------------------------------------------------------------
   !   transpose to y pencil. Default is x-pencil.
   !----------------------------------------------------------------------------------------------------------
@@ -615,20 +620,25 @@ contains
     call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     fo_work = fo_work / vol_work
 
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    write (*, wrtfmt1r) ' volumetric average is ', fo_work
+#endif
+
     return 
   end subroutine Get_volumetric_average_3d
 
 !==========================================================================================================
-  subroutine Find_maximum_absvar3d(var,  str)
+  subroutine Find_maximum_absvar3d(var,  str, fmt)
     use precision_mod
     use math_mod
     use mpi_mod
-    use wtformat_mod
     use parameters_constant_mod
     implicit none
 
     real(WP), intent(in)  :: var(:, :, :)
     character(len = *), intent(in) :: str
+    character(len = *), intent(in) :: fmt
     
     real(WP):: varmax_work
     real(WP)   :: varmax
@@ -652,9 +662,9 @@ contains
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, wrtfmt1e) str, varmax_work
+      write (*, fmt) str, varmax_work
     end if
-#ifdef DEBG
+#ifdef DEBUG_FFT
     if(varmax_work > MAXVELO) stop ! test
 #endif
     return

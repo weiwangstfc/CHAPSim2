@@ -191,20 +191,19 @@ subroutine Solve_eqs_iteration
       !     main solver
       !==========================================================================================================
       do isub = 1, domain(i)%nsubitr
-#ifdef DEBUG
-        if(nrank == 0) write (*, wrtfmt1i) " --- Sub-iteration in RK = ", isub
-#endif
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
       end do
-      !stop
-      !comment this part code for testing 
-      ! below is for validation
-      ! cpu time will be calculated later today 
+
       !==========================================================================================================
       !     validation
       !==========================================================================================================
-      if (mod(iter, domain(i)%nfreqckpt) == 0) call Check_mass_conservation(flow(i), domain(i)) 
+      if (mod(iter, domain(i)%nfreqckpt) == 0) then
+        call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:", wrtfmt1e)
+        call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
+        call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)
+        call Check_mass_conservation(flow(i), domain(i)) 
+      end if
       !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
       !==========================================================================================================
       !   visualisation
