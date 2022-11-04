@@ -13,6 +13,7 @@ test_*/
 *.dat
 *.log
 *.png
+.DS_Store
 
 # Prerequisites
 *.d
