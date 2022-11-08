@@ -71,7 +71,7 @@ OBJS1= mpi_mod.o\
       domain_decomposition.o\
 			visulisation.o\
       poisson_interface.o\
-      poisson_c2c.o\
+      poisson_1stderivcomp.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\
