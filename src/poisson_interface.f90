@@ -8,6 +8,10 @@ module poisson_interface_mod
   implicit none
 
   integer :: istret
+
+  integer, parameter :: IFORWARD  = 1
+  integer, parameter :: IBACKWARD = -1
+
 !----------------------------------------------------------------------------------------------------------
   real(mytype) :: xlx ! domain length
   real(mytype) :: yly ! physical domain
