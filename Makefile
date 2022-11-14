@@ -45,7 +45,7 @@ else
 	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
 	FFLGS= -DDOUBLE_PREC
-	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+#	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 endif
 
 
