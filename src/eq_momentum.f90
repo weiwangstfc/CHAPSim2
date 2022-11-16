@@ -235,6 +235,11 @@ contains
     integer  :: i, j, k, m, jj
     real(WP) :: rhsx_bulk, rhsy_bulk, rhsz_bulk
 
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_start_msg("Compute_momentum_rhs ...")
+#endif
+
     one_third_rre = ONE_THIRD * fl%rre
     two_third_rre = TWO_THIRD * fl%rre
           two_rre = TWO * fl%rre
@@ -1359,7 +1364,10 @@ contains
 !     integer :: i, j, k, jj
 !     type(DECOMP_INFO) :: dtmp
 ! #endif
-
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_mid_msg("Updating the velocity/mass flux ...")
+#endif
 !----------------------------------------------------------------------------------------------------------
 !   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
 !_______________________________________________________________________________
@@ -1520,7 +1528,10 @@ contains
 ! #ifdef DEBUG_STEPS
 !     type(DECOMP_INFO) :: dtmp
 ! #endif
-
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_start_msg("Calculating the RHS of Poisson Equation ...")
+#endif
 
 !==========================================================================================================
 ! RHS of Poisson Eq.
@@ -1593,6 +1604,10 @@ contains
 !==========================================================================================================
 !   solve Poisson
 !==========================================================================================================
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_mid_msg("Solving the Poisson Equation ...")
+#endif
     call poisson(rhs_zpencil_ggg)
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
@@ -1940,6 +1955,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to update pressure
 !----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_mid_msg("Correcting the pressure term ...")
+#endif
     fl%pres(:, :, :) = fl%pres(:, :, :) + fl%pcor(:, :, :)
 !----------------------------------------------------------------------------------------------------------
 ! to update b.c. values

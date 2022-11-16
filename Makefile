@@ -20,38 +20,46 @@
 PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
-	FOPTS= -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
+  FOPTS= -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
    -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
-   -Wno-unused
-# -fallow-argument-mismatch
-		   
-	FFLGS= -DDOUBLE_PREC
+   -Wno-unused -fallow-argument-mismatch		   
+  FFLGS= -DDOUBLE_PREC
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), intel)
-	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
+  FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
-	FFLGS= -DDOUBLE_PREC -DDEBUG
-	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FFLGS= -DDOUBLE_PREC -DDEBUG
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 else ifeq ($(cfg), cray)
-	FOPTS= # -m 3
-	FFLGS= # -s default64
-	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FOPTS= # -m 3
+  FFLGS= # -s default64
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 else ifeq ($(cfg), pg)
-	FOPTS= -O3 -pg -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
+  FOPTS= -O3 -pg -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DDOUBLE_PREC 
-	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FFLGS= -DDOUBLE_PREC 
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
 else
-	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
+  FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DDOUBLE_PREC
-#	FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FFLGS= -DDOUBLE_PREC
+  FDEBG= -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
 
+# this is based on the latest 2decomp&fft lib by UoE&ICL, 2022
+#include ./lib/2decomp-fft-main/Makefile.settings
+#INCLUDE= -I./lib/2decomp-fft-main/mod
+#LIBS= -L./lib/2decomp-fft-main -ldecomp2d
 
-include ./lib/2decomp_fft/src/Makefile.inc
-INCLUDE = -I ./lib/2decomp_fft/include -I /usr/local/include
-LIBS = -L ./lib/2decomp_fft/lib -l2decomp_fft -L /usr/local/lib -lfftw3
+# this is based on the original 2decomp&fft lib by NAG&ICL, 2012
+#include ./lib/2decomp_fft/src/Makefile.inc
+#INCLUDE= -I./lib/2decomp_fft/include
+#LIBS= -L./lib/2decomp_fft/lib -l2decomp_fft
+
+# this is based on the updated 2decomp&fft lib by NAG&ICL, 2012
+include ./lib/2decomp_fft_updated/src/Makefile.inc
+INCLUDE= -I./lib/2decomp_fft_updated/include
+LIBS= -L./lib/2decomp_fft_updated/lib -l2decomp_fft
 
 DIR_SRC= ./src
 DIR_BIN= ./bin
@@ -87,21 +95,21 @@ default :
 	@mv $(PROGRAM) $(DIR_BIN)
 
 $(PROGRAM): $(OBJS)
-	$(F90) $(FOPTS) $(FFLGS) $(FDEBG) $(LIBS) -o $@ $(OBJS) 
+	$(FC) $(FOPTS) $(FFLGS) $(FDEBG) -o $@ $(OBJS) $(LIBS)
 
 $(DIR_OBJ)/%.o : $(DIR_SRC)/%.f90
-	$(F90) $(INCLUDE) $(FOPTS) $(FFLGS) $(FDEBG) $(F90FLAGS)  -c  -o $@ $<
+	$(FC) $(INCLUDE) $(FOPTS) $(FFLGS) $(FDEBG) $(FCFLAGS)  $(FFLAGS) -c  -o $@ $<
 
 all:
 	@make clean
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
+	@mv *.mod $(DIR_OBJ)
 	@echo -e "Successfully compiled. \a"
 
 clean:
-	@rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)
+	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BIN)/$(PROGRAM)
 	@rm -f *.mod *.o $(DIR_SRC)/*.mod $(DIR_SRC)/*.o
 
 
