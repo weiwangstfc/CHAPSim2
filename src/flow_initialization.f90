@@ -541,6 +541,7 @@ contains
     use boundary_conditions_mod
     use parameters_constant_mod
     use wtformat_mod
+    use files_io_mod
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP),       intent(in) :: lnoise   
@@ -648,7 +649,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
       open ( newunit = pf_unit,     &
-              file    = 'check_poiseuille_profile.dat', &
+              file    = dir4//'/check_poiseuille_profile.dat', &
               status  = 'replace',         &
               action  = 'write')
       write(pf_unit, '(A)') "# yc, ux_laminar, ux_real"

@@ -173,6 +173,7 @@ contains
     use typeconvert_mod
     use mpi_mod
     use wtformat_mod
+    use files_io_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -242,7 +243,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     if(nrank == 0) then
-      open(221, file = 'mesh_yp.dat')
+      open(221, file = dir4//'/check_mesh_yp.dat')
       do i = 1, dm%np_geo(2)
         write (221, *) i, dm%yp(i)
       end do

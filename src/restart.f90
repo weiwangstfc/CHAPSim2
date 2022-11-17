@@ -157,10 +157,10 @@ contains
     call mpi_barrier(MPI_COMM_WORLD, ierror)
 
     ipencil = 1
-    call decomp_2d_read_one(ipencil, fl%qx,   'instantanous_ux_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dpcc)
-    call decomp_2d_read_one(ipencil, fl%qy,   'instantanous_uy_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dcpc)
-    call decomp_2d_read_one(ipencil, fl%qz,   'instantanous_uz_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dccp)
-    call decomp_2d_read_one(ipencil, fl%pres, 'instantanous_pr_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dccc)
+    !call decomp_2d_read_one(ipencil, fl%qx,   'instantanous_ux_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dpcc)
+    !call decomp_2d_read_one(ipencil, fl%qy,   'instantanous_uy_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dcpc)
+    !call decomp_2d_read_one(ipencil, fl%qz,   'instantanous_uz_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dccp)
+    !call decomp_2d_read_one(ipencil, fl%pres, 'instantanous_pr_'//trim(int2str(fl%nrsttckpt))//'.dat', dm%dccc)
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -262,8 +262,8 @@ contains
 
 
     ipencil = 1
-    call decomp_2d_read_one(ipencil, tm%dh,    'instantanous_dh_'//trim(int2str(tm%nrsttckpt))//'.dat', dm%dccc)
-    call decomp_2d_read_one(ipencil, tm%tTemp, 'instantanous_te_'//trim(int2str(tm%nrsttckpt))//'.dat', dm%dccc)
+    !call decomp_2d_read_one(ipencil, tm%dh,    'instantanous_dh_'//trim(int2str(tm%nrsttckpt))//'.dat', dm%dccc)
+    !call decomp_2d_read_one(ipencil, tm%tTemp, 'instantanous_te_'//trim(int2str(tm%nrsttckpt))//'.dat', dm%dccc)
 
     if(nrank == 0) call Print_debug_end_msg
     return

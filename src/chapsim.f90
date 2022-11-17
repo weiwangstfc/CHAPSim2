@@ -48,12 +48,14 @@ subroutine Initialize_chapsim
   use code_performance_mod
   use decomp_2d_poisson
   use poisson_interface_mod
+  use files_io_mod
   implicit none
   integer :: i
 
   !----------------------------------------------------------------------------------------------------------
   ! initialisation of mpi, nrank, nproc
   !----------------------------------------------------------------------------------------------------------
+  call create_directory
   call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi
   !----------------------------------------------------------------------------------------------------------
@@ -127,6 +129,7 @@ subroutine Solve_eqs_iteration
   use mpi_mod
   use wtformat_mod
   use visulisation_mod
+  use io_tools
   implicit none
 
   logical :: is_flow   = .false.
@@ -149,6 +152,7 @@ subroutine Solve_eqs_iteration
        if (thermo(i)%iteration      < iteration) iteration = thermo(i)%iteration
        if (thermo(i)%nIterThermoEnd > niter)     niter     = thermo(i)%nIterThermoEnd
      end if
+     call post_probe_ini(i, domain(i))
   end do
 
   call call_cpu_time(CPU_TIME_STEP_START, iteration, niter)
@@ -199,6 +203,7 @@ subroutine Solve_eqs_iteration
       !     validation
       !==========================================================================================================
       if (mod(iter, domain(i)%nfreqckpt) == 0) then
+        call post_probe(i, domain(i), flow(i))
         call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:", wrtfmt1e)
         call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
         call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)

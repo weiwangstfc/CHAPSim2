@@ -250,6 +250,7 @@ module wtformat_mod
 
   character(len = 17) :: wrtfmt1i   = '(2X, A48, 1I20.1)'
   character(len = 17) :: wrtfmt2i   = '(2X, A48, 2I10.1)'
+  character(len = 17) :: wrtfmt3i   = '(2X, A48, 3I10.1)'
   character(len = 17) :: wrtfmt4i   = '(2X, A48, 4I10.1)'
   character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F20.6)'
   character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.6)'
@@ -290,6 +291,7 @@ module udf_type_mod
     integer :: nc(3) ! geometric cell number
     integer :: np_geo(3) ! geometric points
     integer :: np(3) ! calculated points
+    integer :: proben   ! global number of probed points
     integer  :: ibcx(2, 5) ! bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy(2, 5) ! bc type, (5 variables, 2 sides)
     integer  :: ibcz(2, 5) ! bc type, (5 variables, 2 sides)
@@ -332,6 +334,9 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
+    real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
+    logical,  allocatable :: probe_is_in(:)
+    integer,  allocatable :: probexid(:, :) ! (1:3, local index)
   end type t_domain
 !----------------------------------------------------------------------------------------------------------
 !  flow info
@@ -451,6 +456,22 @@ module vars_df_mod
   type(t_thermo), allocatable, save :: thermo(:)
 end module
 !==========================================================================================================
+module files_io_mod
+  implicit none
+  character(9) :: dir1='1_instant'
+  character(9) :: dir2='2_statics'
+  character(9) :: dir3='3_monitor'
+  character(9) :: dir4='4_checkup'
+  public :: create_directory
+contains
+  subroutine create_directory
+    implicit none
+    call system('mkdir -p '//dir1)
+    call system('mkdir -p '//dir2)
+    call system('mkdir -p '//dir3)
+    call system('mkdir -p '//dir4)
+  end subroutine
+end module
 !==========================================================================================================
 module math_mod
   use precision_mod

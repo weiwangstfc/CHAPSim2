@@ -43,7 +43,7 @@ else
   FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
   FFLGS= -DDOUBLE_PREC
-  FDEBG= -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
+  FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
 
 # this is based on the latest 2decomp&fft lib by UoE&ICL, 2022
@@ -56,7 +56,7 @@ endif
 #INCLUDE= -I./lib/2decomp_fft/include
 #LIBS= -L./lib/2decomp_fft/lib -l2decomp_fft
 
-# this is based on the updated 2decomp&fft lib by NAG&ICL, 2012
+# this is based on the updated 2decomp&fft lib by NAG&ICL, 2013
 include ./lib/2decomp_fft_updated/src/Makefile.inc
 INCLUDE= -I./lib/2decomp_fft_updated/include
 LIBS= -L./lib/2decomp_fft_updated/lib -l2decomp_fft
@@ -85,6 +85,7 @@ OBJS1= mpi_mod.o\
       eq_momentum.o\
       test_algrithms.o\
       flow_initialization.o\
+			io_tools.o\
       chapsim.o
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 

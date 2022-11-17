@@ -399,6 +399,18 @@ contains
             write (*, wrtfmt1i) '  statistics written freqency :', domain(i)%nfreqStats
           end do
         end if
+      !----------------------------------------------------------------------------------------------------------
+      ! [probe]
+      !----------------------------------------------------------------------------------------------------------
+      else if ( secname(1:slen) == '[probe]' ) then
+        do i = 1, nxdomain
+          read(inputUnit, *, iostat = ioerr) varname, itmp
+          domain(i)%proben = itmp
+          allocate( domain(i)%probexyz(3, itmp))
+          do j = 1, domain(i)%proben
+            read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
+          end do 
+        end do
       else
         exit
       end if
