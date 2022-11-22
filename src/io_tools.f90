@@ -1,151 +1,82 @@
-module io_tools
+module io_tools_mod
   implicit none
 
-  public :: post_probe_ini
-  public :: post_probe
+  !----------------------------------------------------------------------------------------------------------
+  ! io parameters
+  !----------------------------------------------------------------------------------------------------------
+  integer, parameter :: Ivisudim_3D    = 0, &
+                        Ivisudim_2D_Xa = 1, & ! x averaged, should not change this value. 
+                        Ivisudim_2D_Ya = 2, & ! y averaged
+                        Ivisudim_2D_Za = 3, & ! z averaged
+                        Ivisudim_1D_XZa= 4    ! xz averaged
+  integer, parameter :: X_PENCIL = 1, & ! x-pencil
+                        Y_PENCIL = 2, & ! y-pencil
+                        Z_PENCIL = 3    ! z-pencil
 
+  public :: initialize_decomp_io
+  public :: generate_file_name
+  public :: generate_pathfile_name
+  
 contains
 !==========================================================================================================
-  subroutine post_probe_ini(id, dm)
-    use typeconvert_mod
-    use wtformat_mod
+  subroutine initialize_decomp_io(dm)
     use udf_type_mod
-    use files_io_mod
+    use decomp_2d_io
     implicit none 
-
-    integer, intent(in) :: id
-    type(t_domain),  intent(inout) :: dm
-
-    integer :: myunit
-    integer :: i, j
-    logical :: exist
-    character(len=100) :: flname
-
-    integer :: idgb(3)
-    integer :: nplc
-    logical :: is_y, is_z
-    integer, allocatable :: probeid(:, :)
-
+    type(t_domain), intent(in) :: dm
     
-    allocate( dm%probe_is_in(dm%proben) )
-    dm%probe_is_in(:) = .false.
-
-    allocate( probeid(3, dm%proben) )
-    nplc = 0
-    do i = 1, dm%proben
+    logical is_start1 ! is index starting from 1.
 !----------------------------------------------------------------------------------------------------------
-! probe points find the nearest cell centre, global index info, then convert to local index in x-pencil
+! if not #ifdef ADIOS2, do nothing below.
 !----------------------------------------------------------------------------------------------------------
-      idgb(1:3) = 0
-
-      idgb(1) = ceiling ( dm%probexyz(1, i) / dm%h(1) )
-      idgb(3) = ceiling ( dm%probexyz(3, i) / dm%h(3) )
-
-      if(dm%is_periodic(2)) then 
-        if( dm%probexyz(2, i) >= dm%yp(dm%np(2)) .and. dm%probexyz(2, i) < dm%lyt) idgb(2) = dm%nc(2)
-      end if
-      do j = 1, dm%np(2) - 1
-        if (dm%probexyz(2, i) >= dm%yp(j) .and. &
-            dm%probexyz(2, i) < dm%yp(j+1)) then
-          idgb(2) = j
-        end if
-      end do
+    call decomp_2d_io_init()
 !----------------------------------------------------------------------------------------------------------
-! convert global id to local, based on x-pencil
-!----------------------------------------------------------------------------------------------------------
-      is_y = .false.
-      is_z = .false.
-      if( idgb(2) >= dm%dccc%xst(2) .and. idgb(2) <= dm%dccc%xen(2) ) is_y = .true.
-      if( idgb(3) >= dm%dccc%xst(3) .and. idgb(3) <= dm%dccc%xen(3) ) is_z = .true.
-      if(is_y .and. is_z) then 
-        dm%probe_is_in(i) = .true.
-        nplc = nplc + 1
-        probeid(1, nplc) = idgb(1)
-        probeid(2, nplc) = idgb(2) - dm%dccc%xst(2) + 1
-        probeid(3, nplc) = idgb(3) - dm%dccc%xst(3) + 1
-      end if
-    end do
+! re-define the grid mesh size, considering the nskip
+! based on decomp_info of dppp (default one defined)
+!---------------------------------------------------------------------------------------------------------- 
+    is_start1 = .true.
+    call init_coarser_mesh_statV(dm%visu_nskip(1), dm%visu_nskip(2), dm%visu_nskip(3), is_start1)
+    call init_coarser_mesh_statV(dm%stat_nskip(1), dm%stat_nskip(2), dm%stat_nskip(3), is_start1)
 
-    if(nplc > 0) allocate(dm%probexid(3, nplc))
+  end subroutine 
+!==========================================================================================================
+  subroutine generate_pathfile_name(flname, dmtag, keyword, path, extension, timetag)
+    use typeconvert_mod
+    implicit none 
+    integer, intent(in)      :: dmtag
+    character(*), intent(in) :: keyword
+    character(*), intent(in) :: path
+    character(*), intent(in) :: extension
+    character(120), intent(out) :: flname
+    integer, intent(in), optional     :: timetag
 
-    do i = 1, nplc 
-      dm%probexid(1:3, i) = probeid(1:3, i)
-    end do
-
-    deallocate (probeid)
-!----------------------------------------------------------------------------------------------------------
-! create probe history file
-!----------------------------------------------------------------------------------------------------------
-    do i = 1, dm%proben
-      if(.not. dm%probe_is_in(i)) cycle 
-      flname = trim(dir3)//'/domain'//trim(int2str(id))//'_probe_pt'//trim(int2str(i))//'.log'
-      inquire(file = trim(flname), exist = exist)
-      if (exist) then
-        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
-      else
-        open(newunit = myunit, file = trim(flname), status="new", action="write")
-        write(myunit, *) "# domain-id : ", id, "pt-id : ", i
-        write(myunit, *) "# probe pts location ",  dm%probexyz(1:3, i)
-        write(myunit, *) "# t, u, v, w" ! to add more instantanous or statistics
-        close(myunit)
-      end if
-    end do
+    if(present(timetag)) then
+      flname = trim(path)//"/domain"//trim(int2str(dmtag))//'_'//trim(keyword)//'_'//trim(int2str(timetag))//"."//trim(extension)
+    else 
+      flname = trim(path)//"/domain"//trim(int2str(dmtag))//'_'//trim(keyword)//"."//trim(extension)
+    end if
 
     return
   end subroutine
-
 !==========================================================================================================
-  subroutine post_probe(id, dm, fl, tm)
+  subroutine generate_file_name(flname, dmtag, keyword, extension, timetag)
     use typeconvert_mod
-    use parameters_constant_mod
-    use wtformat_mod
-    use udf_type_mod
-    use files_io_mod
     implicit none 
+    integer, intent(in)      :: dmtag
+    
+    character(*), intent(in) :: keyword
+    character(*), intent(in) :: extension
+    character(120), intent(out) :: flname
+    integer, intent(in), optional      :: timetag
 
-    integer, intent(in) :: id
-    type(t_domain),  intent(in) :: dm
-    type(t_flow), intent(in) :: fl
-    type(t_thermo), optional, intent(in) :: tm
+    if(present(timetag)) then
+      flname = "domain"//trim(int2str(dmtag))//'_'//trim(keyword)//'_'//trim(int2str(timetag))//"."//trim(extension)
+    else 
+      flname = "domain"//trim(int2str(dmtag))//'_'//trim(keyword)//"."//trim(extension)
+    end if
 
-    character(len=100) :: flname
-    character(200) :: iotxt
-    integer :: ioerr, myunit
-    integer :: ix, iy, iz
-    integer :: i, j
-
-
-!----------------------------------------------------------------------------------------------------------
-! based on x-pencil
-!----------------------------------------------------------------------------------------------------------
-    j = 0
-    do i = 1, dm%proben
-      if( dm%probe_is_in(i) ) j = j + 1
-      if(j > 0) then
-!----------------------------------------------------------------------------------------------------------
-! open file
-!----------------------------------------------------------------------------------------------------------
-        flname = trim(dir3)//'/domain'//trim(int2str(id))//'_probe_pt'//trim(int2str(i))//'.log'
-        open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
-            iostat = ioerr, iomsg = iotxt)
-        if(ioerr /= 0) then
-          write (*, *) 'Problem openning probing file'
-          write (*, *) 'Message: ', trim (iotxt)
-          stop
-        end if
-!----------------------------------------------------------------------------------------------------------
-! write out local data
-!----------------------------------------------------------------------------------------------------------
-        ix = dm%probexid(1, j)
-        iy = dm%probexid(2, j)
-        iz = dm%probexid(3, j)
-        write(myunit, *) fl%time, fl%qx(ix, iy, iz), fl%qy(ix, iy, iz), fl%qz(ix, iy, iz)
-        close(myunit)
-      end if
-    end do
-
+    
     return
-  end subroutine 
-  
+  end subroutine
 !==========================================================================================================
 end module

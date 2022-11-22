@@ -28,7 +28,7 @@ module input_general_mod
   implicit none
 
   logical :: is_any_energyeq
-  integer :: nfrecpu
+  integer :: cpu_nfre
   public  :: Read_input_parameters
 
 contains
@@ -264,10 +264,8 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, itmp
         domain(:)%iAccuracy = itmp
         if(itmp == IACCU_CD2 .or. itmp ==IACCU_CD4) then
-          domain(:)%is_central_differnece = .true.
           domain(:)%is_compact_scheme = .false.
         else if (itmp == IACCU_CP4 .or. itmp == IACCU_CP6) then
-          domain(:)%is_central_differnece = .false.
           domain(:)%is_compact_scheme = .true.
         else
           call Print_error_msg("Input error for numerical schemes.")
@@ -313,7 +311,7 @@ contains
         if(is_any_energyeq) thermo(1 : nxdomain)%lenRef = rtmp
         read(inputUnit, *, iostat = ioerr) varname, rtmp
         if(is_any_energyeq) thermo(1 : nxdomain)%t0ref = rtmp
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%ithermo
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%is_thermo
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
         read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
@@ -330,7 +328,7 @@ contains
             write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
             write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%lenRef
             write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%t0ref
-            write (*, wrtfmt1i) '  is thermal field solved   ?', domain(i)%ithermo
+            write (*, wrtfmt1i) '  is thermal field solved   ?', domain(i)%is_thermo
             write (*, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
             write (*, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%t0ini
@@ -384,19 +382,27 @@ contains
       ! [ioparams]
       !----------------------------------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[ioparams]' ) then
-        read(inputUnit, *, iostat = ioerr) varname, nfrecpu
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nfreqckpt
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nvisu
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nIterStatsStart
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%nfreqStats
+        read(inputUnit, *, iostat = ioerr) varname, cpu_nfre
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%ckpt_nfre
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%visu_idim
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%visu_nfre
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%visu_nskip(1:3)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%stat_istart
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%stat_nfre
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%stat_nskip(1:3)
 
         if( nrank == 0) then
           do i = 1, nxdomain
+            domain(i)%visu_nskip(1:3) = domain(1)%visu_nskip(1:3)
+            domain(i)%stat_nskip(1:3) = domain(1)%stat_nskip(1:3) 
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  raw  data written freqency  :', domain(i)%nfreqckpt
-            write (*, wrtfmt1i) '  visu data written freqency  :', domain(i)%nvisu
-            write (*, wrtfmt1i) '  statistics written from     :', domain(i)%nIterStatsStart
-            write (*, wrtfmt1i) '  statistics written freqency :', domain(i)%nfreqStats
+            write (*, wrtfmt1i) '  data check freqency  :', domain(i)%ckpt_nfre
+            write (*, wrtfmt1i) '  visu data dimensions        :', domain(i)%visu_idim
+            write (*, wrtfmt1i) '  visu data written freqency  :', domain(i)%visu_nfre
+            write (*, wrtfmt3i) '  visu data skips in x, y, z  :', domain(i)%visu_nskip(1:3)
+            write (*, wrtfmt1i) '  statistics written from     :', domain(i)%stat_istart
+            write (*, wrtfmt1i) '  statistics written freqency :', domain(i)%stat_nfre
+            write (*, wrtfmt3i) '  statistics skips in x, y, z :', domain(i)%stat_nskip(1:3)
           end do
         end if
       !----------------------------------------------------------------------------------------------------------
@@ -455,6 +461,8 @@ contains
       !----------------------------------------------------------------------------------------------------------
       domain(i)%is_stretching(:) = .false.
       if(domain(i)%istret /= ISTRET_NO) domain(i)%is_stretching(2) = .true.
+      if(domain(i)%is_stretching(2)) domain(i)%visu_nskip(2) = 1
+      if(domain(i)%is_stretching(2)) domain(i)%stat_nskip(2) = 1
       !----------------------------------------------------------------------------------------------------------
       !     restore domain size to default if not set properly
       !----------------------------------------------------------------------------------------------------------

@@ -76,7 +76,7 @@ contains
       !----------------------------------------------------------------------------------------------------------
       ! initialize common thermal variables
       !----------------------------------------------------------------------------------------------------------
-      if(domain(l)%ithermo == 0) then
+      if(.not. domain(l)%is_thermo) then
         domain(l)%fbc_dend(:, :) = ONE
         domain(l)%fbc_vism(:, :) = ONE
       else 
@@ -100,12 +100,12 @@ contains
       !----------------------------------------------------------------------------------------------------------
       ! to allocate thermal variables
       !----------------------------------------------------------------------------------------------------------
-      if(domain(l)%ithermo == 1) call Allocate_thermo_variables (thermo(l), domain(l))
+      if(domain(l)%is_thermo) call Allocate_thermo_variables (thermo(l), domain(l))
       !----------------------------------------------------------------------------------------------------------
       ! to set up Re, Fr etc 
       !----------------------------------------------------------------------------------------------------------
       call Update_Re(flow(l)%nrsttckpt, flow(l))
-      if(domain(l)%ithermo == 1) &
+      if(domain(l)%is_thermo) &
       call Update_PrGr(flow(l), thermo(l))
       !----------------------------------------------------------------------------------------------------------
       ! to intialize primary variable
@@ -113,14 +113,14 @@ contains
       if (flow(l)%irestart == INITIAL_RANDOM) then
 
         call Initialize_flow_variables ( flow(l), domain(l) )
-        if(domain(l)%ithermo == 1) &
+        if(domain(l)%is_thermo) &
         call Initialize_thermo_variables ( flow(l), thermo(l), domain(l) )
 
       else if (flow(l)%irestart == INITIAL_RESTART) then
         
         call read_instantanous_flow_raw_data(flow(l), domain(l))
         call restore_flow_variables_from_restart(flow(l), domain(l))
-        if(domain(l)%ithermo == 1) then
+        if(domain(l)%is_thermo) then
             call read_instantanous_thermo_raw_data  (thermo(l), domain(l) )
             call restore_flow_variables_from_restart(flow(l),   domain(l))
         end if
@@ -143,7 +143,7 @@ contains
 ! to write out data for check
 !----------------------------------------------------------------------------------------------------------
       call write_instantanous_flow_data(flow(l), domain(l))
-      if(domain(l)%ithermo == 1) &
+      if(domain(l)%is_thermo) &
       call write_instantanous_thermo_data(thermo(l), domain(l)) 
 
     end do
@@ -201,7 +201,7 @@ contains
     call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
-    if(dm%ithermo == 1) then
+    if(dm%is_thermo) then
       call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO
       call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO
       call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO
@@ -227,7 +227,7 @@ contains
     type(t_domain), intent(in)    :: dm
     type(t_thermo), intent(inout) :: tm
 
-    if(dm%ithermo == 0) return
+    if(.not. dm%is_thermo) return
     if(nrank == 0) call Print_debug_start_msg("Allocating thermal variables ...")
     !----------------------------------------------------------------------------------------------------------
     ! default : x pencil. 
@@ -260,7 +260,7 @@ contains
     use parameters_constant_mod
     use burgers_eq_mod
 #ifdef DEBUG_STEPS
-    use visulisation_mod
+    use io_visulisation_mod
 #endif
     use wtformat_mod
 ! #ifdef DEBUG_STEPS
@@ -365,7 +365,7 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
 
-    if (dm%ithermo /= 1) return
+    if (.not. dm%is_thermo) return
     !----------------------------------------------------------------------------------------------------------
     ! to initialize thermal variables 
     !----------------------------------------------------------------------------------------------------------
@@ -485,7 +485,7 @@ contains
     uz(:, :, :) = ZERO
     nsz = dm%np(1) * dm%np(2) * dm%np(3)
 
-    do n = 1, NVD
+    do n = 1, NDIM
       if(n == 1) then
         dtmp = dm%dpcc
       else if(n == 2) then
@@ -649,7 +649,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
       open ( newunit = pf_unit,     &
-              file    = dir4//'/check_poiseuille_profile.dat', &
+              file    = trim(dir_chkp)//'/check_poiseuille_profile.dat', &
               status  = 'replace',         &
               action  = 'write')
       write(pf_unit, '(A)') "# yc, ux_laminar, ux_real"

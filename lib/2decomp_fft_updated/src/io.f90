@@ -837,7 +837,7 @@ contains
 
     integer, intent(IN) :: ipencil !(x-pencil=1; y-pencil=2; z-pencil=3)
     real(mytype), dimension(:,:,:), intent(IN) :: var
-    integer, intent(IN) :: iplane !(x-plane=1; y-plane=2; z-plane=3)
+    integer, intent(IN) :: iplane !(x-plane=1; y-plane=2; z-plane=3, xz-line=4)
     integer, intent(IN) :: n ! which plane to write (global coordinate)
     character(len=*), intent(IN) :: dirname,varname,io_name
     TYPE(DECOMP_INFO), intent(IN), optional :: opt_decomp

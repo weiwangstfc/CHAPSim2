@@ -124,6 +124,9 @@ contains
   subroutine Buildup_mpi_domain_decomposition
     use vars_df_mod, only : domain
     use mpi_mod
+    use io_tools_mod
+    use io_monitor_mod
+    use io_visulisation_mod
     implicit none
     integer :: i
 
@@ -135,6 +138,9 @@ contains
     do i = 1, nxdomain
       call decomp_2d_init(domain(i)%np(1), domain(i)%np(2), domain(i)%np(3), p_row, p_col)
       call Initialize_domain_decomposition(domain(i))
+      call initialize_decomp_io(domain(i))
+      call write_monitor_ini(domain(i))
+      call write_snapshot_ini(domain(i))
     end do
 
     return

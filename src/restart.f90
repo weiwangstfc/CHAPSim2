@@ -224,7 +224,7 @@ contains
     integer :: itmp
     real(WP) :: rtmp
 
-    if (dm%ithermo /= 1) return
+    if (.not. dm%is_thermo) return
 
     if(nrank == 0) then
       call Print_debug_start_msg("read instantanous thermo data ... ...")
@@ -278,7 +278,7 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
 
-    if (dm%ithermo /= 1) return
+    if (.not. dm%is_thermo) return
 
     call Update_thermal_properties(fl, tm, dm)
     call Calculate_massflux_from_velocity (fl, dm)

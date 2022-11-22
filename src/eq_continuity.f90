@@ -464,9 +464,7 @@ contains
     use mpi_mod
     use solver_tools_mod
     use wtformat_mod
-#ifdef DEBUG_STEPS
-    use visulisation_mod
-#endif
+
     implicit none
 
     type(t_domain), intent( in    ) :: dm
@@ -480,21 +478,17 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! $d\rho / dt$ at cell centre
 !_______________________________________________________________________________
-    if (dm%ithermo == 1) then
+    if (dm%is_thermo) then
       call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !_______________________________________________________________________________
-    if (dm%ithermo == 1) then
+    if (dm%is_thermo) then
       call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
     else
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
-
-#ifdef DEBUG_VISU
-    call view_data_in_rank(div,   dm%dccc, dm, 'div', 0)
-#endif
     
     call Find_maximum_absvar3d(div, "Check Mass Conservation:", wrtfmt1e)
 

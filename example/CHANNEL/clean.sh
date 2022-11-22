@@ -1,8 +1,8 @@
 #!/bin/bash
-rm -rf 1_instant
-rm -rf 2_statics
-rm -rf 3_monitor
-rm -rf 4_checkup
+rm -rf 1_*
+rm -rf 2_*
+rm -rf 3_*
+rm -rf 4_*
 rm -f *.err
 rm -f *.out
 rm -f *.log

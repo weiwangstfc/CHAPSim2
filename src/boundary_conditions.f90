@@ -1,7 +1,9 @@
 module boundary_conditions_mod
 
 
+  !public :: Apply_inlet_profile
   public :: Apply_BC_velocity
+  public :: Apply_convective_outlet
 
 contains
 
@@ -85,6 +87,12 @@ contains
     end do
 
     return
+  end subroutine
+
+
+  subroutine Apply_convective_outlet
+
+
   end subroutine
 
 end module

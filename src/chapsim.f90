@@ -128,8 +128,9 @@ subroutine Solve_eqs_iteration
   use input_general_mod
   use mpi_mod
   use wtformat_mod
-  use visulisation_mod
-  use io_tools
+  use io_visulisation_mod
+  use io_monitor_mod
+  use io_tools_mod
   implicit none
 
   logical :: is_flow   = .false.
@@ -152,7 +153,6 @@ subroutine Solve_eqs_iteration
        if (thermo(i)%iteration      < iteration) iteration = thermo(i)%iteration
        if (thermo(i)%nIterThermoEnd > niter)     niter     = thermo(i)%nIterThermoEnd
      end if
-     call post_probe_ini(i, domain(i))
   end do
 
   call call_cpu_time(CPU_TIME_STEP_START, iteration, niter)
@@ -160,7 +160,7 @@ subroutine Solve_eqs_iteration
   if(nrank == 0) call Print_debug_start_msg("Solving the governing equations ...")
 
   do iter = iteration + 1, niter
-    if( mod(iter, nfrecpu) == 0) call call_cpu_time(CPU_TIME_ITER_START, iteration, niter, iter)
+    if( mod(iter, cpu_nfre) == 0) call call_cpu_time(CPU_TIME_ITER_START, iteration, niter, iter)
     !==========================================================================================================
     ! Solver for each domain
     !==========================================================================================================
@@ -169,7 +169,7 @@ subroutine Solve_eqs_iteration
       !      setting up 1/re, 1/re/prt, gravity, etc
       !==========================================================================================================
       call Update_Re(iter, flow(i))
-      if(domain(i)%ithermo == 1) &
+      if(domain(i)%is_thermo) &
       call Update_PrGr(flow(i), thermo(i))
       !==========================================================================================================
       !      setting up flow solver
@@ -178,13 +178,13 @@ subroutine Solve_eqs_iteration
         is_flow = .true.
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
-        if (mod(iter, domain(i)%nfreqckpt) == 0) call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
-        if (mod(iter, domain(i)%nfreqckpt) == 0) call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+        if (mod(iter, domain(i)%ckpt_nfre) == 0) call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+        if (mod(iter, domain(i)%ckpt_nfre) == 0) call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
       !==========================================================================================================
       !     setting up thermo solver
       !==========================================================================================================
-      if(domain(i)%ithermo == 1) then
+      if(domain(i)%is_thermo) then
         if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
           is_thermo = .true.
           thermo(i)%time = thermo(i)%time  + domain(i)%dt
@@ -202,8 +202,8 @@ subroutine Solve_eqs_iteration
       !==========================================================================================================
       !     validation
       !==========================================================================================================
-      if (mod(iter, domain(i)%nfreqckpt) == 0) then
-        call post_probe(i, domain(i), flow(i))
+      if (mod(iter, domain(i)%ckpt_nfre) == 0) then
+        call write_monitor(domain(i), flow(i))
         call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:", wrtfmt1e)
         call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
         call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)
@@ -213,13 +213,11 @@ subroutine Solve_eqs_iteration
       !==========================================================================================================
       !   visualisation
       !==========================================================================================================
-      if(MOD(iter, domain(i)%nvisu) == 0) then
-        !call Display_vtk_slice(domain, 'xy', 'u', 1, flow(i)%qx, iter)
-        !call Display_vtk_slice(domain, 'xy', 'v', 2, flow(i)%qy, iter)
-        !call Display_vtk_slice(domain, 'xy', 'p', 0, flow(i)%pres, iter)
+      if(MOD(iter, domain(i)%visu_nfre) == 0) then
+        call write_snapshot_flow(domain(i), flow(i))
       end if
     end do ! domain
-    if( mod(iter, nfrecpu) == 0) call call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
+    if( mod(iter, cpu_nfre) == 0) call call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
 
   end do ! iteration
 

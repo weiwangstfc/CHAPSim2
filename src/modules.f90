@@ -25,7 +25,9 @@ end module precision_mod
 module parameters_constant_mod
   use precision_mod
   implicit none
-
+!----------------------------------------------------------------------------------------------------------
+! constants
+!----------------------------------------------------------------------------------------------------------
   real(WP), parameter :: ZPONE       = 0.1_WP
   real(WP), parameter :: EIGHTH      = 0.125_WP
   real(WP), parameter :: ZPTWO       = 0.2_WP
@@ -110,30 +112,38 @@ module parameters_constant_mod
                                             (/3, 3/) )
 
   real(WP), parameter :: GRAVITY     = 9.80665_WP
-
-  integer, parameter :: nvd = 3
-
+!----------------------------------------------------------------------------------------------------------
+! case id
+!----------------------------------------------------------------------------------------------------------
   integer, parameter :: ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
                         ICASE_BURGERS = 6
-
+  integer, parameter :: NDIM = 3
+!----------------------------------------------------------------------------------------------------------
+! coordinates
+!----------------------------------------------------------------------------------------------------------
   integer, parameter :: ICARTESIAN   = 1, &
                         ICYLINDRICAL = 2
-                        
+!----------------------------------------------------------------------------------------------------------
+! grid stretching
+!----------------------------------------------------------------------------------------------------------               
   integer, parameter :: ISTRET_NO     = 0, &
                         ISTRET_CENTRE = 1, &
                         ISTRET_2SIDES = 2, &
                         ISTRET_BOTTOM = 3, &
-                        ISTRET_TOP    = 4
-                        
-
+                        ISTRET_TOP    = 4               
+!----------------------------------------------------------------------------------------------------------
+! time scheme
+!----------------------------------------------------------------------------------------------------------
   integer, parameter :: ITIME_RK3    = 3, &
                         ITIME_RK3_CN = 2, &
                         ITIME_AB2    = 1
-
+!----------------------------------------------------------------------------------------------------------
+! BC
+!----------------------------------------------------------------------------------------------------------
   ! warning : Don't change below order for BC types.
   integer, parameter :: IBC_INTERIOR    = 0, &
                         IBC_PERIODIC    = 1, &
@@ -144,37 +154,49 @@ module parameters_constant_mod
                         IBC_INTRPL      = 6, &
                         IBC_CONVECTIVE  = 7, &
                         IBC_TURBGEN     = 8, &
-                        IBC_DATABASE    = 9
+                        IBC_UPROFILE    = 9, &
+                        IBC_DATABASE    = 10
 !                        IBC_INLET_MEAN  = 4, &
 !                        IBC_INLET_TG    = 5, &
 !                        IBC_INLET_MAP   = 6, &
 !                        IBC_INLET_DB    = 7, &
 !                        IBC_OUTLET_EXPO = 8, &
 !                        IBC_OUTLET_CONV = 9, &
-!                        IBC_INTERIOR    = 0, &                   
+!                        IBC_INTERIOR    = 0, &      
+!----------------------------------------------------------------------------------------------------------
+! numerical accuracy
+!----------------------------------------------------------------------------------------------------------             
   integer, parameter :: IACCU_CD2 = 2, &
                         IACCU_CD4 = 3, &
                         IACCU_CP4 = 4, &
                         IACCU_CP6 = 6
-
-  integer, parameter :: NDIM = 3
-
+!----------------------------------------------------------------------------------------------------------
+! flow initilisation
+!----------------------------------------------------------------------------------------------------------     
   integer, parameter :: INITIAL_RANDOM  = 0, &
                         INITIAL_RESTART = 1, &
                         INITIAL_INTERPL = 2
-
+!----------------------------------------------------------------------------------------------------------
+! numerical scheme for viscous term
+!---------------------------------------------------------------------------------------------------------- 
   integer, parameter :: IVIS_EXPLICIT   = 1, &
                         IVIS_SEMIMPLT   = 2
-
+!----------------------------------------------------------------------------------------------------------
+! driven force in periodic flow
+!---------------------------------------------------------------------------------------------------------- 
   integer, parameter :: IDRVF_NO         = 0, &
                         IDRVF_X_MASSFLUX = 1, &
                         IDRVF_X_Cf       = 2, &
                         IDRVF_Z_MASSFLUX = 3, &
                         IDRVF_Z_Cf       = 4 
-
+!----------------------------------------------------------------------------------------------------------
+! BC for thermal
+!---------------------------------------------------------------------------------------------------------- 
   integer, parameter :: THERMAL_BC_CONST_T  = 0, &
                         THERMAL_BC_CONST_H  = 1
-
+!----------------------------------------------------------------------------------------------------------
+! working fluid media
+!---------------------------------------------------------------------------------------------------------- 
   integer, parameter :: ISCP_WATER      = 1, &
                         ISCP_CO2        = 2, &
                         ILIQUID_SODIUM  = 3, &
@@ -182,10 +204,14 @@ module parameters_constant_mod
                         ILIQUID_BISMUTH = 5, &
                         ILIQUID_LBE     = 6, &
                         ILIQUID_WATER   = 7 ! to be updated 
-
+!----------------------------------------------------------------------------------------------------------
+! physical property
+!---------------------------------------------------------------------------------------------------------- 
   integer, parameter :: IPROPERTY_TABLE = 1, &
                         IPROPERTY_FUNCS = 2
-
+!----------------------------------------------------------------------------------------------------------
+! database for physical property
+!----------------------------------------------------------------------------------------------------------
   character(len = 64), parameter :: INPUT_SCP_WATER = 'NIST_WATER_23.5MP.DAT'
   character(len = 64), parameter :: INPUT_SCP_CO2   = 'NIST_CO2_8MP.DAT'
 
@@ -270,22 +296,25 @@ module udf_type_mod
 !  domain info
 !---------------------------------------------------------------------------------------------------------- 
   type t_domain
-    logical :: is_periodic(3)
-    logical :: is_stretching(3)
-    logical :: is_central_differnece
-    logical :: is_compact_scheme   
-    integer :: idom
-    integer :: icase
-    integer :: icoordinate
-    integer :: ithermo
+    logical :: is_periodic(3)        ! is this direction periodic bc?
+    logical :: is_stretching(3)      ! is this direction of stretching grids?
+    logical :: is_compact_scheme     ! is compact scheme applied?
+    logical :: is_thermo             ! is thermal field considered? 
+    integer :: idom                  ! domain id
+    integer :: icase                 ! case id
+    integer :: icoordinate           ! coordinate type   
+    
     integer :: icht
     integer :: iTimeScheme
     integer :: iviscous
     integer :: iAccuracy
-    integer :: nfreqckpt
-    integer :: nvisu
-    integer :: nIterStatsStart
-    integer :: nfreqStats
+    integer :: ckpt_nfre
+    integer :: visu_nfre
+    integer :: visu_idim
+    integer :: visu_nskip(3)
+    integer :: stat_istart
+    integer :: stat_nfre
+    integer :: stat_nskip(3)
     integer :: nsubitr
     integer :: istret
     integer :: nc(3) ! geometric cell number
@@ -328,7 +357,7 @@ module udf_type_mod
     real(wp), allocatable :: yMappingpt(:, :) ! j = 1, first coefficient in first deriviation. 1/h'
                                               ! j = 2, first coefficient in second deriviation 1/h'^2
                                               ! j = 3, second coefficient in second deriviation -h"/h'^3
-    ! cell center location, mapping
+    ! cell centre location, mapping
     real(wp), allocatable :: yMappingcc(:, :) ! first coefficient in first deriviation. 1/h'
                                               ! first coefficient in second deriviation 1/h'^2
                                               ! second coefficient in second deriviation -h"/h'^3
@@ -458,18 +487,18 @@ end module
 !==========================================================================================================
 module files_io_mod
   implicit none
-  character(9) :: dir1='1_instant'
-  character(9) :: dir2='2_statics'
-  character(9) :: dir3='3_monitor'
-  character(9) :: dir4='4_checkup'
+  character(9) :: dir_data='1_data'
+  character(6) :: dir_visu='2_visu'
+  character(9) :: dir_moni='3_monitor'
+  character(9) :: dir_chkp='4_check'
   public :: create_directory
 contains
   subroutine create_directory
     implicit none
-    call system('mkdir -p '//dir1)
-    call system('mkdir -p '//dir2)
-    call system('mkdir -p '//dir3)
-    call system('mkdir -p '//dir4)
+    call system('mkdir -p '//dir_data)
+    call system('mkdir -p '//dir_visu)
+    call system('mkdir -p '//dir_moni)
+    call system('mkdir -p '//dir_chkp)
   end subroutine
 end module
 !==========================================================================================================

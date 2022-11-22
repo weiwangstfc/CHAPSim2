@@ -1200,7 +1200,7 @@ contains
 !      setting up 1/re, 1/re/prt, gravity, etc
 !==========================================================================================================
         call Update_Re(iter, flow(i))
-        if(domain(i)%ithermo == 1) &
+        if(domain(i)%is_thermo) &
         call Update_PrGr(flow(i), thermo(i))
 !==========================================================================================================
 !      setting up flow solver
@@ -1214,7 +1214,7 @@ contains
 !==========================================================================================================
 !     setting up thermo solver
 !==========================================================================================================
-        if(domain(i)%ithermo == 1) then
+        if(domain(i)%is_thermo) then
           if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
             is_thermo = .true.
             thermo(i)%time = thermo(i)%time  + domain(i)%dt
@@ -1230,7 +1230,7 @@ contains
         end do
         call Plot_burgers_profile(flow(i), domain(i), iter)
         call Validate_burgers_error (flow(i), domain(i))
-        !if( MOD(iter, domain(i)%nvisu) == 0 ) &
+        !if( MOD(iter, domain(i)%visu_nfre) == 0 ) &
         
 
       end do

@@ -243,34 +243,12 @@ contains
     !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     if(nrank == 0) then
-      open(221, file = dir4//'/check_mesh_yp.dat')
+      open(221, file = trim(dir_chkp)//'/check_mesh_yp.dat')
       do i = 1, dm%np_geo(2)
         write (221, *) i, dm%yp(i)
       end do
     end if
 #endif
-
-    ! print out for postprocessing
-    ndm = ndm + 1
-    if(nrank == 0) then
-      filename = 'display_mesh_domain'//trim(int2str(ndm))//'.vtk'
-      INQUIRE(FILE = trim(filename), exist = file_exists)
-      if(.not.file_exists) then
-        open(newunit = outputunit, file = trim(filename), action = "write", status = "new")
-        write(outputunit, '(A)') '# vtk DataFile Version 4.0'
-        write(outputunit, '(A)') 'vtk mesh single precision'
-        write(outputunit, '(A)') 'ASCII'
-        write(outputunit, '(A)') 'DATASET RECTILINEAR_GRID'
-        write(outputunit, '(A, 3I10.1)') 'DIMENSIONS', dm%np_geo(1:3)
-        write(outputunit, '(A, 1I10.1, A)') 'X_COORDINATES', dm%np_geo(1), 'double'
-        write(outputunit, *) (dm%h(1) * real(i - 1, WP), i = 1, dm%np_geo(1))
-        write(outputunit, '(A, 1I10.1, A)') 'Y_COORDINATES', dm%np_geo(2), 'double'
-        write(outputunit, *) (dm%yp(j), j = 1, dm%np_geo(2))
-        write(outputunit, '(A, 1I10.1, A)') 'Z_COORDINATES', dm%np_geo(3), 'double'
-        write(outputunit, *) (dm%h(3) * real(k - 1, WP), k = 1, dm%np_geo(3))
-        close(outputunit)
-      end if
-    end if
 
     if(nrank == 0) call Print_debug_end_msg
     return
