@@ -221,7 +221,7 @@ contains
       str(3) = "z"
       do i = 1, 3
         keyword = trim(svisudim)//"_grid_"//trim(str(i))
-        call generate_file_name(grid_flname(i), dm%idom, keyword, 'xml')
+        call generate_file_name(grid_flname(i), dm%idom, keyword, 'dat')
         INQUIRE(FILE = trim(trim(dir_visu)//"/"//trim(grid_flname(i))), exist = file_exists)
         if(.not.file_exists) then
           call Print_error_msg("Mesh file for visu does not exist. Filename = "//trim(trim(dir_visu)//"/"//trim(grid_flname(i))))
@@ -333,7 +333,7 @@ contains
       keyword = trim(svisudim)//"_"//trim(varname)
       call generate_file_name(data_flname, dm%idom, keyword, 'bin', iter)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
-      call decomp_2d_write_plane(X_PENCIL, var, dm%visu_idim, PLANE_AVERAGE, dir_data, trim(data_flname), io_name, dtmp)
+      call decomp_2d_write_plane(X_PENCIL, var, dm%visu_idim, PLANE_AVERAGE, trim(dir_data), trim(data_flname), io_name, dtmp)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! dataitem for xdmf file
