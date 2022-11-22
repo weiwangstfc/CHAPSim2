@@ -153,19 +153,19 @@ contains
 
 
       keyword = trim(svisudim)//"_grid_x"
-      call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'xml')
+      call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
       open(newunit = iogrid, file = trim(grid_flname), action = "write", status="replace")
       write(iogrid, *) xp
       close(iogrid)
 
       keyword = trim(svisudim)//"_grid_y"
-      call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'xml')
+      call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
       open(newunit = iogrid, file = trim(grid_flname), action = "write", status="replace")
       write(iogrid, *) yp
       close(iogrid)
 
       keyword = trim(svisudim)//"_grid_z"
-      call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'xml')
+      call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
       open(newunit = iogrid, file = trim(grid_flname), action = "write", status="replace")
       write(iogrid, *) zp
       close(iogrid)
