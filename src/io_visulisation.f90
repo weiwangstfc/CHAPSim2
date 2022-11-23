@@ -23,6 +23,7 @@ module io_visulisation_mod
   public  :: write_snapshot_ini
   public  :: write_snapshot_flow
   public  :: write_snapshot_thermo
+  public  :: write_snapshot_any3darray
 
 
 contains
@@ -123,7 +124,18 @@ contains
         end if
       end do
     else
-      call Print_error_msg("Input visu_idim does not support.") 
+      svisudim = "3d"
+      nnd_visu(1, dm%idom) = xszV(1)
+      nnd_visu(2, dm%idom) = yszV(2)
+      nnd_visu(3, dm%idom) = zszV(3)
+      do i = 1, 3
+        if(dm%is_periodic(i)) then 
+          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+        else 
+          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+        end if
+      end do
     end if
 !----------------------------------------------------------------------------------------------------------
 ! write grids
@@ -445,6 +457,36 @@ contains
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
     call write_field(dm, tm%tTemp, dm%dccc, "temp", SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, XDMF_FOOTER, iter)
+    
+    return
+  end subroutine
+
+
+  !==========================================================================================================
+  subroutine write_snapshot_any3darray(var, varname, dtmp, dm, iter)
+    use udf_type_mod
+    use precision_mod
+    use operations
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(DECOMP_INFO), intent(in) :: dtmp
+    character(*), intent(in) :: varname
+    real(WP), dimension( dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3) ), intent(in) :: var
+    integer, intent(in) :: iter 
+
+    svisudim = trim(varname)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, temperature, to cell centre
+!----------------------------------------------------------------------------------------------------------
+    call write_field(dm, var, dtmp, trim(varname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------

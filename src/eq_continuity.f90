@@ -75,9 +75,6 @@ contains
   subroutine Get_divergence_vel(ux, uy, uz, div, dm)
     use parameters_constant_mod
     use udf_type_mod
-! #ifdef DEBUG_STEPS
-!     use typeconvert_mod
-! #endif
     implicit none
 
     type(t_domain), intent (in) :: dm
@@ -95,10 +92,7 @@ contains
     real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: uz_zpencil
 
     integer :: i, j, k
-! #ifdef DEBUG_STEPS
-!     integer :: jj
-!     type(DECOMP_INFO) :: dtmp
-! #endif
+
     div = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! operation in x pencil, du/dx
@@ -106,40 +100,6 @@ contains
     div0 = ZERO
     call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-
-! #ifdef DEBUG_STEPS
-
-!     dtmp = dm%dccc
-!     k = 2
-!     i = 2
-!     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-!       open(121, file = 'debugy_div_x'//trim(int2str(nrank))//'.dat', position="append")
-!       do j = 1, dtmp%xsz(2)
-!         jj =dtmp%xst(2) + j - 1
-!         write(121, *) jj, ux(i, j, k), div0(i, j, k), div(i, j, k)
-!       end do
-!     end if
-
-!     k = 2
-!     j = 2
-!     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-!       if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-!         open(221, file = 'debugx_div_x'//trim(int2str(nrank))//'.dat', position="append")
-!         do i = 1, dtmp%xsz(1)
-!           write(221, *) i, ux(i, j, k), div0(i, j, k), div(i, j, k)
-!         end do
-!       end if
-!     end if
-
-!     i = 2
-!     j = 2
-!     if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-!       open(321, file = 'debugz_div_x'//trim(int2str(nrank))//'.dat', position="append")
-!       do k = 1, dtmp%xsz(3)
-!         write(321, *) k, ux(i, j, k), div0(i, j, k), div(i, j, k)
-!       end do
-!     end if
-! #endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !----------------------------------------------------------------------------------------------------------
@@ -150,40 +110,6 @@ contains
     call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-
-! #ifdef DEBUG_STEPS
-
-!     dtmp = dm%dccc
-!     k = 2
-!     i = 2
-!     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-!       open(122, file = 'debugy_div_y'//trim(int2str(nrank))//'.dat', position="append")
-!       do j = 1, dtmp%xsz(2)
-!         jj = dtmp%xst(2) + j - 1
-!         write(122, *) jj, uy(i, j, k), div0(i, j, k), div(i, j, k)
-!       end do
-!     end if
-
-!     k = 2
-!     j = 2
-!     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-!       if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-!         open(222, file = 'debugx_div_y'//trim(int2str(nrank))//'.dat', position="append")
-!         do i = 1, dtmp%xsz(1)
-!           write(222, *) i, uy(i, j, k), div0(i, j, k), div(i, j, k)
-!         end do
-!       end if
-!     end if
-
-!     i = 2
-!     j = 2
-!     if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-!       open(323, file = 'debugz_div_y'//trim(int2str(nrank))//'.dat', position="append")
-!       do k = 1, dtmp%xsz(3)
-!         write(323, *) k, uy(i, j, k), div0(i, j, k), div(i, j, k)
-!       end do
-!     end if
-! #endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
@@ -198,40 +124,7 @@ contains
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-! #ifdef DEBUG_STEPS
 
-!     dtmp = dm%dccc
-!     k = 2
-!     i = 2
-!     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-!       open(123, file = 'debugy_div_z'//trim(int2str(nrank))//'.dat', position="append")
-!       do j = 1, dtmp%xsz(2)
-!         jj = dtmp%xst(2) + j - 1
-!         write(123, *) jj, uz(i, j, k), div0(i, j, k), div(i, j, k)
-!       end do
-!     end if
-
-!     k = 2
-!     j = 2
-!     if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-!       if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-!         open(223, file = 'debugx_div_z'//trim(int2str(nrank))//'.dat', position="append")
-!         do i = 1, dtmp%xsz(1)
-!           write(223, *) i, uz(i, j, k), div0(i, j, k), div(i, j, k)
-!         end do
-!       end if
-!     end if
-
-!     j = 2
-!     i = 2
-!     if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-!       open(323, file = 'debugz_div_z'//trim(int2str(nrank))//'.dat', position="append")
-!       do k = 1, dtmp%xsz(3)
-!         write(323, *) k, uz(i, j, k), div0(i, j, k), div(i, j, k)
-!       end do
-!     end if
-
-! #endif
     return
   end subroutine
 
@@ -253,9 +146,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use decomp_extended_mod
-! #ifdef DEBUG_STEPS
-!     use typeconvert_mod
-! #endif
+
     implicit none
 
     type(t_domain), intent (in) :: dm
@@ -287,10 +178,6 @@ contains
     real(WP), dimension(dm%dccp%zsz(1),                  dm%dccp%zsz(2),                  dm%dccp%zsz(3)) :: uz_zpencil
     real(WP), dimension(dm%dccp%zst(1) : dm%dccp%zen(1), dm%dccp%zst(2) : dm%dccp%zen(2), dm%dccp%zsz(3)) :: uz_zpencil_ggl
 
-! #ifdef DEBUG_STEPS
-!     integer :: jj, i, j ,k, ii
-!     type(DECOMP_INFO) :: dtmp
-! #endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in x pencil, du/dx
 !----------------------------------------------------------------------------------------------------------
@@ -300,50 +187,6 @@ contains
     call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1))
     call transpose_x_to_y(div0, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div0_ypencil_ggl
-
-!#ifdef DEBUG_STEPS
-
-    ! dtmp = dm%dccc
-    ! k = 2
-    ! i = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   if( i >= dtmp%xst(1) .and. i <= dtmp%xen(1)) then
-    !     ii = dtmp%xst(1) + i - 1 
-    !     open(121, file = 'debugy_div_x'//trim(int2str(nrank))//'.dat', position="append")
-    !     do jj = dtmp%xst(2), dtmp%xen(2)
-    !       j = jj - dtmp%xst(2) + 1
-    !       write(121, *) jj, ux(i, j, k), div0(i, j, k), div0_ypencil_ggl(ii, jj, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! k = 2
-    ! !j = 2
-    ! jj = 2 !dtmp%xst(2) + j - 1
-    ! j = jj - dtmp%xst(2) + 1
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   if( jj >= dtmp%xst(2) .and. jj <= dtmp%xen(2)) then
-    !     open(221, file = 'debugx_div_x'//trim(int2str(nrank))//'.dat', position="append")
-    !     do i = 1, dtmp%xsz(1)
-    !       ii = dtmp%xst(1) + i - 1 
-    !       write(221, *) i, ux(i, j, k), div0(i, j, k), div0_ypencil_ggl(ii, jj, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! i = 2
-    ! jj = 2 !dtmp%xst(2) + j - 1
-    ! j = jj - dtmp%xst(2) + 1
-    ! if( jj >= dtmp%xst(2) .and. jj <= dtmp%xen(2)) then
-    !   if( i >= dtmp%xst(1) .and. i <= dtmp%xen(1)) then
-    !     ii = dtmp%xst(1) + i - 1 
-    !     open(321, file = 'debugz_div_x'//trim(int2str(nrank))//'.dat', position="append")
-    !     do k = 1, dtmp%xsz(3)
-    !       write(321, *) k, ux(i, j, k), div0(i, j, k), div0_ypencil_ggl(ii, jj, k)
-    !     end do
-    !   end if
-    ! end if
-!#endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !----------------------------------------------------------------------------------------------------------
@@ -355,41 +198,6 @@ contains
     call ypencil_index_lgl2ggl(div0_ypencil, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div_ypencil_ggl + div0_ypencil_ggl
     call transpose_y_to_z(div_ypencil_ggl, div_zpencil_ggg, dm%dccc)
-
-!#ifdef DEBUG_STEPS
-
-    ! dtmp = dm%dccc
-    ! k = 2
-    ! i = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   open(122, file = 'debugy_div_y'//trim(int2str(nrank))//'.dat', position="append")
-    !   do j = 1, dtmp%xsz(2)
-    !     jj = dtmp%xst(2) + j - 1
-    !     write(122, *) jj, uy(i, j, k), div0_ypencil(i, j, k), div_ypencil_ggl(i, jj, k)
-    !   end do
-    ! end if
-
-    ! k = 2
-    ! j = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !     open(222, file = 'debugx_div_y'//trim(int2str(nrank))//'.dat', position="append")
-    !     do i = 1, dtmp%xsz(1)
-    !       write(222, *) i, uy(i, j, k), div0_ypencil(i, j, k), div_ypencil_ggl(i, jj, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! i = 2
-    ! j = 2
-    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !   open(323, file = 'debugz_div_y'//trim(int2str(nrank))//'.dat', position="append")
-    !   do k = 1, dtmp%xsz(3)
-    !     write(323, *) k, uy(i, j, k), div0_ypencil(i, j, k), div_ypencil_ggl(i, jj, k)
-    !   end do
-    ! end if
-!#endif
-
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
@@ -402,41 +210,6 @@ contains
     call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3))
     call zpencil_index_llg2ggg(div0_zpencil, div0_zpencil_ggg, dm%dccc)
     div_zpencil_ggg = div_zpencil_ggg + div0_zpencil_ggg
-
-!#ifdef DEBUG_STEPS
-
-    ! dtmp = dm%dccc
-    ! k = 2
-    ! i = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   open(123, file = 'debugy_div_z'//trim(int2str(nrank))//'.dat', position="append")
-    !   do j = 1, dtmp%xsz(2)
-    !     jj = dtmp%xst(2) + j - 1
-    !     write(123, *) jj, uz(i, j, k), div0_zpencil(i, j, k), div_zpencil_ggg(i, j, k)
-    !   end do
-    ! end if
-
-    ! k = 2
-    ! j = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !     open(223, file = 'debugx_div_z'//trim(int2str(nrank))//'.dat', position="append")
-    !     do i = 1, dtmp%xsz(1)
-    !       write(223, *) i, uz(i, j, k), div0_zpencil(i, j, k), div_zpencil_ggg(i, j, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! j = 2
-    ! i = 2
-    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !   open(323, file = 'debugz_div_z'//trim(int2str(nrank))//'.dat', position="append")
-    !   do k = 1, dtmp%xsz(3)
-    !     write(323, *) k, uz(i, j, k), div0_zpencil(i, j, k), div_zpencil_ggg(i, j, k)
-    !   end do
-    ! end if
-
-!#endif
 
     return
   end subroutine
