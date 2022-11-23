@@ -74,10 +74,9 @@ OBJS1= mpi_mod.o\
       algorithms.o\
       operations.o\
       tools_solver.o\
-      restart.o\
       geometry.o\
       io_tools.o\
-			io_monitor.o\
+      io_monitor.o\
       io_visulisation.o\
       domain_decomposition.o\
       poisson_interface.o\
@@ -86,6 +85,7 @@ OBJS1= mpi_mod.o\
       eq_energy.o\
       eq_momentum.o\
       test_algrithms.o\
+      io_restart.o\
       flow_initialization.o\
       chapsim.o
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)

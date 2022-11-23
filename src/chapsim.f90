@@ -71,7 +71,7 @@ subroutine Initialize_chapsim
   !----------------------------------------------------------------------------------------------------------
   ! build up thermo_mapping_relations, independent of any domains
   !----------------------------------------------------------------------------------------------------------
-  if(is_any_energyeq) then
+  if(ANY(domain(:)%is_thermo)) then
     i = 1 
     call Buildup_thermo_mapping_relations(thermo(i), domain(i))
   end if
@@ -95,7 +95,12 @@ subroutine Initialize_chapsim
 !----------------------------------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
-  call Initialize_flow_thermal_fields
+  do i = 1, nxdomain
+    call Initialize_flow_fields(flow(i), domain(i))
+    if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
+  end do
+
+  call Test_algorithms()
 
   return
 end subroutine Initialize_chapsim
@@ -131,6 +136,7 @@ subroutine Solve_eqs_iteration
   use io_visulisation_mod
   use io_monitor_mod
   use io_tools_mod
+  use io_restart_mod
   implicit none
 
   logical :: is_flow   = .false.
@@ -149,7 +155,7 @@ subroutine Solve_eqs_iteration
   do i = 1, nxdomain
      if( flow(i)%iteration    < iteration) iteration = flow(i)%iteration
      if( flow(i)%nIterFlowEnd > niter)     niter     = flow(i)%nIterFlowEnd
-     if( is_any_energyeq) then
+     if( domain(i)%is_thermo) then
        if (thermo(i)%iteration      < iteration) iteration = thermo(i)%iteration
        if (thermo(i)%nIterThermoEnd > niter)     niter     = thermo(i)%nIterThermoEnd
      end if
@@ -178,8 +184,8 @@ subroutine Solve_eqs_iteration
         is_flow = .true.
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
-        if (mod(iter, domain(i)%ckpt_nfre) == 0) call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
-        if (mod(iter, domain(i)%ckpt_nfre) == 0) call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+        call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
       !==========================================================================================================
       !     setting up thermo solver
@@ -198,25 +204,37 @@ subroutine Solve_eqs_iteration
         if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
       end do
-
       !==========================================================================================================
-      !     validation
+      !  validation for each time step
+      !==========================================================================================================
+      call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:", wrtfmt1e)
+      call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
+      call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)
+      call Check_mass_conservation(flow(i), domain(i)) 
+      !==========================================================================================================
+      !  write out check point data for restart and monitoring
       !==========================================================================================================
       if (mod(iter, domain(i)%ckpt_nfre) == 0) then
-        call write_monitor(domain(i), flow(i))
-        call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:", wrtfmt1e)
-        call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
-        call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)
-        call Check_mass_conservation(flow(i), domain(i)) 
+        !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
+        call write_monitor_flow(flow(i), domain(i))
+        call write_instantanous_flow_raw_data(flow(i), domain(i))
+        if(domain(i)%is_thermo) then
+          call write_monitor_thermo(thermo(i), domain(i))
+          call write_instantanous_thermo_raw_data(thermo(i), domain(i))
+        end if
       end if
-      !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
       !==========================================================================================================
-      !   visualisation
+      ! write data for visualisation
       !==========================================================================================================
       if(MOD(iter, domain(i)%visu_nfre) == 0) then
-        call write_snapshot_flow(domain(i), flow(i))
+        call write_snapshot_flow(flow(i), domain(i))
+        if(domain(i)%is_thermo) then
+          call write_snapshot_thermo(thermo(i), domain(i))
+        end if
       end if
+
     end do ! domain
+
     if( mod(iter, cpu_nfre) == 0) call call_cpu_time(CPU_TIME_ITER_END, iteration, niter, iter)
 
   end do ! iteration

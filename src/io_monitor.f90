@@ -2,7 +2,8 @@ module io_monitor_mod
   implicit none
 
   public :: write_monitor_ini
-  public :: write_monitor
+  public :: write_monitor_flow
+  public :: write_monitor_thermo
   
 contains
   subroutine write_monitor_ini(dm)
@@ -10,13 +11,15 @@ contains
     use wtformat_mod
     use udf_type_mod
     use files_io_mod
+    use io_tools_mod
     implicit none 
     type(t_domain),  intent(inout) :: dm
 
     integer :: myunit
     integer :: i, j
     logical :: exist
-    character(len=100) :: flname
+    character(len=120) :: flname
+    character(len=120) :: keyword
 
     integer :: idgb(3)
     integer :: nplc
@@ -71,11 +74,14 @@ contains
 
     deallocate (probeid)
 !----------------------------------------------------------------------------------------------------------
-! create probe history file
+! create probe history file for flow
 !----------------------------------------------------------------------------------------------------------
     do i = 1, dm%proben
       if(.not. dm%probe_is_in(i)) cycle 
-      flname = trim(dir_moni)//'/domain'//trim(int2str(dm%idom))//'_probe_pt'//trim(int2str(i))//'.log'
+
+      keyword = "monitor_pt"//trim(int2str(i))//"_flow"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+
       inquire(file = trim(flname), exist = exist)
       if (exist) then
         !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
@@ -87,24 +93,47 @@ contains
         close(myunit)
       end if
     end do
+!----------------------------------------------------------------------------------------------------------
+! create probe history file for thermo
+!----------------------------------------------------------------------------------------------------------
+    if(dm%is_thermo) then
+      do i = 1, dm%proben
+        if(.not. dm%probe_is_in(i)) cycle 
+  
+        keyword = "monitor_pt"//trim(int2str(i))//"_thermo"
+        call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+  
+        inquire(file = trim(flname), exist = exist)
+        if (exist) then
+          !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
+        else
+          open(newunit = myunit, file = trim(flname), status="new", action="write")
+          write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
+          write(myunit, *) "# probe pts location ",  dm%probexyz(1:3, i)
+          write(myunit, *) "# t, T" ! to add more instantanous or statistics
+          close(myunit)
+        end if
+      end do
+    end if
 
     return
   end subroutine
 
 !==========================================================================================================
-  subroutine write_monitor(dm, fl, tm)
+  subroutine write_monitor_flow(fl, dm)
     use typeconvert_mod
     use parameters_constant_mod
     use wtformat_mod
     use udf_type_mod
     use files_io_mod
+    use io_tools_mod
     implicit none 
 
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(in) :: fl
-    type(t_thermo), optional, intent(in) :: tm
 
-    character(len=100) :: flname
+    character(len=120) :: flname
+    character(len=120) :: keyword
     character(200) :: iotxt
     integer :: ioerr, myunit
     integer :: ix, iy, iz
@@ -119,7 +148,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! open file
 !----------------------------------------------------------------------------------------------------------
-        flname = trim(dir_moni)//'/domain'//trim(int2str(dm%idom))//'_probe_pt'//trim(int2str(i))//'.log'
+        keyword = "monitor_pt"//trim(int2str(i))//"_flow"
+        call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+
         open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
             iostat = ioerr, iomsg = iotxt)
         if(ioerr /= 0) then
@@ -134,6 +165,58 @@ contains
         iy = dm%probexid(2, j)
         iz = dm%probexid(3, j)
         write(myunit, *) fl%time, fl%qx(ix, iy, iz), fl%qy(ix, iy, iz), fl%qz(ix, iy, iz)
+        close(myunit)
+      end if
+    end do
+
+    return
+  end subroutine 
+
+!==========================================================================================================
+  subroutine write_monitor_thermo(tm, dm)
+    use typeconvert_mod
+    use parameters_constant_mod
+    use wtformat_mod
+    use udf_type_mod
+    use files_io_mod
+    use io_tools_mod
+    implicit none 
+
+    type(t_domain),  intent(in) :: dm
+    type(t_thermo), intent(in) :: tm
+
+    character(len=120) :: flname
+    character(len=120) :: keyword
+    character(200) :: iotxt
+    integer :: ioerr, myunit
+    integer :: ix, iy, iz
+    integer :: i, j
+!----------------------------------------------------------------------------------------------------------
+! based on x-pencil
+!----------------------------------------------------------------------------------------------------------
+    j = 0
+    do i = 1, dm%proben
+      if( dm%probe_is_in(i) ) j = j + 1
+      if(j > 0) then
+!----------------------------------------------------------------------------------------------------------
+! open file
+!----------------------------------------------------------------------------------------------------------
+        keyword = "monitor_pt"//trim(int2str(i))//"_thermo"
+        call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+        open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
+            iostat = ioerr, iomsg = iotxt)
+        if(ioerr /= 0) then
+          write (*, *) 'Problem openning probing file'
+          write (*, *) 'Message: ', trim (iotxt)
+          stop
+        end if
+!----------------------------------------------------------------------------------------------------------
+! write out local data
+!----------------------------------------------------------------------------------------------------------
+        ix = dm%probexid(1, j)
+        iy = dm%probexid(2, j)
+        iz = dm%probexid(3, j)
+        write(myunit, *) tm%time, tm%tTemp(ix, iy, iz)
         close(myunit)
       end if
     end do

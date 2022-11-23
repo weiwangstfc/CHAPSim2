@@ -118,14 +118,14 @@ module code_performance_mod
     return
   end subroutine 
 
-  subroutine call_cpu_time(itype, nrsttckpt, niter, iter)
+  subroutine call_cpu_time(itype, iterfrom, niter, iter)
     use parameters_constant_mod
     use typeconvert_mod
     use mpi_mod
     use decomp_2d
     implicit none
     integer, intent(in) :: itype
-    integer, intent(in) :: nrsttckpt, niter
+    integer, intent(in) :: iterfrom, niter
     integer, intent(in), optional :: iter
     integer :: hrs, mins
     real(wp) :: secs
@@ -150,7 +150,7 @@ module code_performance_mod
       t_iter_start = ZERO
       call cpu_time(t_iter_start)
       if(nrank == 0) call Print_debug_start_msg ("Time Step = "//trim(int2str(iter))// &
-          '/'//trim(int2str(niter-nrsttckpt)))
+          '/'//trim(int2str(niter-iterfrom)))
 !----------------------------------------------------------------------------------------------------------
     else if (itype == CPU_TIME_ITER_END) then
       if(.not.present(iter)) call Print_error_msg("Error in calculating CPU Time.")
@@ -172,7 +172,7 @@ module code_performance_mod
            trim(int2str(mins)) // ' m ' // &
            trim(real2str(secs)) // ' s ')
 
-      t_aveiter   = t_elaspsed / real(iter - nrsttckpt, WP)
+      t_aveiter   = t_elaspsed / real(iter - iterfrom, WP)
       t_remaining = t_aveiter * real(niter - iter, wp)
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_aveiter,   t_aveiter0,   1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
@@ -194,7 +194,7 @@ module code_performance_mod
 
       call cpu_time(t_step_end)
       t_total = t_step_end - t_step_start
-      t_aveiter= t_total / real(niter - nrsttckpt, WP)
+      t_aveiter= t_total / real(niter - iterfrom, WP)
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_total,   t_total0,   1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_aveiter, t_aveiter0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)

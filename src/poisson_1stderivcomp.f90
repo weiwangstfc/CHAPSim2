@@ -1116,6 +1116,8 @@ contains
        nz = nz_global - 1
     else if (bcz == 0) then
        nz = nz_global
+    else
+       nz = nz_global
     end if
 
     if (bcz == 1) then  

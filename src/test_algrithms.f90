@@ -1176,25 +1176,25 @@ contains
     logical :: is_thermo = .false.
     integer :: i
     integer :: iter, isub
-    integer :: nrsttckpt
+    integer :: iterfrom
     integer :: niter
     real(wp)   :: rtmp
 
     
     call Plot_burgers_profile(flow(1), domain(1), 0)
 
-    nrsttckpt = HUGE(0)
+    iterfrom = HUGE(0)
     niter     = 0
     do i = 1, nxdomain
-      if( flow(i)%nrsttckpt < nrsttckpt) nrsttckpt = flow(i)%nrsttckpt
+      if( flow(i)%iterfrom < iterfrom) iterfrom = flow(i)%iterfrom
       if( flow(i)%nIterFlowEnd > niter)  niter     = flow(i)%nIterFlowEnd
-      if( is_any_energyeq) then
+      if( domain(i)%is_thermo) then
         if (thermo(i)%nIterThermoEnd > niter) niter = thermo(i)%nIterThermoEnd
       end if
     end do
 
-    do iter = nrsttckpt + 1, niter
-      call call_cpu_time(CPU_TIME_ITER_START, nrsttckpt, niter, iter)
+    do iter = iterfrom + 1, niter
+      call call_cpu_time(CPU_TIME_ITER_START, iterfrom, niter, iter)
       do i = 1, nxdomain
 !==========================================================================================================
 !      setting up 1/re, 1/re/prt, gravity, etc
@@ -1240,7 +1240,7 @@ contains
     end do
   
   
-    call call_cpu_time(CPU_TIME_CODE_END, nrsttckpt, niter)
+    call call_cpu_time(CPU_TIME_CODE_END, iterfrom, niter)
     call Finalise_mpi()
     stop
     return

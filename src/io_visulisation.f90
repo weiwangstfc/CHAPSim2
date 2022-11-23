@@ -22,6 +22,7 @@ module io_visulisation_mod
 
   public  :: write_snapshot_ini
   public  :: write_snapshot_flow
+  public  :: write_snapshot_thermo
 
 
 contains
@@ -362,7 +363,7 @@ contains
     return
   end subroutine 
 !==========================================================================================================
-  subroutine write_snapshot_flow(dm, fl)
+  subroutine write_snapshot_flow(fl, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -409,6 +410,41 @@ contains
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_z(accc_ypencil, accc, dm%dccc)
     call write_field(dm, accc, dm%dccc, "uz", SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, XDMF_FOOTER, iter)
+    
+    return
+  end subroutine
+
+  !==========================================================================================================
+  subroutine write_snapshot_thermo(tm, dm)
+    use udf_type_mod
+    use precision_mod
+    use operations
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(t_thermo), intent(in) :: tm
+
+    integer :: iter 
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
+
+
+    iter = tm%iteration
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, temperature, to cell centre
+!----------------------------------------------------------------------------------------------------------
+    call write_field(dm, tm%tTemp, dm%dccc, "temp", SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------

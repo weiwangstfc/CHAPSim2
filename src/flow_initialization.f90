@@ -22,143 +22,19 @@ module flow_thermo_initialiasation
   use solver_tools_mod
   implicit none
 
-  
-  private :: Generate_poiseuille_flow_profile
-  private :: Initialize_poiseuille_flow
-  private :: Initialize_vortexgreen_2dflow
-  private :: Initialize_vortexgreen_3dflow
-  private :: Generate_random_field
-
   private  :: Allocate_flow_variables
   private  :: Allocate_thermo_variables
-  private  :: Initialize_flow_variables
-  private  :: Initialize_thermo_variables
+  private :: Generate_poiseuille_flow_profile
+  private :: Generate_random_field
+
+  private :: Initialize_vortexgreen_2dflow
+  private :: Initialize_vortexgreen_3dflow
 
   public  :: Validate_TGV2D_error
-  public  :: Initialize_flow_thermal_fields
+  public  :: Initialize_flow_fields
+  public  :: Initialize_thermo_fields
 
 contains
-!==========================================================================================================
-!> \brief Initialisation and preprocessing of the flow field
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain   module
-!>         all    once           all       public
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!----------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!----------------------------------------------------------------------------------------------------------
-!> \param[in]     none          NA
-!> \param[out]    none          NA
-!==========================================================================================================
-  subroutine Initialize_flow_thermal_fields
-    use mpi_mod
-    use vars_df_mod
-    use thermo_info_mod
-    use boundary_conditions_mod
-    use decomp_2d_io
-    use typeconvert_mod
-    use restart_mod
-    use mpi_mod
-    use eq_momentum_mod
-    use continuity_eq_mod
-    implicit none
-
-    integer :: i, j, k, l, s, iter
-    type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
-    integer :: ipencil
-    type(DECOMP_INFO) :: dtmp
-
-    if(nrank == 0) call Print_debug_start_msg("Initialize flow and thermal fields ...")
-    iter = 0
-    do l = 1, nxdomain
-
-      !----------------------------------------------------------------------------------------------------------
-      ! initialize common thermal variables
-      !----------------------------------------------------------------------------------------------------------
-      if(.not. domain(l)%is_thermo) then
-        domain(l)%fbc_dend(:, :) = ONE
-        domain(l)%fbc_vism(:, :) = ONE
-      else 
-        do s = 1, 2
-          ftpx = thermo(l)%ftpbcx(s)
-          ftpy = thermo(l)%ftpbcy(s)
-          ftpz = thermo(l)%ftpbcz(s)
-
-          domain(l)%fbc_dend(s, 1) = ftpx%d
-          domain(l)%fbc_dend(s, 2) = ftpy%d
-          domain(l)%fbc_dend(s, 3) = ftpz%d
-          domain(l)%fbc_vism(s, 1) = ftpx%m
-          domain(l)%fbc_vism(s, 2) = ftpy%m
-          domain(l)%fbc_vism(s, 3) = ftpz%m
-        end do
-      end if
-      !----------------------------------------------------------------------------------------------------------
-      ! to allocate flow variables
-      !----------------------------------------------------------------------------------------------------------
-      call Allocate_flow_variables (flow(l), domain(l))
-      !----------------------------------------------------------------------------------------------------------
-      ! to allocate thermal variables
-      !----------------------------------------------------------------------------------------------------------
-      if(domain(l)%is_thermo) call Allocate_thermo_variables (thermo(l), domain(l))
-      !----------------------------------------------------------------------------------------------------------
-      ! to set up Re, Fr etc 
-      !----------------------------------------------------------------------------------------------------------
-      call Update_Re(flow(l)%nrsttckpt, flow(l))
-      if(domain(l)%is_thermo) &
-      call Update_PrGr(flow(l), thermo(l))
-      !----------------------------------------------------------------------------------------------------------
-      ! to intialize primary variable
-      !----------------------------------------------------------------------------------------------------------
-      if (flow(l)%irestart == INITIAL_RANDOM) then
-
-        call Initialize_flow_variables ( flow(l), domain(l) )
-        if(domain(l)%is_thermo) &
-        call Initialize_thermo_variables ( flow(l), thermo(l), domain(l) )
-
-      else if (flow(l)%irestart == INITIAL_RESTART) then
-        
-        call read_instantanous_flow_raw_data(flow(l), domain(l))
-        call restore_flow_variables_from_restart(flow(l), domain(l))
-        if(domain(l)%is_thermo) then
-            call read_instantanous_thermo_raw_data  (thermo(l), domain(l) )
-            call restore_flow_variables_from_restart(flow(l),   domain(l))
-        end if
-
-      else if (flow(l)%irestart == INITIAL_INTERPL) then
-
-        ! to add ...
-
-      else
-        call Print_error_msg("Error in flow initialisation flag.")
-      end if
-
-      call Test_algorithms()
-
-!----------------------------------------------------------------------------------------------------------
-! update initial results
-!----------------------------------------------------------------------------------------------------------
-      call Solve_momentum_eq(flow(l), domain(l), 0) ! check, necessary?
-!----------------------------------------------------------------------------------------------------------
-! to write out data for check
-!----------------------------------------------------------------------------------------------------------
-      call write_instantanous_flow_data(flow(l), domain(l))
-      if(domain(l)%is_thermo) &
-      call write_instantanous_thermo_data(thermo(l), domain(l)) 
-
-    end do
-    !stop
-!----------------------------------------------------------------------------------------------------------
-! to test algorithms based on given values.
-!----------------------------------------------------------------------------------------------------------
-    
-!----------------------------------------------------------------------------------------------------------
-! test
-!----------------------------------------------------------------------------------------------------------
-    !if(nrank == 0) call Print_debug_end_msg
-     
-    return
-  end subroutine Initialize_flow_thermal_fields
 !==========================================================================================================
 !> \brief Allocate flow and thermal variables.     
 !---------------------------------------------------------------------------------------------------------- 
@@ -242,231 +118,32 @@ contains
     return
 
   end subroutine Allocate_thermo_variables
-!==========================================================================================================
-!> \brief The main code for initializing flow variables
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   private
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!----------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!----------------------------------------------------------------------------------------------------------
-!> \param[in]     dm
-!==========================================================================================================
-  subroutine Initialize_flow_variables(fl, dm)
-    use udf_type_mod
-    use solver_tools_mod
-    use parameters_constant_mod
-    use burgers_eq_mod
-#ifdef DEBUG_STEPS
-    use io_visulisation_mod
-#endif
-    use wtformat_mod
-! #ifdef DEBUG_STEPS
-!     use typeconvert_mod
-! #endif
-    implicit none
-    type(t_domain), intent(inout) :: dm
-    type(t_flow),   intent(inout) :: fl
-! #ifdef DEBUG_STEPS
-!     integer :: i, j, k, jj
-!     type(DECOMP_INFO) :: dtmp
-! #endif
-
-    if(nrank == 0) call Print_debug_start_msg("Initializing flow variables ...")
-
-    !----------------------------------------------------------------------------------------------------------
-    ! to initialize flow velocity and pressure
-    !----------------------------------------------------------------------------------------------------------
-    if ( (dm%icase == ICASE_CHANNEL) .or. &
-         (dm%icase == ICASE_PIPE) .or. &
-         (dm%icase == ICASE_ANNUAL) ) then
-      call Initialize_poiseuille_flow    (dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%initNoise)
-    else if (dm%icase == ICASE_TGV2D) then
-      call Initialize_vortexgreen_2dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
-    else if (dm%icase == ICASE_TGV3D) then
-      call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
-    else if (dm%icase == ICASE_BURGERS) then
-      call Initialize_burgers_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
-    else 
-      if(nrank == 0) call Print_error_msg("No such case defined" )
-    end if
-    !----------------------------------------------------------------------------------------------------------
-    ! to initialize pressure correction term
-    !----------------------------------------------------------------------------------------------------------
-    fl%pcor(:, :, :) = ZERO
-#ifdef DEBUG_VISU
-    call view_data_in_rank(fl%qx,   dm%dpcc, dm, 'ux', 0)
-    call view_data_in_rank(fl%qy,   dm%dcpc, dm, 'uy', 0)
-    call view_data_in_rank(fl%qz,   dm%dccp, dm, 'uz', 0)
-    call view_data_in_rank(fl%pres, dm%dccc, dm, 'pr', 0)
-#endif
-
-!#ifdef DEBUG_STEPS
-    ! dtmp = dm%dccc
-
-    ! k = 2
-    ! j = 2
-    ! if( k >= dtmp%xst(3) .and. (k+1) <= dtmp%xen(3)) then
-    !   if( j >= dtmp%xst(2) .and. (j+1) <= dtmp%xen(2)) then
-    !     open(221, file = 'debugx_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-    !     do i = 1, dm%dccc%xsz(1)
-    !       write(221, *) i, fl%qx(i, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! k = 2
-    ! i = 2
-    ! if( k >= dtmp%xst(3) .and. (k+1) <= dtmp%xen(3)) then
-    !   open(121, file = 'debugy_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-    !   do j = 1, dm%dccc%xsz(2) 
-    !     jj = dm%dpcc%xst(2) + j - 1
-    !     write(121, *) jj, fl%qx(i+1, j, k), fl%qy(i, j, k), fl%qz(i, j, k+1), fl%pres(i, j, k)
-    !   end do
-    ! end if
-
-    ! i = 2
-    ! j = 2
-    ! if( j >= dtmp%xst(2) .and. (j+1) <= dtmp%xen(2)) then
-    !   open(321, file = 'debugz_init_uvwp_'//trim(int2str(nrank))//'.dat', position="append")
-    !   do k = 1, dm%dccc%xsz(3)
-    !     write(321, *) k, fl%qx(i+1, j, k), fl%qy(i, j+1, k), fl%qz(i, j, k), fl%pres(i, j, k)
-    !   end do
-    ! end if
-
-!#endif
-
-    !----------------------------------------------------------------------------------------------------------
-    ! to check maximum velocity
-    !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(fl%qx, "maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, "maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, "maximum uz:", wrtfmt1e)
-    !call Check_mass_conservation(fl, dm) 
-    !----------------------------------------------------------------------------------------------------------
-    ! to set up flow iterations 
-    !----------------------------------------------------------------------------------------------------------
-    fl%time = ZERO
-    fl%iteration = 0
-
-    !if(nrank == 0) call Print_debug_end_msg
-    return
-  end subroutine
   !==========================================================================================================
-  subroutine Initialize_thermo_variables( fl, tm, dm )
-    use udf_type_mod
-    use solver_tools_mod
-    use thermo_info_mod
-    use boundary_conditions_mod
-    implicit none
-    type(t_domain), intent(inout) :: dm
-    type(t_flow),   intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
-
-    if (.not. dm%is_thermo) return
-    !----------------------------------------------------------------------------------------------------------
-    ! to initialize thermal variables 
-    !----------------------------------------------------------------------------------------------------------
-    if(nrank == 0) call Print_debug_mid_msg("Initializing thermal field ...")
-    call Initialize_thermal_properties (fl, tm)
-
-    call Calculate_massflux_from_velocity (fl, dm)
-    !----------------------------------------------------------------------------------------------------------
-    ! to set up old arrays 
-    !----------------------------------------------------------------------------------------------------------
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
-    
-    tm%time = ZERO
-    tm%iteration = 0
-    
-    if(nrank == 0) call Print_debug_end_msg
-    return
-  end subroutine
-
-!==========================================================================================================
-!> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   private
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!----------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!----------------------------------------------------------------------------------------------------------
-!> \param[in]     d             domain
-!> \param[out]    ux_1c1          u(yc), velocity profile along wall-normal direction
-!==========================================================================================================
-  subroutine Generate_poiseuille_flow_profile(dm, ux_1c1)
-    use parameters_constant_mod
-    use udf_type_mod
-    use math_mod
-    implicit none
-
-    type(t_domain), intent(in)  :: dm
-    real(WP),       intent(out) :: ux_1c1(:)
-    
-    real(WP)   :: a, b, c, yy, ymax, ymin
-    integer :: j
-    
-    if(nrank == 0) call Print_debug_mid_msg("Generate poiseuille flow profile ...")
-
-    ux_1c1 (:) = ZERO
-
-    ymax = dm%yp( dm%np_geo(2) )
-    ymin = dm%yp( 1 )
-    if (dm%icase == ICASE_CHANNEL) then
-      a = (ymax - ymin) * HALF
-      b = ZERO
-      c = ONEPFIVE
-    else if (dm%icase == ICASE_PIPE) then
-      a = (ymax - ymin)
-      b = ZERO
-      c = TWO
-    else if (dm%icase == ICASE_ANNUAL) then
-      a = (ymax - ymin) * HALF
-      b = (ymax + ymin) * HALF
-      c = TWO
-    else 
-      a = MAXP
-      b = ZERO
-      c = ONE
-    end if
-
-    do j = 1, dm%nc(2)
-      yy = dm%yc(j)
-      ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
-    end do
-
-    if(nrank == 0) call Print_debug_end_msg
-    return
-  end subroutine Generate_poiseuille_flow_profile
-!==========================================================================================================
-!> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   private
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!----------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!----------------------------------------------------------------------------------------------------------
-!> \param[in]     
-!> \param[out]    
-!==========================================================================================================
-  subroutine Generate_random_field(dm, ux, uy, uz, lnoise)
+  !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
+  !---------------------------------------------------------------------------------------------------------- 
+  !> Scope:  mpi    called-freq    xdomain     module
+  !>         all    once           specified   private
+  !----------------------------------------------------------------------------------------------------------
+  ! Arguments
+  !----------------------------------------------------------------------------------------------------------
+  !  mode           name          role                                           
+  !----------------------------------------------------------------------------------------------------------
+  !> \param[in]     
+  !> \param[out]    
+  !==========================================================================================================
+  subroutine Generate_random_field(dm, ux, uy, uz, p, lnoise)
     use random_number_generation_mod
     use parameters_constant_mod
     use mpi_mod
     use math_mod
+    use boundary_conditions_mod
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP),       intent(in) :: lnoise
     real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(inout) :: ux
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(inout) :: uy
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(inout) :: uz
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(inout) :: p
     
     integer :: seed
     integer :: i, j, k! local id
@@ -480,6 +157,7 @@ contains
     !   Initialisation in x pencil
     !----------------------------------------------------------------------------------------------------------
     seed = 0
+    p(:, :, :) = ZERO
     ux(:, :, :) = ZERO
     uy(:, :, :) = ZERO
     uz(:, :, :) = ZERO
@@ -519,22 +197,83 @@ contains
       end do
     end do
 
+    call Apply_BC_velocity(dm, ux, uy, uz)
+
     if(nrank==0) call Print_debug_end_msg
     return
   end subroutine
-!==========================================================================================================
-!> \brief Initialize Poiseuille flow in channel or pipe.     
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   private
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!----------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!----------------------------------------------------------------------------------------------------------
-!> \param[in]     d             domain
-!> \param[out]    f             flow
-!==========================================================================================================
+
+  !==========================================================================================================
+  !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
+  !---------------------------------------------------------------------------------------------------------- 
+  !> Scope:  mpi    called-freq    xdomain     module
+  !>         all    once           specified   private
+  !----------------------------------------------------------------------------------------------------------
+  ! Arguments
+  !----------------------------------------------------------------------------------------------------------
+  !  mode           name          role                                           
+  !----------------------------------------------------------------------------------------------------------
+  !> \param[in]     d             domain
+  !> \param[out]    ux_1c1          u(yc), velocity profile along wall-normal direction
+  !==========================================================================================================
+  subroutine Generate_poiseuille_flow_profile(dm, ux_1c1)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+
+    type(t_domain), intent(in)  :: dm
+    real(WP),       intent(out) :: ux_1c1(:)
+    
+    real(WP)   :: a, b, c, yy, ymax, ymin
+    integer :: j
+    
+    if(nrank == 0) call Print_debug_mid_msg("Generate poiseuille flow profile ...")
+
+    ux_1c1 (:) = ZERO
+
+    ymax = dm%yp( dm%np_geo(2) )
+    ymin = dm%yp( 1 )
+    if (dm%icase == ICASE_CHANNEL) then
+      a = (ymax - ymin) * HALF
+      b = ZERO
+      c = ONEPFIVE
+    else if (dm%icase == ICASE_PIPE) then
+      a = (ymax - ymin)
+      b = ZERO
+      c = TWO
+    else if (dm%icase == ICASE_ANNUAL) then
+      a = (ymax - ymin) * HALF
+      b = (ymax + ymin) * HALF
+      c = TWO
+    else 
+      a = (ymax - ymin) * HALF
+      b = ZERO
+      c = ONEPFIVE
+    end if
+
+    do j = 1, dm%nc(2)
+      yy = dm%yc(j)
+      ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
+    end do
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine Generate_poiseuille_flow_profile
+
+  !==========================================================================================================
+  !> \brief Initialize Poiseuille flow in channel or pipe.     
+  !---------------------------------------------------------------------------------------------------------- 
+  !> Scope:  mpi    called-freq    xdomain     module
+  !>         all    once           specified   private
+  !----------------------------------------------------------------------------------------------------------
+  ! Arguments
+  !----------------------------------------------------------------------------------------------------------
+  !  mode           name          role                                           
+  !----------------------------------------------------------------------------------------------------------
+  !> \param[in]     d             domain
+  !> \param[out]    f             flow
+  !==========================================================================================================
   subroutine Initialize_poiseuille_flow(dm, ux, uy, uz, p, lnoise)
     use input_general_mod
     use udf_type_mod
@@ -571,29 +310,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get random fields [-1,1] for ux, uy, uz
     !----------------------------------------------------------------------------------------------------------
-    call Generate_random_field(dm, ux, uy, uz, lnoise)
-    ! !----------------------------------------------------------------------------------------------------------
-    ! !   x-pencil : Get the averaged u, v, and w in both the x and z directions
-    ! !----------------------------------------------------------------------------------------------------------
-    ! !if(nrank == 0) call Print_debug_mid_msg("Get the u, v, w, averged in x and z directions ...")
-    ! uxxza = ZERO
-    ! uyxza = ZERO
-    ! uzxza = ZERO
-    ! call Calculate_xz_mean_yprofile(ux, dm%dpcc, dm%nc(2), uxxza)
-    ! call Calculate_xz_mean_yprofile(uy, dm%dcpc, dm%np(2), uyxza)
-    ! call Calculate_xz_mean_yprofile(uz, dm%dpcc, dm%nc(2), uzxza)
-    ! !----------------------------------------------------------------------------------------------------------
-    ! !   x-pencil : Ensure u-u_given, v, w, averaged in x and z direction is zero.
-    ! !              added perturbation is zero in mean. 
-    ! !----------------------------------------------------------------------------------------------------------
-    ! !if(nrank == 0) call Print_debug_mid_msg("Calculate xzmean perturbation...")
-    ! call Adjust_to_xzmean_zero(ux, dm%dpcc, dm%nc(1), uxxza)
-    ! call Adjust_to_xzmean_zero(uy, dm%dcpc, dm%np(2), uyxza)
-    ! call Adjust_to_xzmean_zero(uz, dm%dccp, dm%nc(3), uzxza)
-    ! if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for random velocities with xzmean zero:")
-    ! call Find_maximum_absvar3d(ux, "maximum ux:")
-    ! call Find_maximum_absvar3d(uy, "maximum uy:")
-    ! call Find_maximum_absvar3d(uz, "maximum uz:")
+    call Generate_random_field(dm, ux, uy, uz, p, lnoise)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !----------------------------------------------------------------------------------------------------------
@@ -659,10 +376,200 @@ contains
       close(pf_unit)
     end if
     
-    !if(nrank == 0) call Print_debug_end_msg
+    if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine  Initialize_poiseuille_flow
+  !==========================================================================================================
+  !==========================================================================================================
+  subroutine Initialize_flow_from_given_values(dm, ux, uy, uz, p, lnoise, velo)
+    use udf_type_mod, only: t_domain
+    use precision_mod, only: WP
+    use parameters_constant_mod, only: ZERO
+    use boundary_conditions_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    real(WP),       intent(in) :: lnoise
+    real(WP),       intent(in) :: velo(3)   
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(out) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: uz
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(out) ::  p
+    
+    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field with given values...")
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : initial
+    !----------------------------------------------------------------------------------------------------------
+    p (:, :, :) = ZERO
+    ux(:, :, :) = ZERO
+    uy(:, :, :) = ZERO
+    uz(:, :, :) = ZERO
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : to get random fields [-1,1] for ux, uy, uz
+    !----------------------------------------------------------------------------------------------------------
+    call Generate_random_field(dm, ux, uy, uz, p, lnoise)
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : update values
+    !----------------------------------------------------------------------------------------------------------
+    ux(:, :, :) = ux(:, :, :) + velo(1)
+    uy(:, :, :) = uy(:, :, :) + velo(2)
+    uz(:, :, :) = uz(:, :, :) + velo(3)
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : apply b.c.
+    !----------------------------------------------------------------------------------------------------------
+    call Apply_BC_velocity(dm, ux, uy, uz)
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine
+
+  !==========================================================================================================
+  subroutine Initialize_flow_fields(fl, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    use io_restart_mod
+    use burgers_eq_mod
+    implicit none
+
+    type(t_domain), intent(inout) :: dm
+    type(t_flow), intent(inout)   :: fl
+
+    real(WP) :: velo(3)
+
+    if(nrank == 0) call Print_debug_start_msg("Initialize flow fields ...")
+
+  !----------------------------------------------------------------------------------------------------------
+  ! initialize common thermal variables
+  !----------------------------------------------------------------------------------------------------------
+    dm%fbc_dend(:, :) = ONE
+    dm%fbc_vism(:, :) = ONE
+  !----------------------------------------------------------------------------------------------------------
+  ! to allocate flow variables
+  !----------------------------------------------------------------------------------------------------------
+    call Allocate_flow_variables (fl, dm)
+  !----------------------------------------------------------------------------------------------------------
+  ! to set up Re
+  !----------------------------------------------------------------------------------------------------------
+    call Update_Re(fl%iterfrom, fl)
+  !----------------------------------------------------------------------------------------------------------
+  ! initialize primary variables
+  !----------------------------------------------------------------------------------------------------------
+    fl%time = ZERO
+    fl%iteration = 0
+
+    if(fl%inittype == INIT_RESTART) then
+      call read_instantanous_flow_raw_data(fl, dm)
+      call restore_flow_variables_from_restart(fl, dm)
+
+    else if (fl%inittype == INIT_INTERPL) then
+
+    else if (fl%inittype == INIT_RANDOM) then
+      call Generate_random_field(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
+
+    else if (fl%inittype == INIT_INLET) then
+      velo(1) = dm%fbcx(1, 1)
+      velo(2) = dm%fbcx(1, 2)
+      velo(3) = dm%fbcx(1, 3)
+      call Initialize_flow_from_given_values(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel, velo(:))
+
+    else if (fl%inittype == INIT_GVCONST) then
+      velo(:) = fl%init_velo3d(:)
+      call Initialize_flow_from_given_values(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel, velo(:))
+
+    else if (fl%inittype == INIT_POISEUILLE) then
+      call Initialize_poiseuille_flow(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
+
+    else if (fl%inittype == INIT_FUNCTION) then
+      if (dm%icase == ICASE_TGV2D) then
+        call Initialize_vortexgreen_2dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+      else if (dm%icase == ICASE_TGV3D) then
+        call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+      else if (dm%icase == ICASE_BURGERS) then
+        call Initialize_burgers_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+      else
+      end if
+    else
+    end if
+
+!----------------------------------------------------------------------------------------------------------
+! to initialize pressure correction term
+!----------------------------------------------------------------------------------------------------------
+    fl%pcor(:, :, :) = ZERO
+
+
+    return
+  end subroutine
+
+  !==========================================================================================================
+  subroutine Initialize_thermo_fields(tm, fl, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    use eq_energy_mod
+    use thermo_info_mod
+    use io_restart_mod
+    implicit none
+
+    type(t_domain), intent(inout) :: dm
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
+
+    integer :: i
+    type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
+
+    if(.not. dm%is_thermo) return
+    if(nrank == 0) call Print_debug_start_msg("Initialize thermo fields ...")
+
+!----------------------------------------------------------------------------------------------------------
+! initialize common thermal variables
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      ftpx = tm%ftpbcx(i)
+      ftpy = tm%ftpbcy(i)
+      ftpz = tm%ftpbcz(i)
+
+      dm%fbc_dend(i, 1) = ftpx%d
+      dm%fbc_dend(i, 2) = ftpy%d
+      dm%fbc_dend(i, 3) = ftpz%d
+      dm%fbc_vism(i, 1) = ftpx%m
+      dm%fbc_vism(i, 2) = ftpy%m
+      dm%fbc_vism(i, 3) = ftpz%m
+    end do
+!----------------------------------------------------------------------------------------------------------
+! to allocate thermal variables
+!----------------------------------------------------------------------------------------------------------
+    call Allocate_thermo_variables (tm, dm)
+!----------------------------------------------------------------------------------------------------------
+! to set up Fr etc, require update flow Re first
+!----------------------------------------------------------------------------------------------------------
+    call Update_Re(fl%iterfrom, fl)
+    call Update_PrGr(fl, tm) 
+!----------------------------------------------------------------------------------------------------------
+! initialize primary variables
+!----------------------------------------------------------------------------------------------------------
+    if(tm%inittype == INIT_RESTART) then
+      call read_instantanous_thermo_raw_data  (tm, dm)
+      call restore_thermo_variables_from_restart(fl, tm, dm)
+
+    else if (tm%inittype == INIT_INTERPL) then
+    else
+      call Initialize_thermal_properties (fl, tm)
+      tm%time = ZERO
+      tm%iteration = 0
+    end if
+
+    call Calculate_massflux_from_velocity (fl, dm)
+    !----------------------------------------------------------------------------------------------------------
+    ! to set up old arrays 
+    !----------------------------------------------------------------------------------------------------------
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+    
+    return
+  end subroutine
+
+
+
+
 !==========================================================================================================
 !==========================================================================================================
 !> \brief Initialize Vortex Green flow

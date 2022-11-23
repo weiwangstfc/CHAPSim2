@@ -27,7 +27,7 @@
 module input_general_mod
   implicit none
 
-  logical :: is_any_energyeq
+  
   integer :: cpu_nfre
   public  :: Read_input_parameters
 
@@ -66,11 +66,14 @@ contains
     real(WP), allocatable :: rtmpx(:)
     integer, allocatable  :: itmpx(:)
     integer :: i, j, k
+    logical :: is_any_energyeq
     
     if(nrank == 0) then
       call Print_debug_start_msg("CHAPSim2.0 Starts ...")
       write (*, wrtfmt1i) '  The precision is   :', WP
     end if
+    is_any_energyeq = .false.
+
     !----------------------------------------------------------------------------------------------------------
     ! open file
     !----------------------------------------------------------------------------------------------------------
@@ -284,76 +287,78 @@ contains
       ! [flow]
       !----------------------------------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[flow]' ) then
-        read(inputUnit, *, iostat = ioerr) varname, is_any_energyeq
-        if(is_any_energyeq) allocate( thermo(nxdomain) )
+
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%inittype
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%iterfrom
+        read(inputUnit, *, iostat = ioerr) varname, flow(1)%init_velo3d(1:3)
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%noiselevel
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%reninit
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%initReTo
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%ren
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%idriven
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%drvfc      
-        
-        if(nrank == 0) then
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%drvfc   
+
+        do i = 1, nxdomain
+          if(flow(i)%inittype /= INIT_RESTART) flow(i)%iterfrom = 0
+          flow(i)%init_velo3d(1:3) = flow(1)%init_velo3d(1:3)
+        end do
+
+        if( nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1r) '  flow Reynolds number   :', flow(i)%ren
-            write (*, wrtfmt1i) '  flow driven force type :', flow(i)%idriven
-            write (*, wrtfmt1r) '  flow driven force(cf)  :', flow(i)%drvfc
+            write (*, wrtfmt1i) '  flow initial type                  :', flow(i)%inittype
+            write (*, wrtfmt1i) '  iteration starting from            :', flow(i)%iterfrom
+            if(flow(i)%inittype == INIT_GVCONST) then
+            write (*, wrtfmt3r) '  initial velocity u, v, w           :', flow(i)%init_velo3d(1:3)
+            end if
+            write (*, wrtfmt1r) '  Initial velocity influction level  :', flow(i)%noiselevel
+            write (*, wrtfmt1r) '  Initial Reynolds No.               :', flow(i)%reninit
+            write (*, wrtfmt1i) '  Iteration for initial Reynolds No. :', flow(i)%initReTo
+            write (*, wrtfmt1r) '  flow Reynolds number               :', flow(i)%ren
+            write (*, wrtfmt1i) '  flow driven force type             :', flow(i)%idriven
+            write (*, wrtfmt1r) '  flow driven force(cf)              :', flow(i)%drvfc        
           end do
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [thermo] 
       !----------------------------------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[thermo]' )  then 
-        allocate ( itmpx(nxdomain) ); itmpx = 0
-        allocate ( rtmpx(nxdomain) ); rtmpx = ZERO
-        
-        read(inputUnit, *, iostat = ioerr) varname, itmp
-        if(is_any_energyeq) thermo(1 : nxdomain)%ifluid = itmp
-        read(inputUnit, *, iostat = ioerr) varname, rtmp
-        if(is_any_energyeq) thermo(1 : nxdomain)%lenRef = rtmp
-        read(inputUnit, *, iostat = ioerr) varname, rtmp
-        if(is_any_energyeq) thermo(1 : nxdomain)%t0ref = rtmp
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%is_thermo
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
-        read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
-        if(is_any_energyeq)  thermo(1 : nxdomain)%t0ini = rtmpx(1: nxdomain)
+
+        if(ANY(domain(:)%is_thermo)) is_any_energyeq = .true.
+        if(is_any_energyeq) allocate( thermo(nxdomain) )
+        allocate ( itmpx(nxdomain) ); itmpx = 0
+        allocate ( rtmpx(nxdomain) ); rtmpx = ZERO
+        
+
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%ifluid = itmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%ref_l0 = rtmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%ref_T0 = rtmp
         
         read(inputUnit, *, iostat = ioerr) varname, itmp
-        if(is_any_energyeq) thermo(1 : nxdomain)%irestart  = itmp
+        if(is_any_energyeq) thermo(1 : nxdomain)%inittype  = itmp
         read(inputUnit, *, iostat = ioerr) varname, itmp
-        if(is_any_energyeq) thermo(1 : nxdomain)%nrsttckpt = itmp
-
+        if(is_any_energyeq) thermo(1 : nxdomain)%iterfrom = itmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
+        if(is_any_energyeq) thermo(1 : nxdomain)%init_T0 = rtmpx(1: nxdomain)
+        
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
-            write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%lenRef
-            write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%t0ref
             write (*, wrtfmt1i) '  is thermal field solved   ?', domain(i)%is_thermo
             write (*, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
-            write (*, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%t0ini
-          end do
-        end if
-      !----------------------------------------------------------------------------------------------------------
-      ! [initialization]
-      !----------------------------------------------------------------------------------------------------------
-      else if ( secname(1:slen) == '[initialization]' ) then
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%irestart
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%nrsttckpt
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%nIterIniRen
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%renIni
-        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%initNoise
-        do i = 1, nxdomain
-          if(flow(i)%irestart /= 1) flow(i)%nrsttckpt = 0
-        end do
-        if( nrank == 0) then
-          do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  flow restart                       :', flow(i)%irestart
-            write (*, wrtfmt1i) '  restarting from iteration          :', flow(i)%nrsttckpt
-            write (*, wrtfmt1i) '  Iteration for initial Reynolds No. :', flow(i)%nIterIniRen
-            write (*, wrtfmt1r) '  Initial Reynolds No.               :', flow(i)%renIni
-            write (*, wrtfmt1r) '  Initial velocity influction level  :', flow(i)%initNoise
+            write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
+            write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%ref_l0
+            write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%ref_T0
+            write (*, wrtfmt1i) '  thermo field initial type :', thermo(i)%inittype
+            write (*, wrtfmt1i) '  iteration starting from   :', thermo(i)%iterfrom
+            write (*, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%init_T0
           end do
         end if
       !----------------------------------------------------------------------------------------------------------

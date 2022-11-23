@@ -52,7 +52,9 @@ module thermo_info_mod
   public  :: ftp_refresh_thermal_properties_from_DH
 
   public  :: Buildup_thermo_mapping_relations
-  public ::  Initialize_thermal_properties
+  public  :: Initialize_thermal_properties
+  public  :: Update_thermal_properties
+  
 contains
 !==========================================================================================================
 !==========================================================================================================
@@ -590,7 +592,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  mode           name          role                                           
 !----------------------------------------------------------------------------------------------------------
-!> \param[in]     t0ref          reference temperature
+!> \param[in]     ref_T0          reference temperature
 !==========================================================================================================
   subroutine buildup_property_relations_from_table
     use mpi_mod
@@ -867,8 +869,8 @@ contains
 
     is_ftplist_dim = .true.
     fluidparam%ifluid    = tm%ifluid
-    fluidparam%ftp0ref%t = tm%t0ref
-    fluidparam%ftpini%t  = tm%t0ini
+    fluidparam%ftp0ref%t = tm%ref_T0
+    fluidparam%ftpini%t  = tm%init_T0
 
     !----------------------------------------------------------------------------------------------------------
     ! get given file name or coefficients 
@@ -970,34 +972,34 @@ contains
 
       if( dm%ibcx(i, 5) == IBC_DIRICHLET ) then
         ! dimensional T --> undimensional T
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) / tm%t0ref 
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) / tm%ref_T0 
         tm%ftpbcx(i)%t = dm%fbcx(i, 5)
         call ftp_refresh_thermal_properties_from_T_undim(tm%ftpbcx(i))
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) * tm%lenRef / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+        dm%fbcx(i, 5) = dm%fbcx(i, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
       else
       end if
 
       if( dm%ibcy(i, 5) == IBC_DIRICHLET ) then
         ! dimensional T --> undimensional T
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) / tm%t0ref 
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) / tm%ref_T0 
         tm%ftpbcy(i)%t = dm%fbcy(i, 5)
         call ftp_Refresh_thermal_properties_from_T_undim(tm%ftpbcy(i))
       else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) * tm%lenRef / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+        dm%fbcy(i, 5) = dm%fbcy(i, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
       else
       end if
 
       if( dm%ibcz(i, 5) == IBC_DIRICHLET ) then
         ! dimensional T --> undimensional T
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) / tm%t0ref 
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) / tm%ref_T0 
         tm%ftpbcz(i)%t = dm%fbcz(i, 5)
         call ftp_refresh_thermal_properties_from_T_undim(tm%ftpbcz(i))
       else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
         ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) * tm%lenRef / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+        dm%fbcz(i, 5) = dm%fbcz(i, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
       else
       end if
 
@@ -1031,7 +1033,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   given initialisation temperature
     !----------------------------------------------------------------------------------------------------------
-    ftp_ini%t = tm%t0ini / tm%t0ref
+    ftp_ini%t = tm%init_T0 / tm%ref_T0
     !----------------------------------------------------------------------------------------------------------
     !   update all initial properties based on given temperature
     !----------------------------------------------------------------------------------------------------------
@@ -1082,6 +1084,40 @@ contains
     
     return
   end subroutine Buildup_thermo_mapping_relations
+
+
+  !==========================================================================================================
+  subroutine Update_thermal_properties(fl, tm, dm)
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
+
+    integer :: i, j, k
+    type(t_fluidThermoProperty) :: ftp
+!----------------------------------------------------------------------------------------------------------
+!   x-pencil
+!----------------------------------------------------------------------------------------------------------
+    do k = dm%dccc%xst(3), dm%dccc%xen(3)
+      do j = dm%dccc%xst(2), dm%dccc%xen(2)
+        do i = dm%dccc%xst(1), dm%dccc%xen(1)
+          ftp%dh = tm%dh(i, j, k)
+          call ftp_refresh_thermal_properties_from_DH(ftp)
+          tm%hEnth(i, j, k) = ftp%h
+          tm%tTemp(i, j, k) = ftp%T
+          tm%kCond(i, j, k) = ftp%k
+          fl%dDens(i, j, k) = ftp%d
+          fl%mVisc(i, j, k) = ftp%m
+        end do
+      end do
+    end do
+
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+
+  return
+  end subroutine Update_thermal_properties
   
 end module thermo_info_mod
 

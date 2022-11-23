@@ -115,13 +115,24 @@ module parameters_constant_mod
 !----------------------------------------------------------------------------------------------------------
 ! case id
 !----------------------------------------------------------------------------------------------------------
-  integer, parameter :: ICASE_CHANNEL = 1, &
+  integer, parameter :: ICASE_OTHERS = 0, &
+                        ICASE_CHANNEL = 1, &
                         ICASE_PIPE    = 2, &
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
                         ICASE_BURGERS = 6
   integer, parameter :: NDIM = 3
+!----------------------------------------------------------------------------------------------------------
+! flow initilisation
+!----------------------------------------------------------------------------------------------------------     
+  integer, parameter :: INIT_RESTART = 0, &
+                        INIT_INTERPL = 1, &
+                        INIT_RANDOM  = 2, &
+                        INIT_INLET   = 3, &
+                        INIT_GVCONST = 4, &
+                        INIT_POISEUILLE = 5, &
+                        INIT_FUNCTION = 6
 !----------------------------------------------------------------------------------------------------------
 ! coordinates
 !----------------------------------------------------------------------------------------------------------
@@ -170,12 +181,6 @@ module parameters_constant_mod
                         IACCU_CD4 = 3, &
                         IACCU_CP4 = 4, &
                         IACCU_CP6 = 6
-!----------------------------------------------------------------------------------------------------------
-! flow initilisation
-!----------------------------------------------------------------------------------------------------------     
-  integer, parameter :: INITIAL_RANDOM  = 0, &
-                        INITIAL_RESTART = 1, &
-                        INITIAL_INTERPL = 2
 !----------------------------------------------------------------------------------------------------------
 ! numerical scheme for viscous term
 !---------------------------------------------------------------------------------------------------------- 
@@ -373,9 +378,9 @@ module udf_type_mod
   type t_flow
     integer  :: idriven
     integer  :: igravity
-    integer  :: irestart
-    integer  :: nrsttckpt
-    integer  :: nIterIniRen
+    integer  :: inittype
+    integer  :: iterfrom
+    integer  :: initReTo
     integer  :: nIterFlowStart
     integer  :: nIterFlowEnd
     integer  :: iteration
@@ -383,10 +388,12 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: ren
     real(WP) :: rre
+    real(WP) :: init_velo3d(3)
+    real(wp) :: reninit
     real(WP) :: drvfc
     real(WP) :: fgravity(3)
-    real(wp) :: renIni
-    real(wp) :: initNoise
+
+    real(wp) :: noiselevel
   
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)
@@ -428,14 +435,14 @@ module udf_type_mod
 
   type t_thermo
     integer :: ifluid
-    integer  :: irestart
-    integer  :: nrsttckpt
+    integer  :: inittype
+    integer  :: iterfrom
     integer  :: iteration
     integer  :: nIterThermoStart
     integer  :: nIterThermoEnd
-    real(WP) :: lenRef
-    real(WP) :: t0ref ! '0' means dimensional 
-    real(WP) :: t0ini
+    real(WP) :: ref_l0
+    real(WP) :: ref_T0 ! '0' means dimensional 
+    real(WP) :: init_T0
     real(WP) :: time
     real(WP) :: rPrRen
     
