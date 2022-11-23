@@ -253,18 +253,6 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine  Buildup_geometry_mesh_info
-!==========================================================================================================
-  subroutine Buildup_geometry_mesh_info_all_domains
-    use mpi_mod
-    use vars_df_mod
-    implicit none
 
-    integer :: i
-
-    do i = 1, nxdomain
-      call Buildup_geometry_mesh_info(domain(i)) 
-    end do
-
-  end subroutine 
 end module geometry_mod
 

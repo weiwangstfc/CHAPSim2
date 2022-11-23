@@ -445,19 +445,11 @@ contains
       !----------------------------------------------------------------------------------------------------------
       ! coordinates type
       !----------------------------------------------------------------------------------------------------------
-      if (domain(i)%icase == ICASE_CHANNEL) then
-        domain(i)%icoordinate = ICARTESIAN
-      else if (domain(i)%icase == ICASE_PIPE) then
+      if (domain(i)%icase == ICASE_PIPE) then
         domain(i)%icoordinate = ICYLINDRICAL
         domain(i)%ibcy(:, 1) = IBC_INTERIOR
       else if (domain(i)%icase == ICASE_ANNUAL) then
         domain(i)%icoordinate = ICYLINDRICAL
-      else if (domain(i)%icase == ICASE_TGV2D) then
-        domain(i)%icoordinate = ICARTESIAN
-      else if (domain(i)%icase == ICASE_TGV3D) then
-        domain(i)%icoordinate = ICARTESIAN
-      else if (domain(i)%icase == ICASE_BURGERS) then
-        domain(i)%icoordinate = ICARTESIAN
       else 
         domain(i)%icoordinate = ICARTESIAN
       end if

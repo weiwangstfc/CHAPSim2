@@ -8,6 +8,7 @@ module io_restart_mod
   public :: read_instantanous_flow_raw_data
   public :: read_instantanous_thermo_raw_data
   public :: restore_flow_variables_from_restart
+  public :: restore_thermo_variables_from_restart
 
 contains 
 !==========================================================================================================

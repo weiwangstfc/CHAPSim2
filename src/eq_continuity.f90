@@ -4,7 +4,7 @@ module continuity_eq_mod
   public :: Calculate_drhodt
   public :: Get_divergence_vel
   public :: Get_divergence_vel_x2z
-  public  :: Check_mass_conservation
+  public :: Check_mass_conservation
 contains
 !==========================================================================================================
 !==========================================================================================================

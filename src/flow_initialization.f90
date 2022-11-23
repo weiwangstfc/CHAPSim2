@@ -27,6 +27,8 @@ module flow_thermo_initialiasation
   private :: Generate_poiseuille_flow_profile
   private :: Generate_random_field
 
+  private :: Initialize_poiseuille_flow
+  private :: Initialize_flow_from_given_values
   private :: Initialize_vortexgreen_2dflow
   private :: Initialize_vortexgreen_3dflow
 

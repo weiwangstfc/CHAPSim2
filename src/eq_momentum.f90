@@ -3,10 +3,12 @@ module eq_momentum_mod
   use precision_mod
   use decomp_2d
   implicit none
+
   private :: Calculate_momentum_fractional_step
   private :: Compute_momentum_rhs
   private :: Correct_massflux
   private :: solve_poisson
+  private :: solve_poisson_x2z
   public  :: Solve_momentum_eq
   
 
@@ -1564,7 +1566,7 @@ contains
     call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
 
 #ifdef DEBUG_VISU
-    call view_data_in_rank(rhs_zpencil_ggg,   dm%dccc, dm, 'before_fft', 0)
+    
 
     ! dtmp = dm%dccc
     ! k = 2
@@ -1617,7 +1619,7 @@ contains
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 !#ifdef DEBUG_STEPS
 
-    ! call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
+    
 
     ! dtmp = dm%dccc
     ! k = 2
@@ -1715,7 +1717,7 @@ contains
     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
 
 #ifdef DEBUG_VISU
-    call view_data_in_rank(fl%pcor_zpencil_ggg,   dm%dccc, dm, 'before_fft', 0)
+    
 #endif
 !#ifdef DEBUG_STEPS
     ! dtmp = dm%dccc
@@ -1763,7 +1765,7 @@ contains
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 #ifdef DEBUG_VISU
-    call view_data_in_rank(fl%pcor,   dm%dccc, dm, 'after_fft', 0)
+    
 
     dtmp = dm%dccc
     k = 2
@@ -2005,7 +2007,7 @@ contains
 !     call Find_maximum_absvar3d(fl%qz, "maximum uz:")
 !     call Check_mass_conservation(fl, dm) 
 
-!     call view_data_in_rank(fl%qx, dm%dpcc, dm, 'ux', 111)
+
 
 ! #endif
 
