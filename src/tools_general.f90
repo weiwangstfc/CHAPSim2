@@ -72,8 +72,30 @@
 
     return
   end subroutine Print_3d_array
-
+  
 !==========================================================================================================
+module decomp_operation_mod
+  implicit none 
+contains
+    
+  function is_decomp_same ( a, b ) result(f)
+    use decomp_2d
+    type(DECOMP_INFO), intent(in) :: a, b
+    logical :: f
+    integer :: i
+
+    f = .true.
+    do i = 1, 3
+      if(a%xst(i) /= b%xst(i)) f = .false.
+      if(a%xen(i) /= b%xen(i)) f = .false.
+      if(a%yst(i) /= b%yst(i)) f = .false.
+      if(a%yen(i) /= b%yen(i)) f = .false.
+      if(a%zst(i) /= b%zst(i)) f = .false.
+      if(a%zen(i) /= b%zen(i)) f = .false.
+    end do
+  end function
+end module
+
 !==========================================================================================================
 module code_performance_mod
   use precision_mod

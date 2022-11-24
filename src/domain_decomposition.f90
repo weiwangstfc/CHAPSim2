@@ -129,6 +129,9 @@ contains
     use io_visulisation_mod
     implicit none
     integer :: i
+#ifdef DEBUG_STEPS
+    real(WP), allocatable :: id(:, :, :)
+#endif
 
     !----------------------------------------------------------------------------------------------------------
     ! default, used for fft only
@@ -141,10 +144,17 @@ contains
       call initialize_decomp_io(domain(i))
       call write_monitor_ini(domain(i))
       call write_snapshot_ini(domain(i))
+#ifdef DEBUG_STEPS
+      allocate( id ( domain(i)%dccc%xsz(1), domain(i)%dccc%xsz(2), domain(i)%dccc%xsz(3)) )
+      id(:, :, :) = real(nrank, WP)
+      call write_snapshot_any3darray(id, 'rank', 'mesh', domain(i)%dpcc, domain(i), 0)
+      deallocate(id)
+#endif
     end do
+
+
 
     return
   end subroutine Buildup_mpi_domain_decomposition
-!==========================================================================================================
 
 end module domain_decomposition_mod

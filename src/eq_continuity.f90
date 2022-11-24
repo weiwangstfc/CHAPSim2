@@ -237,6 +237,7 @@ contains
     use mpi_mod
     use solver_tools_mod
     use wtformat_mod
+    use io_visulisation_mod
 
     implicit none
 
@@ -262,7 +263,11 @@ contains
     else
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
-    
+
+#ifdef DEBUG_STEPS
+    call write_snapshot_any3darray(div, 'divU', 'debug', dm%dccc, dm, fl%iteration)
+#endif
+
     call Find_maximum_absvar3d(div, "Check Mass Conservation:", wrtfmt1e)
 
     ! if(nrank == 0) then

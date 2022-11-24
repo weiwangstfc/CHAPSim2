@@ -179,17 +179,18 @@ contains
         ii = i
         do j = 1, dtmp%xsz(2)
           jj = dtmp%xst(2) + j - 1
-          if( ( 1.0_WP - abs_wp(dm%yp(jj)) ) < 0.250_WP) then
-            lownoise = lnoise * lnoise
-          else
-            lownoise = lnoise
-          end if
+          ! if( ( 1.0_WP - abs_wp(dm%yp(jj)) ) < 0.250_WP) then
+          !   lownoise = lnoise * lnoise
+          ! else
+             lownoise = lnoise
+          ! end if
           do k = 1, dtmp%xsz(3)
             kk = dtmp%xst(3) + k - 1
-            seed = ii + jj + kk + nsz * (n - 1)
+            seed = (nrank + 1) * nsz * n + ii * 313 + jj * 571 + kk * 937
+            !seed = ii + jj + kk + nsz * (n - 1)
+            !write(*,*) ii, jj, kk, seed
             call Initialize_random_number ( seed )
             call Generate_r_random( -ONE, ONE, rd)
-
             if(n == 1) ux(i, j, k) = lownoise * rd
             if(n == 2) uy(i, j, k) = lownoise * rd
             if(n == 3) uz(i, j, k) = lownoise * rd
@@ -431,6 +432,7 @@ contains
     use parameters_constant_mod
     use io_restart_mod
     use burgers_eq_mod
+    use io_visulisation_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -498,6 +500,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
 
+    call write_snapshot_flow(fl, dm)
 
     return
   end subroutine

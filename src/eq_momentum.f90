@@ -1032,44 +1032,6 @@ contains
     call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
     call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
 
-#ifdef DEBUG_VISU
-    
-
-    ! dtmp = dm%dccc
-    ! k = 2
-    ! i = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-    !   do j = 1, dtmp%xsz(2)
-    !     jj = dtmp%xst(2) + j - 1
-    !     write(121, *) jj, rhs_zpencil_ggg(i, j, k)
-    !   end do
-    ! end if
-
-    ! k = 2
-    ! j = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !     open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-    !     do i = 1, dtmp%xsz(1)
-    !       write(221, *) i, rhs_zpencil_ggg(i, j, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! i = 2
-    ! j = 2
-    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !   open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-    !   do k = 1, dtmp%xsz(3)
-    !     write(321, *) k, rhs_zpencil_ggg(i, j, k)
-    !   end do
-    ! end if
-    ! !print '("zzz 30s...")'
-    ! !call sleep(30)
-
-#endif
-
 !==========================================================================================================
 !   solve Poisson
 !==========================================================================================================
@@ -1094,12 +1056,7 @@ contains
     use decomp_2d_poisson
     use decomp_extended_mod
     use continuity_eq_mod
-#ifdef DEBUG_VISU
-    use io_visulisation_mod
-#endif
-!#ifdef DEBUG_STEPS
-!     use visulisation_mod
-!#endif
+
     implicit none
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl                  
@@ -1145,45 +1102,6 @@ contains
     end if
     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
-
-#ifdef DEBUG_VISU
-    
-#endif
-!#ifdef DEBUG_STEPS
-    ! dtmp = dm%dccc
-    ! k = 2
-    ! i = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   open(121, file = 'debugy_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-    !   do j = 1, dtmp%xsz(2)
-    !     jj = dtmp%xst(2) + j - 1
-    !     write(121, *) jj, fl%pcor_zpencil_ggg(i, j, k)
-    !   end do
-    ! end if
-
-    ! k = 2
-    ! j = 2
-    ! if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-    !   if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !     open(221, file = 'debugx_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-    !     do i = 1, dtmp%xsz(1)
-    !       write(221, *) i, fl%pcor_zpencil_ggg(i, j, k)
-    !     end do
-    !   end if
-    ! end if
-
-    ! i = 2
-    ! j = 2
-    ! if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-    !   open(321, file = 'debugz_before_fft_'//trim(int2str(nrank))//'.dat', position="append")
-    !   do k = 1, dtmp%xsz(3)
-    !     write(321, *) k, fl%pcor_zpencil_ggg(i, j, k)
-    !   end do
-    ! end if
-    !print '("zzz 30s...")'
-    !call sleep(30)
-
-!#endif
 !==========================================================================================================
 !   solve Poisson
 !==========================================================================================================
@@ -1194,41 +1112,7 @@ contains
     call zpencil_index_ggg2llg(fl%pcor_zpencil_ggg, rhs_zpencil, dm%dccc)
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
-#ifdef DEBUG_VISU
-    
 
-    dtmp = dm%dccc
-    k = 2
-    i = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      open(121, file = 'debugy_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        write(121, *) jj, fl%pcor(i, j, k)
-      end do
-    end if
-
-    k = 2
-    j = 2
-    if( k >= dtmp%xst(3) .and. k <= dtmp%xen(3)) then
-      if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-        open(221, file = 'debugx_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-        do i = 1, dtmp%xsz(1)
-          write(221, *) i, fl%pcor(i, j, k)
-        end do
-      end if
-    end if
-
-    i = 2
-    j = 2
-    if( j >= dtmp%xst(2) .and. j <= dtmp%xen(2)) then
-      open(321, file = 'debugz_after_fft_'//trim(int2str(nrank))//'.dat', position="append")
-      do k = 1, dtmp%xsz(3)
-        write(321, *) k, fl%pcor(i, j, k)
-      end do
-    end if
-
-#endif
     return
   end subroutine
 
@@ -1255,6 +1139,7 @@ contains
     use solver_tools_mod
 #ifdef DEBUG_STEPS
     use io_visulisation_mod
+    use typeconvert_mod
 #endif
     implicit none
 
@@ -1270,9 +1155,9 @@ contains
 ! to update intermediate (\hat{q}) or (\hat{g})
 !_______________________________________________________________________________
 #ifdef DEBUG_STEPS
-  call write_snapshot_any3darray(fl%mx_rhs, 'mx_rhs', dm%pcc, dm, fl%iteration)
-  call write_snapshot_any3darray(fl%my_rhs, 'my_rhs', dm%cpc, dm, fl%iteration)
-  call write_snapshot_any3darray(fl%mz_rhs, 'mz_rhs', dm%ccp, dm, fl%iteration)
+  !call write_snapshot_any3darray(fl%mx_rhs, 'mx_rhs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+  !call write_snapshot_any3darray(fl%my_rhs, 'my_rhs_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+  !call write_snapshot_any3darray(fl%mz_rhs, 'mz_rhs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity to get intermediate data
@@ -1330,9 +1215,9 @@ contains
     if ( dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
     
 #ifdef DEBUG_STEPS
-    call write_snapshot_any3darray(fl%qx, 'qx', dm%pcc, dm, fl%iteration)
-    call write_snapshot_any3darray(fl%qy, 'qy', dm%cpc, dm, fl%iteration)
-    call write_snapshot_any3darray(fl%qz, 'qz', dm%ccp, dm, fl%iteration)
+    !call write_snapshot_any3darray(fl%qx, 'qx_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+    !call write_snapshot_any3darray(fl%qy, 'qy_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+    !call write_snapshot_any3darray(fl%qz, 'qz_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
 #endif
 
     return

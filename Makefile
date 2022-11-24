@@ -12,7 +12,6 @@
 # add flags for debug:
 #    -DDEBUG_STEPS  : serial debug for each step                                                #
 #    -DDEBUG_FFT    : fft debug                                                                 #
-#    -DDEBUG_VISU   : output visulisation                                                       #
 #################################################################################################
 .SUFFIXES:
 .PHONY: debug default clean
@@ -24,21 +23,21 @@ ifeq ($(cfg), gnu)
    -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
    -Wno-unused -fallow-argument-mismatch		   
   FFLGS= -DDOUBLE_PREC
-  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
+  FDEBG= -DDEBUG_STEPS  #-DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
   FFLGS= -DDOUBLE_PREC -DDEBUG
-  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), cray)
   FOPTS= # -m 3
   FFLGS= # -s default64
-  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), pg)
   FOPTS= -O3 -pg -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
   FFLGS= -DDOUBLE_PREC 
-  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT -DDEBUG_VISU
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
   FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
