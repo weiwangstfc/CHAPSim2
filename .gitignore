@@ -2,7 +2,7 @@
 bin/
 obj/
 mod/
-## lib/2decomp_fft/
+lib/2decomp_fft/
 example/.notshown/
 example/
 .input/
