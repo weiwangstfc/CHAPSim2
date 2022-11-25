@@ -2,7 +2,6 @@
 bin/
 obj/
 mod/
-# lib/2decomp_fft/
 example/
 .input/
 .obsolete/
@@ -14,5 +13,6 @@ test_*/
 *.png
 *.o
 *.mod
+*.a
 .DS_Store
 *.code-workspace
