@@ -2,8 +2,7 @@
 bin/
 obj/
 mod/
-lib/2decomp_fft/
-example/.notshown/
+# lib/2decomp_fft/
 example/
 .input/
 .obsolete/
@@ -13,40 +12,7 @@ test_*/
 *.dat
 *.log
 *.png
-.DS_Store
-
-# Prerequisites
-*.d
-*.inc
-
-# Compiled Object files
 *.o
 *.mod
-*.slo
-*.lo
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+.DS_Store
 *.code-workspace
