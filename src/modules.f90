@@ -318,7 +318,6 @@ module udf_type_mod
     integer :: visu_idim
     integer :: visu_nskip(3)
     integer :: stat_istart
-    integer :: stat_nfre
     integer :: stat_nskip(3)
     integer :: nsubitr
     integer :: istret
@@ -419,6 +418,10 @@ module udf_type_mod
     real(WP), allocatable :: my_rhs0(:, :, :)! last step rhs in y
     real(WP), allocatable :: mz_rhs0(:, :, :)! last step rhs in z
 
+    real(WP), allocatable :: u_vector_mean(:, :, :, :) ! u, v, w
+    real(WP), allocatable :: pr_mean(:, :, :)
+    real(WP), allocatable :: uu_tensor6_mean(:, :, :, :) ! uu, vv, ww, uv, uw, vw
+
   end type t_flow
 
   
@@ -456,6 +459,10 @@ module udf_type_mod
     real(WP), allocatable :: tTemp(:, :, :)
     real(WP), allocatable :: ene_rhs(:, :, :)  ! current step rhs
     real(WP), allocatable :: ene_rhs0(:, :, :) ! last step rhs
+
+    real(WP), allocatable :: t_mean(:, :, :)
+    real(WP), allocatable :: tt_mean(:, :, :)
+
   end type t_thermo
 
   type t_fluid_parameter

@@ -393,7 +393,6 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%visu_nfre
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%visu_nskip(1:3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%stat_istart
-        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%stat_nfre
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%stat_nskip(1:3)
 
         if( nrank == 0) then
@@ -406,7 +405,6 @@ contains
             write (*, wrtfmt1i) '  visu data written freqency  :', domain(i)%visu_nfre
             write (*, wrtfmt3i) '  visu data skips in x, y, z  :', domain(i)%visu_nskip(1:3)
             write (*, wrtfmt1i) '  statistics written from     :', domain(i)%stat_istart
-            write (*, wrtfmt1i) '  statistics written freqency :', domain(i)%stat_nfre
             write (*, wrtfmt3i) '  statistics skips in x, y, z :', domain(i)%stat_nskip(1:3)
           end do
         end if

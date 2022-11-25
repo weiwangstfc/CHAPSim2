@@ -407,91 +407,108 @@ contains
     if(nrank == 0) &
     call Print_debug_start_msg("Calculating volumeric average in 3-D ...")
 #endif
-  !----------------------------------------------------------------------------------------------------------
-  !   transpose to y pencil. Default is x-pencil.
-  !----------------------------------------------------------------------------------------------------------
-    var_ypencil = ZERO
 
-    call transpose_x_to_y(var, var_ypencil, dtmp)
-    !----------------------------------------------------------------------------------------------------------
-    !   In Y-pencil now
-    !----------------------------------------------------------------------------------------------------------
-    if( is_ynp )then
-      !----------------------------------------------------------------------------------------------------------
-      !   if variable is stored in y-nodes, extend them to y-cell centres (P2C)
-      !   for example, uy.
-      !----------------------------------------------------------------------------------------------------------
-      if( dm%is_periodic(2) ) then
-        noy = dtmp%ysz(2)
-      else
-        noy = dtmp%ysz(2) - 1
-      end if
-
-      allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
-      vcp_ypencil = ZERO
-
-      call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy)
-
-      fo = ZERO
+    if(.not. dm%is_stretching(2) ) then 
       vol = ZERO
-      do k = 1, dtmp%ysz(3)
-        do i = 1, dtmp%ysz(1)
-          do j = 1, noy
-            !----------------------------------------------------------------------------------------------------------
-            !       j'    j'+1
-            !      _|__.__|_
-            !         j     
-            !----------------------------------------------------------------------------------------------------------
-            jp = j + 1
-            if( dm%is_periodic(2) .and. jp > dtmp%ysz(2)) jp = 1
-            fo = fo + &      
-                ( var_ypencil(i, jp, k) + vcp_ypencil(i, j, k) ) * &
-                ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
-                ( var_ypencil(i, j,     k) + vcp_ypencil(i, j, k) ) * &
-                ( dm%yc(j    ) - dm%yp(j) ) * HALF
-            vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
+      fo  = ZERO
+      do k = 1, dtmp%xsz(3)
+        do j = 1, dtmp%xsz(2)
+          do i = 1, dtmp%xsz(1)
+            fo = fo + var(i, j, k)
+            vol = vol + ONE
           end do
         end do
       end do
-      deallocate(vcp_ypencil)
+      
     else
-      !----------------------------------------------------------------------------------------------------------
-      !   if variable is not stored in y-nodes, extends them to y-nodes. C2P
-      !   for example, ux, density, etc.
-      !----------------------------------------------------------------------------------------------------------
-      if( dm%is_periodic(2) ) then
-        noy = dtmp%ysz(2)
-      else
-        noy = dtmp%ysz(2) + 1
-      end if
-      allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
-      vcp_ypencil = ZERO
-      call Get_y_midp_C2P_3D(var_ypencil, vcp_ypencil, dm, ibcy, fbcy)
+    !----------------------------------------------------------------------------------------------------------
+    !   transpose to y pencil. Default is x-pencil.
+    !----------------------------------------------------------------------------------------------------------
+      var_ypencil = ZERO
 
-      fo = ZERO
-      vol = ZERO
-      do k = 1, dtmp%ysz(3)
-        do i = 1, dtmp%ysz(1)
-          do j = 1, dtmp%ysz(2)
-            !----------------------------------------------------------------------------------------------------------
-            !      j'    j'+1
-            !      _|__.__|_
-            !         j
-            !----------------------------------------------------------------------------------------------------------
-            jp = j + 1
-            if( dm%is_periodic(2) .and. jp > noy) jp = 1
-            fo = fo + &
-                ( vcp_ypencil(i, jp, k) + var_ypencil(i, j, k) ) * &
-                ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
-                ( var_ypencil(i, j,     k) + var_ypencil(i, j, k) ) * &
-                ( dm%yc(j    ) - dm%yp(j) ) * HALF
-            vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
+      call transpose_x_to_y(var, var_ypencil, dtmp)
+      !----------------------------------------------------------------------------------------------------------
+      !   In Y-pencil now
+      !----------------------------------------------------------------------------------------------------------
+      if( is_ynp )then
+        !----------------------------------------------------------------------------------------------------------
+        !   if variable is stored in y-nodes, extend them to y-cell centres (P2C)
+        !   for example, uy.
+        !----------------------------------------------------------------------------------------------------------
+        if( dm%is_periodic(2) ) then
+          noy = dtmp%ysz(2)
+        else
+          noy = dtmp%ysz(2) - 1
+        end if
+
+        allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
+        vcp_ypencil = ZERO
+
+        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy)
+
+        fo = ZERO
+        vol = ZERO
+        do k = 1, dtmp%ysz(3)
+          do i = 1, dtmp%ysz(1)
+            do j = 1, noy
+              !----------------------------------------------------------------------------------------------------------
+              !       j'    j'+1
+              !      _|__.__|_
+              !         j     
+              !----------------------------------------------------------------------------------------------------------
+              jp = j + 1
+              if( dm%is_periodic(2) .and. jp > dtmp%ysz(2)) jp = 1
+              fo = fo + &      
+                  ( var_ypencil(i, jp, k) + vcp_ypencil(i, j, k) ) * &
+                  ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
+                  ( var_ypencil(i, j,     k) + vcp_ypencil(i, j, k) ) * &
+                  ( dm%yc(j    ) - dm%yp(j) ) * HALF
+              vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
+            end do
           end do
         end do
-      end do
-      deallocate(vcp_ypencil)
+        deallocate(vcp_ypencil)
+      else
+        !----------------------------------------------------------------------------------------------------------
+        !   if variable is not stored in y-nodes, extends them to y-nodes. C2P
+        !   for example, ux, density, etc.
+        !----------------------------------------------------------------------------------------------------------
+        if( dm%is_periodic(2) ) then
+          noy = dtmp%ysz(2)
+        else
+          noy = dtmp%ysz(2) + 1
+        end if
+        allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
+        vcp_ypencil = ZERO
+        call Get_y_midp_C2P_3D(var_ypencil, vcp_ypencil, dm, ibcy, fbcy)
+
+        fo = ZERO
+        vol = ZERO
+        do k = 1, dtmp%ysz(3)
+          do i = 1, dtmp%ysz(1)
+            do j = 1, dtmp%ysz(2)
+              !----------------------------------------------------------------------------------------------------------
+              !      j'    j'+1
+              !      _|__.__|_
+              !         j
+              !----------------------------------------------------------------------------------------------------------
+              jp = j + 1
+              if( dm%is_periodic(2) .and. jp > noy) jp = 1
+              fo = fo + &
+                  ( vcp_ypencil(i, jp, k) + var_ypencil(i, j, k) ) * &
+                  ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
+                  ( var_ypencil(i, j,     k) + var_ypencil(i, j, k) ) * &
+                  ( dm%yc(j    ) - dm%yp(j) ) * HALF
+              vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
+            end do
+          end do
+        end do
+        deallocate(vcp_ypencil)
+      end if
+
     end if
-    
+
+
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce( fo,  fo_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
@@ -546,5 +563,4 @@ contains
 #endif
     return
   end subroutine
-
 end module

@@ -3,6 +3,8 @@ module io_visulisation_mod
   use precision_mod
   implicit none 
 
+  character(len=*), parameter :: io_name = "solution-io"
+
   integer, parameter :: XDMF_HEADER = 1, &
                         XDMF_FOOTER = 2
   integer, parameter :: PLANE_AVERAGE = -1
@@ -11,7 +13,7 @@ module io_visulisation_mod
                              TENSOR = "Tensor"
   character(4), parameter :: CELL = "Cell", &
                              NODE = "Node"
-  character(len=*), parameter :: io_name = "solution-io"
+  
 
   integer, allocatable :: nnd_visu(:, :)
   integer, allocatable :: ncl_visu(:, :)
@@ -26,6 +28,8 @@ module io_visulisation_mod
   public  :: write_snapshot_ini
   public  :: write_snapshot_flow
   public  :: write_snapshot_thermo
+  public  :: write_snapshot_flow_stat
+  public  :: write_snapshot_thermo_stat
   public  :: write_snapshot_any3darray
 
 
@@ -309,6 +313,7 @@ contains
     character(120):: keyword
     integer :: nsz(3)
     integer :: ioxdmf
+    logical :: file_exists
 
     if((.not. is_decomp_same(dtmp, dm%dccc))) then
       if(nrank == 0) call Print_error_msg("Data is not stored at cell centre. varname = " // trim(varname))
@@ -324,7 +329,11 @@ contains
     if(dm%visu_idim == Ivisudim_3D) then
       keyword = trim(svisudim)//"_"//trim(varname)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
-      call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
+      INQUIRE(FILE = data_flname_path, exist = file_exists)
+      if(.not.file_exists) then
+        call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
+      end if
+
     else if(dm%visu_idim == Ivisudim_1D_XZa) then
       !to add 1D profile
     else 
@@ -428,13 +437,6 @@ contains
 
     integer :: iter 
     character(120) :: visuname
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
-
 
     iter = tm%iteration
     visuname = 'thermo'
@@ -454,7 +456,77 @@ contains
     return
   end subroutine
 
+!==========================================================================================================
+  subroutine write_snapshot_flow_stat(fl, dm)
+    use udf_type_mod
+    use precision_mod
+    use operations
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(t_flow),   intent(in) :: fl
 
+    integer :: iter 
+    character(120) :: visuname
+    
+    iter = fl%iteration
+    visuname = 'flow_mean'
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, 
+!----------------------------------------------------------------------------------------------------------
+    call write_field(dm, fl%pr_mean,                     dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%u_vector_mean  (:, :, :, 1), dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%u_vector_mean  (:, :, :, 2), dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%u_vector_mean  (:, :, :, 3), dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, "uu", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, "vv", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, "ww", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, "uv", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, "uw", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, "vw", trim(visuname), SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    
+    return
+  end subroutine
+
+  !==========================================================================================================
+  subroutine write_snapshot_thermo_stat(tm, dm)
+    use udf_type_mod
+    use precision_mod
+    use operations
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(t_thermo), intent(in) :: tm
+
+    integer :: iter 
+    character(120) :: visuname
+    
+    iter = tm%iteration
+    visuname = 'thermo_mean'
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, 
+!----------------------------------------------------------------------------------------------------------
+    call write_field(dm, tm%t_mean,  dm%dccc, "t",  trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, tm%tt_mean, dm%dccc, "tt", trim(visuname), SCALAR, CELL, iter)
+
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    
+    return
+  end subroutine
+  
   !==========================================================================================================
   subroutine write_snapshot_any3darray(var, varname, visuname, dtmp, dm, iter)
     use udf_type_mod
@@ -484,7 +556,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     keyword = trim(visuname)//"_"//trim(varname)
     call write_snapshot_headerfooter(dm, trim(keyword), XDMF_HEADER, iter)
-    if(nrank==0) write(*,*) keyword, iter
+    !if(nrank==0) write(*,*) keyword, iter
 !----------------------------------------------------------------------------------------------------------
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------

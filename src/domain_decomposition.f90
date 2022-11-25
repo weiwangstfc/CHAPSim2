@@ -122,11 +122,12 @@ contains
 !> \param[in]     none          NA
 !==========================================================================================================
   subroutine Buildup_mpi_domain_decomposition
-    use vars_df_mod, only : domain
+    use vars_df_mod
     use mpi_mod
     use io_tools_mod
     use io_monitor_mod
     use io_visulisation_mod
+    use statistics_mod
     implicit none
     integer :: i
 #ifdef DEBUG_STEPS
@@ -144,6 +145,8 @@ contains
       call initialize_decomp_io(domain(i))
       call write_monitor_ini(domain(i))
       call write_snapshot_ini(domain(i))
+      call init_statistics_flow(flow(i), domain(i))
+      if(domain(i)%is_thermo) call init_statistics_thermo(thermo(i), domain(i))
 #ifdef DEBUG_STEPS
       allocate( id ( domain(i)%dccc%xsz(1), domain(i)%dccc%xsz(2), domain(i)%dccc%xsz(3)) )
       id(:, :, :) = real(nrank, WP)

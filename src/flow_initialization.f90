@@ -819,11 +819,6 @@ contains
           ii = dtmp%xst(1) + i - 1
           xp = dm%h(1) * real(ii - 1, WP) - PI
           ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
-          ! if(i<=dtmp%xsz(1)/2 + 1) then
-          !   ux(i, j, k) =  xp
-          ! else
-          !   ux(i, j, k) = -xp + twopi
-          !end if
         end do
       end do
     end do
@@ -840,13 +835,7 @@ contains
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
           xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
-          !uy(i, j, k) = sin_wp(yp)
           uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
-          ! if(jj<=dtmp%ysz(2)/2 + 1) then
-          !   uy(i, j, k) =  yp
-          ! else
-          !   uy(i, j, k) = -yp + twopi
-          ! end if
         end do
       end do
     end do
@@ -856,13 +845,8 @@ contains
     !uz(:, :, :) =  ZERO
     dtmp = dm%dccp
     do k = 1, dtmp%xsz(3)
-      kk = dtmp%xst(3) + k - 1
-      !zp = dm%h(3) * real(kk - 1, WP) - PI
       do j = 1, dtmp%xsz(2)
-        !yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
-          !xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
-          !uz(i, j, k) = -cos_wp ( xc ) *  cos_wp ( yc ) * sin_wp ( zp )
           uz(i, j, k) = zero
         end do
       end do

@@ -40,7 +40,7 @@ else ifeq ($(cfg), pg)
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
   FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
-	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
+	-ffpe-trap=invalid,zero,overflow -fall-intrinsics -fallow-argument-mismatch
   FFLGS= -DDOUBLE_PREC
   FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
@@ -77,6 +77,7 @@ OBJS1= mpi_mod.o\
       io_tools.o\
       io_monitor.o\
       io_visulisation.o\
+      statistics.o\
       domain_decomposition.o\
       poisson_interface.o\
       poisson_1stderivcomp.o\

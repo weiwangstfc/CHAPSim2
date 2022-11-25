@@ -137,6 +137,7 @@ subroutine Solve_eqs_iteration
   use io_monitor_mod
   use io_tools_mod
   use io_restart_mod
+  use statistics_mod
   implicit none
 
   logical :: is_flow   = .false.
@@ -211,16 +212,36 @@ subroutine Solve_eqs_iteration
       call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
       call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)
       call Check_mass_conservation(flow(i), domain(i)) 
+
       !==========================================================================================================
-      !  write out check point data for restart and monitoring
+      !  update statistics
+      !==========================================================================================================
+      if (iter > domain(i)%stat_istart) then
+        call update_statistics_flow(flow(i), domain(i))
+      end if
+      if(domain(i)%is_thermo) then
+        if (iter > domain(i)%stat_istart) then
+          call update_statistics_thermo(thermo(i), domain(i))
+        end if
+      end if
+      !==========================================================================================================
+      !  monitoring 
+      !==========================================================================================================
+      !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
+      call write_monitor_total(flow(i), domain(i))
+      call write_monitor_flow(flow(i), domain(i))
+      if(domain(i)%is_thermo) then
+        call write_monitor_thermo(thermo(i), domain(i))
+      end if
+      !==========================================================================================================
+      !  write out check point data for restart
       !==========================================================================================================
       if (mod(iter, domain(i)%ckpt_nfre) == 0) then
-        !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
-        call write_monitor_flow(flow(i), domain(i))
         call write_instantanous_flow_raw_data(flow(i), domain(i))
+        if(iter > domain(i)%stat_istart) call write_statistics_flow(flow(i), domain(i))
         if(domain(i)%is_thermo) then
-          call write_monitor_thermo(thermo(i), domain(i))
           call write_instantanous_thermo_raw_data(thermo(i), domain(i))
+          if(iter > domain(i)%stat_istart) call write_statistics_thermo(thermo(i), domain(i))
         end if
       end if
       !==========================================================================================================
@@ -230,6 +251,12 @@ subroutine Solve_eqs_iteration
         call write_snapshot_flow(flow(i), domain(i))
         if(domain(i)%is_thermo) then
           call write_snapshot_thermo(thermo(i), domain(i))
+        end if
+        if(iter > domain(i)%stat_istart ) then
+          call write_snapshot_flow_stat(flow(i), domain(i))
+          if(domain(i)%is_thermo) then
+            call write_snapshot_thermo_stat(thermo(i), domain(i))
+          end if
         end if
       end if
 
