@@ -1,22 +1,26 @@
 module poisson_interface_mod
   use decomp_2d
   use mpi_mod
-  use parameters_constant_mod, only: zero, half, one, onepfive, two, twopfive, &
-                                     three, pi, threepfive, four, twopi, cx_one_one
+  use parameters_constant_mod, disabled => WP!, only: zero, half, one, onepfive, two, twopfive, &
+                             !        three, pi, threepfive, four, twopi, cx_one_one
   use math_mod, only: cos_prec, abs_prec, sin_prec
   use geometry_mod, only: alpha, beta
   implicit none
 
   integer :: istret
-!---------------------------------------------------------------------------------------------------------------------------------------------
+
+  integer, parameter :: IFORWARD  = 1
+  integer, parameter :: IBACKWARD = -1
+
+!----------------------------------------------------------------------------------------------------------
   real(mytype) :: xlx ! domain length
   real(mytype) :: yly ! physical domain
   real(mytype) :: zlz
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
   logical :: nclx ! logic, whether it is periodic bc
   logical :: ncly
   logical :: nclz
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
   ! below information is from incompact3d.
   ! Boundary conditions : ncl = 2 --> Dirichlet
   ! Boundary conditions : ncl = 1 --> Free-slip
@@ -31,81 +35,85 @@ module poisson_interface_mod
   integer :: nclx1 ! boundary condition, velocity
   integer :: ncly1 
   integer :: nclz1
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  integer :: nx ! computational node number
-  integer :: ny
-  integer :: nz
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  integer :: nxm ! number of spacing 
-  integer :: nym
-  integer :: nzm
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: dx
-  real(mytype) :: dy ! physical grid spacing
-  real(mytype) :: dz
-!--------------------------------------------------------------------------------------------------------------------------------------------- 
+!----------------------------------------------------------------------------------------------------------
+  integer, save :: nx ! computational node number
+  integer, save :: ny
+  integer, save :: nz
+!----------------------------------------------------------------------------------------------------------
+  integer, save :: nxm ! number of spacing 
+  integer, save :: nym
+  integer, save :: nzm
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: dx
+  real(mytype), save :: dy ! physical grid spacing
+  real(mytype), save :: dz
+!---------------------------------------------------------------------------------------------------------- 
   !real(mytype) :: alpha
   !real(mytype) :: beta
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: alcaix6 
-  real(mytype) :: acix6
-  real(mytype) :: bcix6
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: alcaiy6 
-  real(mytype) :: aciy6
-  real(mytype) :: bciy6
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: alcaiz6
-  real(mytype) :: aciz6
-  real(mytype) :: bciz6
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: ailcaix6 
-  real(mytype) :: aicix6
-  real(mytype) :: bicix6
-  real(mytype) :: cicix6
-  real(mytype) :: dicix6
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: ailcaiy6 
-  real(mytype) :: aiciy6
-  real(mytype) :: biciy6
-  real(mytype) :: ciciy6
-  real(mytype) :: diciy6
-!---------------------------------------------------------------------------------------------------------------------------------------------
-  real(mytype) :: ailcaiz6
-  real(mytype) :: aiciz6
-  real(mytype) :: biciz6
-  real(mytype) :: ciciz6
-  real(mytype) :: diciz6
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: alcaix6 
+  real(mytype), save :: acix6
+  real(mytype), save :: bcix6
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: alcaiy6 
+  real(mytype), save :: aciy6
+  real(mytype), save :: bciy6
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: alcaiz6
+  real(mytype), save :: aciz6
+  real(mytype), save :: bciz6
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: ailcaix6 
+  real(mytype), save :: aicix6
+  real(mytype), save :: bicix6
+  real(mytype), save :: cicix6
+  real(mytype), save :: dicix6
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: ailcaiy6 
+  real(mytype), save :: aiciy6
+  real(mytype), save :: biciy6
+  real(mytype), save :: ciciy6
+  real(mytype), save :: diciy6
+!----------------------------------------------------------------------------------------------------------
+  real(mytype), save :: ailcaiz6
+  real(mytype), save :: aiciz6
+  real(mytype), save :: biciz6
+  real(mytype), save :: ciciz6
+  real(mytype), save :: diciz6
+!----------------------------------------------------------------------------------------------------------
   !module waves
-  complex(mytype),allocatable,dimension(:) :: zkz,zk2,ezs
-  complex(mytype),allocatable,dimension(:) :: yky,yk2,eys
-  complex(mytype),allocatable,dimension(:) :: xkx,xk2,exs
+  complex(mytype),allocatable,dimension(:), save :: zkz,zk2,ezs
+  complex(mytype),allocatable,dimension(:), save :: yky,yk2,eys
+  complex(mytype),allocatable,dimension(:), save :: xkx,xk2,exs
 
   public :: build_up_poisson_interface
 
 contains
-!=============================================================================================================================================
+!==========================================================================================================
   subroutine build_up_poisson_interface(dm)
     use udf_type_mod
     use parameters_constant_mod
     use operations
     implicit none
     type(t_domain), intent(in) :: dm
+
+    real(WP) :: alcai, aci, bci
     
 
-    if (nrank == 0) call Print_debug_start_msg("Building up interface for the poisson solver ...")
-!---------------------------------------------------------------------------------------------------------------------------------------------
+    if (nrank == 0) call Print_debug_start_msg("Building up the interface for the poisson solver ...")
+!----------------------------------------------------------------------------------------------------------
     istret = dm%istret
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
     xlx = dm%lxx
     yly = dm%lyt - dm%lyb ! computational or physical length?
     zlz = dm%lzz
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
     nclx = dm%is_periodic(1)
     ncly = dm%is_periodic(2)
     nclz = dm%is_periodic(3)
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+!   nclx1, ncly1, nclz1 are not used for poisson solver but only for debugging.
+!----------------------------------------------------------------------------------------------------------
     if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
       nclx1 = 0
     else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
@@ -113,6 +121,7 @@ contains
     else
       nclx1 = 1
     end if
+
     if(dm%ibcy(1, 1) == IBC_PERIODIC ) then
       ncly1 = 0
     else if (dm%ibcy(1, 1) == IBC_DIRICHLET ) then
@@ -120,6 +129,7 @@ contains
     else
       ncly1 = 1
     end if
+
     if(dm%ibcz(1, 1) == IBC_PERIODIC ) then
       nclz1 = 0
     else if (dm%ibcz(1, 1) == IBC_DIRICHLET ) then
@@ -127,7 +137,7 @@ contains
     else
       nclz1 = 1
     end if
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
     if (nclx) then
       nx = dm%np_geo(1) - 1
       nxm = nx
@@ -135,6 +145,7 @@ contains
       nx = dm%np_geo(1)
       nxm = nx - 1
     end if
+
     if (ncly) then
       ny = dm%np_geo(2) - 1
       nym = ny
@@ -142,6 +153,7 @@ contains
       ny = dm%np_geo(2)
       nym = ny - 1
     end if
+
     if (nclz) then
       nz = dm%np_geo(3) - 1
       nzm = nz
@@ -149,45 +161,72 @@ contains
       nz = dm%np_geo(3)
       nzm = nz - 1
     end if
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
     dx = dm%h(1)
-    dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! computational or physical grid spacing?
+    dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! computational or physical grid spacing (yes))?
     dz = dm%h(3)
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
     !alpha, beta from geo 
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
-    acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
-    bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
-    aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
-    bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
-!---------------------------------------------------------------------------------------------------------------------------------------------
-    alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
-    aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
-    bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
-!---------------------------------------------------------------------------------------------------------------------------------------------
-!   only classic interpolation, no optimized schemes added here. See paper S. Lele 1992
-!   check pros of optimized schemes, to do
-    ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
-    aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
-    bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
-    cicix6   = zero
-    dicix6   = zero
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+    if(dm%iAccuracy == IACCU_CD2) then
+      alcai = ZERO
+      aci = ONE 
+      bci = ZERO
+    else
+      alcai = NINE / SIXTYTWO
+      aci = SIXTYTHREE / SIXTYTWO
+      bci = SEVENTEEN / SIXTYTWO / THREE
+    end if
+    
+    alcaix6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    acix6   = aci / dx !d1rC2P(3, 1, IBC_PERIODIC) / dx
+    bcix6   = bci / dx !d1rC2P(3, 2, IBC_PERIODIC) / dx
+
+    alcaiy6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    aciy6   = aci / dy !d1rC2P(3, 1, IBC_PERIODIC) / dy
+    bciy6   = bci / dy !d1rC2P(3, 2, IBC_PERIODIC) / dy
+
+    alcaiz6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    aciz6   = aci / dz !d1rC2P(3, 1, IBC_PERIODIC) / dz
+    bciz6   = bci / dz !d1rC2P(3, 2, IBC_PERIODIC) / dz
+!----------------------------------------------------------------------------------------------------------
+!   only classic interpolation, no optimized schemes added here. check paper S. Lele 1992
+!   check pros of optimized schemes, to do (see below info from xcompact3d)
+!*``ipinter=1``: conventional sixth-order interpolation coefficients as described in `Lele 1992 <https://www.sciencedirect.com/science/article/pii/002199919290324R>`_\
+!*``ipinter=2``: optimal sixth-order interpolation coefficients designed to be as close as possible to spectral interpolators.
+!*``ipinter=3``: aggressive sixth-order interpolation coefficients designed to add some numerical dissipation at small scales but they could result in spurious oscillations close to a wall.
+    if(dm%iAccuracy == IACCU_CD2) then
+      ailcaix6 = ZERO
+      aicix6 = HALF 
+      bicix6 = ZERO
+      cicix6 = ZERO
+      dicix6 = ZERO
+    else
+      ailcaix6 = THREE * ZPONE
+      aicix6 = ONEPFIVE * HALF
+      bicix6 = ONE * ZPONE * HALF
+      cicix6 = ZERO
+      dicix6 = ZERO
+    end if
+
+    !ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
+    !aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
+    !bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
+    !cicix6   = zero
+    !dicix6   = zero
+
     ailcaiy6 = ailcaix6
     aiciy6   = aicix6
     biciy6   = bicix6
     ciciy6   = cicix6
     diciy6   = dicix6
-!---------------------------------------------------------------------------------------------------------------------------------------------
+
     ailcaiz6 = ailcaix6
     aiciz6   = aicix6
     biciz6   = bicix6
     ciciz6   = cicix6
     diciz6   = dicix6
-!---------------------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
 
     !module waves
     allocate(zkz(nz/2+1))
@@ -218,10 +257,10 @@ contains
 
 end module
 
-!=============================================================================================================================================
+!==========================================================================================================
 ! below functions and subroutines are from incompact3d.
 ! please do not change them except "use xxx"
-!=============================================================================================================================================
+!==========================================================================================================
 
 !##################################################################
 ! function rl(complexnumber) from incompact3d
@@ -271,7 +310,7 @@ function cx(realpart,imaginarypart)
   cx = cmplx(realpart, imaginarypart, kind=mytype)
 
 end function cx
-!=============================================================================================================================================
+!==========================================================================================================
 !##################################################################
 !##################################################################
 subroutine inversion5_v1(aaa_in,eee,spI)
@@ -291,9 +330,9 @@ subroutine inversion5_v1(aaa_in,eee,spI)
   TYPE(DECOMP_INFO) :: spI
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-16
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 #else
-  real(mytype), parameter :: epsilon = 1.e-8
+  real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
 
   complex(mytype),dimension(spI%yst(1):spI%yen(1),ny/2,spI%yst(3):spI%yen(3),5) :: aaa, aaa_in
@@ -435,9 +474,9 @@ subroutine inversion5_v2(aaa,eee,spI)
   TYPE(DECOMP_INFO) :: spI
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-16
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 #else
-  real(mytype), parameter :: epsilon = 1.e-8
+  real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
 
   complex(mytype),dimension(spI%yst(1):spI%yen(1),nym,spI%yst(3):spI%yen(3),5) :: aaa
@@ -556,3 +595,90 @@ subroutine inversion5_v2(aaa,eee,spI)
   return
 
 end subroutine inversion5_v2
+
+
+
+module decomp_extended_mod
+  use parameters_constant_mod
+  implicit none
+
+
+  public :: ypencil_index_lgl2ggl
+  public :: zpencil_index_llg2ggg
+  public :: zpencil_index_ggg2llg
+
+  contains
+
+  subroutine ypencil_index_lgl2ggl(vin, vou, dtmp)
+    use decomp_2d
+    implicit none
+
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(dtmp%ysz(1),               dtmp%ysz(2), dtmp%ysz(3)), intent(in)  :: vin
+    real(WP), dimension(dtmp%yst(1) : dtmp%yen(2), dtmp%ysz(2), dtmp%zsz(3)), intent(out) :: vou
+
+    integer :: i, j, k, ii
+    vou = ZERO
+    do k = 1, dtmp%ysz(3)
+      do j = 1, dtmp%ysz(2)
+        do i = 1, dtmp%ysz(1)
+          ii = dtmp%yst(1) + i - 1
+          vou(ii, j, k) = vin(i, j, k)
+        end do
+      end do
+    end do
+    return
+  end subroutine 
+
+  subroutine zpencil_index_llg2ggg(vin, vou, dtmp)
+    use decomp_2d
+    implicit none
+
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(dtmp%zsz(1),               dtmp%zsz(2),               dtmp%zsz(3)), intent(in)  :: vin
+    real(WP), dimension(dtmp%zst(1) : dtmp%zen(1), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(out) :: vou
+
+    integer :: i, j, k, jj, ii
+
+    vou = ZERO
+    do k = 1, dtmp%zsz(3)
+      do j = 1, dtmp%zsz(2)
+        jj = dtmp%zst(2) + j - 1
+        do i = 1, dtmp%zsz(1)
+          ii = dtmp%zst(1) + i - 1
+          vou(ii, jj, k) = vin(i, j, k)
+        end do
+      end do
+    end do
+    return
+  end subroutine
+  
+  subroutine zpencil_index_ggg2llg(vin, vou, dtmp)
+    use decomp_2d
+    implicit none
+
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(dtmp%zst(1) : dtmp%zen(1), dtmp%zst(2) : dtmp%zen(2), dtmp%zsz(3)), intent(in)   :: vin
+    real(WP), dimension(dtmp%zsz(1),               dtmp%zsz(2),               dtmp%zsz(3)), intent(out)  :: vou
+    
+
+    integer :: i, j, k, jj, ii
+!write(*,*) 'vin', nrank, size(vin, 1), size(vin, 2),size(vin, 3)
+!write(*,*) 'vou', nrank, size(vou, 1), size(vou, 2),size(vou, 3)
+
+    vou = ZERO
+    do k = 1, dtmp%zsz(3)
+      do j = 1, dtmp%zsz(2)
+        jj = dtmp%zst(2) + j - 1
+        do i = 1, dtmp%zsz(1)
+          ii = dtmp%zst(1) + i - 1
+          vou(i, j, k) = vin(ii, jj, k)
+        end do
+      end do
+    end do
+    return
+  end subroutine
+
+  
+
+end module 

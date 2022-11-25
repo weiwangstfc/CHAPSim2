@@ -4,6 +4,7 @@ obj/
 mod/
 ## lib/2decomp_fft/
 example/.notshown/
+example/
 .input/
 .obsolete/
 .tmp/
@@ -12,6 +13,7 @@ test_*/
 *.dat
 *.log
 *.png
+.DS_Store
 
 # Prerequisites
 *.d

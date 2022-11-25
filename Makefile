@@ -9,55 +9,62 @@
 # mpirun -np 4 valgrind --leak-check=full --track-origins=yes \                                 #
 #                       --log-file=valgrind_output.txt ./CHAPSIM*                               #
 #                          < solver_input > solver_output                                       #
-#                                                                                               #
+# add flags for debug:
+#    -DDEBUG_STEPS  : serial debug for each step                                                #
+#    -DDEBUG_FFT    : fft debug                                                                 #
 #################################################################################################
-
-.PHONY: debug default clean
 .SUFFIXES:
+.PHONY: debug default clean
 
 PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
-	FOPTS= -g \
-		   -fbacktrace \
-		   -fbounds-check \
-		   -fcheck=all \
-		   -ffpe-trap=invalid,zero,overflow \
-		   -finit-real=snan -ftrapv \
-		   -ffree-line-length-512 \
-                   -Wuninitialized \
-                   -fallow-argument-mismatch \
-		   -Wall
-	FFLGS= -DOUBLE_PREC -DDEBUG -DDEBG
+  FOPTS= -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
+   -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
+   -Wno-unused -fallow-argument-mismatch		   
+  FFLGS= -DDOUBLE_PREC
+  FDEBG= -DDEBUG_STEPS  #-DDEBUG_FFT
 else ifeq ($(cfg), intel)
-	FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
+  FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
-	FFLGS= -DOUBLE_PREC -DDEBUG
-	FOPTS= -O3  -march=native  -fimplicit-none  -Wall  -Wline-truncation  -fwhole-file  -std=gnu
+  FFLGS= -DDOUBLE_PREC -DDEBUG
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), cray)
-	FOPTS= # -m 3
-	FFLGS= # -s default64
+  FOPTS= # -m 3
+  FFLGS= # -s default64
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), pg)
-	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
+  FOPTS= -O3 -pg -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
 	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DOUBLE_PREC -pg
+  FFLGS= -DDOUBLE_PREC 
+  FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
-	FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
-	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
-	FFLGS= -DOUBLE_PREC
+  FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
+	-ffpe-trap=invalid,zero,overflow -fall-intrinsics -fallow-argument-mismatch
+  FFLGS= -DDOUBLE_PREC
+  FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
 
+# this is based on the latest 2decomp&fft lib by UoE&ICL, 2022
+#include ./lib/2decomp-fft-main/Makefile.settings
+#INCLUDE= -I./lib/2decomp-fft-main/mod
+#LIBS= -L./lib/2decomp-fft-main -ldecomp2d
 
-include ./lib/2decomp_fft/src/Makefile.inc
-INCLUDE = -I ./lib/2decomp_fft/include
-LIBS = -L ./lib/2decomp_fft/lib -l2decomp_fft
+# this is based on the original 2decomp&fft lib by NAG&ICL, 2012
+#include ./lib/2decomp_fft/src/Makefile.inc
+#INCLUDE= -I./lib/2decomp_fft/include
+#LIBS= -L./lib/2decomp_fft/lib -l2decomp_fft
+
+# this is based on the updated 2decomp&fft lib by NAG&ICL, 2013
+include ./lib/2decomp_fft_updated/src/Makefile.inc
+INCLUDE= -I./lib/2decomp_fft_updated/include
+LIBS= -L./lib/2decomp_fft_updated/lib -l2decomp_fft
 
 DIR_SRC= ./src
 DIR_BIN= ./bin
 DIR_OBJ= ./obj
-DIR_MOD= ./mod
 
-OBJS= mpi_mod.o\
+OBJS1= mpi_mod.o\
       modules.o\
       tools_general.o\
       input_thermo.o\
@@ -66,43 +73,45 @@ OBJS= mpi_mod.o\
       algorithms.o\
       operations.o\
       tools_solver.o\
-      restart.o\
       geometry.o\
+      io_tools.o\
+      io_monitor.o\
+      io_visulisation.o\
+      statistics.o\
       domain_decomposition.o\
       poisson_interface.o\
-      poisson.o\
+      poisson_1stderivcomp.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\
       test_algrithms.o\
-      visulisation.o\
+      io_restart.o\
       flow_initialization.o\
       chapsim.o
-
+OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 
 default :
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_MOD)
-	@mv *.o $(DIR_OBJ)
+	@mv *.mod $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
 
 $(PROGRAM): $(OBJS)
-	$(F90) -o $@ $(OBJS) $(FOPTS) $(FFLGS) $(LIBS)
+	$(FC) $(FOPTS) $(FFLGS) $(FDEBG) -o $@ $(OBJS) $(LIBS)
 
-%.o : $(DIR_SRC)/%.f90
-	$(F90) $(INCLUDE) $(FOPTS) $(FFLGS) $(F90FLAGS) -c $<
+$(DIR_OBJ)/%.o : $(DIR_SRC)/%.f90
+	$(FC) $(INCLUDE) $(FOPTS) $(FFLGS) $(FDEBG) $(FCFLAGS)  $(FFLAGS) -c  -o $@ $<
 
 all:
 	@make clean
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_MOD)
-	@mv *.o $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
+	@mv *.mod $(DIR_OBJ)
+	@echo -e "Successfully compiled. \a"
 
 clean:
-	@rm -f $(DIR_OBJ)/*.o $(DIR_BIN)/$(PROGRAM)
+	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BIN)/$(PROGRAM)
 	@rm -f *.mod *.o $(DIR_SRC)/*.mod $(DIR_SRC)/*.o
 
 
