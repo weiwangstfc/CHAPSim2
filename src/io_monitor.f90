@@ -122,16 +122,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! create history file for total variables
 !----------------------------------------------------------------------------------------------------------
-    keyword = "monitor_bulk"
-    call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
-    inquire(file = trim(flname), exist = exist)
-    if (exist) then
-      !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
-    else
-      open(newunit = myunit, file = trim(flname), status="new", action="write")
-      write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
-      write(myunit, *) "# energy" ! to add more instantanous or statistics
-      close(myunit)
+    if(nrank == 0) then
+      keyword = "monitor_bulk"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+      inquire(file = trim(flname), exist = exist)
+      if (exist) then
+        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
+      else
+        open(newunit = myunit, file = trim(flname), status="new", action="write")
+        write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
+        write(myunit, *) "# energy" ! to add more instantanous or statistics
+        close(myunit)
+      end if
     end if
 
 
@@ -171,16 +173,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! open file
 !----------------------------------------------------------------------------------------------------------
-    keyword = "monitor_bulk"
-    call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+    if(nrank == 0) then
+      keyword = "monitor_bulk"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
 
-    open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
-        iostat = ioerr, iomsg = iotxt)
-    if(ioerr /= 0) then
-      write (*, *) 'Problem openning probing file'
-      write (*, *) 'Message: ', trim (iotxt)
-      stop
-    end if       
+      open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
+          iostat = ioerr, iomsg = iotxt)
+      if(ioerr /= 0) then
+        write (*, *) 'Problem openning probing file'
+        write (*, *) 'Message: ', trim (iotxt)
+        stop
+      end if 
+    end if      
 !----------------------------------------------------------------------------------------------------------
 !   ux
 !----------------------------------------------------------------------------------------------------------
@@ -207,7 +211,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   write data out
 !----------------------------------------------------------------------------------------------------------
-    write(myunit, *) fl%time, bulk_energy
+    if(nrank == 0) write(myunit, *) fl%time, bulk_energy
     close(myunit)
 
     return
