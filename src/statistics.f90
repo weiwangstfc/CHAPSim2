@@ -30,9 +30,9 @@ contains
 
     do i = 1, 3
       if(dm%is_periodic(i)) then 
-        ncl_stat(i, dm%idom) = xszS(1)
+        ncl_stat(i, dm%idom) = xszS(i)
       else 
-        ncl_stat(i, dm%idom) = MAX(xszS(1) - 1, 1)
+        ncl_stat(i, dm%idom) = MAX(xszS(i) - 1, 1)
       end if
     end do
 
