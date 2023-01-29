@@ -518,7 +518,7 @@ contains
 ! X-pencil : X-mom pressure gradient in x direction, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
     call Get_x_1st_derivative_C2P_3D( fl%pres, apcc, dm, dm%ibcx(:, 4), dm%fbcx(:, 4) )
-    mx_rhs_pfc=  my_rhs_pfc - apcc
+    mx_rhs_pfc=  mx_rhs_pfc - apcc
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : X-mom diffusion term (x-v1-1/7), \mu^x * LL1(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
