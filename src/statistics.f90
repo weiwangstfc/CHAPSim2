@@ -28,13 +28,17 @@ contains
     allocate (ncl_stat(3, nxdomain))
     ncl_stat = 0
 
-    do i = 1, 3
-      if(dm%is_periodic(i)) then 
-        ncl_stat(i, dm%idom) = xszS(i)
-      else 
-        ncl_stat(i, dm%idom) = MAX(xszS(i) - 1, 1)
-      end if
-    end do
+    ! do i = 1, 3
+    !   if(dm%is_periodic(i)) then 
+    !     ncl_stat(i, dm%idom) = xszS(i)
+    !   else 
+    !     ncl_stat(i, dm%idom) = MAX(xszS(i) - 1, 1)
+    !   end if
+    ! end do
+    ncl_stat(1, dm%idom) = dm%dccc%xsz(1) ! default skip is 1.
+    ncl_stat(2, dm%idom) = dm%dccc%xsz(2) ! default skip is 1.
+    ncl_stat(3, dm%idom) = dm%dccc%xsz(3) ! default skip is 1.
+
 
     allocate ( fl%pr_mean        (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)   ) )
     allocate ( fl%u_vector_mean  (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom), 3) )
