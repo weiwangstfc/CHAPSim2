@@ -2,7 +2,6 @@
 bin/
 obj/
 mod/
-example/
 .input/
 .obsolete/
 .tmp/

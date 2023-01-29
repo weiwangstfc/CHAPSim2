@@ -382,7 +382,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Get_volumetric_average_3d(is_ynp, ibcy, fbcy, dm, dtmp, var, fo_work)
+  subroutine Get_volumetric_average_3d(is_ynp, ibcy, fbcy, dm, dtmp, var, fo_work, str)
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
@@ -397,6 +397,7 @@ contains
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
+    character(*), optional, intent(in) :: str
  
     real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) )  :: var_ypencil
     real(WP), allocatable   :: vcp_ypencil(:, :, :)
@@ -404,8 +405,13 @@ contains
     integer :: i, j, k, noy, jp
 
 #ifdef DEBUG_STEPS  
-    if(nrank == 0) &
-    call Print_debug_start_msg("Calculating volumeric average in 3-D ...")
+    if(nrank == 0) then
+      if(present(str)) then
+        call Print_debug_start_msg("Calculating volumeric average of "//trim(str)//" in 3-D ...")
+      else
+        call Print_debug_start_msg("Calculating volumeric average in 3-D ...")
+      end if
+    end if
 #endif
 
     if(.not. dm%is_stretching(2) ) then 
@@ -515,8 +521,15 @@ contains
     fo_work = fo_work / vol_work
 
 #ifdef DEBUG_STEPS  
-    if(nrank == 0) &
-    write (*, wrtfmt1r) ' volumetric average is ', fo_work
+
+    if(nrank == 0) then
+      if(present(str)) then
+        write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+      else
+        write (*, wrtfmt1e) ' volumetric average is ', fo_work
+      end if
+    end if
+
 #endif
 
     return 

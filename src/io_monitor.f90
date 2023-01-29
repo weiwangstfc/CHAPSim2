@@ -207,7 +207,7 @@ contains
 !   x-pencil, 1/2*(uu+vv+ww) - calculation
 !----------------------------------------------------------------------------------------------------------
     fenergy = HALF * (accc1 * accc1 + accc2 * accc2 + accc3 * accc3)
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dccc, fenergy, bulk_energy)
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dccc, fenergy, bulk_energy, "mke")
 !----------------------------------------------------------------------------------------------------------
 !   write data out
 !----------------------------------------------------------------------------------------------------------

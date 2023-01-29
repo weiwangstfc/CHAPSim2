@@ -343,7 +343,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -352,7 +352,7 @@ contains
     ux(:, :, :) = ux(:, :, :) / ubulk
 
     call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk)
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -433,6 +433,9 @@ contains
     use io_restart_mod
     use burgers_eq_mod
     use io_visulisation_mod
+    use wtformat_mod
+    use solver_tools_mod
+    use continuity_eq_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -499,6 +502,14 @@ contains
 ! to initialize pressure correction term
 !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
+
+    !==========================================================================================================
+    !  validation for each time step
+    !==========================================================================================================
+    call Find_maximum_absvar3d(fl%qx, "init maximum ux:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qy, "init maximum uy:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qz, "init maximum uz:", wrtfmt1e)
+    call Check_mass_conservation(fl, dm) 
 
     call write_snapshot_flow(fl, dm)
 
@@ -811,13 +822,13 @@ contains
     dtmp = dm%dpcc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xp = dm%h(1) * real(ii - 1, WP) - PI
+          xp = dm%h(1) * real(ii - 1, WP)
           ux(i, j, k) =  sin_wp ( xp ) * cos_wp ( yc ) * cos_wp ( zc )
         end do
       end do
@@ -828,13 +839,13 @@ contains
     dtmp = dm%dcpc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yp = dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           uy(i, j, k) = -cos_wp ( xc ) * sin_wp ( yp ) * cos_wp ( zc )
         end do
       end do
@@ -857,13 +868,13 @@ contains
     dtmp = dm%dccc
     do k = 1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
-      zc = dm%h(3) * (real(kk - 1, WP) + HALF) - PI
+      zc = dm%h(3) * (real(kk - 1, WP) + HALF)
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
-          xc = dm%h(1) * (real(ii - 1, WP) + HALF) - PI
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
           p(i, j, k)= ONE / SIXTEEN * ( cos(TWO * xc) + cos(TWO * yc) ) * &
                       (cos(TWO * zc) + TWO)
         end do
