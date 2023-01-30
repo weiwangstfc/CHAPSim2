@@ -151,10 +151,12 @@ contains
     !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
     fl%pcor_zpencil_ggg(:, :, :) = ZERO
-    fl%dDens  (:, :, :) = ONE
-    fl%mVisc  (:, :, :) = ONE
-    fl%dDensm1(:, :, :) = ONE
-    fl%dDensm2(:, :, :) = ONE
+    if(dm%is_thermo) then
+      fl%dDens  (:, :, :) = ONE
+      fl%mVisc  (:, :, :) = ONE
+      fl%dDensm1(:, :, :) = ONE
+      fl%dDensm2(:, :, :) = ONE
+    end if
 
     return
   end subroutine

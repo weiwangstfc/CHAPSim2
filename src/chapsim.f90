@@ -183,6 +183,7 @@ subroutine Solve_eqs_iteration
       !==========================================================================================================
       if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
         is_flow = .true.
+        if (nrank == 0) write(*, wrtfmt1r) "flow field physical time = ", flow(i)%time
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
         call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
@@ -194,6 +195,7 @@ subroutine Solve_eqs_iteration
       if(domain(i)%is_thermo) then
         if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
           is_thermo = .true.
+          if (nrank == 0) write(*, wrtfmt1r) "thermal field physical time = ", thermo(i)%time
           thermo(i)%time = thermo(i)%time  + domain(i)%dt
           thermo(i)%iteration = thermo(i)%iteration + 1
         end if
