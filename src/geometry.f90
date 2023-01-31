@@ -178,10 +178,7 @@ contains
 
     type(t_domain), intent(inout) :: dm
 
-    integer    :: i, j, k
-    integer    :: outputunit
-    logical    :: file_exists = .FALSE.
-    character( len = 128) :: filename
+    integer    :: i
     
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
 

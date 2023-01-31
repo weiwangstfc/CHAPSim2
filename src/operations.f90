@@ -1912,7 +1912,7 @@ contains
     use mpi_mod
     use parameters_constant_mod
     implicit none
-    integer :: i, nsz, j, k
+    integer :: i, nsz
 
 !==========================================================================================================
 !   building up the basic lhs coeffients for compact schemes, based on the given
@@ -3719,7 +3719,7 @@ contains
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in ) :: fbc(2)
-    integer :: nsz, i
+    integer :: nsz
 
     if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
       if(.not. present(fbc)) &

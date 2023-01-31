@@ -112,7 +112,7 @@ contains
 
     real(wp) :: varxz( n )
     integer :: jj, i, j, k
-    integer :: nk, ni, nk_work, ni_work
+    integer :: nk, ni!, nk_work, ni_work
     real(WP) :: varxz_work(n)
     !----------------------------------------------------------------------------------------------------------
     !   Default X-pencil
@@ -287,7 +287,7 @@ contains
     real(WP) ::   w_zpencil (dm%dccp%zsz(1), &
                              dm%dccp%zsz(2), &
                              dm%dccp%zsz(3))
-    real(WP)   :: cfl_convection, cfl_convection_work
+    !real(WP)   :: cfl_convection, cfl_convection_work
     integer :: i, j, k
     type(DECOMP_INFO) :: dtmp
 
@@ -404,15 +404,15 @@ contains
     real(WP)   :: vol, fo, vol_work
     integer :: i, j, k, noy, jp
 
-#ifdef DEBUG_STEPS  
-    if(nrank == 0) then
-      if(present(str)) then
-        call Print_debug_start_msg("Calculating volumeric average of "//trim(str)//" in 3-D ...")
-      else
-        call Print_debug_start_msg("Calculating volumeric average in 3-D ...")
-      end if
-    end if
-#endif
+! #ifdef DEBUG_STEPS  
+!     if(nrank == 0) then
+!       if(present(str)) then
+!         call Print_debug_mid_msg("Calculating volumeric average of "//trim(str)//" in 3-D ...")
+!       else
+!         call Print_debug_mid_msg("Calculating volumeric average in 3-D ...")
+!       end if
+!     end if
+! #endif
 
     if(.not. dm%is_stretching(2) ) then 
       vol = ZERO
@@ -520,7 +520,7 @@ contains
     call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     fo_work = fo_work / vol_work
 
-#ifdef DEBUG_STEPS  
+! #ifdef DEBUG_STEPS  
 
     if(nrank == 0) then
       if(present(str)) then
@@ -530,7 +530,7 @@ contains
       end if
     end if
 
-#endif
+! #endif
 
     return 
   end subroutine Get_volumetric_average_3d

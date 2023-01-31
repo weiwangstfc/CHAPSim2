@@ -91,8 +91,6 @@ contains
     real(WP), dimension(dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3)) :: uz_ypencil
     real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: uz_zpencil
 
-    integer :: i, j, k
-
     div = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! operation in x pencil, du/dx
@@ -171,12 +169,10 @@ contains
                         dm%dccc%zst(3) : dm%dccc%zen(3)) :: div0_zpencil_ggg
 
     real(WP), dimension(dm%dcpc%ysz(1),                  dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: uy_ypencil
-    real(WP), dimension(dm%dcpc%yst(1) : dm%dcpc%yen(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: uy_ypencil_ggl
     real(WP), dimension(dm%dccp%yst(1) : dm%dccp%yen(1), dm%dccp%ysz(2), dm%dccp%ysz(3)) :: uz_ypencil_ggl
 
     real(WP), dimension(dm%dccp%ysz(1),                  dm%dccp%ysz(2),                  dm%dccp%ysz(3)) :: uz_ypencil
     real(WP), dimension(dm%dccp%zsz(1),                  dm%dccp%zsz(2),                  dm%dccp%zsz(3)) :: uz_zpencil
-    real(WP), dimension(dm%dccp%zst(1) : dm%dccp%zen(1), dm%dccp%zst(2) : dm%dccp%zen(2), dm%dccp%zsz(3)) :: uz_zpencil_ggl
 
 !----------------------------------------------------------------------------------------------------------
 ! operation in x pencil, du/dx
@@ -228,7 +224,7 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Check_mass_conservation(fl, dm)
+  subroutine Check_mass_conservation(fl, dm, str0)
     use precision_mod
     use udf_type_mod
     use input_general_mod    
@@ -242,10 +238,19 @@ contains
     implicit none
 
     type(t_domain), intent( in    ) :: dm
-    type(t_flow),   intent( inout ) :: fl                  
+    type(t_flow),   intent( inout ) :: fl  
+    character(*), intent(in), optional :: str0                
+
+    character(32) :: str
 
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: div
-    real(WP)   :: divmax 
+    !real(WP)   :: divmax 
+
+    if(present(str0)) then
+      str = trim(str0)
+    else
+      str = ''
+    end if
 
     fl%pcor = ZERO
     div(:, :, :)  = ZERO
@@ -265,10 +270,10 @@ contains
     end if
 
 #ifdef DEBUG_STEPS
-    call write_snapshot_any3darray(div, 'divU', 'debug', dm%dccc, dm, fl%iteration)
+    call write_snapshot_any3darray(div, 'divU', trim(str), dm%dccc, dm, fl%iteration)
 #endif
 
-    call Find_maximum_absvar3d(div, "Check Mass Conservation:", wrtfmt1e)
+    call Find_maximum_absvar3d(div, trim(str)//" Check Mass Conservation:", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax

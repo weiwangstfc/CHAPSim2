@@ -213,14 +213,13 @@ contains
 
     character(120):: keyword
     character(120):: visu_flname
-    character(120):: grid_flname(3)
-    character(1)  :: str(3)
+    !character(120):: grid_flname(3)
+    !character(1)  :: str(3)
 
     integer :: ioxdmf
-    logical :: file_exists
+    !logical :: file_exists
     
-    
-    integer :: i, j, k
+    !integer :: i, j, k
     if(nrank /= 0) return
 !----------------------------------------------------------------------------------------------------------
 ! visu file name

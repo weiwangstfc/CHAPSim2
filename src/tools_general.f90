@@ -38,7 +38,7 @@
     implicit none
     character(len=*), intent(IN) :: msg
 
-    write (*, *) msg
+    write (*, *) "    "//msg
     return
   end subroutine Print_debug_mid_msg
 !==========================================================================================================

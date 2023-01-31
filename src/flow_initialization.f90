@@ -154,7 +154,7 @@ contains
     real(WP) :: rd, lownoise
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_start_msg("Generating random field ...")
+    if(nrank == 0) call Print_debug_mid_msg("Generating random field ...")
     !----------------------------------------------------------------------------------------------------------
     !   Initialisation in x pencil
     !----------------------------------------------------------------------------------------------------------
@@ -202,7 +202,6 @@ contains
 
     call Apply_BC_velocity(dm, ux, uy, uz)
 
-    if(nrank==0) call Print_debug_end_msg
     return
   end subroutine
 
@@ -260,7 +259,6 @@ contains
       ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
-    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Generate_poiseuille_flow_profile
 
@@ -295,14 +293,14 @@ contains
     integer :: i, j, k, jj
     real(WP) :: ubulk
     real(WP) :: ux_1c1(dm%nc(2))
-    real(WP) :: uxxza (dm%nc(2))
-    real(WP) :: uyxza (dm%np(2))
-    real(WP) :: uzxza (dm%nc(2))
+    ! real(WP) :: uxxza (dm%nc(2))
+    ! real(WP) :: uyxza (dm%np(2))
+    ! real(WP) :: uzxza (dm%nc(2))
     real(WP) :: ux_ypencil(dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3))
 
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Initializing Poiseuille flow field ...")
+    if(nrank == 0) call Print_debug_start_msg("Initializing Poiseuille flow field ...")
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : initial
     !----------------------------------------------------------------------------------------------------------
@@ -509,9 +507,11 @@ contains
     call Find_maximum_absvar3d(fl%qx, "init maximum ux:", wrtfmt1e)
     call Find_maximum_absvar3d(fl%qy, "init maximum uy:", wrtfmt1e)
     call Find_maximum_absvar3d(fl%qz, "init maximum uz:", wrtfmt1e)
-    call Check_mass_conservation(fl, dm) 
+    call Check_mass_conservation(fl, dm, 'initialization') 
 
     call write_snapshot_flow(fl, dm)
+
+    if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine

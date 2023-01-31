@@ -24,7 +24,6 @@ contains
 
     character(120):: data_flname_path
     character(120):: keyword
-    logical :: file_exists = .FALSE.
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data ...")
 
@@ -62,7 +61,6 @@ contains
 
     character(120):: data_flname_path
     character(120):: keyword
-    logical :: file_exists = .FALSE.
     
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d thermo data ...")
@@ -92,7 +90,6 @@ contains
 
     character(120):: data_flname
     character(120):: keyword
-    logical :: file_exists = .FALSE.
 
 
     if(nrank == 0) call Print_debug_start_msg("read instantanous flow data ... ...")
@@ -174,7 +171,6 @@ contains
 
     character(120):: data_flname
     character(120):: keyword
-    logical :: file_exists = .FALSE.
 
     if (.not. dm%is_thermo) return
     if(nrank == 0) call Print_debug_start_msg("read instantanous thermo data ... ...")

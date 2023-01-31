@@ -385,7 +385,7 @@ contains
     use parameters_constant_mod, only : MINP, ONE
     type(t_fluidThermoProperty), intent(inout) :: this
 
-    integer :: i1, i2, im, ix
+    integer :: i1, i2, im
     real(WP) :: d1, dm
     real(WP) :: w1, w2
 

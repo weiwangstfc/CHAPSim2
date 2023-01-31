@@ -86,6 +86,7 @@ contains
     use udf_type_mod
     use operations
     use solver_tools_mod
+    use typeconvert_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -222,12 +223,12 @@ contains
 !----------------------------------------------------------------------------------------------------------
     real(WP) :: one_third_rre, two_third_rre, two_rre
     real(WP) :: fbc(2)
-    integer  :: i, j, k, m, jj
-    real(WP) :: rhsx_bulk, rhsy_bulk, rhsz_bulk
+    integer  :: i, m
+    real(WP) :: rhsx_bulk, rhsz_bulk
 
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
-    call Print_debug_start_msg("Compute_momentum_rhs ...")
+    call Print_debug_start_msg("Compute_momentum_rhs at isub = "//trim(int2str(isub)))
 #endif
 
     one_third_rre = ONE_THIRD * fl%rre
@@ -999,12 +1000,12 @@ contains
     real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
                          dm%dccc%zst(2) : dm%dccc%zen(2), &
                          dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
-    integer :: i, j, k, jj, ii
+    !integer :: i, j, k, jj, ii
 
 
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
-    call Print_debug_start_msg("Calculating the RHS of Poisson Equation ...")
+    call Print_debug_mid_msg("Calculating the RHS of Poisson Equation ...")
 #endif
 
 !==========================================================================================================
@@ -1076,7 +1077,7 @@ contains
     real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
                          dm%dccc%zst(2) : dm%dccc%zen(2), &
                          dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
-    integer :: i, j, k, jj, ii
+    !integer :: i, j, k, jj, ii
 
 !==========================================================================================================
 ! RHS of Poisson Eq.
@@ -1145,6 +1146,7 @@ contains
 #ifdef DEBUG_STEPS
     use io_visulisation_mod
     use typeconvert_mod
+    use wtformat_mod
 #endif
     implicit none
 
@@ -1220,9 +1222,10 @@ contains
     if ( dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
     
 #ifdef DEBUG_STEPS
-    !call write_snapshot_any3darray(fl%qx, 'qx_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
-    !call write_snapshot_any3darray(fl%qy, 'qy_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
-    !call write_snapshot_any3darray(fl%qz, 'qz_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
+    call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qy, "at isub = "//trim(int2str(isub))//" maximum uy:", wrtfmt1e)
+    call Find_maximum_absvar3d(fl%qz, "at isub = "//trim(int2str(isub))//" maximum uz:", wrtfmt1e)
+    call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub))) 
 #endif
 
     return

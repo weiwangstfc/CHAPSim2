@@ -23,7 +23,7 @@ contains
     implicit none 
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
-    integer :: i
+    !integer :: i
 
     allocate (ncl_stat(3, nxdomain))
     ncl_stat = 0
@@ -240,7 +240,7 @@ contains
 !==========================================================================================================
   subroutine read_statistics_array(var, keyword, idm, iter, dtmp)
     use precision_mod
-    use files_io_mod, only: dir_data
+    !use files_io_mod, only: dir_data
     use io_tools_mod
     use decomp_2d_io
     implicit none 
