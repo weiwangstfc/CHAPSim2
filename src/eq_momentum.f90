@@ -1156,19 +1156,11 @@ contains
 
 !----------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
-!_______________________________________________________________________________ 
+!----------------------------------------------------------------------------------------------------------
     call Compute_momentum_rhs(fl, dm, isub)
 !----------------------------------------------------------------------------------------------------------
 ! to update intermediate (\hat{q}) or (\hat{g})
-!_______________________________________________________________________________
-#ifdef DEBUG_STEPS
-  !call write_snapshot_any3darray(fl%mx_rhs, 'mx_rhs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
-  !call write_snapshot_any3darray(fl%my_rhs, 'my_rhs_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
-  !call write_snapshot_any3darray(fl%mz_rhs, 'mz_rhs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
-#endif
 !----------------------------------------------------------------------------------------------------------
-! to update velocity to get intermediate data
-!_______________________________________________________________________________ 
     if ( .not. dm%is_thermo) then 
       fl%qx = fl%qx + fl%mx_rhs
       fl%qy = fl%qy + fl%my_rhs
@@ -1192,12 +1184,21 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
     if(dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
+
+#ifdef DEBUG_STEPS
+  call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+  call write_snapshot_any3darray(fl%qy, 'qys_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+  call write_snapshot_any3darray(fl%qz, 'qzs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
 !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
     !call solve_poisson_x2z(fl, dm, isub) ! mpi=4 error, to check
     call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
+#ifdef DEBUG_STEPS
+    call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !----------------------------------------------------------------------------------------------------------

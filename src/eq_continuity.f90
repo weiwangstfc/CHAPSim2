@@ -75,6 +75,9 @@ contains
   subroutine Get_divergence_vel(ux, uy, uz, div, dm)
     use parameters_constant_mod
     use udf_type_mod
+#ifdef DEBUG_STEPS
+    use io_visulisation_mod
+#endif
     implicit none
 
     type(t_domain), intent (in) :: dm
@@ -98,6 +101,10 @@ contains
     div0 = ZERO
     call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
+#ifdef DEBUG_STEPS
+    write(*,*) 'ux',   ux(:, 2, 2)
+    write(*,*) 'divx', div(:, 2, 2)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !----------------------------------------------------------------------------------------------------------
@@ -108,6 +115,9 @@ contains
     call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
+#ifdef DEBUG_STEPS
+    write(*,*) 'divy', div(:, 2, 2)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
@@ -122,7 +132,9 @@ contains
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-
+#ifdef DEBUG_STEPS
+    write(*,*) 'divz', div(:, 2, 2)
+#endif
     return
   end subroutine
 
@@ -256,13 +268,13 @@ contains
     div(:, :, :)  = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! $d\rho / dt$ at cell centre
-!_______________________________________________________________________________
+!----------------------------------------------------------------------------------------------------------
     if (dm%is_thermo) then
       call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
-!_______________________________________________________________________________
+!----------------------------------------------------------------------------------------------------------
     if (dm%is_thermo) then
       call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
     else
