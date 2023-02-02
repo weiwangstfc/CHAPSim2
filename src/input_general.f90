@@ -67,6 +67,7 @@ contains
     integer, allocatable  :: itmpx(:)
     integer :: i, j, k
     logical :: is_any_energyeq
+    logical :: is_turbgen_on
     
     if(nrank == 0) then
       call Print_debug_start_msg("CHAPSim2.0 Starts ...")
@@ -113,7 +114,7 @@ contains
       !----------------------------------------------------------------------------------------------------------
       if ( secname(1:slen) == '[decomposition]' ) then
 
-        read(inputUnit, *, iostat = ioerr) varname, nxdomain
+        read(inputUnit, *, iostat = ioerr) varname, nxdomain, is_turbgen_on
         read(inputUnit, *, iostat = ioerr) varname, p_row
         read(inputUnit, *, iostat = ioerr) varname, p_col
         allocate( domain (nxdomain) )
@@ -121,10 +122,20 @@ contains
 
         do i = 1, nxdomain
           domain(i)%idom = i
+          domain(i)%is_turbgen = .false.
         end do
+
+        if(is_turbgen_on .and. nxdomain > 1) then
+          domain(1)%is_turbgen = .true.
+        end if
 
         if(nrank == 0) then
           do i = 1, nxdomain
+            if(domain(i)%is_turbgen) then
+              write (*, wrtfmt1i) 'For the domain-x (turbulence generator)  = ', i
+            else 
+              write (*, wrtfmt1i) 'For the domain-x (no turbulence generator)  = ', i
+            end if
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
             write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
@@ -168,6 +179,10 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5) ! dimensional
+          if(domain(i)%is_turbgen) then
+            domain(i)%ibcx(:, :) = IBC_PERIODIC
+            domain(i)%fbcx(:, :) = ZERO
+          end if
         end do
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)

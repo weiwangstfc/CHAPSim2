@@ -1182,7 +1182,7 @@ contains
 ! to update b.c. values
 !----------------------------------------------------------------------------------------------------------
     call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
-    if(dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
+    if(dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz) ! check, should be updated via d*u
 
 #ifdef DEBUG_STEPS
   call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
@@ -1215,6 +1215,12 @@ contains
     call Print_debug_mid_msg("Correcting the pressure term ...")
 #endif
     fl%pres(:, :, :) = fl%pres(:, :, :) + fl%pcor(:, :, :)
+
+!----------------------------------------------------------------------------------------------------------
+! to update velocity from gx gy gz 
+!----------------------------------------------------------------------------------------------------------
+  if(dm%is_thermo) call Calculate_velocity_from_massflux(fl, dm)
+
 !----------------------------------------------------------------------------------------------------------
 ! to update b.c. values
 !----------------------------------------------------------------------------------------------------------

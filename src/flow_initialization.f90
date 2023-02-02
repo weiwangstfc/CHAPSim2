@@ -424,6 +424,48 @@ contains
     return
   end subroutine
 
+!==========================================================================================================
+  !==========================================================================================================
+  subroutine Initialize_flow_from_given_profile(dm, ux, uy, uz, p, lnoise)
+    use udf_type_mod, only: t_domain
+    use precision_mod, only: WP
+    use parameters_constant_mod, only: ZERO
+    use boundary_conditions_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    real(WP),       intent(in) :: lnoise
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(out) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: uz
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(out) ::  p
+    
+    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field with given profile...")
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : initial
+    !----------------------------------------------------------------------------------------------------------
+    p (:, :, :) = ZERO
+    ux(:, :, :) = ZERO
+    uy(:, :, :) = ZERO
+    uz(:, :, :) = ZERO
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : to get random fields [-1,1] for ux, uy, uz
+    !----------------------------------------------------------------------------------------------------------
+    call Generate_random_field(dm, ux, uy, uz, p, lnoise)
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : update values
+    !----------------------------------------------------------------------------------------------------------
+    ux(:, :, :) = ux(:, :, :) + dm%fbcxinlet(:, 1)
+    uy(:, :, :) = uy(:, :, :) + dm%fbcxinlet(:, 2)
+    uz(:, :, :) = uz(:, :, :) + dm%fbcxinlet(:, 3)
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : apply b.c.
+    !----------------------------------------------------------------------------------------------------------
+    call Apply_BC_velocity(dm, ux, uy, uz)
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine
+
   !==========================================================================================================
   subroutine Initialize_flow_fields(fl, dm)
     use udf_type_mod
@@ -472,10 +514,8 @@ contains
       call Generate_random_field(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_INLET) then
-      velo(1) = dm%fbcx(1, 1)
-      velo(2) = dm%fbcx(1, 2)
-      velo(3) = dm%fbcx(1, 3)
-      call Initialize_flow_from_given_values(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel, velo(:))
+      call map_inlet_uprofile(dm)
+      call Initialize_flow_from_given_profile(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_GVCONST) then
       velo(:) = fl%init_velo3d(:)

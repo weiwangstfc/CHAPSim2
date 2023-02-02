@@ -305,9 +305,11 @@ module udf_type_mod
     logical :: is_stretching(3)      ! is this direction of stretching grids?
     logical :: is_compact_scheme     ! is compact scheme applied?
     logical :: is_thermo             ! is thermal field considered? 
+    logical :: is_turbgen            ! is turbulence generator?
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
-    integer :: icoordinate           ! coordinate type   
+    integer :: icoordinate           ! coordinate type
+    
     
     integer :: icht
     integer :: iTimeScheme
@@ -367,6 +369,7 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
+    real(wp), allocatable :: fbcxinlet(:, :)
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
