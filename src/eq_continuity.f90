@@ -75,9 +75,6 @@ contains
   subroutine Get_divergence_vel(ux, uy, uz, div, dm)
     use parameters_constant_mod
     use udf_type_mod
-#ifdef DEBUG_STEPS
-    use io_visulisation_mod
-#endif
     implicit none
 
     type(t_domain), intent (in) :: dm

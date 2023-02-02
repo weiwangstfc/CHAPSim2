@@ -948,13 +948,13 @@ contains
 #endif
 !----------------------------------------------------------------------------------------------------------
 !   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
-!_______________________________________________________________________________
+!----------------------------------------------------------------------------------------------------------
     dphidx_pcc = ZERO
     call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), dm%fbcx(:, 4) )
     ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 !----------------------------------------------------------------------------------------------------------
 !   y-pencil, uy = uy - dt * alpha * d(phi_ccc)/dy
-!_______________________________________________________________________________
+!----------------------------------------------------------------------------------------------------------
     phi_ccc_ypencil = ZERO
     dphidy_cpc_ypencil = ZERO
     dphidy_cpc = ZERO
@@ -964,7 +964,7 @@ contains
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
 !----------------------------------------------------------------------------------------------------------
 !   z-pencil, uz = uz - dt * alpha * d(phi_ccc)/dz
-!_______________________________________________________________________________
+!----------------------------------------------------------------------------------------------------------
     pphi_ccc_zpencil =  ZERO
     dphidz_ccp_zpencil = ZERO
     dphidz_ccp_ypencil = ZERO
@@ -1037,7 +1037,6 @@ contains
     call transpose_x_to_y (fl%pcor    , rhs_ypencil, dm%dccc)
     call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
     call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
-
 !==========================================================================================================
 !   solve Poisson
 !==========================================================================================================
@@ -1194,7 +1193,7 @@ contains
 ! to solve Poisson equation
 !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
-    !call solve_poisson_x2z(fl, dm, isub) ! mpi=4 error, to check
+    !call solve_poisson_x2z(fl, dm, isub) !
     call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
 #ifdef DEBUG_STEPS
     call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
