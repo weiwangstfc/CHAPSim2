@@ -101,10 +101,6 @@ contains
     div0 = ZERO
     call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-#ifdef DEBUG_STEPS
-    write(*,*) 'ux',   ux(:, 2, 2)
-    write(*,*) 'divx', div(:, 2, 2)
-#endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !----------------------------------------------------------------------------------------------------------
@@ -115,9 +111,6 @@ contains
     call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-#ifdef DEBUG_STEPS
-    write(*,*) 'divy', div(:, 2, 2)
-#endif
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
@@ -132,9 +125,7 @@ contains
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-#ifdef DEBUG_STEPS
-    write(*,*) 'divz', div(:, 2, 2)
-#endif
+    
     return
   end subroutine
 
