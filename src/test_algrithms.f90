@@ -972,7 +972,7 @@ contains
     end if
 
     ! apply bc
-    call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
+    call Apply_BC_velocity (dm, fl)
 
     if(icase == ICASE_BURGERS1D_INVISCID) then 
       if(idir == 1) then

@@ -200,8 +200,6 @@ contains
       end do
     end do
 
-    call Apply_BC_velocity(dm, ux, uy, uz)
-
     return
   end subroutine
 
@@ -329,10 +327,7 @@ contains
         end do
       end do
     end do
-    !----------------------------------------------------------------------------------------------------------
-    !   x-pencil : build up boundary
-    !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity(dm, ux, uy, uz)
+
     if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for random velocities + given profile")
     call Find_maximum_absvar3d(ux, "maximum ux:", wrtfmt1e)
     call Find_maximum_absvar3d(uy, "maximum uy:", wrtfmt1e)
@@ -349,7 +344,6 @@ contains
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
-    call Apply_BC_velocity(dm, ux, uy, uz)
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
@@ -418,7 +412,6 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : apply b.c.
     !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity(dm, ux, uy, uz)
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -460,7 +453,6 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : apply b.c.
     !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity(dm, ux, uy, uz)
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -535,7 +527,10 @@ contains
       end if
     else
     end if
-
+!----------------------------------------------------------------------------------------------------------
+! to apply BC
+!----------------------------------------------------------------------------------------------------------
+    call Apply_BC_velocity(dm, fl)
 !----------------------------------------------------------------------------------------------------------
 ! to initialize pressure correction term
 !----------------------------------------------------------------------------------------------------------

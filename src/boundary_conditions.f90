@@ -21,14 +21,13 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !==========================================================================================================
-  subroutine Apply_BC_velocity (dm, ux, uy, uz)
+  subroutine Apply_BC_velocity (dm, fl)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent(in )   :: dm
-    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(inout) :: ux
-    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(inout) :: uy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(inout) :: uz
+    type(t_domain), intent( in    )   :: dm
+    type(t_flow),   intent( inout )   :: fl
+
     integer :: m, s
     type(DECOMP_INFO) :: dtmp
 
@@ -49,10 +48,12 @@ contains
     do s = 1, 2
       if(dm%ibcx(s, m) == IBC_DIRICHLET) then
         if(dtmp%xst(m) == 1) then
-          ux(1, :, :) = dm%fbcx(s, m)
+          fl%qx(1, :, :) = dm%fbcx(s, m)
+          if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
         end if
         if(dtmp%xen(m) == dm%np(m)) then
-          ux(dtmp%xsz(m), :, :) = dm%fbcx(s, m)
+          fl%qx(dtmp%xsz(m), :, :) = dm%fbcx(s, m)
+          if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
         end if
       end if
     end do
@@ -63,7 +64,8 @@ contains
         jj = dtmp%xst(2) + j - 1
         do k = 1, dtmp%xsz(3)
           kk = dtmp%xsz(3) + k - 1
-          ux(1, j, k) = dm%fbcxinlet(jj, kk, 1)
+          fl%qx(1, j, k) = dm%fbcxinlet(jj, kk, 1)
+          if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(1, 1)
         end do
       end do
     end if
@@ -76,10 +78,12 @@ contains
     do s = 1, 2
       if(dm%ibcy(s, m) == IBC_DIRICHLET) then
         if(dtmp%xst(m) == 1) then
-          uy(:, 1, :) = dm%fbcy(s, m)
+          fl%qy(:, 1, :) = dm%fbcy(s, m)
+          if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
         end if
         if(dtmp%xen(m) == dm%np(m)) then
-          uy(:, dtmp%xsz(m), :) = dm%fbcy(s, m)
+          fl%qy(:, dtmp%xsz(m), :) = dm%fbcy(s, m)
+          if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
         end if
       end if
     end do
@@ -92,10 +96,12 @@ contains
     do s = 1, 2
       if(dm%ibcz(s, m) == IBC_DIRICHLET) then
         if(dtmp%xst(m) == 1) then
-          uz(:, :, 1) = dm%fbcz(s, m)
+          fl%qz(:, :, 1) = dm%fbcz(s, m)
+          if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
         end if
         if(dtmp%xen(m) == dm%np(m)) then
-          uz(:, :, dtmp%xsz(m)) = dm%fbcz(s, m)
+          fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz(s, m)
+          if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
         end if
       end if
     end do

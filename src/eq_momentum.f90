@@ -1181,8 +1181,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to update b.c. values
 !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
-    if(dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz) ! check, should be updated via d*u
+    call Apply_BC_velocity (dm, fl)
 
 #ifdef DEBUG_STEPS
   call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
@@ -1224,8 +1223,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to update b.c. values
 !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity (dm, fl%qx, fl%qy, fl%qz)
-    if ( dm%is_thermo) call Apply_BC_velocity (dm, fl%gx, fl%gy, fl%gz)
+    call Apply_BC_velocity (dm, fl)
     
 #ifdef DEBUG_STEPS
     call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
