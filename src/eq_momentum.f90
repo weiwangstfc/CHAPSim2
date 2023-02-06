@@ -256,7 +256,7 @@ contains
     !write(*,*) nrank,  'test-1'
     i = 1 
 
-    call Get_x_midp_P2C_3D(fl%qx, qx_ccc, dm, dm%ibcx(:, i) )
+    call Get_x_midp_P2C_3D(fl%qx, qx_ccc, dm, dm%ibcx(:, i), dm%fbcx_var(:, :, :, 1) )
 
     call transpose_x_to_y (fl%qx, qx_ypencil, dm%dpcc)
     call transpose_y_to_z (qx_ypencil, qx_zpencil, dm%dpcc) ! qx_zpencil : x-mom, w+o thermal

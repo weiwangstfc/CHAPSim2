@@ -13,6 +13,7 @@ module solver_tools_mod
   public  :: Adjust_to_xzmean_zero
   public  :: Get_volumetric_average_3d
   public  :: Find_maximum_absvar3d
+  public  :: Find_max_min_3d
 
 contains
 !==========================================================================================================
@@ -576,4 +577,46 @@ contains
 #endif
     return
   end subroutine
+
+
+  !==========================================================================================================
+  subroutine Find_max_min_3d(var, vmax, vmin)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
+
+    real(WP), intent(in)  :: var(:, :, :)
+    real(WP), intent(out) :: vmax, vmin
+    
+    real(WP):: varmax_work, varmin_work
+    real(WP)   :: varmax, varmin
+
+    integer :: i, j, k, nx, ny, nz
+    nx = size(var, 1)
+    ny = size(var, 2)
+    nz = size(var, 3)
+
+    varmax = MINN
+    varmin = MAXP
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if( var(i, j, k)  > varmax) varmax = var(i, j, k)
+          if( var(i, j, k)  < varmin) varmin = var(i, j, k)
+        end do
+      end do
+    end do
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
+
+    vmax = varmax_work
+    vmin = varmin_work
+
+    return
+  end subroutine
+
 end module

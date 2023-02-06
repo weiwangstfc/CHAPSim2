@@ -1,17 +1,22 @@
 module boundary_conditions_mod
 
+  character(10) :: filename(1) = 'pf1d_u1y.dat', & !(undim)
+                   filename(2) = 'pf1d_v1y.dat', & !(undim)
+                   filename(3) = 'pf1d_w1y.dat', & !(undim)
+                   filename(4) = 'pf1d_p1y.dat', & !(undim)
+                   filename(5) = 'pf1d_T1y.dat'    !(dim  )
 
-  public  :: configure_bc
+
+  
   private :: map_bc_1d_uprofile
-  public  :: buildup_bc_profile1d
-
+  private :: apply_bc_constant_flow
+  public  :: configure_bc
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
-  public  :: apply_bc_const
-  public  :: apply_convective_outlet
+
+  !public  :: apply_bc_const
+  !public  :: apply_convective_outlet
   
-
-
 contains
 !==========================================================================================================
 !==========================================================================================================
@@ -28,42 +33,53 @@ contains
 ! to set up real bc for calculation from given nominal b.c.
 !----------------------------------------------------------------------------------------------------------
     do n = 1, 2
-      do m = 1, 5
-        
+      do m = 1, NBC
+!----------------------------------------------------------------------------------------------------------
+! x-direction
+!----------------------------------------------------------------------------------------------------------
         if(dm%ibcx_nominal(n, m) == IBC_PROFILE1D)   then
             dm%ibcx(n, m) = IBC_DIRICHLET
         else if(dm%ibcx_nominal(n, m) == IBC_TURBGEN  .or. &
                 dm%ibcx_nominal(n, m) == IBC_DATABASE )   then
             dm%ibcx(n, m) = IBC_INTERIOR
+        else if f(dm%ibcx_nominal(n, m) == IBC_CONVECTIVE)   then
+            dm%ibcx(n, m) = IBC_INTPRL
         else
             dm%ibcx(n, m) = dm%ibcx_nominal(n, m)   
         end if
-
+!----------------------------------------------------------------------------------------------------------
+! y-direction
+!----------------------------------------------------------------------------------------------------------
         if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D)   then
             dm%ibcy(n, m) = IBC_DIRICHLET
         else if(dm%ibcy_nominal(n, m) == IBC_TURBGEN  .or. &
                 dm%ibcy_nominal(n, m) == IBC_DATABASE )   then
             dm%ibcy(n, m) = IBC_INTERIOR
+        else if f(dm%ibcy_nominal(n, m) == IBC_CONVECTIVE)   then
+            dm%ibcy(n, m) = IBC_INTPRL
         else
             dm%ibcy(n, m) = dm%ibcy_nominal(n, m)   
         end if
-
+!----------------------------------------------------------------------------------------------------------
+! z-direction
+!----------------------------------------------------------------------------------------------------------
         if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D)   then
             dm%ibcz(n, m) = IBC_DIRICHLET
         else if(dm%ibcz_nominal(n, m) == IBC_TURBGEN  .or. &
                 dm%ibcz_nominal(n, m) == IBC_DATABASE )   then
             dm%ibcz(n, m) = IBC_INTERIOR
+        else if f(dm%ibcz_nominal(n, m) == IBC_CONVECTIVE)   then
+            dm%ibcz(n, m) = IBC_INTPRL
         else
             dm%ibcz(n, m) = dm%ibcz_nominal(n, m)   
         end if
 
       end do
     end do
-
 !----------------------------------------------------------------------------------------------------------
 ! to exclude non-resonable input
 !----------------------------------------------------------------------------------------------------------
-    do m = 1, 5
+    do m = 1, NBC
       if(dm%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC is not supported.")
       do n = 1, 2
         if(dm%ibcx(n, m)         >  IBC_OTHERS   ) dm%ibcx(n, m) = IBC_INTRPL
@@ -79,30 +95,21 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc values for calculation from given nominal b.c. values
 ! np, not nc, is used to allocate to provide enough space
+! NBC = qx, qy, qz, p, T; 
+! DIM = gx, gy, gz; 
+! 2 = density, viscosity 
 !----------------------------------------------------------------------------------------------------------
-    allocate( dm%fbcx_var(4,        dm%np(2), dm%np(3), 5) )
-    allocate( dm%fbcy_var(dm%np(1), 4,        dm%np(3), 5) )
-    allocate( dm%fbcz_var(dm%np(1), dm%np(2), 4,        5) )
+    if(dm%is_thermo) then
+      allocate( dm%fbcx_var(4,        dm%np(2), dm%np(3), NBC + NDIM + 2) )
+      allocate( dm%fbcy_var(dm%np(1), 4,        dm%np(3), NBC + NDIM + 2) )
+      allocate( dm%fbcz_var(dm%np(1), dm%np(2), 4,        NBC + NDIM + 2) )
+    else
+      allocate( dm%fbcx_var(4,        dm%np(2), dm%np(3), NBC) )
+      allocate( dm%fbcy_var(dm%np(1), 4,        dm%np(3), NBC) )
+      allocate( dm%fbcz_var(dm%np(1), dm%np(2), 4,        NBC) )
+    end if
 
-    do m = 1, 5
-      do n = 1, 2
-        dm%fbcx_var(n, :, :, m) = dm%fbcx_const(n, m)
-        dm%fbcy_var(:, n, :, m) = dm%fbcy_const(n, m)
-        dm%fbcz_var(:, :, n, m) = dm%fbcz_const(n, m)
-      end do
-      do n = 3, 4
-        dm%fbcx_var(n, :, :, m) = dm%fbcx_const(n - 2, m)
-        dm%fbcy_var(:, n, :, m) = dm%fbcy_const(n - 2, m)
-        dm%fbcz_var(:, :, n, m) = dm%fbcz_const(n - 2, m)
-      end do
-
-    end do
-
-!----------------------------------------------------------------------------------------------------------
-! to build up bc
-!----------------------------------------------------------------------------------------------------------
-    call buildup_bc_profile1d(dm)
-
+    call apply_bc_constant_flow(dm)
 
     return
   end subroutine 
@@ -171,48 +178,6 @@ contains
 
     deallocate(uprofile)
     deallocate(yy)
-
-    return
-  end subroutine
-  
-!==========================================================================================================
-!==========================================================================================================
-  subroutine buildup_bc_profile1d(dm)
-    implicit none
-    type(t_domain), intent(inout) :: dm
-
-    real(WP) :: var1y(dm%np(2))
-    character(len=10) :: filename(5)
-
-    filename(1) = 'bc_u1y.dat'
-    filename(2) = 'bc_v1y.dat'
-    filename(3) = 'bc_w1y.dat'
-    filename(4) = 'bc_p1y.dat'
-    filename(5) = 'bc_T1y.dat'
-
-!   x-inlet profile, u(y), w(y), p(y), T(y) profile
-    do m = 1, 5
-      if(m == 2) cycle
-      if(dm%ibcx_nominal(1, m) == IBC_PROFILE1D) then
-        call map_bc_1d_uprofile(filename(i), dm%nc(2), dm%yc, var1y(1:dm%nc(2)))
-        do k = 1, dm%nc(3)
-          do j = 1, dm%nc(2)
-            dm%fbcx_var(1, j, k, m) = var1y(j)
-          end do
-        end do
-      end if
-    end do
-!   x-inlet profile, v(y)
-    m = 2
-    if(dm%ibcx_nominal(1, m) == IBC_PROFILE1D) then
-      call map_bc_1d_uprofile(filename(i), dm%np(2), dm%yp, var1y(1:dm%np(2)))
-      do k = 1, dm%nc(3)
-        do j = 1, dm%np(2)
-          dm%fbcx_var(1, j, k, m) = var1y(j)
-        end do
-      end do
-    end if
-
 
     return
   end subroutine
@@ -294,6 +259,7 @@ contains
     
 !----------------------------------------------------------------------------------------------------------
 !   all in x-pencil, bc in x - direction
+!   how about turb generator flow only? to check
 !----------------------------------------------------------------------------------------------------------
     ! T, dm0-dm1, nc
     m = 5
@@ -306,8 +272,69 @@ contains
       dm0%fbcx_var(4, :, :, m) = tm1%tTemp(2, :, :)
     end if
 
+    ! d, dm0-dm1, nc
+    m = 9
+    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+      dm1%fbcx_var(1, :, :, m) = tm0%dDens(dm0%nc(1),     :, :)
+      dm1%fbcx_var(3, :, :, m) = tm0%dDens(dm0%nc(1) - 1, :, :)
+    end if
+    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+      dm0%fbcx_var(2, :, :, m) = tm1%dDens(1, :, :)
+      dm0%fbcx_var(4, :, :, m) = tm1%dDens(2, :, :)
+    end if
+
+    ! mu, dm0-dm1, nc
+    m = 10
+    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+      dm1%fbcx_var(1, :, :, m) = tm0%mVisc(dm0%nc(1),     :, :)
+      dm1%fbcx_var(3, :, :, m) = tm0%mVisc(dm0%nc(1) - 1, :, :)
+    end if
+    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+      dm0%fbcx_var(2, :, :, m) = tm1%mVisc(1, :, :)
+      dm0%fbcx_var(4, :, :, m) = tm1%mVisc(2, :, :)
+    end if
+
+    ! gx, dm0-dm1, np
+    m = 6
+    
+    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+      call Get_x_midp_C2P_3D(fl0%dDens, apcc, dm0, dm0%ibcx(:, 5), dm0%fbcx_var(:, :, :, 9) )
+      dm1%fbcx_var(1, :, :, m) = dm1%fbcx_var(1, :, :, m) * 
+      dm1%fbcx_var(3, :, :, m) = dm1%fbcx_var(3, :, :, m) * 
+    end if
+    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+      dm0%fbcx_var(2, :, :, m) = dm0%fbcx_var(2, :, :, m)
+      dm0%fbcx_var(4, :, :, m) = dm0%fbcx_var(4, :, :, m)
+    end if
+
+    ! gy, dm0-dm1, nc
+    m = 7
+    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+      dm1%fbcx_var(1, :, :, m) = fl0%qy(dm0%nc(1),     :, :)
+      dm1%fbcx_var(3, :, :, m) = fl0%qy(dm0%nc(1) - 1, :, :)
+    end if
+    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+      dm0%fbcx_var(2, :, :, m) = fl1%qy(1, :, :)
+      dm0%fbcx_var(4, :, :, m) = fl1%qy(2, :, :)
+    end if
+
+    ! gz, dm0-dm1, nc
+    m = 8
+    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+      dm1%fbcx_var(1, :, :, m) = fl0%qz(dm0%nc(1),     :, :)
+      dm1%fbcx_var(3, :, :, m) = fl0%qz(dm0%nc(1) - 1, :, :)
+    end if
+    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+      dm0%fbcx_var(2, :, :, m) = fl1%qz(1, :, :)
+      dm0%fbcx_var(4, :, :, m) = fl1%qz(2, :, :)
+    end if
+
+
+
     return
   end subroutine
+
+
 !==========================================================================================================
 !> \brief Apply b.c. conditions 
 !---------------------------------------------------------------------------------------------------------- 
@@ -321,91 +348,42 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !==========================================================================================================
-  subroutine apply_bc_const (dm, fl) ! check, necessary?
+  subroutine apply_bc_constant_flow (dm) ! apply once only
     use parameters_constant_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent( in    )   :: dm
-    type(t_flow),   intent( inout )   :: fl
+    type(t_domain), intent( inout)   :: dm
 
-    integer :: m, s
-    type(DECOMP_INFO) :: dtmp
+    integer :: m, n
 
-
-     if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
-        dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
-        dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
-        dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
-        dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
-        dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
-!----------------------------------------------------------------------------------------------------------
-!   all in x-pencil
-!----------------------------------------------------------------------------------------------------------
-
-!----------------------------------------------------------------------------------------------------------
-!   ux at x-direction. BC of others at x-direction are given in oeprations directly.
-!----------------------------------------------------------------------------------------------------------
-    m = 1
-    dtmp = dm%dpcc
-    ! constant value bc.
-    do s = 1, 2
-      if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
-        if(dtmp%xst(m) == 1) then
-          fl%qx(1, :, :) = dm%fbcx(s, m)
-          if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
-        end if
-        if(dtmp%xen(m) == dm%np(m)) then
-          fl%qx(dtmp%xsz(m), :, :) = dm%fbcx(s, m)
-          if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
-        end if
-      end if
-    end do
-
-    ! variation value bc
-    if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D .and. dtmp%xst(1) == 1) then
-      do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
-        do k = 1, dtmp%xsz(3)
-          kk = dtmp%xsz(3) + k - 1
-          fl%qx(1, j, k) = dm%fbcxinlet(jj, kk, 1)
-          if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(1, 1)
-        end do
+    do m = 1, NBC ! u, v, w, p, T(dim)
+      do n = 1, 2
+        dm%fbcx_var(n, :, :, m) = dm%fbcx_const(n, m)
+        dm%fbcy_var(:, n, :, m) = dm%fbcy_const(n, m)
+        dm%fbcz_var(:, :, n, m) = dm%fbcz_const(n, m)
       end do
-    end if
-
-!----------------------------------------------------------------------------------------------------------
-!   uy at y-direction. BC of others at y-direction are given in oeprations directly.
-!----------------------------------------------------------------------------------------------------------
-    m = 2
-    dtmp = dm%dcpc
-    do s = 1, 2
-      if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
-        if(dtmp%xst(m) == 1) then
-          fl%qy(:, 1, :) = dm%fbcy(s, m)
-          if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
-        end if
-        if(dtmp%xen(m) == dm%np(m)) then
-          fl%qy(:, dtmp%xsz(m), :) = dm%fbcy(s, m)
-          if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
-        end if
-      end if
+      do n = 3, 4
+        dm%fbcx_var(n, :, :, m) = dm%fbcx_const(n - 2, m)
+        dm%fbcy_var(:, n, :, m) = dm%fbcy_const(n - 2, m)
+        dm%fbcz_var(:, :, n, m) = dm%fbcz_const(n - 2, m)
+      end do
     end do
 
 !----------------------------------------------------------------------------------------------------------
-!   uz at z-direction. BC of others at z-direction are given in oeprations directly.
+! to build up bc for var(x_const, y, z)
 !----------------------------------------------------------------------------------------------------------
-    m = 3
-    dtmp = dm%dccp
-    do s = 1, 2
-      if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
-        if(dtmp%xst(m) == 1) then
-          fl%qz(:, :, 1) = dm%fbcz(s, m)
-          if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
+    do m = 1, NBC
+      if(dm%ibcx_nominal(1, m) == IBC_PROFILE1D) then
+        if(m /= 2) then
+          ny = dm%nc(2)
+          call map_bc_1d_uprofile( filename(m), ny, dm%yc, var1y(1:ny) )
+        else
+          ny = dm%ny(2)
+          call map_bc_1d_uprofile( filename(m), ny, dm%yp, var1y(1:ny) )
         end if
-        if(dtmp%xen(m) == dm%np(m)) then
-          fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz(s, m)
-          if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
-        end if
+        do k = 1, size(dm%fbcx_var, 3) 
+          dm%fbcx_var(1, 1:ny, k, m) = var1y(1:ny)
+        end do
       end if
     end do
 
@@ -414,12 +392,124 @@ contains
 
 
 
-!==========================================================================================================
-!==========================================================================================================
-  subroutine Apply_convective_outlet
+! !==========================================================================================================
+! !> \brief Apply b.c. conditions 
+! !---------------------------------------------------------------------------------------------------------- 
+! !> Scope:  mpi    called-freq    xdomain     module
+! !>         all    once           specified   public
+! !----------------------------------------------------------------------------------------------------------
+! ! Arguments
+! !----------------------------------------------------------------------------------------------------------
+! !  mode           name          role                                           
+! !----------------------------------------------------------------------------------------------------------
+! !> \param[in]     d             domain
+! !> \param[out]    f             flow
+! !==========================================================================================================
+!   subroutine apply_bc_const (dm, fl) ! check, necessary?
+!     use parameters_constant_mod
+!     use udf_type_mod
+!     implicit none
+!     type(t_domain), intent( in    )   :: dm
+!     type(t_flow),   intent( inout )   :: fl
+
+!     integer :: m, s
+!     type(DECOMP_INFO) :: dtmp
 
 
-  end subroutine
+!      if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
+!         dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
+!         dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
+!         dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
+!         dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
+!         dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
+! !----------------------------------------------------------------------------------------------------------
+! !   all in x-pencil
+! !----------------------------------------------------------------------------------------------------------
+
+! !----------------------------------------------------------------------------------------------------------
+! !   ux at x-direction. BC of others at x-direction are given in oeprations directly.
+! !----------------------------------------------------------------------------------------------------------
+!     m = 1
+!     dtmp = dm%dpcc
+!     ! constant value bc.
+!     do s = 1, 2
+!       if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
+!         if(dtmp%xst(m) == 1) then
+!           fl%qx(1, :, :) = dm%fbcx(s, m)
+!           if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
+!         end if
+!         if(dtmp%xen(m) == dm%np(m)) then
+!           fl%qx(dtmp%xsz(m), :, :) = dm%fbcx(s, m)
+!           if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
+!         end if
+!       end if
+!     end do
+
+!     ! variation value bc
+!     if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D .and. dtmp%xst(1) == 1) then
+!       do j = 1, dtmp%xsz(2)
+!         jj = dtmp%xst(2) + j - 1
+!         do k = 1, dtmp%xsz(3)
+!           kk = dtmp%xsz(3) + k - 1
+!           fl%qx(1, j, k) = dm%fbcxinlet(jj, kk, 1)
+!           if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(1, 1)
+!         end do
+!       end do
+!     end if
+
+! !----------------------------------------------------------------------------------------------------------
+! !   uy at y-direction. BC of others at y-direction are given in oeprations directly.
+! !----------------------------------------------------------------------------------------------------------
+!     m = 2
+!     dtmp = dm%dcpc
+!     do s = 1, 2
+!       if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
+!         if(dtmp%xst(m) == 1) then
+!           fl%qy(:, 1, :) = dm%fbcy(s, m)
+!           if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
+!         end if
+!         if(dtmp%xen(m) == dm%np(m)) then
+!           fl%qy(:, dtmp%xsz(m), :) = dm%fbcy(s, m)
+!           if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
+!         end if
+!       end if
+!     end do
+
+! !----------------------------------------------------------------------------------------------------------
+! !   uz at z-direction. BC of others at z-direction are given in oeprations directly.
+! !----------------------------------------------------------------------------------------------------------
+!     m = 3
+!     dtmp = dm%dccp
+!     do s = 1, 2
+!       if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
+!         if(dtmp%xst(m) == 1) then
+!           fl%qz(:, :, 1) = dm%fbcz(s, m)
+!           if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
+!         end if
+!         if(dtmp%xen(m) == dm%np(m)) then
+!           fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz(s, m)
+!           if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
+!         end if
+!       end if
+!     end do
+
+!     return
+!   end subroutine
+
+
+!==========================================================================================================
+!==========================================================================================================
+!   subroutine Apply_x_convective_outlet ? check necessary?
+!     use solver_tools_mod
+
+! !----------------------------------------------------------------------------------------------------------
+! !  to get convective outlet bc, ux_cbc
+! !----------------------------------------------------------------------------------------------------------
+!     call Find_max_min_3d(fl%qx, umax, umin)
+!     ux_cbc = HALF * (umax + umin)
+
+!     return
+!   end subroutine
 
 
 

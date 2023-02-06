@@ -41,6 +41,7 @@ module thermo_info_mod
   private :: ftplist_sort_t_small2big
   private :: Write_thermo_property
   private :: Convert_thermo_BC_from_dim_to_undim
+  private :: apply_bc_constant_thermo
 
   
   private :: ftp_is_T_in_scope
@@ -53,7 +54,9 @@ module thermo_info_mod
 
   public  :: Buildup_thermo_mapping_relations
   public  :: Initialize_thermal_properties
+  public  :: apply_bc_thermmal_properties
   public  :: Update_thermal_properties
+  public  :: get_bc_tdm
   
 contains
 !==========================================================================================================
@@ -1008,7 +1011,36 @@ contains
     return
   end subroutine
 
-  !==========================================================================================================
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine apply_bc_constant_thermo (dm) ! apply once only
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent( inout)   :: dm
+
+    integer :: m
+
+    if(.not. dm%is_thermo) return
+
+!----------------------------------------------------------------------------------------------------------
+!   get bc t, d, m (at bc not cell centre)
+!----------------------------------------------------------------------------------------------------------
+    call get_bc_tdm(dm)
+!----------------------------------------------------------------------------------------------------------
+!   get bc gx, gy, gz (at bc not cell centre)
+!----------------------------------------------------------------------------------------------------------
+    do m = NBC + 1, NBC + NDIM
+      dm%fbcx_var(:, :, :, m) = dm%fbcx_var(:, :, :, m - NBC) * dm%fbcx_var(:, :, :, 9)
+      dm%fbcy_var(:, :, :, m) = dm%fbcy_var(:, :, :, m - NBC) * dm%fbcy_var(:, :, :, 9)
+      dm%fbcz_var(:, :, :, m) = dm%fbcz_var(:, :, :, m - NBC) * dm%fbcz_var(:, :, :, 9)
+    end do
+
+    return
+  end subroutine
+
+!==========================================================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     
 !---------------------------------------------------------------------------------------------------------- 
 !> Scope:  mpi    called-freq    xdomain     module
@@ -1059,6 +1091,51 @@ contains
   end subroutine Initialize_thermal_properties
 
 !==========================================================================================================
+!> \brief Initialise thermal variables if ithermo = 1.     
+!---------------------------------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!----------------------------------------------------------------------------------------------------------
+!  mode           name          role                                           
+!----------------------------------------------------------------------------------------------------------
+!> \param[inout]  fl   flow type
+!> \param[inout]  tm   thermo type
+!==========================================================================================================
+  subroutine get_bc_tdm (dm) ! apply once
+    use parameters_constant_mod
+    implicit none
+    type(t_flow),   intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
+    
+    type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
+
+    do k = 1, size(dm%fbcx_var, 3)
+      do j = 1, size(dm%fbcx_var, 2)
+        do i = 1, size(dm%fbcx_var, 1)
+!----------------------------------------------------------------------------------------------------------
+!         update density and viscousity at b.c.
+!         for temperature bc, heat flux bc (to chdck)
+!----------------------------------------------------------------------------------------------------------
+          ftpx%t = dm%fbcx_var(i, j, k, 5)
+          ftpy%t = dm%fbcy_var(i, j, k, 5)
+          ftpz%t = dm%fbcz_var(i, j, k, 5)
+          call ftp_refresh_thermal_properties_from_T_undim(ftpx)
+          call ftp_refresh_thermal_properties_from_T_undim(ftpy)
+          call ftp_refresh_thermal_properties_from_T_undim(ftpz)
+
+          dm%fbcx_var(i, j, k, 9)  = ftpx%d
+          dm%fbcx_var(i, j, k, 10) = ftpx%m
+          
+        end do
+      end do
+    end do
+
+    return
+  end subroutine apply_bc_thermmal_properties
+
+!==========================================================================================================
 !==========================================================================================================
 !> \brief The main code for thermal property initialisation.
 !> Scope:  mpi    called-freq    xdomain
@@ -1081,6 +1158,7 @@ contains
     call Write_thermo_property ! for test
   
     call Convert_thermo_BC_from_dim_to_undim(tm, dm)
+    call apply_bc_constant_thermo
     
     return
   end subroutine Buildup_thermo_mapping_relations

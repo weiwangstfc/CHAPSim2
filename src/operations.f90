@@ -4831,7 +4831,7 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :) !1 layer each side
+    real(WP), optional, intent(in) :: fbc2d(:, :, :) !2 layer each side
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j

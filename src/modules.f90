@@ -163,11 +163,12 @@ module parameters_constant_mod
                         IBC_DIRICHLET   = 4, & ! nominal and basic, used in operations
                         IBC_NEUMANN     = 5, & ! nominal and basic, used in operations
                         IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
-                        IBC_CONVECTIVE  = 7, & ! nominal only, = either solve function or = IBC_NEUMANN
+                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_INTPRL
                         IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
                         IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
                         IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
                         IBC_OTHERS      = 11   ! exclusive
+  integer, parameter :: NBC = 5! u, v, w, p, T
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -288,15 +289,15 @@ module wtformat_mod
 end module wtformat_mod
 !==========================================================================================================
 module udf_type_mod
-  use precision_mod
+  use parameters_constant_mod, only: NDIM, NBC
   use mpi_mod
   implicit none
 !----------------------------------------------------------------------------------------------------------
 !  domain info
 !---------------------------------------------------------------------------------------------------------- 
   type t_domain
-    logical :: is_periodic(3)        ! is this direction periodic bc?
-    logical :: is_stretching(3)      ! is this direction of stretching grids?
+    logical :: is_periodic(NDIM)        ! is this direction periodic bc?
+    logical :: is_stretching(NDIM)      ! is this direction of stretching grids?
     logical :: is_compact_scheme     ! is compact scheme applied?
     logical :: is_thermo             ! is thermal field considered? 
     logical :: is_turbgen            ! is turbulence generator?
@@ -312,26 +313,25 @@ module udf_type_mod
     integer :: ckpt_nfre
     integer :: visu_nfre
     integer :: visu_idim
-    integer :: visu_nskip(3)
+    integer :: visu_nskip(NDIM)
     integer :: stat_istart
-    integer :: stat_nskip(3)
+    integer :: stat_nskip(NDIM)
     integer :: nsubitr
     integer :: istret
-    integer :: nc(3) ! geometric cell number
-    integer :: np_geo(3) ! geometric points
-    integer :: np(3) ! calculated points
+    integer :: nc(NDIM) ! geometric cell number
+    integer :: np_geo(NDIM) ! geometric points
+    integer :: np(NDIM) ! calculated points
     integer :: proben   ! global number of probed points
-    integer  :: ibcx(2, 5) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy(2, 5) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcz(2, 5) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcx_nominal(2, 5) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy_nominal(2, 5) ! nominal (given) bc type, (5 variables, 2 sides)
-    integer  :: ibcz_nominal(2, 5) ! nominal (given) bc type, (5 variables, 2 sides)
-    real(wp) :: fbcx_const(2, 5) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcy_const(2, 5) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcz_const(2, 5) ! bc values, (5 variables, 2 sides)
-    real(WP) :: fbc_vism(2, 3) ! bc values for mu, in 3 direction, 2 sides.
-    real(WP) :: fbc_dend(2, 3) ! bc values for density, in 3 direction, 2 sides.
+    integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
+    integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
+    integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
+    integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
+    real(wp) :: fbcx_const(2, NBC) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcy_const(2, NBC) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcz_const(2, NBC) ! bc values, (5 variables, 2 sides)
+
     real(wp) :: lxx
     real(wp) :: lyt
     real(wp) :: lyb
@@ -339,9 +339,9 @@ module udf_type_mod
     real(WP) :: rstret
     real(wp) :: dt
 
-    real(wp) :: h(3) ! uniform dx
-    real(wp) :: h1r(3) ! uniform (dx)^(-1)
-    real(wp) :: h2r(3) ! uniform (dx)^(-2)
+    real(wp) :: h(NDIM) ! uniform dx
+    real(wp) :: h1r(NDIM) ! uniform (dx)^(-1)
+    real(wp) :: h2r(NDIM) ! uniform (dx)^(-2)
     real(wp) :: tGamma(0:3)
     real(wp) :: tZeta (0:3)
     real(wp) :: tAlpha(0:3)
@@ -389,10 +389,10 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: ren
     real(WP) :: rre
-    real(WP) :: init_velo3d(3)
+    real(WP) :: init_velo3d(NDIM)
     real(wp) :: reninit
     real(WP) :: drvfc
-    real(WP) :: fgravity(3)
+    real(WP) :: fgravity(NDIM)
 
     real(wp) :: noiselevel
   
