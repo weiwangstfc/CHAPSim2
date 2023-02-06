@@ -41,7 +41,7 @@ contains
 
     real(WP) :: scale, shift
 
-    open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
+    open (newunit = wrt_unit, file = 'test_interpolation.dat', position="append")
 
     if (dm%ibcx(1, 5) == IBC_PERIODIC) then
       scale = ONE
@@ -1272,7 +1272,7 @@ subroutine Test_algorithms()
   implicit none
 
   logical :: is_TDMA = .false.
-  logical :: is_operations = .false.
+  logical :: is_operations = .true.
   logical :: is_burgers = .false.
 
   if( (.not. is_TDMA) .and. (.not. is_operations) .and. (.not. is_burgers)) return 

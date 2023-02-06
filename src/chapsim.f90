@@ -108,8 +108,11 @@ subroutine Initialize_chapsim
     if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), thermo(i), domain(i+1), thermo(i+1))
   end do
 
-  call Test_algorithms()
 
+#ifdef DEBUG_TEST
+  call Test_algorithms()
+#endif
+  
   return
 end subroutine Initialize_chapsim
 

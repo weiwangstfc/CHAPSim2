@@ -162,7 +162,7 @@ module parameters_constant_mod
                         IBC_ASYMMETRIC  = 3, & ! nominal and basic, used in operations
                         IBC_DIRICHLET   = 4, & ! nominal and basic, used in operations
                         IBC_NEUMANN     = 5, & ! nominal and basic, used in operations
-                        IBC_INTRPL      = 6, & ! basic only, used in operations
+                        IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
                         IBC_CONVECTIVE  = 7, & ! nominal only, = either solve function or = IBC_NEUMANN
                         IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
                         IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
