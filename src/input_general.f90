@@ -174,66 +174,56 @@ contains
       else if ( secname(1:slen) == '[boundary]' ) then
 
         do i = 1, nxdomain
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 1), domain(i)%fbcx(1:2, 1)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5) ! dimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5) ! dimensional
           if(domain(i)%is_turbgen) then
             domain(i)%ibcx(:, :) = IBC_PERIODIC
             domain(i)%fbcx(:, :) = ZERO
           end if
         end do
 
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5) ! dimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5) ! dimensional
 
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5) ! dimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5) ! dimensional
 
         do i = 1, nxdomain
           domain(i)%ibcy(:, :) = domain(1)%ibcy(:, :)
-          domain(i)%fbcy(:, :) = domain(1)%fbcy(:, :)
           domain(i)%ibcz(:, :) = domain(1)%ibcz(:, :)
-          domain(i)%fbcz(:, :) = domain(1)%fbcz(:, :)
-        end do
 
-        ! to exclude non-resonable input
-        do i = 1, nxdomain
-          do j = 1, 2
-            do k = 1, 5
-              if(domain(i)%ibcx(j, k) > IBC_INTRPL) domain(i)%ibcx(j, k) = IBC_INTRPL
-              if(domain(i)%ibcy(j, k) > IBC_INTRPL) domain(i)%ibcy(j, k) = IBC_INTRPL
-              if(domain(i)%ibcz(j, k) > IBC_INTRPL) domain(i)%ibcz(j, k) = IBC_INTRPL
-            end do
-          end do
+          domain(i)%fbcy_const(:, :) = domain(1)%fbcy_const(:, :)
+          domain(i)%fbcz_const(:, :) = domain(1)%fbcz_const(:, :)
         end do
 
         if(nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx(1:2, 1), domain(i)%fbcx(1:2, 1)
-            write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx(1:2, 2), domain(i)%fbcx(1:2, 2)
-            write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx(1:2, 3), domain(i)%fbcx(1:2, 3)
-            write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx(1:2, 4), domain(i)%fbcx(1:2, 4)
-            write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx(1:2, 5), domain(i)%fbcx(1:2, 5)
+            write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
+            write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2)
+            write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
+            write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
+            write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5)
           end do
-          write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy(1:2, 1), domain(1)%fbcy(1:2, 1)
-          write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy(1:2, 2), domain(1)%fbcy(1:2, 2)
-          write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy(1:2, 3), domain(1)%fbcy(1:2, 3)
-          write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy(1:2, 4), domain(1)%fbcy(1:2, 4)
-          write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy(1:2, 5), domain(1)%fbcy(1:2, 5)
-          write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz(1:2, 1), domain(1)%fbcz(1:2, 1)
-          write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz(1:2, 2), domain(1)%fbcz(1:2, 2)
-          write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz(1:2, 3), domain(1)%fbcz(1:2, 3)
-          write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz(1:2, 4), domain(1)%fbcz(1:2, 4)
-          write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz(1:2, 5), domain(1)%fbcz(1:2, 5)
+          write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
+          write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2)
+          write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
+          write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
+          write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5)
+          write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
+          write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
+          write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
+          write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
+          write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5)
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [mesh] 

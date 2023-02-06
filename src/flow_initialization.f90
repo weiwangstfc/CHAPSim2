@@ -468,6 +468,7 @@ contains
     use wtformat_mod
     use solver_tools_mod
     use continuity_eq_mod
+    use boundary_conditions_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -491,6 +492,10 @@ contains
   !----------------------------------------------------------------------------------------------------------
     call Update_Re(fl%iterfrom, fl)
   !----------------------------------------------------------------------------------------------------------
+  ! to configure bc
+  !----------------------------------------------------------------------------------------------------------
+    call buildup_2d_bc(dm)
+  !----------------------------------------------------------------------------------------------------------
   ! initialize primary variables
   !----------------------------------------------------------------------------------------------------------
     fl%time = ZERO
@@ -506,7 +511,6 @@ contains
       call Generate_random_field(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_INLET) then
-      call map_inlet_uprofile(dm)
       call Initialize_flow_from_given_profile(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_GVCONST) then

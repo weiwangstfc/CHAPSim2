@@ -156,24 +156,18 @@ module parameters_constant_mod
 ! BC
 !----------------------------------------------------------------------------------------------------------
   ! warning : Don't change below order for BC types.
-  integer, parameter :: IBC_INTERIOR    = 0, &
-                        IBC_PERIODIC    = 1, &
-                        IBC_SYMMETRIC   = 2, &
-                        IBC_ASYMMETRIC  = 3, &
-                        IBC_DIRICHLET   = 4, &
-                        IBC_NEUMANN     = 5, &
-                        IBC_INTRPL      = 6, &
-                        IBC_CONVECTIVE  = 7, &
-                        IBC_TURBGEN     = 8, &
-                        IBC_UPROFILE    = 9, &
-                        IBC_DATABASE    = 10
-!                        IBC_INLET_MEAN  = 4, &
-!                        IBC_INLET_TG    = 5, &
-!                        IBC_INLET_MAP   = 6, &
-!                        IBC_INLET_DB    = 7, &
-!                        IBC_OUTLET_EXPO = 8, &
-!                        IBC_OUTLET_CONV = 9, &
-!                        IBC_INTERIOR    = 0, &      
+  integer, parameter :: IBC_INTERIOR    = 0, & ! nominal and basic, used in operations, bulk, 2 ghost layers
+                        IBC_PERIODIC    = 1, & ! nominal and basic, used in operations 
+                        IBC_SYMMETRIC   = 2, & ! nominal and basic, used in operations
+                        IBC_ASYMMETRIC  = 3, & ! nominal and basic, used in operations
+                        IBC_DIRICHLET   = 4, & ! nominal and basic, used in operations
+                        IBC_NEUMANN     = 5, & ! nominal and basic, used in operations
+                        IBC_INTRPL      = 6, & ! basic only, used in operations
+                        IBC_CONVECTIVE  = 7, & ! nominal only, = either solve function or = IBC_NEUMANN
+                        IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
+                        IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
+                        IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
+                        IBC_OTHERS      = 11   ! exclusive
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -327,12 +321,15 @@ module udf_type_mod
     integer :: np_geo(3) ! geometric points
     integer :: np(3) ! calculated points
     integer :: proben   ! global number of probed points
-    integer  :: ibcx(2, 5) ! bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy(2, 5) ! bc type, (5 variables, 2 sides)
-    integer  :: ibcz(2, 5) ! bc type, (5 variables, 2 sides)
-    real(wp) :: fbcx(2, 5) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcy(2, 5) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcz(2, 5) ! bc values, (5 variables, 2 sides)
+    integer  :: ibcx(2, 5) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
+    integer  :: ibcy(2, 5) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcz(2, 5) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcx_nominal(2, 5) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
+    integer  :: ibcy_nominal(2, 5) ! nominal (given) bc type, (5 variables, 2 sides)
+    integer  :: ibcz_nominal(2, 5) ! nominal (given) bc type, (5 variables, 2 sides)
+    real(wp) :: fbcx_const(2, 5) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcy_const(2, 5) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcz_const(2, 5) ! bc values, (5 variables, 2 sides)
     real(WP) :: fbc_vism(2, 3) ! bc values for mu, in 3 direction, 2 sides.
     real(WP) :: fbc_dend(2, 3) ! bc values for density, in 3 direction, 2 sides.
     real(wp) :: lxx
@@ -369,7 +366,9 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
-    real(wp), allocatable :: fbcxinlet(:, :)
+    real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
