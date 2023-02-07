@@ -75,6 +75,7 @@ subroutine Initialize_chapsim
   if(ANY(domain(:)%is_thermo)) then
     i = 1 
     call Buildup_thermo_mapping_relations(thermo(i), domain(i))
+    call Buildup_undim_thermo_bc(thermo(i), domain(i))
   end if
 !----------------------------------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains

@@ -369,6 +369,9 @@ module udf_type_mod
     real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
     real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
     real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
+    type(t_fluidThermoProperty) :: ftpbcx_var(:, :, :)  ! undim, xbc state
+    type(t_fluidThermoProperty) :: ftpbcy_var(:, :, :)  ! undim, ybc state
+    type(t_fluidThermoProperty) :: ftpbcz_var(:, :, :)  ! undim, zbc state
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
@@ -451,10 +454,6 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: rPrRen
     
-    type(t_fluidThermoProperty) :: ftpbcx(2)  ! undim, xbc state
-    type(t_fluidThermoProperty) :: ftpbcy(2)  ! undim, ybc state
-    type(t_fluidThermoProperty) :: ftpbcz(2)  ! undim, zbc state
-
     real(WP), allocatable :: dh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)

@@ -298,17 +298,17 @@ module operations
   private :: Get_x_2nd_derivative_C2C_1D
   private :: Get_y_2nd_derivative_C2C_1D
   private :: Get_z_2nd_derivative_C2C_1D
-  public  :: Get_x_2nd_derivative_C2C_3D
-  public  :: Get_y_2nd_derivative_C2C_3D
-  public  :: Get_z_2nd_derivative_C2C_3D
+  public  :: Get_x_2nd_derivative_C2C_3D ! not used.
+  public  :: Get_y_2nd_derivative_C2C_3D ! not used.
+  public  :: Get_z_2nd_derivative_C2C_3D ! not used.
 
   private :: Prepare_TDMA_2deri_P2P_RHS_array ! need fbc for Neumann, interior
   private :: Get_x_2nd_derivative_P2P_1D
   private :: Get_y_2nd_derivative_P2P_1D
   private :: Get_z_2nd_derivative_P2P_1D
-  public  :: Get_x_2nd_derivative_P2P_3D
-  public  :: Get_y_2nd_derivative_P2P_3D
-  public  :: Get_z_2nd_derivative_P2P_3D
+  public  :: Get_x_2nd_derivative_P2P_3D ! not used.
+  public  :: Get_y_2nd_derivative_P2P_3D ! not used.
+  public  :: Get_z_2nd_derivative_P2P_3D ! not used.
 
   public  :: Test_interpolation
   public  :: Test_1st_derivative
