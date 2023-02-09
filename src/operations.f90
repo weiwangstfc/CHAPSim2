@@ -5679,6 +5679,9 @@ contains
     real(WP) :: scale, shift
 
     open (newunit = wrt_unit, file = 'test_interpolation.dat', position="append")
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5)
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5)
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5)
 
     if (dm%ibcx(1, 5) == IBC_PERIODIC) then
       scale = ONE
@@ -5917,7 +5920,10 @@ contains
       dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
     end if
 
-    open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
+    open (newunit = wrt_unit, file = 'test_1st_derivative.dat', position="append")
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5)
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5)
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5)
 
 ! x direction, xc
     do i = 1, dm%nc(1)
@@ -6204,7 +6210,10 @@ contains
       dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
     end if
 
-    open (newunit = wrt_unit, file = 'check_test_algorithms.dat', position="append")
+    open (newunit = wrt_unit, file = 'test_2nd_derivative.dat', position="append")
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5)
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5)
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5)
 
 ! x direction, xc
     do i = 1, dm%nc(1)

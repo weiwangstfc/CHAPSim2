@@ -569,24 +569,91 @@ subroutine Test_algorithms()
   use tridiagonal_matrix_algorithm
   use mpi_mod
   use operations
+  use boundary_conditions_mod
+  use geometry_mod
   implicit none
 
   logical :: is_TDMA = .false.
-  logical :: is_operations = .false.
+  logical :: is_operations = .true.
   logical :: is_burgers = .false.
+  integer :: n
+
+#ifndef DEBUG_TEST
+  return
+#endif
 
   if( (.not. is_TDMA) .and. (.not. is_operations) .and. (.not. is_burgers)) return 
+
+  
+
+  if(is_operations) then
+    allocate( domain (1) )
+
+    do n = 1, 6
+
+      domain(1)%nc(1:3) =  (/64, 64, 64/)
+      domain(1)%lxx = TWO * PI
+      domain(1)%lzz = TWO * PI
+      domain(1)%lyb = ZERO
+      domain(1)%lyt = TWO *PI
+
+      if (n == 1) then
+        domain(1)%ibcx_nominal(:, :) = IBC_PERIODIC
+        domain(1)%ibcy_nominal(:, :) = IBC_PERIODIC
+        domain(1)%ibcz_nominal(:, :) = IBC_PERIODIC
+        domain(1)%is_periodic(1:3) = .true.
+      else if (n == 2) then
+        domain(1)%ibcx_nominal(:, :) = IBC_SYMMETRIC
+        domain(1)%ibcy_nominal(:, :) = IBC_SYMMETRIC
+        domain(1)%ibcz_nominal(:, :) = IBC_SYMMETRIC
+        domain(1)%is_periodic(1:3) = .false.
+      else if (n == 3) then
+        domain(1)%ibcx_nominal(:, :) = IBC_ASYMMETRIC
+        domain(1)%ibcy_nominal(:, :) = IBC_ASYMMETRIC
+        domain(1)%ibcz_nominal(:, :) = IBC_ASYMMETRIC
+        domain(1)%is_periodic(1:3) = .false.
+      else if (n == 4) then
+        domain(1)%ibcx_nominal(:, :) = IBC_DIRICHLET
+        domain(1)%ibcy_nominal(:, :) = IBC_DIRICHLET
+        domain(1)%ibcz_nominal(:, :) = IBC_DIRICHLET
+        domain(1)%is_periodic(1:3) = .false.
+      else if (n == 5) then
+        domain(1)%ibcx_nominal(:, :) = IBC_NEUMANN
+        domain(1)%ibcy_nominal(:, :) = IBC_NEUMANN
+        domain(1)%ibcz_nominal(:, :) = IBC_NEUMANN
+        domain(1)%is_periodic(1:3) = .false.
+      else 
+        domain(1)%ibcx_nominal(:, :) = IBC_INTRPL
+        domain(1)%ibcy_nominal(:, :) = IBC_INTRPL
+        domain(1)%ibcz_nominal(:, :) = IBC_INTRPL
+        domain(1)%is_periodic(1:3) = .false.
+      end if
+
+      write(*,*) 'for xbc type = ', domain(1)%ibcx_nominal(:, 5)
+
+      if(allocated(domain(1)%yp)) deallocate(domain(1)%yp)
+      if(allocated(domain(1)%yc)) deallocate(domain(1)%yc)
+      if(allocated(domain(1)%fbcx_var)) deallocate(domain(1)%fbcx_var)
+      if(allocated(domain(1)%fbcy_var)) deallocate(domain(1)%fbcy_var)
+      if(allocated(domain(1)%fbcz_var)) deallocate(domain(1)%fbcz_var)
+      call configure_bc_type(domain(1)) 
+      call Buildup_geometry_mesh_info(domain(1))
+      call configure_bc_vars(domain(1)) 
+      call Prepare_LHS_coeffs_for_operations
+      
+      call Test_interpolation (domain(1))
+      call Test_1st_derivative(domain(1))
+      call Test_2nd_derivative(domain(1))
+
+    end do
+  end if
 
   if(is_TDMA) then
     call Test_TDMA_cyclic
     call Test_TDMA_noncyclic
   end if
   
-  if(is_operations) then
-    call Test_interpolation (domain(1))
-    call Test_1st_derivative(domain(1))
-    call Test_2nd_derivative(domain(1))
-  end if
+  
 
   if (is_burgers) then
     call Solve_burgers_eq_iteration

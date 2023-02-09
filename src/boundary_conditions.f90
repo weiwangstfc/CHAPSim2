@@ -219,15 +219,15 @@ contains
 ! to exclude non-resonable input
 !----------------------------------------------------------------------------------------------------------
     do m = 1, NBC
-      if(dm%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC is not supported.")
+      if(dm%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
       do n = 1, 2
         if(dm%ibcx(n, m)         >  IBC_OTHERS   ) dm%ibcx(n, m) = IBC_INTRPL
         if(dm%ibcy(n, m)         >  IBC_OTHERS   ) dm%ibcy(n, m) = IBC_INTRPL
         if(dm%ibcz(n, m)         >  IBC_OTHERS   ) dm%ibcz(n, m) = IBC_INTRPL
-        if(dm%ibcy(n, m)         == IBC_INTERIOR ) call Print_error_msg(" This BC is not supported.")
-        if(dm%ibcz(n, m)         == IBC_INTERIOR ) call Print_error_msg(" This BC is not supported.")
-        if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC is not supported.")
-        if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC is not supported.")
+        if(dm%ibcy(n, m)         == IBC_INTERIOR ) call Print_error_msg(" This BC IBC_INTERIOR is not supported.")
+        if(dm%ibcz(n, m)         == IBC_INTERIOR ) call Print_error_msg(" This BC IBC_INTERIOR is not supported.")
+        if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
+        if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
       end do
     end do
 

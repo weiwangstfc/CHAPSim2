@@ -60,6 +60,10 @@ subroutine Initialize_chapsim
   call create_directory
   call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi
+
+#ifdef DEBUG_TEST
+  call Test_algorithms()
+#endif
   !----------------------------------------------------------------------------------------------------------
   ! reading input parameters
   !----------------------------------------------------------------------------------------------------------
@@ -89,10 +93,6 @@ subroutine Initialize_chapsim
     call decomp_2d_poisson_init()
     if(nrank == 0 ) call Print_debug_end_msg
   end do
-
-#ifdef DEBUG_STEPS
-  call Test_algorithms()
-#endif
   !----------------------------------------------------------------------------------------------------------
   ! build up thermo_mapping_relations, independent of any domains
   !----------------------------------------------------------------------------------------------------------
