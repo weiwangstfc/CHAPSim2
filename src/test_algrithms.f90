@@ -135,8 +135,6 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(in ) :: dm
     integer(4),     intent(in ) :: isub  
-
-    real(WP) :: fbc(2)
     integer :: i
 
 
@@ -164,20 +162,14 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        do i = 1, 2
-          fbc(i) = dm%ibcx(i, 1) * dm%ibcx(i, 1)
-        end do
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%ibcx(:, 1), fbc(:))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+        call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) * dm%fbcx_var(:, :, :, 1) * HALF)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        do i = 1, 2
-          fbc(i) = dm%ibcx(i, 1) *nu
-        end do
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), fbc(:))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1)* nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
       end if
@@ -185,17 +177,14 @@ contains
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
         !call Get_x_2nd_derivative_P2P_3D( fl%qx, mx_rhs, dm, dm%ibcx(:, 1) )
-        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%ibcx(:, 1) )
-        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%ibcx(:, 1) )
+        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) )
+        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) )
         fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        do i = 1, 2
-          fbc(i) = dm%ibcx(i, 2) * dm%ibcx(i, 1)
-        end do
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), fbc(:))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) * nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
       end if
@@ -221,11 +210,8 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        do i = 1, 2
-          fbc(i) = dm%ibcy(i, 2) * dm%ibcy(i, 2)
-        end do
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 1))
-        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%ibcy(:, 2), fbc(:))
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 2))
+        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2) * dm%fbcy_var(:, :, :, 2) * HALF)
 
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
@@ -233,17 +219,14 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
-        call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%ibcy(:, 2) )
+        call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2) )
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + fl%rre * my_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        do i = 1, 2
-          fbc(i) = dm%ibcx(i, 2) *nu
-        end do
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 2))
-        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%ibcy(:, 2), fbc(:))
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2) * nu)
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
       end if
@@ -290,9 +273,6 @@ contains
       ! fl%qz(:, :, :) = fl%qz(:, :, :) + dm%dt * fl%mz_rhs(:, :, :)
     else
     end if
-
-    ! apply bc
-    call Apply_BC_velocity (dm, fl)
 
     if(icase == ICASE_BURGERS1D_INVISCID) then 
       if(idir == 1) then
@@ -585,14 +565,14 @@ end module
 !_______________________________________________________________________________
 subroutine Test_algorithms()
   use vars_df_mod
-  use test_operations_mod
   use burgers_eq_mod
   use tridiagonal_matrix_algorithm
   use mpi_mod
+  use operations
   implicit none
 
   logical :: is_TDMA = .false.
-  logical :: is_operations = .true.
+  logical :: is_operations = .false.
   logical :: is_burgers = .false.
 
   if( (.not. is_TDMA) .and. (.not. is_operations) .and. (.not. is_burgers)) return 

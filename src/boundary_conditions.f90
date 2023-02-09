@@ -4,7 +4,8 @@ module boundary_conditions_mod
   
   private :: map_bc_1d_uprofile
   private :: apply_bc_constant_flow
-  public  :: configure_bc
+  public  :: configure_bc_type
+  public  :: configure_bc_vars
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
 
@@ -146,7 +147,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine configure_bc(dm)
+  subroutine configure_bc_type(dm)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
@@ -230,6 +231,17 @@ contains
       end do
     end do
 
+    return
+  end subroutine 
+
+  subroutine configure_bc_vars(dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+
+    integer :: m, n
+
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc values for calculation from given nominal b.c. values
 ! np, not nc, is used to allocate to provide enough space
@@ -256,7 +268,6 @@ contains
 
     return
   end subroutine 
-
 
 !==========================================================================================================
 !==========================================================================================================

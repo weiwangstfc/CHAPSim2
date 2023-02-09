@@ -49,6 +49,8 @@ subroutine Initialize_chapsim
   use decomp_2d_poisson
   use poisson_interface_mod
   use files_io_mod
+  use boundary_conditions_mod
+  use solver_tools_mod
   implicit none
   integer :: i
 
@@ -66,17 +68,10 @@ subroutine Initialize_chapsim
   ! build up geometry information
   !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
+    call configure_bc_type(domain(i)) 
     call Buildup_geometry_mesh_info(domain(i))
-    call configure_bc(domain(i)) 
+    call configure_bc_vars(domain(i)) 
   end do
-  !----------------------------------------------------------------------------------------------------------
-  ! build up thermo_mapping_relations, independent of any domains
-  !----------------------------------------------------------------------------------------------------------
-  if(ANY(domain(:)%is_thermo)) then
-    i = 1 
-    call Buildup_thermo_mapping_relations(thermo(i), domain(i))
-    call Buildup_undim_thermo_bc(thermo(i), domain(i))
-  end if
 !----------------------------------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains
 !----------------------------------------------------------------------------------------------------------
@@ -94,6 +89,19 @@ subroutine Initialize_chapsim
     call decomp_2d_poisson_init()
     if(nrank == 0 ) call Print_debug_end_msg
   end do
+
+#ifdef DEBUG_STEPS
+  call Test_algorithms()
+#endif
+  !----------------------------------------------------------------------------------------------------------
+  ! build up thermo_mapping_relations, independent of any domains
+  !----------------------------------------------------------------------------------------------------------
+  if(ANY(domain(:)%is_thermo)) then
+    i = 1 
+    call Buildup_thermo_mapping_relations(thermo(i))
+    call Buildup_undim_thermo_bc(thermo(i), domain(i))
+    call update_rhou_bc(domain(i))
+  end if
 !----------------------------------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
@@ -106,13 +114,8 @@ subroutine Initialize_chapsim
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain - 1
     call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
-    if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), thermo(i), domain(i+1), thermo(i+1))
+    if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
   end do
-
-
-#ifdef DEBUG_TEST
-  call Test_algorithms()
-#endif
   
   return
 end subroutine Initialize_chapsim
@@ -150,6 +153,8 @@ subroutine Solve_eqs_iteration
   use io_tools_mod
   use io_restart_mod
   use statistics_mod
+  use typeconvert_mod
+  use boundary_conditions_mod
   implicit none
 
   logical, allocatable :: is_flow  (:)
@@ -223,7 +228,7 @@ subroutine Solve_eqs_iteration
     !==========================================================================================================
     !  main solver, domain coupling in each sub-iteration (check)
     !==========================================================================================================
-    do isub = 1, domain(i)%nsubitr
+    do isub = 1, domain(1)%nsubitr
       do i = 1, nxdomain
         if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
         if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
@@ -233,7 +238,7 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
         if(is_flow(i))   call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
-        if(is_thermo(i)) call update_bc_interface_thermo(domain(i), thermo(i), domain(i+1), thermo(i+1))
+        if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
     end do
 

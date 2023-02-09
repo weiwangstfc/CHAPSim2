@@ -67,7 +67,6 @@ contains
     integer, allocatable  :: itmpx(:)
     integer :: i, j, k
     logical :: is_any_energyeq
-    logical :: is_turbgen_on
     
     if(nrank == 0) then
       call Print_debug_start_msg("CHAPSim2.0 Starts ...")
@@ -114,7 +113,7 @@ contains
       !----------------------------------------------------------------------------------------------------------
       if ( secname(1:slen) == '[decomposition]' ) then
 
-        read(inputUnit, *, iostat = ioerr) varname, nxdomain, is_turbgen_on
+        read(inputUnit, *, iostat = ioerr) varname, nxdomain
         read(inputUnit, *, iostat = ioerr) varname, p_row
         read(inputUnit, *, iostat = ioerr) varname, p_col
         allocate( domain (nxdomain) )
@@ -122,20 +121,10 @@ contains
 
         do i = 1, nxdomain
           domain(i)%idom = i
-          domain(i)%is_turbgen = .false.
         end do
-
-        if(is_turbgen_on .and. nxdomain > 1) then
-          domain(1)%is_turbgen = .true.
-        end if
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            if(domain(i)%is_turbgen) then
-              write (*, wrtfmt1i) 'For the domain-x (turbulence generator)  = ', i
-            else 
-              write (*, wrtfmt1i) 'For the domain-x (no turbulence generator)  = ', i
-            end if
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
             write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
@@ -179,10 +168,6 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5) ! dimensional
-          if(domain(i)%is_turbgen) then
-            domain(i)%ibcx_nominal(:, :) = IBC_PERIODIC
-            domain(i)%fbcx_const(:, :)   = ZERO
-          end if
         end do
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
@@ -198,13 +183,29 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5) ! dimensional
 
         do i = 1, nxdomain
-          domain(i)%ibcy(:, :) = domain(1)%ibcy(:, :)
-          domain(i)%ibcz(:, :) = domain(1)%ibcz(:, :)
+          domain(i)%ibcy_nominal(:, :) = domain(1)%ibcy_nominal(:, :)
+          domain(i)%ibcz_nominal(:, :) = domain(1)%ibcz_nominal(:, :)
 
           domain(i)%fbcy_const(:, :) = domain(1)%fbcy_const(:, :)
           domain(i)%fbcz_const(:, :) = domain(1)%fbcz_const(:, :)
-        end do
 
+          domain(i)%is_periodic(:) = .false.
+          do j = 1, 5
+            if(domain(i)%ibcx_nominal(1, j) == IBC_PERIODIC .or. domain(i)%ibcx_nominal(2, j) == IBC_PERIODIC) then
+              domain(i)%ibcx_nominal(1:2, j) = IBC_PERIODIC
+              domain(i)%is_periodic(1) = .true.
+            end if
+            if(domain(i)%ibcy_nominal(1, j) == IBC_PERIODIC .or. domain(i)%ibcy_nominal(2, j) == IBC_PERIODIC) then
+              domain(i)%ibcy_nominal(1:2, j) = IBC_PERIODIC
+              domain(i)%is_periodic(2) = .true.
+            end if
+            if(domain(i)%ibcz_nominal(1, j) == IBC_PERIODIC .or. domain(i)%ibcz_nominal(2, j) == IBC_PERIODIC) then
+              domain(i)%ibcz_nominal(1:2, j) = IBC_PERIODIC
+              domain(i)%is_periodic(3) = .true.
+            end if
+          end do
+        end do
+        
         if(nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
@@ -517,24 +518,6 @@ contains
         write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
         write (*, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
       end if
-      !----------------------------------------------------------------------------------------------------------
-      !  set up periodic b.c. boolean, based on velocity
-      !----------------------------------------------------------------------------------------------------------
-      domain(i)%is_periodic(:) = .false.
-      do j = 1, 5
-        if(domain(i)%ibcx(1, j) == IBC_PERIODIC .or. domain(i)%ibcx(2, j) == IBC_PERIODIC) then
-          domain(i)%ibcx(1:2, j) = IBC_PERIODIC
-          domain(i)%is_periodic(1) = .true.
-        end if
-        if(domain(i)%ibcy(1, j) == IBC_PERIODIC .or. domain(i)%ibcy(2, j) == IBC_PERIODIC) then
-          domain(i)%ibcy(1:2, j) = IBC_PERIODIC
-          domain(i)%is_periodic(2) = .true.
-        end if
-        if(domain(i)%ibcz(1, j) == IBC_PERIODIC .or. domain(i)%ibcz(2, j) == IBC_PERIODIC) then
-          domain(i)%ibcz(1:2, j) = IBC_PERIODIC
-          domain(i)%is_periodic(3) = .true.
-        end if
-      end do
       !----------------------------------------------------------------------------------------------------------
       ! set up constant for time step marching 
       !----------------------------------------------------------------------------------------------------------

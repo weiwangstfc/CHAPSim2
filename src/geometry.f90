@@ -235,6 +235,16 @@ contains
       dm%h2r(i) = ONE / (dm%h(i) * dm%h(i))
       dm%h1r(i) = ONE / dm%h(i)
     end do
+
+    if(nrank == 0) then
+      write (*, wrtfmt1i) 'For the domain-x  = ', dm%idom
+      write (*, *)        '  is periodic in x, y, z :', dm%is_periodic(1:NDIM)
+      write (*, wrtfmt3i) '  geometry number of nodes     in x, y, z: :', dm%np_geo(1:NDIM)
+      write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)
+      write (*, wrtfmt3i) '  calculation number of points in x, y, z: :', dm%np(1:NDIM)
+      write (*, wrtfmt3r) '  grid spacing (uniform)       in x, y, z: :', dm%h(1:NDIM)
+    end if
+
     !----------------------------------------------------------------------------------------------------------
     ! print out data for debugging
     !----------------------------------------------------------------------------------------------------------

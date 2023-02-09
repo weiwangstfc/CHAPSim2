@@ -335,7 +335,6 @@ module udf_type_mod
     logical :: is_stretching(NDIM)      ! is this direction of stretching grids?
     logical :: is_compact_scheme     ! is compact scheme applied?
     logical :: is_thermo             ! is thermal field considered? 
-    logical :: is_turbgen            ! is turbulence generator?
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type

@@ -41,7 +41,6 @@ module thermo_info_mod
   private :: ftplist_sort_t_small2big
   private :: Write_thermo_property
   public  :: Buildup_undim_thermo_bc
-  public  :: update_rhou_bc
 
   
   private :: ftp_is_T_in_scope
@@ -957,30 +956,6 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_rhou_bc (dm) ! 
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent( inout)   :: dm
-
-    integer :: m
-
-    if(.not. dm%is_thermo) return
-!----------------------------------------------------------------------------------------------------------
-!   get bc gx, gy, gz (at bc not cell centre)
-!----------------------------------------------------------------------------------------------------------
-    do m = NBC + 1, NBC + NDIM
-      dm%fbcx_var(:, :, :, m) = dm%fbcx_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcy_var(:, :, :, m) = dm%fbcy_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcz_var(:, :, :, m) = dm%fbcz_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-    end do
-
-    return
-  end subroutine
-
-
-!==========================================================================================================
-!==========================================================================================================
   subroutine Buildup_undim_thermo_bc(tm, dm)
     use parameters_constant_mod
     use udf_type_mod
@@ -1071,8 +1046,6 @@ contains
         end do 
       end do
     end do 
-
-    call update_rhou_bc(dm)
 
     return
   end subroutine

@@ -452,7 +452,7 @@ contains
 !----------------------------------------------------------------------------------------------------------  
     if ( .not. dm%is_thermo) then
       call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, i), dm%fbcx_var(:, :, :, i) * dm%fbcx_var(:, :, :, 1) )
-    else then
+    else
       call Get_x_1st_derivative_C2P_3D(-gx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, i), dm%fbcx_var(:, :, :, i) * dm%fbcx_var(:, :, :, 1 + NBC) )
     end if
     fl%mx_rhs = fl%mx_rhs + apcc
@@ -461,7 +461,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if ( .not. dm%is_thermo) then
       call Get_y_1st_derivative_P2C_3D(-qy_ppc_ypencil * qx_ppc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_var(:, :, :, i) * dm%fbcy_var(:, :, :, 2) )
-    else then
+    else
       call Get_y_1st_derivative_P2C_3D(-gy_ppc_ypencil * qx_ppc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_var(:, :, :, i) * dm%fbcy_var(:, :, :, 2 + NBC) )
     end if
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
@@ -470,7 +470,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if ( .not. dm%is_thermo) then
       call Get_z_1st_derivative_P2C_3D(-qz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), dm%fbcz_var(:, :, :, i) * dm%fbcz_var(:, :, :, 3) )
-    else then
+    else
       call Get_z_1st_derivative_P2C_3D(-gz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), dm%fbcz_var(:, :, :, i) * dm%fbcz_var(:, :, :, 3 + NBC) )
     end if
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
@@ -485,8 +485,8 @@ contains
     !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1)) ! check
     accc = ZERO
     apcc = ZERO
-    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, i), dmdm%fbcx_var(:, :, :, i))
-    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, i), dmdm%fbcx_var(:, :, :, i))
+    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, i), dm%fbcx_var(:, :, :, i))
+    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, i), dm%fbcx_var(:, :, :, i))
 
     if ( .not. dm%is_thermo) then
       fl%mx_rhs = fl%mx_rhs +         fl%rre * apcc
@@ -619,7 +619,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom pressure gradient in y direction, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_C2P_3D( -pres_ypencil, acpc_ypencil, dm, dm%ibcy(:, 4), dmdm%fbcy_var(:, :, :, 4) )
+    call Get_y_1st_derivative_C2P_3D( -pres_ypencil, acpc_ypencil, dm, dm%ibcy(:, 4), dm%fbcy_var(:, :, :, 4) )
     my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil + acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : Y-mom diffusion term (y-v1-1/7), \mu * LL1(uy) at (i, j', k)
@@ -627,8 +627,8 @@ contains
     !call Get_x_2nd_derivative_C2C_3D(fl%qy, acpc, dm, dm%ibcx(:, 2) )
     appc = ZERO
     acpc = ZERO
-    call Get_x_1st_derivative_C2P_3D(fl%qy, appc, dm, dm%ibcx(:, 2), dmdm%fbcx_var(:, :, :, i) )
-    call Get_x_1st_derivative_P2C_3D(appc,  acpc, dm, dm%ibcx(:, 2), dmdm%fbcx_var(:, :, :, i) )
+    call Get_x_1st_derivative_C2P_3D(fl%qy, appc, dm, dm%ibcx(:, 2), dm%fbcx_var(:, :, :, i) )
+    call Get_x_1st_derivative_P2C_3D(appc,  acpc, dm, dm%ibcx(:, 2), dm%fbcx_var(:, :, :, i) )
     if (.not. dm%is_thermo) then
       fl%my_rhs = fl%my_rhs +         fl%rre * acpc
     else
@@ -684,7 +684,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : Y-mom diffusion term (y-v5/7), d(mu^y)/dx * d(qy^x))/dx at (i, j', k)
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_1st_derivative_C2C_3D(fl%qy, acpc, dm, dm%ibcx(:, 2), dmdm%fbcx_var(:, :, :, 2) )
+      call Get_x_1st_derivative_C2C_3D(fl%qy, acpc, dm, dm%ibcx(:, 2), dm%fbcx_var(:, :, :, 2) )
       fl%my_rhs =  fl%my_rhs + fl%rre * dmdx_cpc * acpc
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v6/7), d(mu^y)/dz * d(qz^z)/dy at (i, j', k)
@@ -755,14 +755,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : pressure gradient in z direction, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_C2P_3D( -pres_zpencil, accp_zpencil, dm, dm%ibcz(:, 4), dmdm%fbcz_var(:, :, :, 4) )
+    call Get_z_1st_derivative_C2P_3D( -pres_zpencil, accp_zpencil, dm, dm%ibcz(:, 4), dm%fbcz_var(:, :, :, 4) )
     mz_rhs_pfc_zpencil =  mz_rhs_pfc_zpencil + accp_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : Z-mom diffusion term (z-v1-1/7), \mu * L11(uz) at (i, j, k')
 !----------------------------------------------------------------------------------------------------------
     !call Get_x_2nd_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3) )
-    call Get_x_1st_derivative_C2P_3D(fl%qz, apcp, dm, dm%ibcx(:, i),  dmdm%fbcx_var(:, :, :, i))
-    call Get_x_1st_derivative_P2C_3D(apcp,  accp, dm, dm%ibcx(:, i),  dmdm%fbcx_var(:, :, :, i))
+    call Get_x_1st_derivative_C2P_3D(fl%qz, apcp, dm, dm%ibcx(:, i),  dm%fbcx_var(:, :, :, i))
+    call Get_x_1st_derivative_P2C_3D(apcp,  accp, dm, dm%ibcx(:, i),  dm%fbcx_var(:, :, :, i))
     if ( .not. dm%is_thermo) then
       fl%mz_rhs = fl%mz_rhs +         fl%rre * accp
     else
@@ -821,7 +821,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : Z-mom diffusion term (z-v5/7), d(mu^z)/dx * d(qz)/dx at (i, j, k')
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_1st_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3), dmdm%fbcx_var(:, :, :, 3) )
+      call Get_x_1st_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3), dm%fbcx_var(:, :, :, 3) )
       fl%mz_rhs =  fl%mz_rhs + fl%rre * dmdx_ccp * accp
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v6/7), d(mu^z)/dy * d(qy^y)/dz at (i, j, k')
@@ -918,7 +918,7 @@ contains
 !   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
 !----------------------------------------------------------------------------------------------------------
     dphidx_pcc = ZERO
-    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), dmdm%fbcx_var(:, :, :, 4) )
+    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), dm%fbcx_var(:, :, :, 4) )
     ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 !----------------------------------------------------------------------------------------------------------
 !   y-pencil, uy = uy - dt * alpha * d(phi_ccc)/dy
@@ -927,7 +927,7 @@ contains
     dphidy_cpc_ypencil = ZERO
     dphidy_cpc = ZERO
     call transpose_x_to_y (phi_ccc, phi_ccc_ypencil, dm%dccc)
-    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%ibcy(:, 4), dmdm%fbcy_var(:, :, :, 4) )
+    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%ibcy(:, 4), dm%fbcy_var(:, :, :, 4) )
     call transpose_y_to_x (dphidy_cpc_ypencil, dphidy_cpc, dm%dcpc)
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
 !----------------------------------------------------------------------------------------------------------
@@ -938,7 +938,7 @@ contains
     dphidz_ccp_ypencil = ZERO
     dphidz_ccp = ZERO
     call transpose_y_to_z (phi_ccc_ypencil, pphi_ccc_zpencil, dm%dccc)
-    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%ibcz(:, 4), dmdm%fbcz_var(:, :, :, 4) )
+    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%ibcz(:, 4), dm%fbcz_var(:, :, :, 4) )
     call transpose_z_to_y (dphidz_ccp_zpencil, dphidz_ccp_ypencil, dm%dccp)
     call transpose_y_to_x (dphidz_ccp_ypencil, dphidz_ccp,         dm%dccp)
     uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp
@@ -1118,7 +1118,7 @@ contains
     implicit none
 
     type(t_flow), intent(inout) :: fl
-    type(t_domain),  intent(in) :: dm
+    type(t_domain),  intent(inout) :: dm
     integer,      intent(in) :: isub
 
 !----------------------------------------------------------------------------------------------------------
@@ -1145,11 +1145,6 @@ contains
     ! ref: Cui2013: Convergence analysis of high-order compact 
     ! alternating direction implicit schemes for the two-dimensional 
     ! time fractional equation
-
-!----------------------------------------------------------------------------------------------------------
-! to update b.c. values
-!----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity (dm, fl)
 
 #ifdef DEBUG_STEPS
   call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
@@ -1191,10 +1186,6 @@ contains
     call update_rhou_bc(dm)
   end if
 
-!----------------------------------------------------------------------------------------------------------
-! to update b.c. values
-!----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity (dm, fl)
     
 #ifdef DEBUG_STEPS
     call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)

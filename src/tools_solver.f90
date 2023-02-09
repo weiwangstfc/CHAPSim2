@@ -15,6 +15,11 @@ module solver_tools_mod
   public  :: Find_maximum_absvar3d
   public  :: Find_max_min_3d
 
+  public  :: Calculate_massflux_from_velocity
+  public  :: Calculate_velocity_from_massflux
+
+  public  :: update_rhou_bc
+
 contains
 !==========================================================================================================
 !> \brief The main code for initializing flow variables
@@ -263,20 +268,22 @@ contains
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(in) :: v
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(in) :: w
 
-    real(WP), dimension( dm%np(1) ) :: fix
-    real(WP), dimension( dm%np(2) ) :: fiy
-    real(WP), dimension( dm%np(3) ) :: fiz
-    real(WP), dimension( dm%nc(1) ) :: fox
-    real(WP), dimension( dm%nc(2) ) :: foy
-    real(WP), dimension( dm%nc(3) ) :: foz
-
-    real(WP) :: udx_xpencil (dm%dccc%xsz(1), &
+    real(WP) :: var_xpencil (dm%dccc%xsz(1), &
                              dm%dccc%xsz(2), &
                              dm%dccc%xsz(3))
-    real(WP) :: udx_ypencil (dm%dccc%ysz(1), &
+    real(WP) :: var_ypencil (dm%dccc%ysz(1), &
                              dm%dccc%ysz(2), &
                              dm%dccc%ysz(3))
-    real(WP) :: udx_zpencil (dm%dccc%zsz(1), &
+    real(WP) :: var_zpencil (dm%dccc%zsz(1), &
+                             dm%dccc%zsz(2), &
+                             dm%dccc%zsz(3))
+    real(WP) :: accc_xpencil (dm%dccc%xsz(1), &
+                             dm%dccc%xsz(2), &
+                             dm%dccc%xsz(3))
+    real(WP) :: accc_ypencil (dm%dccc%ysz(1), &
+                             dm%dccc%ysz(2), &
+                             dm%dccc%ysz(3))
+    real(WP) :: accc_zpencil (dm%dccc%zsz(1), &
                              dm%dccc%zsz(2), &
                              dm%dccc%zsz(3))
     real(WP) ::   v_ypencil (dm%dcpc%ysz(1), &
@@ -295,60 +302,37 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Initialisation
 !----------------------------------------------------------------------------------------------------------
-    udx_xpencil(:, :, :) = ZERO
-    udx_ypencil(:, :, :) = ZERO
-    udx_zpencil(:, :, :) = ZERO
-      v_ypencil(:, :, :) = ZERO
-      w_ypencil(:, :, :) = ZERO
-      w_zpencil(:, :, :) = ZERO
+    var_xpencil(:, :, :) = ZERO
+    var_ypencil(:, :, :) = ZERO
+    var_zpencil(:, :, :) = ZERO
+    accc_xpencil(:, :, :) = ZERO
+    accc_ypencil(:, :, :) = ZERO
+    accc_zpencil(:, :, :) = ZERO
+
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    dtmp = dm%dpcc
-    do k = 1, dtmp%xsz(3)
-      do j = 1, dtmp%xsz(2)
-        fix(:) = u(:, j, k)
-        call Get_x_midp_P2C_1D (fix, fox, dm, dm%ibcx(:, 1))
-        udx_xpencil(:, j, k) = fox(:) * dm%h1r(1) * dm%dt
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! Convert X-pencil to Y-Pencil
-!----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y(udx_xpencil, udx_ypencil, dm%dccc)
-    call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call transpose_x_to_y(w,             w_ypencil, dm%dccp)
+    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
-    dtmp = dm%dcpc
-    do k = 1, dtmp%ysz(3)
-      do i = 1, dtmp%ysz(1)
-        fiy(:) = v_ypencil(i, :, k)
-        call Get_y_midp_P2C_1D (fiy, foy, dm, dm%ibcy(:, 2))
-        udx_ypencil(i, :, k) = udx_ypencil(i, :, k) + foy(:) * dm%h1r(2) * dm%dt
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! Convert Y-pencil to Z-Pencil
-!----------------------------------------------------------------------------------------------------------
-    call transpose_y_to_z(udx_ypencil, udx_zpencil, dm%dccc)
-    call transpose_y_to_z(  w_ypencil,   w_zpencil, dm%dccp)
+    call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
+    call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
+    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : \overline{w}^z/dz at cell centre
 !----------------------------------------------------------------------------------------------------------
-    dtmp = dm%dccp
-    do j = 1, dtmp%zsz(2)
-      do i = 1, dtmp%zsz(1)
-        fiz(:) = w_zpencil(i, j, :)
-        call Get_z_midp_P2C_1D (fiz, foz, dm, dm%ibcz(:, 3))
-        udx_zpencil(i, j, :) = udx_zpencil(i, j, :) + foz(:) * dm%h1r(3) * dm%dt
-      end do
-    end do
+    call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
+    call transpose_x_to_y(w,             w_ypencil, dm%dccp)
+    call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
+    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(udx_zpencil, "CFL (convection) :", wrtfmt1r)
+    call Find_maximum_absvar3d(var_zpencil, "CFL (convection) :", wrtfmt1r)
 
     ! if(nrank == 0) then
     !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
@@ -615,6 +599,191 @@ contains
 
     vmax = varmax_work
     vmin = varmin_work
+
+    return
+  end subroutine
+
+
+!==========================================================================================================
+!> \brief Calculate the conservative variables from primary variable.     
+!> This subroutine is called to update $\rho u_i$ from $u_i$.
+!---------------------------------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    needed         specified   pubic
+!----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     dm             domain
+!> \param[in]     fm             flow
+!==========================================================================================================
+  subroutine Calculate_massflux_from_velocity(fl, dm)
+    use udf_type_mod
+    use operations
+    use decomp_2d
+    implicit none
+    type(t_domain), intent(in )   :: dm
+    type(t_flow  ), intent(inout) :: fl
+
+    real(WP), dimension( dm%dpcc%xsz(1), &
+                         dm%dpcc%xsz(2), &
+                         dm%dpcc%xsz(3)) :: d_pcc
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: d_cpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: d_ccp_zpencil
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: qy_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: gy_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), &
+                         dm%dccp%ysz(2), &
+                         dm%dccp%ysz(3)) :: qz_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), &
+                         dm%dccp%ysz(2), &
+                         dm%dccp%ysz(3)) :: gz_ypencil
+    real(WP), dimension( dm%dccc%ysz(1), &
+                         dm%dccc%ysz(2), &
+                         dm%dccc%ysz(3)) ::  d_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: qz_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: gz_zpencil
+    real(WP), dimension( dm%dccc%zsz(1), &
+                         dm%dccc%zsz(2), &
+                         dm%dccc%zsz(3)) ::  d_zpencil
+    
+!----------------------------------------------------------------------------------------------------------
+! x-pencil : u1 -> g1
+!----------------------------------------------------------------------------------------------------------
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    fl%gx = fl%qx * d_pcc
+!----------------------------------------------------------------------------------------------------------
+! y-pencil : u2 -> g2
+!----------------------------------------------------------------------------------------------------------
+    call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
+    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
+
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
+    gy_ypencil = qy_ypencil * d_cpc_ypencil
+    call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
+!----------------------------------------------------------------------------------------------------------
+! Z-pencil : u3 -> g3
+!----------------------------------------------------------------------------------------------------------
+    call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
+    call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
+    call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
+
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
+    gz_zpencil = qz_zpencil * d_ccp_zpencil
+
+    call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
+    call transpose_y_to_x(gz_ypencil, fl%gz,      dm%dccp)
+
+    return
+  end subroutine Calculate_massflux_from_velocity
+
+
+  !==========================================================================================================
+  subroutine Calculate_velocity_from_massflux(fl, dm)
+    use udf_type_mod
+    use operations
+    use decomp_2d
+    implicit none
+    type(t_domain), intent(in )   :: dm
+    type(t_flow  ), intent(inout) :: fl
+
+    real(WP), dimension( dm%dpcc%xsz(1), &
+                         dm%dpcc%xsz(2), &
+                         dm%dpcc%xsz(3)) :: d_pcc
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: d_cpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: d_ccp_zpencil
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: qy_ypencil
+    real(WP), dimension( dm%dcpc%ysz(1), &
+                         dm%dcpc%ysz(2), &
+                         dm%dcpc%ysz(3)) :: gy_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), &
+                         dm%dccp%ysz(2), &
+                         dm%dccp%ysz(3)) :: qz_ypencil
+    real(WP), dimension( dm%dccp%ysz(1), &
+                         dm%dccp%ysz(2), &
+                         dm%dccp%ysz(3)) :: gz_ypencil
+    real(WP), dimension( dm%dccc%ysz(1), &
+                         dm%dccc%ysz(2), &
+                         dm%dccc%ysz(3)) ::  d_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: qz_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), &
+                         dm%dccp%zsz(2), &
+                         dm%dccp%zsz(3)) :: gz_zpencil
+    real(WP), dimension( dm%dccc%zsz(1), &
+                         dm%dccc%zsz(2), &
+                         dm%dccc%zsz(3)) ::  d_zpencil
+    
+!----------------------------------------------------------------------------------------------------------
+! x-pencil : g1 -> u1
+!----------------------------------------------------------------------------------------------------------
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    fl%qx = fl%gx / d_pcc
+!----------------------------------------------------------------------------------------------------------
+! y-pencil : u2 -> g2
+!----------------------------------------------------------------------------------------------------------
+    call transpose_x_to_y(fl%gy,    gy_ypencil, dm%dcpc)
+    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
+
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
+    qy_ypencil = gy_ypencil / d_cpc_ypencil
+    call transpose_y_to_x(qy_ypencil, fl%qy, dm%dcpc)
+!----------------------------------------------------------------------------------------------------------
+! Z-pencil : u3 -> g3
+!----------------------------------------------------------------------------------------------------------
+    call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
+    call transpose_x_to_y(fl%gz,      gz_ypencil, dm%dccp)
+    call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp)
+
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
+    qz_zpencil = gz_zpencil / d_ccp_zpencil
+
+    call transpose_z_to_y(qz_zpencil, qz_ypencil, dm%dccp)
+    call transpose_y_to_x(qz_ypencil, fl%qz, dm%dccp)
+
+    return
+  end subroutine Calculate_velocity_from_massflux
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine update_rhou_bc (dm) ! 
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent( inout)   :: dm
+
+    integer :: m
+
+    if(.not. dm%is_thermo) return
+!----------------------------------------------------------------------------------------------------------
+!   get bc gx, gy, gz (at bc not cell centre)
+!----------------------------------------------------------------------------------------------------------
+    do m = NBC + 1, NBC + NDIM
+      dm%fbcx_var(:, :, :, m) = dm%fbcx_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
+      dm%fbcy_var(:, :, :, m) = dm%fbcy_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
+      dm%fbcz_var(:, :, :, m) = dm%fbcz_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
+    end do
 
     return
   end subroutine

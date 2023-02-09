@@ -6,8 +6,6 @@ module eq_energy_mod
   private :: Compute_energy_rhs
   private :: Calculate_energy_fractional_step
   public  :: Solve_energy_eq
-  public  :: Calculate_massflux_from_velocity
-  public  :: Calculate_velocity_from_massflux
 contains
 !==========================================================================================================
   subroutine Calculate_energy_fractional_step(rhs0, rhs1, dm, isub)
@@ -65,9 +63,11 @@ contains
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: kCond_zpencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_zpencil
     
-    real(WP) :: fbcx(2), fbcy(2), fbcz(2)
+    real(WP) :: fbcx(4, dm%np(2), dm%np(3))
+    real(WP) :: fbcy(dm%np(1), 4, dm%np(3))
+    real(WP) :: fbcz(dm%np(1), dm%np(2), 4)
     integer  :: ibcx(2), ibcy(2), ibcz(2)
-    integer  :: i
+    integer  :: i, n
 !==========================================================================================================
 !   preparation
 !==========================================================================================================
@@ -107,12 +107,12 @@ contains
 ! x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
     tm%ene_rhs = ZERO
-    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(i, 5), dm%ftpbcx_var(:, :, :)%dh * dm%fbcx_var(:, :, :, 1 + NBC) ) ! accc = -d(gx * h)/dx
+    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%dh * dm%fbcx_var(:, :, :, 1 + NBC) ) ! accc = -d(gx * h)/dx
     tm%ene_rhs = tm%ene_rhs + accc
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d (T) / dx 
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, dm%ibcx(i, 5), dm%ftpbcx_var(:, :, :)%t )
+    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%t )
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : k_pcc * d (T) / dx 
 !----------------------------------------------------------------------------------------------------------
@@ -143,7 +143,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d (T) / dy
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, dm%ibcy(i, 5), dm%ftpbcy_var(:, :, :)%t )
+    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%t )
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : k_cpc * d (T) / dy 
 !----------------------------------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ contains
       else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
         fbcy(:, :, :) = dm%ftpbcy_var(:, :, :)%t * dm%ftpbcy_var(:, :, :)%k
       end if
-    end if
+    end do
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d ( k_cpc * d (T) / dy ) dy
 !----------------------------------------------------------------------------------------------------------
@@ -171,12 +171,12 @@ contains
 ! z-pencil : d (gz * h_ccp) / dz 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_zpencil = ZERO
-    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%ftpbcz_var(:, :, :)%dh * dm%fbcz_var(:, :, :, 3 + NBC )
+    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%ftpbcz_var(:, :, :)%dh * dm%fbcz_var(:, :, :, 3 + NBC ) )
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d (T) / dz
 !----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, dm%ibcz(i, 5), dm%ftpbcz_var(:, :, :)%t )
+    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%t )
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : k_ccp * d (T) / dz 
 !----------------------------------------------------------------------------------------------------------
@@ -187,7 +187,7 @@ contains
       else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
         fbcz(:, :, :) = dm%ftpbcz_var(:, :, :)%t * dm%ftpbcz_var(:, :, :)%k
       end if
-    end if
+    end do
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d ( k_ccp * d (T) / dz ) / dz
 !----------------------------------------------------------------------------------------------------------
@@ -234,166 +234,5 @@ contains
 !----------------------------------------------------------------------------------------------------------
   return
   end subroutine
-
-!==========================================================================================================
-!> \brief Calculate the conservative variables from primary variable.     
-!> This subroutine is called to update $\rho u_i$ from $u_i$.
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    needed         specified   pubic
-!----------------------------------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     dm             domain
-!> \param[in]     fm             flow
-!==========================================================================================================
-  subroutine Calculate_massflux_from_velocity(fl, dm)
-    use udf_type_mod
-    use operations
-    use decomp_2d
-    implicit none
-    type(t_domain), intent(in )   :: dm
-    type(t_flow  ), intent(inout) :: fl
-
-    real(WP), dimension( dm%dpcc%xsz(1), &
-                         dm%dpcc%xsz(2), &
-                         dm%dpcc%xsz(3)) :: d_pcc
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: d_cpc_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: d_ccp_zpencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: qy_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: gy_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: qz_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: gz_ypencil
-    real(WP), dimension( dm%dccc%ysz(1), &
-                         dm%dccc%ysz(2), &
-                         dm%dccc%ysz(3)) ::  d_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: qz_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: gz_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), &
-                         dm%dccc%zsz(2), &
-                         dm%dccc%zsz(3)) ::  d_zpencil
-    
-!----------------------------------------------------------------------------------------------------------
-! x-pencil : u1 -> g1
-!----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_1D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
-    fl%gx = fl%qx * d_pcc
-!----------------------------------------------------------------------------------------------------------
-! y-pencil : u2 -> g2
-!----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
-    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
-
-    call Get_y_midp_C2P_1D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
-    gy_ypencil = qy_ypencil * d_cpc_ypencil
-    call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
-!----------------------------------------------------------------------------------------------------------
-! Z-pencil : u3 -> g3
-!----------------------------------------------------------------------------------------------------------
-    call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
-    call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
-    call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
-
-    call Get_z_midp_C2P_1D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
-    gz_zpencil = qz_zpencil * d_ccp_zpencil
-
-    call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
-    call transpose_y_to_x(gz_ypencil, fl%gz,      dm%dccp)
-
-    return
-  end subroutine Calculate_massflux_from_velocity
-
-
-  !==========================================================================================================
-  subroutine Calculate_velocity_from_massflux(fl, dm)
-    use udf_type_mod
-    use operations
-    use decomp_2d
-    implicit none
-    type(t_domain), intent(in )   :: dm
-    type(t_flow  ), intent(inout) :: fl
-
-    real(WP), dimension( dm%dpcc%xsz(1), &
-                         dm%dpcc%xsz(2), &
-                         dm%dpcc%xsz(3)) :: d_pcc
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: d_cpc_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: d_ccp_zpencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: qy_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: gy_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: qz_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: gz_ypencil
-    real(WP), dimension( dm%dccc%ysz(1), &
-                         dm%dccc%ysz(2), &
-                         dm%dccc%ysz(3)) ::  d_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: qz_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: gz_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), &
-                         dm%dccc%zsz(2), &
-                         dm%dccc%zsz(3)) ::  d_zpencil
-    
-!----------------------------------------------------------------------------------------------------------
-! x-pencil : g1 -> u1
-!----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_1D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
-    fl%qx = fl%gx / d_pcc
-!----------------------------------------------------------------------------------------------------------
-! y-pencil : u2 -> g2
-!----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y(fl%gy,    gy_ypencil, dm%dcpc)
-    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
-
-    call Get_y_midp_C2P_1D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
-    qy_ypencil = gy_ypencil / d_cpc_ypencil
-    call transpose_y_to_x(qy_ypencil, fl%qy, dm%dcpc)
-!----------------------------------------------------------------------------------------------------------
-! Z-pencil : u3 -> g3
-!----------------------------------------------------------------------------------------------------------
-    call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
-    call transpose_x_to_y(fl%gz,      gz_ypencil, dm%dccp)
-    call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp)
-
-    call Get_z_midp_C2P_1D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
-    qz_zpencil = gz_zpencil / d_ccp_zpencil
-
-    call transpose_z_to_y(qz_zpencil, qz_ypencil, dm%dccp)
-    call transpose_y_to_x(qz_ypencil, fl%qz, dm%dccp)
-
-    return
-  end subroutine Calculate_velocity_from_massflux
 
 end module eq_energy_mod
