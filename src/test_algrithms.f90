@@ -89,16 +89,16 @@ contains
       end do 
       if(idir == 1) then
         dm%ibcx(:,:) = IBC_DIRICHLET
-        dm%fbcx(1, idir) = beta / (ONE)
-        dm%fbcx(2, idir) = (alpha * dm%lxx + beta) / (ONE)
+        dm%fbcx_var(1, :, :, idir) = beta / (ONE)
+        dm%fbcx_var(2, :, :, idir) = (alpha * dm%lxx + beta) / (ONE)
       else if(idir == 2) then
         dm%ibcy(:,:) = IBC_DIRICHLET
-        dm%fbcy(1, idir) = beta / (ONE)
-        dm%fbcy(2, idir) = (alpha * dm%lyt + beta) / (ONE)
+        dm%fbcy_var(:, 1, :, idir) = beta / (ONE)
+        dm%fbcy_var(:, 2, :, idir) = (alpha * dm%lyt + beta) / (ONE)
       else if(idir == 3) then
         dm%ibcz(:,:) = IBC_DIRICHLET
-        dm%fbcz(1, idir) = beta / (ONE)
-        dm%fbcz(2, idir) = (alpha * dm%lzz + beta) / (ONE)
+        dm%fbcz_var(:, :, 1, idir) = beta / (ONE)
+        dm%fbcz_var(:, :, 2, idir) = (alpha * dm%lzz + beta) / (ONE)
       else
       end if 
     else if (icase == ICASE_BURGERS1D_WAVEPROPAGATION) then

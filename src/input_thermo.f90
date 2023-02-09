@@ -54,9 +54,6 @@ module thermo_info_mod
 
   public  :: Buildup_thermo_mapping_relations
   public  :: Initialize_thermal_properties
-  public  :: apply_bc_thermmal_properties
-  public  :: Update_thermal_properties
-  public  :: update_bc_turbgen_thermo
   
 contains
 !==========================================================================================================
@@ -991,7 +988,7 @@ contains
     type(t_domain), intent(inout) :: dm
     type(t_thermo), intent(inout) :: tm
 
-    integer :: i 
+    integer :: i, j, k, n
 
     !----------------------------------------------------------------------------------------------------------
     !   for x-pencil
@@ -1057,17 +1054,17 @@ contains
         do n = 1, 2
           if( dm%ibcz(n, 5) == IBC_DIRICHLET ) then
             ! dimensional T --> undimensional T
-            dm%fbcz_var  (i, j, n, , 5)  = dm%fbcz_var(i, j, n,   5) / tm%ref_T0 
+            dm%fbcz_var  (i, j, n,   5)  = dm%fbcz_var(i, j, n,   5) / tm%ref_T0 
             dm%fbcz_var  (i, j, n+2, 5)  = dm%fbcz_var(i, j, n+2, 5) / tm%ref_T0 
             dm%ftpbcz_var(i, j, n  )%t   = dm%fbcz_var(i, j, n,   5)
             dm%ftpbcz_var(i, j, n+2)%t   = dm%fbcz_var(i, j, n+2, 5)
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n, ))
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n  ))
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n+2))
 
           else if (dm%ibcz(1, 5) == IBC_NEUMANN) then
             ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%fbcz_var(i, j, n,  ) = dm%fbcz_var(i, j, n,  ) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%fbcz_var(i, j, n+2 ) = dm%fbcz_var(i, j, n+2 ) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+            dm%fbcz_var(i, j, n  , 5) = dm%fbcz_var(i, j, n,   5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcz_var(i, j, n+2, 5) = dm%fbcz_var(i, j, n+2, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
           else
           end if
 
@@ -1188,17 +1185,15 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
-  subroutine Buildup_thermo_mapping_relations(tm, dm)
+  subroutine Buildup_thermo_mapping_relations(tm)
     implicit none
     type(t_thermo), intent(inout) :: tm
-    type(t_domain), intent(inout) :: dm
 
     call Initialize_thermo_parameters(tm)
     if (fluidparam%ipropertyState == IPROPERTY_TABLE) call buildup_property_relations_from_table
     if (fluidparam%ipropertyState == IPROPERTY_FUNCS) call buildup_property_relations_from_function
     call Write_thermo_property ! for test
   
-    
     
     return
   end subroutine Buildup_thermo_mapping_relations

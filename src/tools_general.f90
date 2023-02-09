@@ -369,11 +369,13 @@ contains
 
   !**********************************************************************************************************************************
   function spline_interpolation(n, yprofile, b, c, d, y) result(eval)
+    use precision_mod
     implicit none
     integer, intent(in) :: n
     real(WP), intent(in) :: yprofile(n)
     real(wp), intent(in) :: b(n), c(n), d(n)
     real(WP), intent(in) :: y
+    real(WP) :: eval
     
     integer :: i, j, k
     real(WP) :: dy

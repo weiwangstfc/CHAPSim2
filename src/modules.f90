@@ -289,9 +289,44 @@ module wtformat_mod
 end module wtformat_mod
 !==========================================================================================================
 module udf_type_mod
-  use parameters_constant_mod, only: NDIM, NBC
+  use parameters_constant_mod, only: NDIM, NBC, WP
   use mpi_mod
   implicit none
+!----------------------------------------------------------------------------------------------------------
+!  fluid thermal property info
+!---------------------------------------------------------------------------------------------------------- 
+  type t_fluidThermoProperty
+    real(WP) :: t  ! temperature
+    real(WP) :: d  ! density
+    real(WP) :: m  ! dynviscosity
+    real(WP) :: k  ! thermconductivity
+    real(WP) :: h  ! enthalpy
+    real(WP) :: dh ! mass enthalpy
+    real(WP) :: cp ! specific heat capacity 
+    real(WP) :: b  ! thermal expansion
+  end type t_fluidThermoProperty
+!----------------------------------------------------------------------------------------------------------
+!  parameters to calculate the fluid thermal property 
+!---------------------------------------------------------------------------------------------------------- 
+  type t_fluid_parameter
+    character(len = 64) :: inputProperty
+    integer :: ifluid
+    integer :: ipropertyState
+    integer :: nlist
+    real(WP) :: TM0
+    real(WP) :: TB0
+    real(WP) :: HM0
+    real(WP) :: CoD(0:1)
+    real(WP) :: CoK(0:2)
+    real(WP) :: CoB
+    real(WP) :: CoCp(-2:2)
+    real(WP) :: CoH(-1:3)
+    real(WP) :: CoM(-1:1)
+    real(WP) :: dhmax
+    real(WP) :: dhmin
+    type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
+    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
+  end type t_fluid_parameter
 !----------------------------------------------------------------------------------------------------------
 !  domain info
 !---------------------------------------------------------------------------------------------------------- 
@@ -304,7 +339,6 @@ module udf_type_mod
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type
-    
     
     integer :: icht
     integer :: iTimeScheme
@@ -369,9 +403,9 @@ module udf_type_mod
     real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
     real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
     real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
-    type(t_fluidThermoProperty) :: ftpbcx_var(:, :, :)  ! undim, xbc state
-    type(t_fluidThermoProperty) :: ftpbcy_var(:, :, :)  ! undim, ybc state
-    type(t_fluidThermoProperty) :: ftpbcz_var(:, :, :)  ! undim, zbc state
+    type(t_fluidThermoProperty), allocatable :: ftpbcx_var(:, :, :)  ! undim, xbc state
+    type(t_fluidThermoProperty), allocatable :: ftpbcy_var(:, :, :)  ! undim, ybc state
+    type(t_fluidThermoProperty), allocatable :: ftpbcz_var(:, :, :)  ! undim, zbc state
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
@@ -429,17 +463,6 @@ module udf_type_mod
 
   end type t_flow
 
-  
-  type t_fluidThermoProperty
-    real(WP) :: t  ! temperature
-    real(WP) :: d  ! density
-    real(WP) :: m  ! dynviscosity
-    real(WP) :: k  ! thermconductivity
-    real(WP) :: h  ! enthalpy
-    real(WP) :: dh ! mass enthalpy
-    real(WP) :: cp ! specific heat capacity 
-    real(WP) :: b  ! thermal expansion
-  end type t_fluidThermoProperty
 
   type t_thermo
     integer :: ifluid
@@ -465,27 +488,6 @@ module udf_type_mod
     real(WP), allocatable :: tt_mean(:, :, :)
 
   end type t_thermo
-
-  type t_fluid_parameter
-    character(len = 64) :: inputProperty
-    integer :: ifluid
-    integer :: ipropertyState
-    integer :: nlist
-    real(WP) :: TM0
-    real(WP) :: TB0
-    real(WP) :: HM0
-    real(WP) :: CoD(0:1)
-    real(WP) :: CoK(0:2)
-    real(WP) :: CoB
-    real(WP) :: CoCp(-2:2)
-    real(WP) :: CoH(-1:3)
-    real(WP) :: CoM(-1:1)
-    real(WP) :: dhmax
-    real(WP) :: dhmin
-    type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
-    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
-  end type t_fluid_parameter
-
 
 
 end module

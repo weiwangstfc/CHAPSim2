@@ -336,7 +336,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -344,7 +344,7 @@ contains
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -578,9 +578,9 @@ contains
 ! initialize common thermal variables
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      ftpx = tm%ftpbcx(i)
-      ftpy = tm%ftpbcy(i)
-      ftpz = tm%ftpbcz(i)
+      ftpx = tm%ftpbcx_var(i)
+      ftpy = tm%ftpbcy_var(i)
+      ftpz = tm%ftpbcz_var(i)
 
       dm%fbc_dend(i, 1) = ftpx%d
       dm%fbc_dend(i, 2) = ftpy%d

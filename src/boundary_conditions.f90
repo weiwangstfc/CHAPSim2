@@ -1,12 +1,6 @@
 module boundary_conditions_mod
 
-  character(10) :: filename(1) = 'pf1d_u1y.dat', & !(undim)
-                   filename(2) = 'pf1d_v1y.dat', & !(undim)
-                   filename(3) = 'pf1d_w1y.dat', & !(undim)
-                   filename(4) = 'pf1d_p1y.dat', & !(undim)
-                   filename(5) = 'pf1d_T1y.dat'    !(dim  )
-
-
+  character(12) :: filename(5)
   
   private :: map_bc_1d_uprofile
   private :: apply_bc_constant_flow
@@ -26,9 +20,9 @@ contains
     use udf_type_mod
     implicit none 
     character(*), intent(in) :: filename
-    integer, intent(in) :: n
-    integer, intent(in) :: y(n)
-    integer, intent(out) :: u(n)
+    integer,  intent(in)  :: n
+    real(WP), intent(in)  :: y(n)
+    real(WP), intent(out) :: u(n)
 
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
@@ -107,7 +101,9 @@ contains
     implicit none
     type(t_domain), intent( inout)   :: dm
 
-    integer :: m, n
+    real(WP) :: var1y(1:dm%np(2))
+    
+    integer :: m, n, k, ny
 
     do m = 1, NBC ! u, v, w, p, T(dim)
       do n = 1, 2
@@ -125,13 +121,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to build up bc for var(x_const, y, z)
 !----------------------------------------------------------------------------------------------------------
+    filename(1) = 'pf1d_u1y.dat' !(undim)
+    filename(2) = 'pf1d_v1y.dat' !(undim)
+    filename(3) = 'pf1d_w1y.dat' !(undim)
+    filename(4) = 'pf1d_p1y.dat' !(undim)
+    filename(5) = 'pf1d_T1y.dat' !(dim  )
     do m = 1, NBC
       if(dm%ibcx_nominal(1, m) == IBC_PROFILE1D) then
         if(m /= 2) then
           ny = dm%nc(2)
           call map_bc_1d_uprofile( filename(m), ny, dm%yc, var1y(1:ny) )
         else
-          ny = dm%ny(2)
+          ny = dm%np(2)
           call map_bc_1d_uprofile( filename(m), ny, dm%yp, var1y(1:ny) )
         end if
         do k = 1, size(dm%fbcx_var, 3) 
@@ -162,51 +163,51 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-direction
 !----------------------------------------------------------------------------------------------------------
-        if(dm%ibcx_nominal(n, m) == IBC_PROFILE1D)   then
+        if (dm%ibcx_nominal(n, m) == IBC_PROFILE1D)   then
           dm%ibcx(n, m) = IBC_DIRICHLET
-        else if(dm%ibcx_nominal(n, m) == IBC_TURBGEN  .or. &
-                dm%ibcx_nominal(n, m) == IBC_DATABASE )   then
+        else if (dm%ibcx_nominal(n, m) == IBC_TURBGEN  .or. &
+                 dm%ibcx_nominal(n, m) == IBC_DATABASE )   then
           if(m /=5) then
             dm%ibcx(n, m) = IBC_INTERIOR
           else 
             dm%ibcx(n, m) = IBC_DIRICHLET
           end if
-        else if f(dm%ibcx_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcx(n, m) = IBC_INTPRL
+        else if (dm%ibcx_nominal(n, m) == IBC_CONVECTIVE)   then
+          dm%ibcx(n, m) = IBC_INTRPL
         else
           dm%ibcx(n, m) = dm%ibcx_nominal(n, m)   
         end if
 !----------------------------------------------------------------------------------------------------------
 ! y-direction
 !----------------------------------------------------------------------------------------------------------
-        if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D)   then
+        if (dm%ibcy_nominal(n, m) == IBC_PROFILE1D)   then
           dm%ibcy(n, m) = IBC_DIRICHLET
-        else if(dm%ibcy_nominal(n, m) == IBC_TURBGEN  .or. &
-                dm%ibcy_nominal(n, m) == IBC_DATABASE )   then
+        else if (dm%ibcy_nominal(n, m) == IBC_TURBGEN  .or. &
+                 dm%ibcy_nominal(n, m) == IBC_DATABASE )   then
           if(m /=5) then
             dm%ibcy(n, m) = IBC_INTERIOR
           else 
             dm%ibcy(n, m) = IBC_DIRICHLET
           end if
-        else if f(dm%ibcy_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcy(n, m) = IBC_INTPRL
+        else if (dm%ibcy_nominal(n, m) == IBC_CONVECTIVE)   then
+          dm%ibcy(n, m) = IBC_INTRPL
         else
           dm%ibcy(n, m) = dm%ibcy_nominal(n, m)   
         end if
 !----------------------------------------------------------------------------------------------------------
 ! z-direction
 !----------------------------------------------------------------------------------------------------------
-        if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D)   then
+        if (dm%ibcz_nominal(n, m) == IBC_PROFILE1D)   then
           dm%ibcz(n, m) = IBC_DIRICHLET
-        else if(dm%ibcz_nominal(n, m) == IBC_TURBGEN  .or. &
-                dm%ibcz_nominal(n, m) == IBC_DATABASE )   then
+        else if (dm%ibcz_nominal(n, m) == IBC_TURBGEN  .or. &
+                 dm%ibcz_nominal(n, m) == IBC_DATABASE )   then
           if(m /=5) then
             dm%ibcz(n, m) = IBC_INTERIOR
           else 
             dm%ibcz(n, m) = IBC_DIRICHLET
           end if
-        else if f(dm%ibcz_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcz(n, m) = IBC_INTPRL
+        else if (dm%ibcz_nominal(n, m) == IBC_CONVECTIVE)   then
+          dm%ibcz(n, m) = IBC_INTRPL
         else
           dm%ibcz(n, m) = dm%ibcz_nominal(n, m)   
         end if
@@ -241,9 +242,9 @@ contains
       allocate( dm%fbcy_var(dm%np(1), 4,        dm%np(3), NBC + NDIM) )
       allocate( dm%fbcz_var(dm%np(1), dm%np(2), 4,        NBC + NDIM) )
 
-      allocate( dm%ftpbcx_var(4,        dm%np(2), dm%np(3))
-      allocate( dm%ftpbcy_var(dm%np(1), 4,        dm%np(3))
-      allocate( dm%ftpbcz_var(dm%np(1), dm%np(2), 4       )
+      allocate( dm%ftpbcx_var(4,        dm%np(2), dm%np(3)) )
+      allocate( dm%ftpbcy_var(dm%np(1), 4,        dm%np(3)) )
+      allocate( dm%ftpbcz_var(dm%np(1), dm%np(2), 4       ) )
 
     else
       allocate( dm%fbcx_var(4,        dm%np(2), dm%np(3), NBC) )
@@ -433,11 +434,11 @@ contains
 !     do s = 1, 2
 !       if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
 !         if(dtmp%xst(m) == 1) then
-!           fl%qx(1, :, :) = dm%fbcx(s, m)
+!           fl%qx(1, :, :) = dm%fbcx_var(s, m)
 !           if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
 !         end if
 !         if(dtmp%xen(m) == dm%np(m)) then
-!           fl%qx(dtmp%xsz(m), :, :) = dm%fbcx(s, m)
+!           fl%qx(dtmp%xsz(m), :, :) = dm%fbcx_var(s, m)
 !           if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
 !         end if
 !       end if
@@ -463,11 +464,11 @@ contains
 !     do s = 1, 2
 !       if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
 !         if(dtmp%xst(m) == 1) then
-!           fl%qy(:, 1, :) = dm%fbcy(s, m)
+!           fl%qy(:, 1, :) = dm%fbcy_var(s, m)
 !           if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
 !         end if
 !         if(dtmp%xen(m) == dm%np(m)) then
-!           fl%qy(:, dtmp%xsz(m), :) = dm%fbcy(s, m)
+!           fl%qy(:, dtmp%xsz(m), :) = dm%fbcy_var(s, m)
 !           if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
 !         end if
 !       end if
@@ -481,11 +482,11 @@ contains
 !     do s = 1, 2
 !       if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
 !         if(dtmp%xst(m) == 1) then
-!           fl%qz(:, :, 1) = dm%fbcz(s, m)
+!           fl%qz(:, :, 1) = dm%fbcz_var(s, m)
 !           if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
 !         end if
 !         if(dtmp%xen(m) == dm%np(m)) then
-!           fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz(s, m)
+!           fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz_var(s, m)
 !           if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
 !         end if
 !       end if

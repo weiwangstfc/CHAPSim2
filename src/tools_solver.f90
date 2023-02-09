@@ -394,7 +394,7 @@ contains
     type(t_domain),  intent(in) :: dm
     logical,           intent(in) :: is_ynp
     integer,           intent(in) :: ibcy(2)
-    real(WP),          intent(in) :: fbcy(2)
+    real(WP),          intent(in) :: fbcy(:, :, :)
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
@@ -451,7 +451,7 @@ contains
         allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
         vcp_ypencil = ZERO
 
-        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy)
+        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy, fbcy)
 
         fo = ZERO
         vol = ZERO

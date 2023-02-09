@@ -180,8 +180,8 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5) ! dimensional
           if(domain(i)%is_turbgen) then
-            domain(i)%ibcx(:, :) = IBC_PERIODIC
-            domain(i)%fbcx(:, :) = ZERO
+            domain(i)%ibcx_nominal(:, :) = IBC_PERIODIC
+            domain(i)%fbcx_const(:, :)   = ZERO
           end if
         end do
 
