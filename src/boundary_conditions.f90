@@ -238,8 +238,6 @@ contains
     implicit none
     type(t_domain), intent(inout) :: dm
 
-    integer :: m, n
-
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc values for calculation from given nominal b.c. values
 ! np, not nc, is used to allocate to provide enough space
@@ -426,13 +424,14 @@ contains
 !==========================================================================================================
   subroutine update_bc_interface_thermo(dm0, fl0, tm0, dm1, fl1, tm1)
     use parameters_constant_mod
+    use thermo_info_mod
     use udf_type_mod
     implicit none
     type(t_domain), intent(inout) :: dm0, dm1
     type(t_flow), intent(in)      :: fl0, fl1
     type(t_thermo), intent(in)    :: tm0, tm1
     
-    integer :: m
+    integer :: m, i, j, k
 !----------------------------------------------------------------------------------------------------------
 !   all in x-pencil
 !----------------------------------------------------------------------------------------------------------
@@ -477,14 +476,22 @@ contains
     if(dm1%ibcx(1, m) == IBC_INTERIOR) then
       dm1%ftpbcx_var(1, :, :)%t = tm0%tTemp(dm0%nc(1),     :, :)
       dm1%ftpbcx_var(3, :, :)%t = tm0%tTemp(dm0%nc(1) - 1, :, :)
-      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcx_var(1, :, :))
-      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcx_var(3, :, :))
+      do k = 1, dm1%np(3)
+        do j = 1, dm1%np(2)
+          call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcx_var(1, j, k))
+          call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcx_var(3, j, k))
+        end do
+      end do
     end if
     if(dm0%ibcx(2, m) == IBC_INTERIOR) then
       dm0%ftpbcx_var(2, :, :)%t = tm1%tTemp(1, :, :)
       dm0%ftpbcx_var(4, :, :)%t = tm1%tTemp(2, :, :)
-      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcx_var(2, :, :))
-      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcx_var(4, :, :))
+      do k = 1, dm0%np(3)
+        do j = 1, dm0%np(2)
+          call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcx_var(2, j, k))
+          call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcx_var(4, j, k))
+        end do
+      end do
     end if
 !----------------------------------------------------------------------------------------------------------
 !   bc in y - direction
@@ -527,14 +534,22 @@ contains
     if(dm1%ibcy(1, m) == IBC_INTERIOR) then
       dm1%ftpbcy_var(:, 1, :)%t = tm0%tTemp(:, dm0%nc(1),     :)
       dm1%ftpbcy_var(:, 3, :)%t = tm0%tTemp(:, dm0%nc(1) - 1, :)
-      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcy_var(:, 1, :))
-      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcy_var(:, 3, :))
+      do k = 1, dm1%np(3)
+        do i = 1, dm1%np(1)
+          call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcy_var(i, 1, k))
+          call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcy_var(i, 3, k))
+        end do
+      end do
     end if
     if(dm0%ibcy(2, m) == IBC_INTERIOR) then
       dm0%ftpbcy_var(:, 2, :)%t = tm1%tTemp(:, 1, :)
       dm0%ftpbcy_var(:, 4, :)%t = tm1%tTemp(:, 2, :)
-      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcy_var(:, 2, :))
-      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcy_var(:, 4, :))
+      do k = 1, dm0%np(3)
+        do i = 1, dm0%np(1)
+          call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcy_var(i, 2, k))
+          call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcy_var(i, 4, k))
+        end do
+      end do
     end if
 !----------------------------------------------------------------------------------------------------------
 !   bc in z - direction
@@ -577,14 +592,22 @@ contains
     if(dm1%ibcz(1, m) == IBC_INTERIOR) then
       dm1%ftpbcz_var(:, :, 1)%t = tm0%tTemp(:, :, dm0%nc(1)    )
       dm1%ftpbcz_var(:, :, 3)%t = tm0%tTemp(:, :, dm0%nc(1) - 1)
-      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcz_var(:, :, 1))
-      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcz_var(:, :, 3))
+      do j = 1, dm1%np(2)
+        do i = 1, dm1%np(1)
+          call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcz_var(i, j, 1))
+          call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcz_var(i, j, 3))
+        end do
+      end do
     end if
     if(dm0%ibcz(2, m) == IBC_INTERIOR) then
       dm0%ftpbcz_var(:, :, 2)%t = tm1%tTemp(:, :, 1)
       dm0%ftpbcz_var(:, :, 4)%t = tm1%tTemp(:, :, 2)
-      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcz_var(:, :, 2))
-      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcz_var(:, :, 4))
+      do j = 1, dm0%np(2)
+        do i = 1, dm0%np(1)
+          call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcz_var(i, j, 2))
+          call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcz_var(i, j, 4))
+        end do
+      end do
     end if
     return
   end subroutine

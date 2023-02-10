@@ -5756,7 +5756,7 @@ alpha_itf = ZERO
     real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
     real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
     real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
-    real(WP) :: fbc(4), lbcx(4), lbcy(4), lbcz(4)
+    real(WP) :: fbc(4)
 
     real(WP) :: scale, shift
 
@@ -6099,7 +6099,7 @@ alpha_itf = ZERO
     real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
     
     real(WP) :: scale, shift
-    real(WP) :: fbc(4), lbcx(4), lbcy(4), lbcz(4)
+    real(WP) :: fbc(4)
 
 
     do i = 1, 2

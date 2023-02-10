@@ -406,10 +406,8 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(in ) :: dm
     integer, intent(in) :: iter
-    integer :: i, j, k
-    real(WP) :: xp, ux, uerr, uerr2, uerrmax, wavenum
+    integer :: i
     real(WP) :: dd
-    integer :: nx, ny, nz
 
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qy_ypencil
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: qz_ypencil
@@ -435,9 +433,6 @@ contains
     ! data convert to cell centre data...
     end if
 
-    wavenum = ONE
-    uerr = ZERO
-    uerrmax = ZERO
 
     dd = dm%h(idir)
     if(idir == 1) then
@@ -478,8 +473,6 @@ contains
     integer :: iter, isub
     integer :: iterfrom
     integer :: niter
-    real(wp)   :: rtmp
-
     
     call Plot_burgers_profile(flow(1), domain(1), 0)
 

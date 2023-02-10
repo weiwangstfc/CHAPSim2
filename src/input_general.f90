@@ -65,7 +65,7 @@ contains
     real(WP) :: rtmp
     real(WP), allocatable :: rtmpx(:)
     integer, allocatable  :: itmpx(:)
-    integer :: i, j, k
+    integer :: i, j
     logical :: is_any_energyeq
     
     if(nrank == 0) then

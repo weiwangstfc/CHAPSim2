@@ -225,7 +225,7 @@ contains
     real(WP) :: fbcx(4, dm%np(2), dm%np(3))
     real(WP) :: fbcy(dm%np(2), 4, dm%np(3))
     real(WP) :: fbcz(dm%np(2), dm%np(3), 4)
-    integer  :: i, m
+    integer  :: i
     real(WP) :: rhsx_bulk, rhsz_bulk
 
 #ifdef DEBUG_STEPS  

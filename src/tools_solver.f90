@@ -296,9 +296,6 @@ contains
                              dm%dccp%zsz(2), &
                              dm%dccp%zsz(3))
     !real(WP)   :: cfl_convection, cfl_convection_work
-    integer :: i, j, k
-    type(DECOMP_INFO) :: dtmp
-
 !----------------------------------------------------------------------------------------------------------
 ! Initialisation
 !----------------------------------------------------------------------------------------------------------
@@ -308,7 +305,6 @@ contains
     accc_xpencil(:, :, :) = ZERO
     accc_ypencil(:, :, :) = ZERO
     accc_zpencil(:, :, :) = ZERO
-
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
@@ -507,12 +503,8 @@ contains
 
 ! #ifdef DEBUG_STEPS  
 
-    if(nrank == 0) then
-      if(present(str)) then
-        write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
-      else
-        write (*, wrtfmt1e) ' volumetric average is ', fo_work
-      end if
+    if(nrank == 0 .and. present(str)) then
+      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
     end if
 
 ! #endif
