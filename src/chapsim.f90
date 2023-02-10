@@ -61,9 +61,6 @@ subroutine Initialize_chapsim
   call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi
 
-#ifdef DEBUG_TEST
-  call Test_algorithms()
-#endif
   !----------------------------------------------------------------------------------------------------------
   ! reading input parameters
   !----------------------------------------------------------------------------------------------------------
@@ -80,6 +77,10 @@ subroutine Initialize_chapsim
 ! build up operation coefficients for all x-subdomains
 !----------------------------------------------------------------------------------------------------------
   call Prepare_LHS_coeffs_for_operations
+
+#ifdef DEBUG_TEST
+  call Test_algorithms()
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! build up domain decomposition
 !----------------------------------------------------------------------------------------------------------

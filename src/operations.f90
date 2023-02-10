@@ -338,6 +338,7 @@ contains
     real(WP) :: alpha,  a,  b,  c,  d
     real(WP) :: alpha1, a1, b1, c1, d1
     real(WP) :: alpha2, a2, b2, c2, d2
+    real(WP) :: alpha_itf, a_itf, b_itf, c_itf, d_itf ! for interface/interior/reduced to 4th CD
 
     integer :: n
 
@@ -379,6 +380,11 @@ contains
         a = ZERO
         b = ZERO
         c = ZERO
+alpha_itf = ZERO
+    a_itf = FOUR * ONE_THIRD
+    b_itf = - ONE_THIRD
+    c_itf = ZERO
+
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -421,20 +427,29 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, interior
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 5
-      d1fC2C(n, :, IBC_INTERIOR) = d1fC2C(3, :, IBC_PERIODIC)
-      d1rC2C(n, :, IBC_INTERIOR) = d1rC2C(3, :, IBC_PERIODIC)
-    end do
+    d1fC2C(1, 1, IBC_INTERIOR) = alpha_itf
+    d1fC2C(1, 2, IBC_INTERIOR) = ONE
+    d1fC2C(1, 3, IBC_INTERIOR) = alpha_itf
+    d1rC2C(1, 1, IBC_INTERIOR) = a_itf * HALF  ! a/2
+    d1rC2C(1, 2, IBC_INTERIOR) = b_itf * QUARTER ! b/4
+    d1rC2C(1, 3, IBC_INTERIOR) = c_itf        ! not used
+
+    d1fC2C(5,   :, IBC_INTERIOR) = d1fC2C(1,   :, IBC_INTERIOR)
+    d1rC2C(5,   :, IBC_INTERIOR) = d1rC2C(1,   :, IBC_INTERIOR)
+    d1fC2C(2:4, :, IBC_INTERIOR) = d1fC2C(2:4, :, IBC_PERIODIC)
+    d1rC2C(2:4, :, IBC_INTERIOR) = d1rC2C(2:4, :, IBC_PERIODIC)
+
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2P : periodic b.c.  Same as C2C
 !----------------------------------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_PERIODIC) = d1fC2C(:, :, IBC_PERIODIC)
     d1rP2P(:, :, IBC_PERIODIC) = d1rC2C(:, :, IBC_PERIODIC)
-    do n = 1, 5
-      d1fP2P(n, :, IBC_INTERIOR) = d1fP2P(3, :, IBC_PERIODIC)
-      d1rP2P(n, :, IBC_INTERIOR) = d1rP2P(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, interior
+!----------------------------------------------------------------------------------------------------------    
+    d1fP2P(:, :, IBC_INTERIOR) = d1fC2C(:, :, IBC_INTERIOR)
+    d1rP2P(:, :, IBC_INTERIOR) = d1rC2C(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2C : symmetric b.c.
@@ -758,6 +773,11 @@ contains
         a = ZERO
         b = ZERO
         c = ZERO
+alpha_itf = ZERO
+    a_itf = NINE * EIGHTH
+    b_itf = -ONE * EIGHTH
+    c_itf = ZERO
+
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -794,20 +814,33 @@ contains
     d1rC2P(1:5, 1, IBC_PERIODIC) = a         ! a
     d1rC2P(1:5, 2, IBC_PERIODIC) = b * ONE_THIRD ! b/3
     d1rC2P(1:5, 3, IBC_PERIODIC) = c         ! not used
-    do n = 1, 5
-      d1fC2P(n, :, IBC_INTERIOR) = d1fC2P(3, :, IBC_PERIODIC)
-      d1rC2P(n, :, IBC_INTERIOR) = d1rC2P(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative : 
+! C2P : interior
+!----------------------------------------------------------------------------------------------------------
+    d1fC2P(1, 1, IBC_INTERIOR) = alpha_itf
+    d1fC2P(1, 2, IBC_INTERIOR) = ONE
+    d1fC2P(1, 3, IBC_INTERIOR) = alpha_itf
+    d1rC2P(1, 1, IBC_INTERIOR) = a_itf
+    d1rC2P(1, 2, IBC_INTERIOR) = b_itf * ONE_THIRD ! b/3
+    d1rC2P(1, 3, IBC_INTERIOR) = c_itf        ! not used
+
+    d1fC2P(5,   :, IBC_INTERIOR) = d1fC2P(1,   :, IBC_INTERIOR)
+    d1rC2P(5,   :, IBC_INTERIOR) = d1rC2P(1,   :, IBC_INTERIOR)
+    d1fC2P(2:4, :, IBC_INTERIOR) = d1fC2P(2:4, :, IBC_PERIODIC)
+    d1rC2P(2:4, :, IBC_INTERIOR) = d1rC2P(2:4, :, IBC_PERIODIC)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2C : periodic b.c.  Same as C2P
 !----------------------------------------------------------------------------------------------------------
     d1fP2C(:, :, IBC_PERIODIC) = d1fC2P(:, :, IBC_PERIODIC)
     d1rP2C(:, :, IBC_PERIODIC) = d1rC2P(:, :, IBC_PERIODIC)
-    do n = 1, 5
-      d1fP2C(n, :, IBC_INTERIOR) = d1fP2C(3, :, IBC_PERIODIC)
-      d1rP2C(n, :, IBC_INTERIOR) = d1rP2C(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative : 
+! P2C : interior.  Same as C2P
+!----------------------------------------------------------------------------------------------------------
+    d1fP2C(:, :, IBC_INTERIOR) = d1fC2P(:, :, IBC_INTERIOR)
+    d1rP2C(:, :, IBC_INTERIOR) = d1rC2P(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2P : symmetric b.c.
@@ -1200,6 +1233,10 @@ contains
         a = ONE
         b = ZERO
         c = ZERO
+alpha_itf = ZERO
+    a_itf = NINE * EIGHTH
+    b_itf = -ONE * EIGHTH
+    c_itf = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -1238,19 +1275,33 @@ contains
     m1rC2P(1:5, 1, IBC_PERIODIC) = a * HALF
     m1rC2P(1:5, 2, IBC_PERIODIC) = b * HALF
     m1rC2P(1:5, 3, IBC_PERIODIC) = c ! not used
-    do n = 1, 5
-      m1fC2P(n, :, IBC_INTERIOR) = m1fC2P(3, :, IBC_PERIODIC)
-      m1rC2P(n, :, IBC_INTERIOR) = m1rC2P(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! interpolation : 
+! C2P : interior
+!----------------------------------------------------------------------------------------------------------
+    m1fC2P(1, 1, IBC_INTERIOR) = alpha_itf
+    m1fC2P(1, 2, IBC_INTERIOR) = ONE
+    m1fC2P(1, 3, IBC_INTERIOR) = alpha_itf
+    m1rC2P(1, 1, IBC_INTERIOR) = a_itf * HALF  ! a/2
+    m1rC2P(1, 2, IBC_INTERIOR) = b_itf * HALF ! b/4
+    m1rC2P(1, 3, IBC_INTERIOR) = c_itf        ! not used
+
+    m1fC2P(5,   :, IBC_INTERIOR) = m1fC2P(1,   :, IBC_INTERIOR)
+    m1rC2P(5,   :, IBC_INTERIOR) = m1rC2P(1,   :, IBC_INTERIOR)
+    m1fC2P(2:4, :, IBC_INTERIOR) = m1fC2P(2:4, :, IBC_PERIODIC)
+    m1rC2P(2:4, :, IBC_INTERIOR) = m1rC2P(2:4, :, IBC_PERIODIC)
+    
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C for periodic b.c.
 !----------------------------------------------------------------------------------------------------------
     m1fP2C(:, :, IBC_PERIODIC) = m1fC2P(:, :, IBC_PERIODIC)
     m1rP2C(:, :, IBC_PERIODIC) = m1rC2P(:, :, IBC_PERIODIC)
-    do n = 1, 5
-      m1fP2C(n, :, IBC_INTERIOR) = m1fP2C(3, :, IBC_PERIODIC)
-      m1rP2C(n, :, IBC_INTERIOR) = m1rP2C(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! interpolation : 
+! P2C : interior
+!----------------------------------------------------------------------------------------------------------
+    m1fP2C(:, :, IBC_INTERIOR) = m1fC2P(:, :, IBC_INTERIOR)
+    m1rP2C(:, :, IBC_INTERIOR) = m1rC2P(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 !interpolation. C2P. symmetric, orthogonal, eg. u in y direction.
 !----------------------------------------------------------------------------------------------------------
@@ -1560,6 +1611,11 @@ contains
         b = ZERO
         c = ZERO ! not used
         d = ZERO ! not used
+alpha_itf = ZERO
+    a_itf = FOUR * ONE_THIRD
+    b_itf = - ONE_THIRD
+    c_itf = ZERO
+    d_itf = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -1592,19 +1648,31 @@ contains
     d2rC2C(1:5, 2, IBC_PERIODIC) = b * QUARTER
     d2rC2C(1:5, 3, IBC_PERIODIC) = c ! not used
     d2rC2C(1:5, 4, IBC_PERIODIC) = d ! not used
-    do n = 1, 5
-      d2fC2C(n, :, IBC_INTERIOR) = d2fC2C(3, :, IBC_PERIODIC)
-      d2rC2C(n, :, IBC_INTERIOR) = d2rC2C(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! 2nd diriviative P2P , interior
+!----------------------------------------------------------------------------------------------------------
+    d2fC2C(1, 1, IBC_INTERIOR) = alpha_itf
+    d2fC2C(1, 2, IBC_INTERIOR) = ONE
+    d2fC2C(1, 3, IBC_INTERIOR) = alpha_itf
+    d2rC2C(1, 1, IBC_INTERIOR) = a_itf
+    d2rC2C(1, 2, IBC_INTERIOR) = b_itf * QUARTER
+    d2rC2C(1, 3, IBC_INTERIOR) = c_itf ! not used       
+    d2rC2C(1, 4, IBC_INTERIOR) = d_itf ! not used       
+
+    d2fC2C(5,   :, IBC_INTERIOR) = d2fC2C(1,   :, IBC_INTERIOR)
+    d2rC2C(5,   :, IBC_INTERIOR) = d2rC2C(1,   :, IBC_INTERIOR)
+    d2fC2C(2:4, :, IBC_INTERIOR) = d2fC2C(2:4, :, IBC_PERIODIC)
+    d2rC2C(2:4, :, IBC_INTERIOR) = d2rC2C(2:4, :, IBC_PERIODIC)
 !----------------------------------------------------------------------------------------------------------
 ! 2nd diriviative P2P , periodic
 !----------------------------------------------------------------------------------------------------------
     d2fP2P(:, :, IBC_PERIODIC) = d2fC2C(:, :, IBC_PERIODIC)
     d2rP2P(:, :, IBC_PERIODIC) = d2rC2C(:, :, IBC_PERIODIC)
-    do n = 1, 5
-      d2fP2P(n, :, IBC_INTERIOR) = d2fP2P(3, :, IBC_PERIODIC)
-      d2rP2P(n, :, IBC_INTERIOR) = d2rP2P(3, :, IBC_PERIODIC)
-    end do
+!----------------------------------------------------------------------------------------------------------
+! 2nd diriviative P2P , interior
+!----------------------------------------------------------------------------------------------------------
+    d2fP2P(:, :, IBC_INTERIOR) = d2fC2C(:, :, IBC_INTERIOR)
+    d2rP2P(:, :, IBC_INTERIOR) = d2rC2C(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 ! 2nd diriviative C2C, symmetric
 !----------------------------------------------------------------------------------------------------------
@@ -2521,7 +2589,14 @@ contains
     i = np - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC .or. ibc(m) == IBC_INTERIOR) then
+    
+    if ( ibc(m) == IBC_INTERIOR) then
+
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i)  + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       !
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1 ) + fi(i - 2 ) )
@@ -2546,8 +2621,8 @@ contains
     if ( ibc(m) == IBC_INTERIOR) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_C2P_RHS_array')
       
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fbc(2   ) + fi(i - 2) )
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2   ) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4   ) + fi(i - 2) )
 
     else if ( ibc(m) == IBC_PERIODIC) then
       ! np + 1 = 1
@@ -3087,8 +3162,8 @@ contains
     l = 1
     if (ibc(m) == IBC_INTERIOR) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i    ) - fbc(1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 1) - fbc(3) )
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fbc(3) )
 
     else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = np
@@ -3125,8 +3200,8 @@ contains
     l = 2
     if (ibc(m) == IBC_INTERIOR) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
-      fo(i) = coeff( l, 1, IBC_PERIODIC ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( l, 2, IBC_PERIODIC ) * ( fi(i + 1) - fbc(1) )
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fbc(1) )
               
     else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = np
@@ -3148,7 +3223,13 @@ contains
     i = np - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC .or. ibc(m) == IBC_INTERIOR) then
+    
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i ) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2) - fi(i - 2 ) )
+    
+    else if ( ibc(m) == IBC_PERIODIC ) then
       !
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1 ) - fi(i - 2 ) )
@@ -3170,8 +3251,8 @@ contains
     l = 5
     if (ibc(m) == IBC_INTERIOR) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
-      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( l, 2, ibc(m) ) * ( fbc(2)    - fi(i - 2) )
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4) - fi(i - 2) )
               
     else if ( ibc(m) == IBC_PERIODIC) then
       ! np + 1 = 1
@@ -5675,53 +5756,138 @@ contains
     real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
     real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
     real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
+    real(WP) :: fbc(4), lbcx(4), lbcy(4), lbcz(4)
 
     real(WP) :: scale, shift
 
     open (newunit = wrt_unit, file = 'test_interpolation.dat', position="append")
-    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5)
-    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5)
-    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5)
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
 
-    if (dm%ibcx(1, 5) == IBC_PERIODIC) then
-      scale = ONE
-      shift = ZERO
-    else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
-      scale = ONE
-      shift = PI * HALF
-    else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
-      scale = TWO
-      shift = ZERO
-    else if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ZERO
-      dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ZERO
-      dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ZERO
-      dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
-    else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
-      scale = THREE
-      shift = ZERO
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
 
-      dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-      dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-      dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-      dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
-    else 
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ZERO
-      dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ZERO
-      dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ZERO
-      dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
-    end if
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
 
+    do i = 1, 2
+      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+!----------------------------------------------------------------------------------------------------------
+! c2p
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+    end do
 
 ! x direction, xc
     do i = 1, dm%nc(1)
@@ -5729,7 +5895,11 @@ contains
       fxc(i) = sin_wp ( xc / scale + shift)
     end do
 ! x: c2p
-    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    ! do i = 1, 4 
+    !   write(*,'(A,1I5.1,4ES13.5)') 'x-intpbc-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
+    ! end do
+    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -5741,6 +5911,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-interp-c2p ', i, xp, ref, fgxp(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-interp-c2p failed.")
     write(wrt_unit, *) 'x-interp-c2p ', dm%np(1), err_Linf, err_L2
 
 ! y direction, yc
@@ -5749,7 +5920,8 @@ contains
       fyc(j) = sin_wp ( yc / scale + shift)
     end do
 ! y: c2p
-    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -5761,6 +5933,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'y-interp-c2p ', j, yp, ref, fgyp(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-interp-c2p failed.")
     write(wrt_unit, *) 'y-interp-c2p ', dm%np(2), err_Linf, err_L2
 
  ! z direction, zc
@@ -5769,7 +5942,8 @@ contains
       fzc(k) = sin_wp ( zc / scale + shift)
     end do
 ! z: c2p
-    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -5781,15 +5955,54 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-interp-c2p ', k, zp, ref, fgzp(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-interp-c2p failed.")
     write(wrt_unit, *) 'z-interp-c2p ', dm%np(3), err_Linf, err_L2
-
+!----------------------------------------------------------------------------------------------------------
+! p2c
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i == 1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+        end if
+      end if
+    end do
 ! x direction, xp
     do i = 1, dm%np(1)
       xp = dm%h(1) * real(i - 1, WP)
       fxp(i) = sin_wp ( xp / scale + shift)
     end do
 ! x: p2c
-    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -5801,6 +6014,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-interp-p2c ', i, xc, ref, fgxc(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-interp-p2c failed.")
     write(wrt_unit, *) 'x-interp-p2c ', dm%nc(1), err_Linf, err_L2
 
 ! y direction, yp
@@ -5809,7 +6023,8 @@ contains
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
 ! y: p2c
-    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -5821,6 +6036,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'y-interp-p2c ', j, yc, ref, fgyc(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-interp-p2c failed.")
     write(wrt_unit, *) 'y-interp-p2c ', dm%nc(2), err_Linf, err_L2
 
 
@@ -5830,7 +6046,8 @@ contains
       fzp(k) = sin_wp ( zp / scale + shift)
     end do
 ! z: p2c
-    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -5842,6 +6059,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-interp-p2c ', k, zc, ref, fgzc(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-interp-p2c failed.")
     write(wrt_unit, *) 'z-interp-p2c ', dm%nc(3), err_Linf, err_L2
     close(wrt_unit)
 
@@ -5881,49 +6099,137 @@ contains
     real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
     
     real(WP) :: scale, shift
+    real(WP) :: fbc(4), lbcx(4), lbcy(4), lbcz(4)
 
-    if (dm%ibcx(1, 5) == IBC_PERIODIC) then
-      scale = ONE
-      shift = ZERO
-    else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
-      scale = ONE
-      shift = PI * HALF
-    else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
-      scale = TWO
-      shift = ZERO
-    else if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ZERO
-      dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ZERO
-      dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ZERO
-      dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
-    else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD + shift)
-      dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD + shift)
-      dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD + shift)
-      dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD + shift)
-      dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD + shift)
-      dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD + shift)
-    else 
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ZERO
-      dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ZERO
-      dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ZERO
-      dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
-    end if
+
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
 
     open (newunit = wrt_unit, file = 'test_1st_derivative.dat', position="append")
-    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5)
-    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5)
-    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5)
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+
+!----------------------------------------------------------------------------------------------------------
+! c2c
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+    end do
 
 ! x direction, xc
     do i = 1, dm%nc(1)
@@ -5931,7 +6237,8 @@ contains
       fxc(i) = sin_wp ( xc / scale + shift)
     end do
 ! x: c2c
-    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -5943,6 +6250,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2c ', i, xc, ref, fgxc(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-c2c failed.")
     write(wrt_unit, *) 'x-1stder-c2c ', dm%nc(1), err_Linf, err_L2
 
 ! y direction, yc
@@ -5951,7 +6259,8 @@ contains
       fyc(j) = sin_wp ( yc / scale + shift)
     end do
 ! y: c2c
-    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -5963,6 +6272,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2c ', j, yc, ref, fgyc(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-c2c failed.")
     write(wrt_unit, *) 'y-1stder-c2c ', dm%nc(2), err_Linf, err_L2
 
 ! z direction, zc
@@ -5971,7 +6281,8 @@ contains
       fzc(k) = sin_wp ( zc / scale + shift)
     end do
 ! z: c2c
-    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -5983,68 +6294,20 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2c ', k, zc, ref, fgzc(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-c2c failed.")
     write(wrt_unit, *) 'z-1stder-c2c ', dm%nc(3), err_Linf, err_L2
-
- ! x direction, xp
-    do i = 1, dm%np(1)
-      xp = dm%h(1) * real(i - 1, WP)
-      fxp(i) = sin_wp ( xp / scale + shift)
-    end do
-! x: p2p
-    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :, :, 5))
-    err_Linf = ZERO
-    err_L2   = ZERO
-    do i = 1, dm%np(1)
-      xp = dm%h(1) * real(i - 1, WP)
-      ref = ONE/scale * cos_wp(xp / scale + shift)
-      err = abs_wp(fgxp(i) - ref)
-      if(err > err_Linf) err_Linf = err
-      err_L2 = err_L2 + err**2
-      !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2p', i, xp, ref, fgxp(i), err !test
-    end do
-    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
-    write(wrt_unit, *) 'x-1stder-p2p ', dm%np(1), err_Linf, err_L2
-! y direction, yp
-    do j = 1, dm%np(2)
-      yp = dm%yp(j)
-      fyp(j) = sin_wp ( yp / scale + shift)
-    end do
-! y: p2p
-    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :, :, 5))
-    err_Linf = ZERO
-    err_L2   = ZERO
-    do j = 1, dm%np(2)
-      yp = dm%yp(j)
-      ref = ONE/scale * cos_wp(yp / scale + shift)
-      err = abs_wp(fgyp(j) - ref)
-      if(err > err_Linf) err_Linf = err
-      err_L2 = err_L2 + err**2
-      !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2p ', j, yp, ref, fgyp(j), err !test
-    end do
-    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
-    write(wrt_unit, *) 'y-1stder-p2p ', dm%np(2), err_Linf, err_L2
-! z direction, zp
-    do k = 1, dm%np(3)
-      zp = dm%h(3) * real(k - 1, WP)
-      fzp(k) = sin_wp ( zp / scale + shift)
-    end do
-! z: p2p
-    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :, :, 5))
-    err_Linf = ZERO
-    err_L2   = ZERO
-    do k = 1, dm%np(3)
-      zp = dm%h(3) * real(k - 1, WP)
-      ref = ONE/scale * cos_wp(zp / scale + shift)
-      err = abs_wp(fgzp(k) - ref)
-      if(err > err_Linf) err_Linf = err
-      err_L2 = err_L2 + err**2
-      !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2p ', k, zp, ref, fgzp(k), err !test
-    end do
-    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
-    write(wrt_unit, *) 'z-1stder-p2p ', dm%np(3), err_Linf, err_L2
-
+!----------------------------------------------------------------------------------------------------------
+! c2p
+!----------------------------------------------------------------------------------------------------------
 ! x: c2p
-    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :, :, 5))
+    ! if (dm%ibcx(1, 5) == IBC_INTERIOR) then
+    ! do i = 1, 4 
+    !   write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
+    ! end do
+    ! end if
+
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6056,10 +6319,12 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2p ', i, xp, ref, fgxp(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-c2p failed.")
     write(wrt_unit, *) 'x-1stder-c2p ', dm%np(1), err_Linf, err_L2
 
 ! y: c2p
-    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6071,10 +6336,12 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2p ', j, yp, ref, fgyp(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-c2p failed.")
     write(wrt_unit, *) 'y-1stder-c2p ', dm%np(2), err_Linf, err_L2
 
 ! z: c2p
-    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -6086,10 +6353,117 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2p ', k, zp, ref, fgzp(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-c2p failed.")
     write(wrt_unit, *) 'z-1stder-c2p ', dm%np(3), err_Linf, err_L2
 
+!----------------------------------------------------------------------------------------------------------
+! p2p
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i == 1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+        end if
+      end if
+    end do
+
+ ! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
+    end do
+! x: p2p
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = ONE/scale * cos_wp(xp / scale + shift)
+      err = abs_wp(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2p', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-p2p failed.")
+    write(wrt_unit, *) 'x-1stder-p2p ', dm%np(1), err_Linf, err_L2
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
+    end do
+! y: p2p
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = ONE/scale * cos_wp(yp / scale + shift)
+      err = abs_wp(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-p2p failed.")
+    write(wrt_unit, *) 'y-1stder-p2p ', dm%np(2), err_Linf, err_L2
+! z direction, zp
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      fzp(k) = sin_wp ( zp / scale + shift)
+    end do
+! z: p2p
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = ONE/scale * cos_wp(zp / scale + shift)
+      err = abs_wp(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-p2p failed.")
+    write(wrt_unit, *) 'z-1stder-p2p ', dm%np(3), err_Linf, err_L2
+!----------------------------------------------------------------------------------------------------------
+! p2c
+!----------------------------------------------------------------------------------------------------------
 ! x: p2c
-    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -6101,10 +6475,12 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2c ', i, xc, ref, fgxc(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-p2c failed.")
     write(wrt_unit, *) 'x-1stder-p2c ', dm%nc(1), err_Linf, err_L2
 
 ! y: p2c
-    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -6116,10 +6492,12 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2c ', j, yc, ref, fgyc(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-p2c failed.")
     write(wrt_unit, *) 'y-1stder-p2c ', dm%nc(2), err_Linf, err_L2
 
 ! z: p2c
-    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :, :, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -6131,6 +6509,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2c ', k, zc, ref, fgzc(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-p2c failed.")
     write(wrt_unit, *) 'z-1stder-p2c ', dm%nc(3), err_Linf, err_L2
 
     close(wrt_unit)
@@ -6171,49 +6550,136 @@ contains
     real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
     
     real(WP) :: scale, shift
+    real(WP) :: fbc(4)
 
-    if (dm%ibcx(1, 5) == IBC_PERIODIC) then
-      scale = ONE
-      shift = ZERO
-    else if (dm%ibcx(1, 5) == IBC_SYMMETRIC) then
-      scale = ONE
-      shift = PI * HALF
-    else if (dm%ibcx(1, 5) == IBC_ASYMMETRIC) then
-      scale = TWO
-      shift = ZERO
-    else if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ZERO
-      dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ZERO
-      dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ZERO
-      dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
-    else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-      dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-      dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-      dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
-    else 
-      scale = THREE
-      shift = ZERO
-      dm%fbcx_var(1, :, :, 5) = ZERO
-      dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcy_var(:, 1, :, 5) = ZERO
-      dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
-      dm%fbcz_var(:, :, 1, 5) = ZERO
-      dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
-    end if
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
 
     open (newunit = wrt_unit, file = 'test_2nd_derivative.dat', position="append")
-    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5)
-    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5)
-    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5)
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+
+!----------------------------------------------------------------------------------------------------------
+! c2c
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+    end do
 
 ! x direction, xc
     do i = 1, dm%nc(1)
@@ -6221,7 +6687,8 @@ contains
       fxc(i) = sin_wp ( xc / scale + shift)
     end do
 ! x: c2c
-    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :,:, 5))
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -6233,6 +6700,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-c2c ', i, xc, ref, fgxc(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-2ndder-c2c failed.")
     write(wrt_unit, *) 'x-2ndder-c2c ', dm%nc(1), err_Linf, err_L2
 
 ! y direction, yc
@@ -6241,7 +6709,8 @@ contains
       fyc(j) = sin_wp ( yc / scale + shift)
     end do
 ! y: c2c
-    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :,:, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -6253,6 +6722,7 @@ contains
      ! !write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-c2c ', j, yc, ref, fgyc(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-2ndder-c2c failed.")
     write(wrt_unit, *) 'y-2ndder-c2c ', dm%nc(2), err_Linf, err_L2
 
 ! z direction, zc
@@ -6261,7 +6731,8 @@ contains
       fzc(k) = sin_wp ( zc / scale + shift)
     end do
 ! z: c2c
-    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :,:, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -6273,15 +6744,54 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-c2c ', k, zc, ref, fgzc(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-2ndder-c2c failed.")
     write(wrt_unit, *) 'z-2ndder-c2c ', dm%nc(3), err_Linf, err_L2
-
+!----------------------------------------------------------------------------------------------------------
+! p2p
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i == 1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+        end if
+      end if
+    end do
 ! x direction, xp
     do i = 1, dm%np(1)
       xp = dm%h(1) * real(i - 1, WP)
       fxp(i) = sin_wp ( xp / scale + shift)
     end do
 ! x: p2p
-    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), dm%fbcx_var(:, :,:, 5))
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6293,6 +6803,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-p2p ', i, xp, ref, fgxp(i), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-2ndder-p2p failed.")
     write(wrt_unit, *) 'x-2ndder-p2p ', dm%np(1), err_Linf, err_L2
 
 
@@ -6302,7 +6813,8 @@ contains
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
 ! y: p2p
-    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), dm%fbcy_var(:, :,:, 5))
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6314,6 +6826,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-p2p ', j, yp, ref, fgyp(j), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-2ndder-p2p failed.")
     write(wrt_unit, *) 'y-2ndder-p2p ', dm%np(2), err_Linf, err_L2
 
 
@@ -6323,7 +6836,8 @@ contains
       fzp(k) = sin_wp ( zp / scale + shift)
     end do
 ! z: p2p
-    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), dm%fbcz_var(:, :,:, 5))
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -6335,6 +6849,7 @@ contains
       !write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-p2p ', k, zp, ref, fgzp(k), err !test
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-2ndder-p2p failed.")
     write(wrt_unit, *) 'z-2ndder-p2p ', dm%np(3), err_Linf, err_L2
     close(wrt_unit)
 

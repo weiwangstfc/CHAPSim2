@@ -423,8 +423,11 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, itmp
           domain(i)%proben = itmp
           allocate( domain(i)%probexyz(3, itmp))
+          if( nrank == 0) write (*, wrtfmt1i) 'For the domain-x  = ', i
           do j = 1, domain(i)%proben
             read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
+            
+            if( nrank == 0) write (*, wrtfmt3r) '  probed points x, y, z: ', domain(i)%probexyz(1:3, j) 
           end do 
         end do
       else
@@ -509,6 +512,13 @@ contains
         ! domain(i)%lzz = TWO
         ! domain(i)%lyt = TWO
         ! domain(i)%lyb = ZERO
+      else if (domain(i)%icase == ICASE_ALGTEST) then
+        if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
+        call Print_warning_msg ("Grids are clustered.")
+        domain(i)%lxx = TWOPI
+        domain(i)%lzz = TWOPI
+        domain(i)%lyt = TWOPI
+        domain(i)%lyb = ZERO
       else 
         ! do nothing...
       end if

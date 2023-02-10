@@ -121,7 +121,8 @@ module parameters_constant_mod
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
-                        ICASE_BURGERS = 6
+                        ICASE_BURGERS = 6, &
+                        ICASE_ALGTEST = 7
   integer, parameter :: NDIM = 3
 !----------------------------------------------------------------------------------------------------------
 ! flow initilisation
@@ -156,12 +157,12 @@ module parameters_constant_mod
 ! BC
 !----------------------------------------------------------------------------------------------------------
   ! warning : Don't change below order for BC types.
-  integer, parameter :: IBC_INTERIOR    = 0, & ! nominal and basic, used in operations, bulk, 2 ghost layers
-                        IBC_PERIODIC    = 1, & ! nominal and basic, used in operations 
-                        IBC_SYMMETRIC   = 2, & ! nominal and basic, used in operations
-                        IBC_ASYMMETRIC  = 3, & ! nominal and basic, used in operations
-                        IBC_DIRICHLET   = 4, & ! nominal and basic, used in operations
-                        IBC_NEUMANN     = 5, & ! nominal and basic, used in operations
+  integer, parameter :: IBC_INTERIOR    = 0, & ! basic and nominal, used in operations, bulk, 2 ghost layers
+                        IBC_PERIODIC    = 1, & ! basic and nominal, used in operations 
+                        IBC_SYMMETRIC   = 2, & ! basic and nominal, used in operations
+                        IBC_ASYMMETRIC  = 3, & ! basic and nominal, used in operations
+                        IBC_DIRICHLET   = 4, & ! basic and nominal, used in operations
+                        IBC_NEUMANN     = 5, & ! basic and nominal, used in operations
                         IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
                         IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_INTPRL
                         IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers

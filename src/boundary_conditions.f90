@@ -224,8 +224,6 @@ contains
         if(dm%ibcx(n, m)         >  IBC_OTHERS   ) dm%ibcx(n, m) = IBC_INTRPL
         if(dm%ibcy(n, m)         >  IBC_OTHERS   ) dm%ibcy(n, m) = IBC_INTRPL
         if(dm%ibcz(n, m)         >  IBC_OTHERS   ) dm%ibcz(n, m) = IBC_INTRPL
-        if(dm%ibcy(n, m)         == IBC_INTERIOR ) call Print_error_msg(" This BC IBC_INTERIOR is not supported.")
-        if(dm%ibcz(n, m)         == IBC_INTERIOR ) call Print_error_msg(" This BC IBC_INTERIOR is not supported.")
         if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
         if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
       end do
@@ -281,6 +279,7 @@ contains
     integer :: m
 !----------------------------------------------------------------------------------------------------------
 !   all in x-pencil
+!   no overlap of values
 !----------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------
 !   bc in x - direction
@@ -288,12 +287,12 @@ contains
     ! ux, dm0-dm1, np
     m = 1
     if(dm1%ibcx(1, m) == IBC_INTERIOR) then
-      dm1%fbcx_var(1, :, :, m) = fl0%qx(dm0%np(1),     :, :)
-      dm1%fbcx_var(3, :, :, m) = fl0%qx(dm0%np(1) - 1, :, :)
+      dm1%fbcx_var(1, :, :, m) = fl0%qx(dm0%np_geo(1) - 1, :, :)
+      dm1%fbcx_var(3, :, :, m) = fl0%qx(dm0%np_geo(1) - 2, :, :)
     end if
     if(dm0%ibcx(2, m) == IBC_INTERIOR) then
-      dm0%fbcx_var(2, :, :, m) = fl1%qx(1, :, :)
-      dm0%fbcx_var(4, :, :, m) = fl1%qx(2, :, :)
+      dm0%fbcx_var(2, :, :, m) = fl1%qx(2, :, :)
+      dm0%fbcx_var(4, :, :, m) = fl1%qx(3, :, :)
     end if
 
     ! uy, dm0-dm1, nc
@@ -328,8 +327,98 @@ contains
       dm0%fbcx_var(2, :, :, m) = fl1%pres(1, :, :)
       dm0%fbcx_var(4, :, :, m) = fl1%pres(2, :, :)
     end if
+!----------------------------------------------------------------------------------------------------------
+!   bc in y - direction
+!----------------------------------------------------------------------------------------------------------
+    ! ux, dm0-dm1, nc
+    m = 1
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%qx(:, dm0%nc(2),     :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%qx(:, dm0%nc(2) - 1, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%qx(:, 1, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%qx(:, 2, :)
+    end if
 
+    ! uy, dm0-dm1, np
+    m = 2
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%qy(:, dm0%np_geo(2) - 1, :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%qy(:, dm0%np_geo(2) - 2, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%qy(:, 2, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%qy(:, 3, :)
+    end if
 
+    ! uz, dm0-dm1, nc
+    m = 3
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%qz(:, dm0%nc(2),     :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%qz(:, dm0%nc(2) - 1, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%qz(:, 1, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%qz(:, 2, :)
+    end if
+
+    ! p, dm0-dm1, nc
+    m = 4
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%pres(:, dm0%nc(2),     :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%pres(:, dm0%nc(2) - 1, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%pres(:, 1, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%pres(:, 2, :)
+    end if
+!----------------------------------------------------------------------------------------------------------
+!   bc in z - direction
+!----------------------------------------------------------------------------------------------------------
+    ! ux, dm0-dm1, nc
+    m = 1
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%qx(:, :, dm0%nc(2)    )
+      dm1%fbcz_var(:, :, 3, m) = fl0%qx(:, :, dm0%nc(2) - 1)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%qx(:, :, 1)
+      dm0%fbcz_var(:, :, 4, m) = fl1%qx(:, :, 2)
+    end if
+
+    ! uy, dm0-dm1, nc
+    m = 2
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%qy(:, :, dm0%nc(2)    )
+      dm1%fbcz_var(:, :, 3, m) = fl0%qy(:, :, dm0%nc(2) - 1)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%qy(:, :, 1)
+      dm0%fbcz_var(:, :, 4, m) = fl1%qy(:, :, 2)
+    end if
+
+    ! uz, dm0-dm1, np
+    m = 3
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%qz(:, :, dm0%np_geo(2) - 1)
+      dm1%fbcz_var(:, :, 3, m) = fl0%qz(:, :, dm0%np_geo(2) - 2)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%qz(:, :, 2)
+      dm0%fbcz_var(:, :, 4, m) = fl1%qz(:, :, 3)
+    end if
+
+    ! p, dm0-dm1, nc
+    m = 4
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%pres(:, :, dm0%nc(2)    )
+      dm1%fbcz_var(:, :, 3, m) = fl0%pres(:, :, dm0%nc(2) - 1)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%pres(:, :, 1)
+      dm0%fbcz_var(:, :, 4, m) = fl1%pres(:, :, 2)
+    end if
     return
   end subroutine
 
@@ -353,12 +442,12 @@ contains
     ! gx, dm0-dm1, np
     m = 6
     if(dm1%ibcx(1, m) == IBC_INTERIOR) then
-      dm1%fbcx_var(1, :, :, m) = fl0%gx(dm0%np(1),     :, :)
-      dm1%fbcx_var(3, :, :, m) = fl0%gx(dm0%np(1) - 1, :, :)
+      dm1%fbcx_var(1, :, :, m) = fl0%gx(dm0%np_geo(1) - 1,     :, :)
+      dm1%fbcx_var(3, :, :, m) = fl0%gx(dm0%np_geo(1) - 2, :, :)
     end if
     if(dm0%ibcx(2, m) == IBC_INTERIOR) then
-      dm0%fbcx_var(2, :, :, m) = fl1%gx(1, :, :)
-      dm0%fbcx_var(4, :, :, m) = fl1%gx(2, :, :)
+      dm0%fbcx_var(2, :, :, m) = fl1%gx(2, :, :)
+      dm0%fbcx_var(4, :, :, m) = fl1%gx(3, :, :)
     end if
 
     ! gy, dm0-dm1, nc
@@ -397,8 +486,106 @@ contains
       call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcx_var(2, :, :))
       call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcx_var(4, :, :))
     end if
+!----------------------------------------------------------------------------------------------------------
+!   bc in y - direction
+!----------------------------------------------------------------------------------------------------------
+    ! gx, dm0-dm1, nc
+    m = 6
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%gx(:, dm0%nc(1),     :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%gx(:, dm0%nc(1) - 1, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%gx(:, 1, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%gx(:, 2, :)
+    end if
 
+    ! gy, dm0-dm1, nc
+    m = 7
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%gy(:, dm0%np_geo(1) - 1, :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%gy(:, dm0%np_geo(1) - 2, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%gy(:, 2, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%gy(:, 3, :)
+    end if
 
+    ! gz, dm0-dm1, nc
+    m = 8
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%fbcy_var(:, 1, :, m) = fl0%gz(:, dm0%nc(1),     :)
+      dm1%fbcy_var(:, 3, :, m) = fl0%gz(:, dm0%nc(1) - 1, :)
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%fbcy_var(:, 2, :, m) = fl1%gz(:, 1, :)
+      dm0%fbcy_var(:, 4, :, m) = fl1%gz(:, 2, :)
+    end if
+
+    ! thermal field, dm0-dm1
+    m = 5
+    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+      dm1%ftpbcy_var(:, 1, :)%t = tm0%tTemp(:, dm0%nc(1),     :)
+      dm1%ftpbcy_var(:, 3, :)%t = tm0%tTemp(:, dm0%nc(1) - 1, :)
+      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcy_var(:, 1, :))
+      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcy_var(:, 3, :))
+    end if
+    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+      dm0%ftpbcy_var(:, 2, :)%t = tm1%tTemp(:, 1, :)
+      dm0%ftpbcy_var(:, 4, :)%t = tm1%tTemp(:, 2, :)
+      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcy_var(:, 2, :))
+      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcy_var(:, 4, :))
+    end if
+!----------------------------------------------------------------------------------------------------------
+!   bc in z - direction
+!----------------------------------------------------------------------------------------------------------
+    ! gx, dm0-dm1, nc
+    m = 6
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%gx(:, :, dm0%nc(1)    )
+      dm1%fbcz_var(:, :, 3, m) = fl0%gx(:, :, dm0%nc(1) - 1)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%gx(:, :, 1)
+      dm0%fbcz_var(:, :, 4, m) = fl1%gx(:, :, 2)
+    end if
+
+    ! gy, dm0-dm1, nc
+    m = 7
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%gy(:, :, dm0%nc(1)    )
+      dm1%fbcz_var(:, :, 3, m) = fl0%gy(:, :, dm0%nc(1) - 1)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%gy(:, :, 1)
+      dm0%fbcz_var(:, :, 4, m) = fl1%gy(:, :, 2)
+    end if
+
+    ! gz, dm0-dm1, np
+    m = 8
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%fbcz_var(:, :, 1, m) = fl0%gz(:, :, dm0%np_geo(1) - 1)
+      dm1%fbcz_var(:, :, 3, m) = fl0%gz(:, :, dm0%np_geo(1) - 2)
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%fbcz_var(:, :, 2, m) = fl1%gz(:, :, 2)
+      dm0%fbcz_var(:, :, 4, m) = fl1%gz(:, :, 3)
+    end if
+
+    ! thermal field, dm0-dm1
+    m = 5
+    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+      dm1%ftpbcz_var(:, :, 1)%t = tm0%tTemp(:, :, dm0%nc(1)    )
+      dm1%ftpbcz_var(:, :, 3)%t = tm0%tTemp(:, :, dm0%nc(1) - 1)
+      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcz_var(:, :, 1))
+      call ftp_refresh_thermal_properties_from_T_undim(dm1%ftpbcz_var(:, :, 3))
+    end if
+    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+      dm0%ftpbcz_var(:, :, 2)%t = tm1%tTemp(:, :, 1)
+      dm0%ftpbcz_var(:, :, 4)%t = tm1%tTemp(:, :, 2)
+      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcz_var(:, :, 2))
+      call ftp_refresh_thermal_properties_from_T_undim(dm0%ftpbcz_var(:, :, 4))
+    end if
     return
   end subroutine
 
