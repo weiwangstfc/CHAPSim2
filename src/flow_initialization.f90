@@ -419,7 +419,7 @@ contains
 
 !==========================================================================================================
   !==========================================================================================================
-  subroutine Initialize_flow_from_given_profile(dm, ux, uy, uz, p, lnoise)
+  subroutine Initialize_flow_from_given_inlet(dm, ux, uy, uz, p, lnoise)
     use udf_type_mod, only: t_domain
     use precision_mod, only: WP
     use parameters_constant_mod, only: ZERO
@@ -431,6 +431,8 @@ contains
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: uy
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: uz
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(out) ::  p
+
+    integer :: i, j, k, ii, jj, kk
     
     if(nrank == 0) call Print_debug_mid_msg("Initializing flow field with given profile...")
     !----------------------------------------------------------------------------------------------------------
@@ -447,9 +449,38 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : update values
     !----------------------------------------------------------------------------------------------------------
-    ux(:, :, :) = ux(:, :, :) + dm%fbcx_var(:, :, :, 1)
-    uy(:, :, :) = uy(:, :, :) + dm%fbcy_var(:, :, :, 1)
-    uz(:, :, :) = uz(:, :, :) + dm%fbcz_var(:, :, :, 1)
+    do k = 1, dm%dpcc%xsz(3)
+      kk = dm%dpcc%xst(3) + k - 1
+      do j = 1, dm%dpcc%xsz(2)
+        jj = dm%dpcc%xst(2) + j - 1
+        do i = 1, dm%dpcc%xsz(1)
+          ii = dm%dpcc%xst(1) + i - 1
+          ux(i, j, k) = ux(i, j, k) + dm%fbcx_var(1, j, k, 1)
+        end do
+      end do
+    end do
+
+    do k = 1, dm%dcpc%xsz(3)
+      kk = dm%dcpc%xst(3) + k - 1
+      do j = 1, dm%dcpc%xsz(2)
+        jj = dm%dcpc%xst(2) + j - 1
+        do i = 1, dm%dcpc%xsz(1)
+          ii = dm%dcpc%xst(1) + i - 1
+          uy(i, j, k) = uy(i, j, k) + dm%fbcx_var(1, j, k, 2)
+        end do
+      end do
+    end do
+
+    do k = 1, dm%dccp%xsz(3)
+      kk = dm%dccp%xst(3) + k - 1
+      do j = 1, dm%dccp%xsz(2)
+        jj = dm%dccp%xst(2) + j - 1
+        do i = 1, dm%dccp%xsz(1)
+          ii = dm%dccp%xst(1) + i - 1
+          uz(i, j, k) = uz(i, j, k) + dm%fbcx_var(1, j, k, 3)
+        end do
+      end do
+    end do
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : apply b.c.
     !----------------------------------------------------------------------------------------------------------
@@ -502,7 +533,7 @@ contains
       call Generate_random_field(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_INLET) then
-      call Initialize_flow_from_given_profile(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
+      call Initialize_flow_from_given_inlet(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_GVCONST) then
       velo(:) = fl%init_velo3d(:)

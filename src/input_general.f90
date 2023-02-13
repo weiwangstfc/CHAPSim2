@@ -308,6 +308,10 @@ contains
           if(flow(i)%inittype /= INIT_RESTART) flow(i)%iterfrom = 0
           flow(i)%init_velo3d(1:3) = flow(1)%init_velo3d(1:3)
           if(domain(i)%icase == ICASE_TGV3D) flow(i)%idriven = IDRVF_NO
+          if(domain(i)%ibcx_nominal(1, 1) /= IBC_PERIODIC .or. &
+             domain(i)%ibcx_nominal(2, 1) /= IBC_PERIODIC) then 
+            flow(i)%idriven = IDRVF_NO
+          end if
         end do
 
         if( nrank == 0) then
