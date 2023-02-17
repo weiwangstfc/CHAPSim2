@@ -21,7 +21,7 @@
 !==========================================================================================================
 !> \file chapsim.f90
 !> \brief the main program.
-!> \author Wei Wang wei.wang@stfc.ac.uk
+!> \author Wei Wang, wei.wang@stfc.ac.uk
 !> \date 
 !==========================================================================================================
 program chapsim
@@ -208,7 +208,7 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
         is_flow(i) = .true.
-        if (nrank == 0) write(*, wrtfmt1r) "flow field physical time = ", flow(i)%time
+        if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
         call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)

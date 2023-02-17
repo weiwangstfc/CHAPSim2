@@ -105,7 +105,7 @@ contains
     istret = dm%istret
 !----------------------------------------------------------------------------------------------------------
     xlx = dm%lxx
-    yly = dm%lyt - dm%lyb ! computational or physical length?
+    yly = dm%lyt - dm%lyb ! check computational or physical length?
     zlz = dm%lzz
 !----------------------------------------------------------------------------------------------------------
     nclx = dm%is_periodic(1)
@@ -163,51 +163,63 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     dx = dm%h(1)
-    dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! computational or physical grid spacing (yes))?
+    dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! check, computational or physical grid spacing (yes))?
     dz = dm%h(3)
 !----------------------------------------------------------------------------------------------------------
     !alpha, beta from geo 
 !----------------------------------------------------------------------------------------------------------
-    if(dm%iAccuracy == IACCU_CD2) then
-      alcai = ZERO
-      aci = ONE 
-      bci = ZERO
-    else
-      alcai = NINE / SIXTYTWO
-      aci = SIXTYTHREE / SIXTYTWO
-      bci = SEVENTEEN / SIXTYTWO / THREE
-    end if
+    ! if(dm%iAccuracy == IACCU_CD2) then
+    !   alcai = ZERO
+    !   aci = ONE 
+    !   bci = ZERO
+    ! else
+    !   alcai = NINE / SIXTYTWO
+    !   aci = SIXTYTHREE / SIXTYTWO
+    !   bci = SEVENTEEN / SIXTYTWO / THREE
+    ! end if
     
-    alcaix6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
-    acix6   = aci / dx !d1rC2P(3, 1, IBC_PERIODIC) / dx
-    bcix6   = bci / dx !d1rC2P(3, 2, IBC_PERIODIC) / dx
+    ! alcaix6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    ! acix6   = aci / dx !d1rC2P(3, 1, IBC_PERIODIC) / dx
+    ! bcix6   = bci / dx !d1rC2P(3, 2, IBC_PERIODIC) / dx
 
-    alcaiy6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
-    aciy6   = aci / dy !d1rC2P(3, 1, IBC_PERIODIC) / dy
-    bciy6   = bci / dy !d1rC2P(3, 2, IBC_PERIODIC) / dy
+    ! alcaiy6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    ! aciy6   = aci / dy !d1rC2P(3, 1, IBC_PERIODIC) / dy
+    ! bciy6   = bci / dy !d1rC2P(3, 2, IBC_PERIODIC) / dy
 
-    alcaiz6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
-    aciz6   = aci / dz !d1rC2P(3, 1, IBC_PERIODIC) / dz
-    bciz6   = bci / dz !d1rC2P(3, 2, IBC_PERIODIC) / dz
+    ! alcaiz6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
+    ! aciz6   = aci / dz !d1rC2P(3, 1, IBC_PERIODIC) / dz
+    ! bciz6   = bci / dz !d1rC2P(3, 2, IBC_PERIODIC) / dz
+
+    alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
+    acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
+    bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
+
+    alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
+    aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
+    bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
+
+    alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
+    aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
+    bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
 !----------------------------------------------------------------------------------------------------------
 !   only classic interpolation, no optimized schemes added here. check paper S. Lele 1992
 !   check pros of optimized schemes, to do (see below info from xcompact3d)
 !*``ipinter=1``: conventional sixth-order interpolation coefficients as described in `Lele 1992 <https://www.sciencedirect.com/science/article/pii/002199919290324R>`_\
 !*``ipinter=2``: optimal sixth-order interpolation coefficients designed to be as close as possible to spectral interpolators.
 !*``ipinter=3``: aggressive sixth-order interpolation coefficients designed to add some numerical dissipation at small scales but they could result in spurious oscillations close to a wall.
-    if(dm%iAccuracy == IACCU_CD2) then
-      ailcaix6 = ZERO
-      aicix6 = HALF 
-      bicix6 = ZERO
-      cicix6 = ZERO
-      dicix6 = ZERO
-    else
-      ailcaix6 = THREE * ZPONE
-      aicix6 = ONEPFIVE * HALF
-      bicix6 = ONE * ZPONE * HALF
-      cicix6 = ZERO
-      dicix6 = ZERO
-    end if
+    ! if(dm%iAccuracy == IACCU_CD2) then
+    !   ailcaix6 = ZERO
+    !   aicix6 = HALF 
+    !   bicix6 = ZERO
+    !   cicix6 = ZERO
+    !   dicix6 = ZERO
+    ! else
+    !   ailcaix6 = THREE * ZPONE
+    !   aicix6 = ONEPFIVE * HALF
+    !   bicix6 = ONE * ZPONE * HALF
+    !   cicix6 = ZERO
+    !   dicix6 = ZERO
+    ! end if
 
     !ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
     !aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
@@ -215,17 +227,17 @@ contains
     !cicix6   = zero
     !dicix6   = zero
 
-    ailcaiy6 = ailcaix6
-    aiciy6   = aicix6
-    biciy6   = bicix6
-    ciciy6   = cicix6
-    diciy6   = dicix6
+    ! ailcaiy6 = ailcaix6
+    ! aiciy6   = aicix6
+    ! biciy6   = bicix6
+    ! ciciy6   = cicix6
+    ! diciy6   = dicix6
 
-    ailcaiz6 = ailcaix6
-    aiciz6   = aicix6
-    biciz6   = bicix6
-    ciciz6   = cicix6
-    diciz6   = dicix6
+    ! ailcaiz6 = ailcaix6
+    ! aiciz6   = aicix6
+    ! biciz6   = bicix6
+    ! ciciz6   = cicix6
+    ! diciz6   = dicix6
 !----------------------------------------------------------------------------------------------------------
 
     !module waves

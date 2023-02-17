@@ -106,6 +106,7 @@ contains
     
     integer :: m, n, k, ny
 
+    ! -3-1-||||-2-4
     do m = 1, NBC ! u, v, w, p, T(dim)
       do n = 1, 2
         dm%fbcx_var(n, :, :, m) = dm%fbcx_const(n, m)
@@ -169,7 +170,7 @@ contains
         else if (dm%ibcx_nominal(n, m) == IBC_TURBGEN  .or. &
                  dm%ibcx_nominal(n, m) == IBC_DATABASE )   then
           if(m /=5) then
-            dm%ibcx(n, m) = IBC_INTERIOR
+            dm%ibcx(n, m) = IBC_INTERIOR ! for temperature, default is no incoming thermal flow, check
           else 
             dm%ibcx(n, m) = IBC_DIRICHLET
           end if
@@ -240,7 +241,7 @@ contains
 
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc values for calculation from given nominal b.c. values
-! np, not nc, is used to allocate to provide enough space
+! np, not nc, is used to provide enough space
 ! NBC = qx, qy, qz, p, T; 
 ! DIM = gx, gy, gz; 
 !----------------------------------------------------------------------------------------------------------

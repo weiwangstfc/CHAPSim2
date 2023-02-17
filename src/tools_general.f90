@@ -114,6 +114,7 @@ module code_performance_mod
   real(wp), save :: t_iter_end
   real(wp), save :: t_step_end
   real(wp), save :: t_code_end
+  integer :: cpu_nfre 
 
   private :: Convert_sec_to_hms
   public :: call_cpu_time

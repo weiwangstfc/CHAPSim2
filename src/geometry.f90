@@ -203,6 +203,8 @@ contains
     !----------------------------------------------------------------------------------------------------------
     dm%h(1) = dm%lxx / real(dm%nc(1), WP)
     dm%h(3) = dm%lzz / real(dm%nc(3), WP)
+    dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) ! default, uniform
+    
     !----------------------------------------------------------------------------------------------------------
     ! allocate  variables for mapping physical domain to computational domain
     !----------------------------------------------------------------------------------------------------------
@@ -216,7 +218,7 @@ contains
       allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
       dm%yMappingpt(:, :) = ONE
       dm%yMappingcc(:, :) = ONE
-      dm%h(2) = ONE / real(dm%nc(2), WP)
+      dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain
       call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
       call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
     else
