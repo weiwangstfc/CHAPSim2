@@ -266,14 +266,12 @@ contains
           end if
 
         end do
-
-        
         
         if(nrank == 0) then
-          write (*, wrtfmt1s) 'Boundary type options : '
-          write (*, wrtfmt1s) ' 0 = IBC_INTERIOR,  1 = IBC_PERIODIC,  2  = IBC_SYMMETRIC, 3 = IBC_ASYMMETRIC, '
-          write (*, wrtfmt1s) ' 4 = IBC_DIRICHLET, 5 = IBC_NEUMANN,   6  = IBC_INTRPL,    7 = IBC_CONVECTIVE, '
-          write (*, wrtfmt1s) ' 8 = IBC_TURBGEN,   9 = IBC_PROFILE1D, 10 = IBC_DATABASE '
+          write (*, wrtfmt1s) '  Boundary type options : '
+          write (*, wrtfmt1s) '   0 = IBC_INTERIOR,  1 = IBC_PERIODIC,  2  = IBC_SYMMETRIC, 3 = IBC_ASYMMETRIC, '
+          write (*, wrtfmt1s) '   4 = IBC_DIRICHLET, 5 = IBC_NEUMANN,   6  = IBC_INTRPL,    7 = IBC_CONVECTIVE, '
+          write (*, wrtfmt1s) '   8 = IBC_TURBGEN,   9 = IBC_PROFILE1D, 10 = IBC_DATABASE '
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
