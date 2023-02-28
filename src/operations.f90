@@ -40,13 +40,13 @@ module operations
 !                    2 for coefficients of f^(1)_{i}
 !                    3 for coefficients of f^(1)_{i+1}
 !     Third column:  for b.c. flags
-!                 integer, parameter :: IBC_INTERIOR    = 0, &
+!                 IBC_INTERIOR    = 0, &
 !                 IBC_PERIODIC    = 1, &
 !                 IBC_SYMMETRIC   = 2, &
 !                 IBC_ASYMMETRIC  = 3, &
 !                 IBC_DIRICHLET   = 4, &
 !                 IBC_NEUMANN     = 5, &
-!                 all others      = 6
+!                 IBC_INTRPL      = 6, &
 !     d1fC2C vs d1rC2C :
 !       f : coefficients in the LHS, unknown side.
 !       r : coefficients in the RHS, known side. 
@@ -55,40 +55,40 @@ module operations
 ! for 1st derivative
 !----------------------------------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), save, public :: d1fC2C(5, 3, 6)
-  real(WP), save, public :: d1rC2C(5, 4, 6)
+  real(WP), save, public :: d1fC2C(5, 3, 0:6)
+  real(WP), save, public :: d1rC2C(5, 4, 0:6)
   
   ! collocated P2P
-  real(WP), save :: d1fP2P(5, 3, 6)
-  real(WP), save :: d1rP2P(5, 4, 6)
+  real(WP), save :: d1fP2P(5, 3, 0:6)
+  real(WP), save :: d1rP2P(5, 4, 0:6)
 
   ! staggered C2P
-  real(WP), save, public :: d1fC2P(5, 3, 6)
-  real(WP), save, public :: d1rC2P(5, 4, 6)
+  real(WP), save, public :: d1fC2P(5, 3, 0:6)
+  real(WP), save, public :: d1rC2P(5, 4, 0:6)
 
   ! staggered P2C
-  real(WP), save :: d1fP2C(5, 3, 6)
-  real(WP), save :: d1rP2C(5, 4, 6)
+  real(WP), save :: d1fP2C(5, 3, 0:6)
+  real(WP), save :: d1rP2C(5, 4, 0:6)
 !----------------------------------------------------------------------------------------------------------
 ! for 2nd derivative
 !----------------------------------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), save, public :: d2fC2C(5, 3, 6)
-  real(WP), save, public :: d2rC2C(5, 4, 6) ! one more value used. 
+  real(WP), save, public :: d2fC2C(5, 3, 0:6)
+  real(WP), save, public :: d2rC2C(5, 4, 0:6) ! one more value used. 
   
   ! collocated P2P
-  real(WP), save :: d2fP2P(5, 3, 6)
-  real(WP), save :: d2rP2P(5, 4, 6)
+  real(WP), save :: d2fP2P(5, 3, 0:6)
+  real(WP), save :: d2rP2P(5, 4, 0:6)
 !----------------------------------------------------------------------------------------------------------
 ! for iterpolation
 !----------------------------------------------------------------------------------------------------------
   ! interpolation P2C
-  real(WP), save :: m1fP2C(5, 3, 6)
-  real(WP), save :: m1rP2C(5, 4, 6)
+  real(WP), save :: m1fP2C(5, 3, 0:6)
+  real(WP), save :: m1rP2C(5, 4, 0:6)
 
   ! interpolation C2P
-  real(WP), save, public :: m1fC2P(5, 3, 6)
-  real(WP), save, public :: m1rC2P(5, 4, 6)
+  real(WP), save, public :: m1fC2P(5, 3, 0:6)
+  real(WP), save, public :: m1rC2P(5, 4, 0:6)
 
 !----------------------------------------------------------------------------------------------------------
 ! coefficients array for TDMA of 1st deriviative  
@@ -244,81 +244,75 @@ module operations
 !----------------------------------------------------------------------------------------------------------
   private :: Prepare_compact_coefficients
   private :: Buildup_TDMA_LHS_array
-
-  private :: Prepare_TDMA_interp_P2C_RHS_array ! no fbc
-  private :: Prepare_TDMA_interp_C2P_RHS_array ! need fbc for Dirichlet
-
-  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc to reconstruction
-  private :: Prepare_TDMA_1deri_P2P_RHS_array ! need fbc for Neumann
-  private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc for Neumann
-  private :: Prepare_TDMA_1deri_P2C_RHS_array ! no fbc
-
-  private :: Prepare_TDMA_2deri_C2C_RHS_array ! need fbc to reconstruction
-  private :: Prepare_TDMA_2deri_P2P_RHS_array ! need fbc for Neumann
-
   public  :: Prepare_LHS_coeffs_for_operations
 
-  public  :: Get_x_midp_C2P_1D ! need fbc for Dirichlet
-  public  :: Get_y_midp_C2P_1D ! need fbc for Dirichlet
-  public  :: Get_z_midp_C2P_1D ! need fbc for Dirichlet
-  public  :: Get_x_midp_P2C_1D ! no fbc
-  public  :: Get_y_midp_P2C_1D ! no fbc
-  public  :: Get_z_midp_P2C_1D ! no fbc
+  private :: Prepare_TDMA_interp_P2C_RHS_array ! need fbc for INTERIOR
+  private :: Get_x_midp_P2C_1D
+  private :: Get_y_midp_P2C_1D
+  private :: Get_z_midp_P2C_1D
+  public  :: Get_x_midp_P2C_3D 
+  public  :: Get_y_midp_P2C_3D 
+  public  :: Get_z_midp_P2C_3D 
 
-  public  :: Get_x_midp_C2P_3D ! need fbc for Dirichlet
-  public  :: Get_y_midp_C2P_3D ! need fbc for Dirichlet
-  public  :: Get_z_midp_C2P_3D ! need fbc for Dirichlet
-  public  :: Get_x_midp_P2C_3D ! no fbc
-  public  :: Get_y_midp_P2C_3D ! no fbc
-  public  :: Get_z_midp_P2C_3D ! no fbc
+  private :: Prepare_TDMA_interp_C2P_RHS_array ! need fbc for Dirichlet, INTERIOR
+  private :: Get_x_midp_C2P_1D
+  private :: Get_y_midp_C2P_1D
+  private :: Get_z_midp_C2P_1D
+  public  :: Get_x_midp_C2P_3D
+  public  :: Get_y_midp_C2P_3D
+  public  :: Get_z_midp_C2P_3D
 
-  public  :: Get_x_1st_derivative_P2P_1D ! need fbc for Neumann, Dirichlet
-  public  :: Get_y_1st_derivative_P2P_1D ! need fbc for Neumann, Dirichlet
-  public  :: Get_z_1st_derivative_P2P_1D ! need fbc for Neumann, Dirichlet
+  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc for Dirichlet for reconstruction, INTERIOR
+  private :: Get_x_1st_derivative_C2C_1D
+  private :: Get_y_1st_derivative_C2C_1D
+  private :: Get_z_1st_derivative_C2C_1D
+  public  :: Get_x_1st_derivative_C2C_3D
+  public  :: Get_y_1st_derivative_C2C_3D
+  public  :: Get_z_1st_derivative_C2C_3D
 
-  public  :: Get_x_1st_derivative_C2P_1D ! need fbc for Neumann
-  public  :: Get_y_1st_derivative_C2P_1D ! need fbc for Neumann
-  public  :: Get_z_1st_derivative_C2P_1D ! need fbc for Neumann
-
-  public  :: Get_x_1st_derivative_C2C_1D ! need fbc to reconstruction
-  public  :: Get_y_1st_derivative_C2C_1D ! need fbc to reconstruction
-  public  :: Get_z_1st_derivative_C2C_1D ! need fbc to reconstruction
-
-  public  :: Get_x_1st_derivative_P2C_1D ! no fbc
-  public  :: Get_y_1st_derivative_P2C_1D ! no fbc
-  public  :: Get_z_1st_derivative_P2C_1D ! no fbc
-
+  private :: Prepare_TDMA_1deri_P2P_RHS_array ! need fbc for Neumann, INTERIOR
+  private :: Get_x_1st_derivative_P2P_1D
+  private :: Get_y_1st_derivative_P2P_1D
+  private :: Get_z_1st_derivative_P2P_1D
   public  :: Get_x_1st_derivative_P2P_3D
   public  :: Get_y_1st_derivative_P2P_3D
   public  :: Get_z_1st_derivative_P2P_3D
 
+  private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc for Neumann, Dirichlet, interior
+  private :: Get_x_1st_derivative_C2P_1D
+  private :: Get_y_1st_derivative_C2P_1D
+  private :: Get_z_1st_derivative_C2P_1D
   public  :: Get_x_1st_derivative_C2P_3D
   public  :: Get_y_1st_derivative_C2P_3D
   public  :: Get_z_1st_derivative_C2P_3D
 
-  public  :: Get_x_1st_derivative_C2C_3D
-  public  :: Get_y_1st_derivative_C2C_3D
-  public  :: Get_z_1st_derivative_C2C_3D
-  
+  private :: Prepare_TDMA_1deri_P2C_RHS_array ! need fbc for interior
+  private :: Get_x_1st_derivative_P2C_1D
+  private :: Get_y_1st_derivative_P2C_1D
+  private :: Get_z_1st_derivative_P2C_1D
   public  :: Get_x_1st_derivative_P2C_3D
   public  :: Get_y_1st_derivative_P2C_3D
   public  :: Get_z_1st_derivative_P2C_3D
 
-  public  :: Get_x_2nd_derivative_C2C_1D ! need fbc to reconstruction
-  public  :: Get_y_2nd_derivative_C2C_1D ! need fbc to reconstruction
-  public  :: Get_z_2nd_derivative_C2C_1D ! need fbc to reconstruction
+  private :: Prepare_TDMA_2deri_C2C_RHS_array ! need fbc to Dirichlet, interior
+  private :: Get_x_2nd_derivative_C2C_1D
+  private :: Get_y_2nd_derivative_C2C_1D
+  private :: Get_z_2nd_derivative_C2C_1D
+  public  :: Get_x_2nd_derivative_C2C_3D ! not used.
+  public  :: Get_y_2nd_derivative_C2C_3D ! not used.
+  public  :: Get_z_2nd_derivative_C2C_3D ! not used.
 
-  public  :: Get_x_2nd_derivative_P2P_1D ! need fbc for Neumann
-  public  :: Get_y_2nd_derivative_P2P_1D ! need fbc for Neumann
-  public  :: Get_z_2nd_derivative_P2P_1D ! need fbc for Neumann
+  private :: Prepare_TDMA_2deri_P2P_RHS_array ! need fbc for Neumann, interior
+  private :: Get_x_2nd_derivative_P2P_1D
+  private :: Get_y_2nd_derivative_P2P_1D
+  private :: Get_z_2nd_derivative_P2P_1D
+  public  :: Get_x_2nd_derivative_P2P_3D ! not used.
+  public  :: Get_y_2nd_derivative_P2P_3D ! not used.
+  public  :: Get_z_2nd_derivative_P2P_3D ! not used.
 
-  public  :: Get_x_2nd_derivative_C2C_3D
-  public  :: Get_y_2nd_derivative_C2C_3D
-  public  :: Get_z_2nd_derivative_C2C_3D
-
-  public  :: Get_x_2nd_derivative_P2P_3D
-  public  :: Get_y_2nd_derivative_P2P_3D
-  public  :: Get_z_2nd_derivative_P2P_3D
+  public  :: Test_interpolation
+  public  :: Test_1st_derivative
+  public  :: Test_2nd_derivative
 
 contains
 !==========================================================================================================
@@ -344,6 +338,9 @@ contains
     real(WP) :: alpha,  a,  b,  c,  d
     real(WP) :: alpha1, a1, b1, c1, d1
     real(WP) :: alpha2, a2, b2, c2, d2
+    real(WP) :: alpha_itf, a_itf, b_itf, c_itf, d_itf ! for interface/interior/reduced to 4th CD
+
+    integer :: n
 
     if(nrank == 0) then
        call Print_debug_start_msg &
@@ -383,6 +380,11 @@ contains
         a = ZERO
         b = ZERO
         c = ZERO
+alpha_itf = ZERO
+    a_itf = FOUR * ONE_THIRD
+    b_itf = - ONE_THIRD
+    c_itf = ZERO
+
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -423,11 +425,31 @@ contains
     d1rC2C(1:5, 2, IBC_PERIODIC) = b * QUARTER ! b/4
     d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
 !----------------------------------------------------------------------------------------------------------
+! 1st-derivative, interior
+!----------------------------------------------------------------------------------------------------------
+    d1fC2C(1, 1, IBC_INTERIOR) = alpha_itf
+    d1fC2C(1, 2, IBC_INTERIOR) = ONE
+    d1fC2C(1, 3, IBC_INTERIOR) = alpha_itf
+    d1rC2C(1, 1, IBC_INTERIOR) = a_itf * HALF  ! a/2
+    d1rC2C(1, 2, IBC_INTERIOR) = b_itf * QUARTER ! b/4
+    d1rC2C(1, 3, IBC_INTERIOR) = c_itf        ! not used
+
+    d1fC2C(5,   :, IBC_INTERIOR) = d1fC2C(1,   :, IBC_INTERIOR)
+    d1rC2C(5,   :, IBC_INTERIOR) = d1rC2C(1,   :, IBC_INTERIOR)
+    d1fC2C(2:4, :, IBC_INTERIOR) = d1fC2C(2:4, :, IBC_PERIODIC)
+    d1rC2C(2:4, :, IBC_INTERIOR) = d1rC2C(2:4, :, IBC_PERIODIC)
+
+!----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2P : periodic b.c.  Same as C2C
 !----------------------------------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_PERIODIC) = d1fC2C(:, :, IBC_PERIODIC)
     d1rP2P(:, :, IBC_PERIODIC) = d1rC2C(:, :, IBC_PERIODIC)
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, interior
+!----------------------------------------------------------------------------------------------------------    
+    d1fP2P(:, :, IBC_INTERIOR) = d1fC2C(:, :, IBC_INTERIOR)
+    d1rP2P(:, :, IBC_INTERIOR) = d1rC2C(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2C : symmetric b.c.
@@ -751,6 +773,11 @@ contains
         a = ZERO
         b = ZERO
         c = ZERO
+alpha_itf = ZERO
+    a_itf = NINE * EIGHTH
+    b_itf = -ONE * EIGHTH
+    c_itf = ZERO
+
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -789,10 +816,31 @@ contains
     d1rC2P(1:5, 3, IBC_PERIODIC) = c         ! not used
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
+! C2P : interior
+!----------------------------------------------------------------------------------------------------------
+    d1fC2P(1, 1, IBC_INTERIOR) = alpha_itf
+    d1fC2P(1, 2, IBC_INTERIOR) = ONE
+    d1fC2P(1, 3, IBC_INTERIOR) = alpha_itf
+    d1rC2P(1, 1, IBC_INTERIOR) = a_itf
+    d1rC2P(1, 2, IBC_INTERIOR) = b_itf * ONE_THIRD ! b/3
+    d1rC2P(1, 3, IBC_INTERIOR) = c_itf        ! not used
+
+    d1fC2P(5,   :, IBC_INTERIOR) = d1fC2P(1,   :, IBC_INTERIOR)
+    d1rC2P(5,   :, IBC_INTERIOR) = d1rC2P(1,   :, IBC_INTERIOR)
+    d1fC2P(2:4, :, IBC_INTERIOR) = d1fC2P(2:4, :, IBC_PERIODIC)
+    d1rC2P(2:4, :, IBC_INTERIOR) = d1rC2P(2:4, :, IBC_PERIODIC)
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative : 
 ! P2C : periodic b.c.  Same as C2P
 !----------------------------------------------------------------------------------------------------------
     d1fP2C(:, :, IBC_PERIODIC) = d1fC2P(:, :, IBC_PERIODIC)
     d1rP2C(:, :, IBC_PERIODIC) = d1rC2P(:, :, IBC_PERIODIC)
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative : 
+! P2C : interior.  Same as C2P
+!----------------------------------------------------------------------------------------------------------
+    d1fP2C(:, :, IBC_INTERIOR) = d1fC2P(:, :, IBC_INTERIOR)
+    d1rP2C(:, :, IBC_INTERIOR) = d1rC2P(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2P : symmetric b.c.
@@ -1185,6 +1233,10 @@ contains
         a = ONE
         b = ZERO
         c = ZERO
+alpha_itf = ZERO
+    a_itf = NINE * EIGHTH
+    b_itf = -ONE * EIGHTH
+    c_itf = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -1224,10 +1276,32 @@ contains
     m1rC2P(1:5, 2, IBC_PERIODIC) = b * HALF
     m1rC2P(1:5, 3, IBC_PERIODIC) = c ! not used
 !----------------------------------------------------------------------------------------------------------
+! interpolation : 
+! C2P : interior
+!----------------------------------------------------------------------------------------------------------
+    m1fC2P(1, 1, IBC_INTERIOR) = alpha_itf
+    m1fC2P(1, 2, IBC_INTERIOR) = ONE
+    m1fC2P(1, 3, IBC_INTERIOR) = alpha_itf
+    m1rC2P(1, 1, IBC_INTERIOR) = a_itf * HALF  ! a/2
+    m1rC2P(1, 2, IBC_INTERIOR) = b_itf * HALF ! b/4
+    m1rC2P(1, 3, IBC_INTERIOR) = c_itf        ! not used
+
+    m1fC2P(5,   :, IBC_INTERIOR) = m1fC2P(1,   :, IBC_INTERIOR)
+    m1rC2P(5,   :, IBC_INTERIOR) = m1rC2P(1,   :, IBC_INTERIOR)
+    m1fC2P(2:4, :, IBC_INTERIOR) = m1fC2P(2:4, :, IBC_PERIODIC)
+    m1rC2P(2:4, :, IBC_INTERIOR) = m1rC2P(2:4, :, IBC_PERIODIC)
+    
+!----------------------------------------------------------------------------------------------------------
 !interpolation. P2C for periodic b.c.
 !----------------------------------------------------------------------------------------------------------
     m1fP2C(:, :, IBC_PERIODIC) = m1fC2P(:, :, IBC_PERIODIC)
     m1rP2C(:, :, IBC_PERIODIC) = m1rC2P(:, :, IBC_PERIODIC)
+!----------------------------------------------------------------------------------------------------------
+! interpolation : 
+! P2C : interior
+!----------------------------------------------------------------------------------------------------------
+    m1fP2C(:, :, IBC_INTERIOR) = m1fC2P(:, :, IBC_INTERIOR)
+    m1rP2C(:, :, IBC_INTERIOR) = m1rC2P(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 !interpolation. C2P. symmetric, orthogonal, eg. u in y direction.
 !----------------------------------------------------------------------------------------------------------
@@ -1537,6 +1611,11 @@ contains
         b = ZERO
         c = ZERO ! not used
         d = ZERO ! not used
+alpha_itf = ZERO
+    a_itf = FOUR * ONE_THIRD
+    b_itf = - ONE_THIRD
+    c_itf = ZERO
+    d_itf = ZERO
     if (iaccu == IACCU_CD2) then
       alpha = ZERO
           a = ONE
@@ -1570,10 +1649,30 @@ contains
     d2rC2C(1:5, 3, IBC_PERIODIC) = c ! not used
     d2rC2C(1:5, 4, IBC_PERIODIC) = d ! not used
 !----------------------------------------------------------------------------------------------------------
+! 2nd diriviative P2P , interior
+!----------------------------------------------------------------------------------------------------------
+    d2fC2C(1, 1, IBC_INTERIOR) = alpha_itf
+    d2fC2C(1, 2, IBC_INTERIOR) = ONE
+    d2fC2C(1, 3, IBC_INTERIOR) = alpha_itf
+    d2rC2C(1, 1, IBC_INTERIOR) = a_itf
+    d2rC2C(1, 2, IBC_INTERIOR) = b_itf * QUARTER
+    d2rC2C(1, 3, IBC_INTERIOR) = c_itf ! not used       
+    d2rC2C(1, 4, IBC_INTERIOR) = d_itf ! not used       
+
+    d2fC2C(5,   :, IBC_INTERIOR) = d2fC2C(1,   :, IBC_INTERIOR)
+    d2rC2C(5,   :, IBC_INTERIOR) = d2rC2C(1,   :, IBC_INTERIOR)
+    d2fC2C(2:4, :, IBC_INTERIOR) = d2fC2C(2:4, :, IBC_PERIODIC)
+    d2rC2C(2:4, :, IBC_INTERIOR) = d2rC2C(2:4, :, IBC_PERIODIC)
+!----------------------------------------------------------------------------------------------------------
 ! 2nd diriviative P2P , periodic
 !----------------------------------------------------------------------------------------------------------
     d2fP2P(:, :, IBC_PERIODIC) = d2fC2C(:, :, IBC_PERIODIC)
     d2rP2P(:, :, IBC_PERIODIC) = d2rC2C(:, :, IBC_PERIODIC)
+!----------------------------------------------------------------------------------------------------------
+! 2nd diriviative P2P , interior
+!----------------------------------------------------------------------------------------------------------
+    d2fP2P(:, :, IBC_INTERIOR) = d2fC2C(:, :, IBC_INTERIOR)
+    d2rP2P(:, :, IBC_INTERIOR) = d2rC2C(:, :, IBC_INTERIOR)
 !----------------------------------------------------------------------------------------------------------
 ! 2nd diriviative C2C, symmetric
 !----------------------------------------------------------------------------------------------------------
@@ -1841,11 +1940,11 @@ contains
 
     integer, intent(in) :: n
     logical,  intent(in)   :: is_periodic
-    real(WP), intent(in)   :: coeff(5, 3, 6)
-    real(WP), intent(out)  :: a(n, 6, 6), &
-                              b(n, 6, 6), &
-                              c(n, 6, 6), &
-                              d(n, 6, 6)
+    real(WP), intent(in)   :: coeff(5, 3, 0:6)
+    real(WP), intent(out)  :: a(n, 0:6, 0:6), &
+                              b(n, 0:6, 0:6), &
+                              c(n, 0:6, 0:6), &
+                              d(n, 0:6, 0:6)
 
     integer :: i, j
 
@@ -1854,8 +1953,8 @@ contains
     c(:, :, :) =  ZERO
     d(:, :, :) =  ZERO
 
-    do j = IBC_PERIODIC, IBC_INTRPL
-      do i = IBC_PERIODIC, IBC_INTRPL
+    do j = 0, 6
+      do i = 0, 6
 
         if (j == IBC_PERIODIC .and. i /= IBC_PERIODIC) cycle
         if (j /= IBC_PERIODIC .and. i == IBC_PERIODIC) cycle
@@ -1912,7 +2011,7 @@ contains
     use mpi_mod
     use parameters_constant_mod
     implicit none
-    integer :: i, nsz, j, k
+    integer :: i, nsz
 
 !==========================================================================================================
 !   building up the basic lhs coeffients for compact schemes, based on the given
@@ -1930,35 +2029,35 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   1st derivative in y direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad1y_C2C ( nsz, 6, 6 ) ); ad1y_C2C(:, :, :) = ZERO
-    allocate (bd1y_C2C ( nsz, 6, 6 ) ); bd1y_C2C(:, :, :) = ZERO
-    allocate (cd1y_C2C ( nsz, 6, 6 ) ); cd1y_C2C(:, :, :) = ZERO
-    allocate (dd1y_C2C ( nsz, 6, 6 ) ); dd1y_C2C(:, :, :) = ZERO
+    allocate (ad1y_C2C ( nsz, 0:6, 0:6 ) ); ad1y_C2C(:, :, :) = ZERO
+    allocate (bd1y_C2C ( nsz, 0:6, 0:6 ) ); bd1y_C2C(:, :, :) = ZERO
+    allocate (cd1y_C2C ( nsz, 0:6, 0:6 ) ); cd1y_C2C(:, :, :) = ZERO
+    allocate (dd1y_C2C ( nsz, 0:6, 0:6 ) ); dd1y_C2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
           ad1y_C2C, bd1y_C2C, cd1y_C2C, dd1y_C2C)
 
-    allocate (ad1y_P2C ( nsz, 6, 6 ) ); ad1y_P2C(:, :, :) = ZERO
-    allocate (bd1y_P2C ( nsz, 6, 6 ) ); bd1y_P2C(:, :, :) = ZERO
-    allocate (cd1y_P2C ( nsz, 6, 6 ) ); cd1y_P2C(:, :, :) = ZERO
-    allocate (dd1y_P2C ( nsz, 6, 6 ) ); dd1y_P2C(:, :, :) = ZERO
+    allocate (ad1y_P2C ( nsz, 0:6, 0:6 ) ); ad1y_P2C(:, :, :) = ZERO
+    allocate (bd1y_P2C ( nsz, 0:6, 0:6 ) ); bd1y_P2C(:, :, :) = ZERO
+    allocate (cd1y_P2C ( nsz, 0:6, 0:6 ) ); cd1y_P2C(:, :, :) = ZERO
+    allocate (dd1y_P2C ( nsz, 0:6, 0:6 ) ); dd1y_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
           ad1y_P2C, bd1y_P2C, cd1y_P2C, dd1y_P2C)
 !----------------------------------------------------------------------------------------------------------
 !   mid-point interpolation in y direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (am1y_P2C ( nsz, 6, 6 ) ); am1y_P2C(:, :, :) = ZERO
-    allocate (bm1y_P2C ( nsz, 6, 6 ) ); bm1y_P2C(:, :, :) = ZERO
-    allocate (cm1y_P2C ( nsz, 6, 6 ) ); cm1y_P2C(:, :, :) = ZERO
-    allocate (dm1y_P2C ( nsz, 6, 6 ) ); dm1y_P2C(:, :, :) = ZERO
+    allocate (am1y_P2C ( nsz, 0:6, 0:6 ) ); am1y_P2C(:, :, :) = ZERO
+    allocate (bm1y_P2C ( nsz, 0:6, 0:6 ) ); bm1y_P2C(:, :, :) = ZERO
+    allocate (cm1y_P2C ( nsz, 0:6, 0:6 ) ); cm1y_P2C(:, :, :) = ZERO
+    allocate (dm1y_P2C ( nsz, 0:6, 0:6 ) ); dm1y_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fP2C, &
           am1y_P2C, bm1y_P2C, cm1y_P2C, dm1y_P2C)
 !----------------------------------------------------------------------------------------------------------
 !   2nd order deriviative in y direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad2y_C2C ( nsz, 6, 6 ) ); ad2y_C2C(:, :, :) = ZERO
-    allocate (bd2y_C2C ( nsz, 6, 6 ) ); bd2y_C2C(:, :, :) = ZERO
-    allocate (cd2y_C2C ( nsz, 6, 6 ) ); cd2y_C2C(:, :, :) = ZERO
-    allocate (dd2y_C2C ( nsz, 6, 6 ) ); dd2y_C2C(:, :, :) = ZERO
+    allocate (ad2y_C2C ( nsz, 0:6, 0:6 ) ); ad2y_C2C(:, :, :) = ZERO
+    allocate (bd2y_C2C ( nsz, 0:6, 0:6 ) ); bd2y_C2C(:, :, :) = ZERO
+    allocate (cd2y_C2C ( nsz, 0:6, 0:6 ) ); cd2y_C2C(:, :, :) = ZERO
+    allocate (dd2y_C2C ( nsz, 0:6, 0:6 ) ); dd2y_C2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fC2C, &
           ad2y_C2C, bd2y_C2C, cd2y_C2C, dd2y_C2C)
 !==========================================================================================================
@@ -1968,35 +2067,35 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   1st derivative in y direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad1y_P2P ( nsz, 6, 6 ) ); ad1y_P2P(:, :, :) = ZERO
-    allocate (bd1y_P2P ( nsz, 6, 6 ) ); bd1y_P2P(:, :, :) = ZERO
-    allocate (cd1y_P2P ( nsz, 6, 6 ) ); cd1y_P2P(:, :, :) = ZERO
-    allocate (dd1y_P2P ( nsz, 6, 6 ) ); dd1y_P2P(:, :, :) = ZERO
+    allocate (ad1y_P2P ( nsz, 0:6, 0:6 ) ); ad1y_P2P(:, :, :) = ZERO
+    allocate (bd1y_P2P ( nsz, 0:6, 0:6 ) ); bd1y_P2P(:, :, :) = ZERO
+    allocate (cd1y_P2P ( nsz, 0:6, 0:6 ) ); cd1y_P2P(:, :, :) = ZERO
+    allocate (dd1y_P2P ( nsz, 0:6, 0:6 ) ); dd1y_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
           ad1y_P2P, bd1y_P2P, cd1y_P2P, dd1y_P2P)
 
-    allocate (ad1y_C2P ( nsz, 6, 6 ) ); ad1y_C2P(:, :, :) = ZERO
-    allocate (bd1y_C2P ( nsz, 6, 6 ) ); bd1y_C2P(:, :, :) = ZERO
-    allocate (cd1y_C2P ( nsz, 6, 6 ) ); cd1y_C2P(:, :, :) = ZERO
-    allocate (dd1y_C2P ( nsz, 6, 6 ) ); dd1y_C2P(:, :, :) = ZERO
+    allocate (ad1y_C2P ( nsz, 0:6, 0:6 ) ); ad1y_C2P(:, :, :) = ZERO
+    allocate (bd1y_C2P ( nsz, 0:6, 0:6 ) ); bd1y_C2P(:, :, :) = ZERO
+    allocate (cd1y_C2P ( nsz, 0:6, 0:6 ) ); cd1y_C2P(:, :, :) = ZERO
+    allocate (dd1y_C2P ( nsz, 0:6, 0:6 ) ); dd1y_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
           ad1y_C2P, bd1y_C2P, cd1y_C2P, dd1y_C2P) 
 !----------------------------------------------------------------------------------------------------------
 !   mid-point interpolation in y direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (am1y_C2P ( nsz, 6, 6 ) ); am1y_C2P(:, :, :) = ZERO
-    allocate (bm1y_C2P ( nsz, 6, 6 ) ); bm1y_C2P(:, :, :) = ZERO
-    allocate (cm1y_C2P ( nsz, 6, 6 ) ); cm1y_C2P(:, :, :) = ZERO
-    allocate (dm1y_C2P ( nsz, 6, 6 ) ); dm1y_C2P(:, :, :) = ZERO
+    allocate (am1y_C2P ( nsz, 0:6, 0:6 ) ); am1y_C2P(:, :, :) = ZERO
+    allocate (bm1y_C2P ( nsz, 0:6, 0:6 ) ); bm1y_C2P(:, :, :) = ZERO
+    allocate (cm1y_C2P ( nsz, 0:6, 0:6 ) ); cm1y_C2P(:, :, :) = ZERO
+    allocate (dm1y_C2P ( nsz, 0:6, 0:6 ) ); dm1y_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fC2P, &
           am1y_C2P, bm1y_C2P, cm1y_C2P, dm1y_C2P)
 !----------------------------------------------------------------------------------------------------------
 ! 2nd order deriviative in y direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad2y_P2P ( nsz, 6, 6 ) ); ad2y_P2P(:, :, :) = ZERO
-    allocate (bd2y_P2P ( nsz, 6, 6 ) ); bd2y_P2P(:, :, :) = ZERO
-    allocate (cd2y_P2P ( nsz, 6, 6 ) ); cd2y_P2P(:, :, :) = ZERO
-    allocate (dd2y_P2P ( nsz, 6, 6 ) ); dd2y_P2P(:, :, :) = ZERO
+    allocate (ad2y_P2P ( nsz, 0:6, 0:6 ) ); ad2y_P2P(:, :, :) = ZERO
+    allocate (bd2y_P2P ( nsz, 0:6, 0:6 ) ); bd2y_P2P(:, :, :) = ZERO
+    allocate (cd2y_P2P ( nsz, 0:6, 0:6 ) ); cd2y_P2P(:, :, :) = ZERO
+    allocate (dd2y_P2P ( nsz, 0:6, 0:6 ) ); dd2y_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fP2P, &
           ad2y_P2P, bd2y_P2P, cd2y_P2P, dd2y_P2P)
 !==========================================================================================================
@@ -2007,26 +2106,26 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   1st derivative in z direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad1z_C2C ( nsz, 6, 6 ) ); ad1z_C2C(:, : ,:) = ZERO
-    allocate (bd1z_C2C ( nsz, 6, 6 ) ); bd1z_C2C(:, : ,:) = ZERO
-    allocate (cd1z_C2C ( nsz, 6, 6 ) ); cd1z_C2C(:, : ,:) = ZERO
-    allocate (dd1z_C2C ( nsz, 6, 6 ) ); dd1z_C2C(:, : ,:) = ZERO
+    allocate (ad1z_C2C ( nsz, 0:6, 0:6 ) ); ad1z_C2C(:, : ,:) = ZERO
+    allocate (bd1z_C2C ( nsz, 0:6, 0:6 ) ); bd1z_C2C(:, : ,:) = ZERO
+    allocate (cd1z_C2C ( nsz, 0:6, 0:6 ) ); cd1z_C2C(:, : ,:) = ZERO
+    allocate (dd1z_C2C ( nsz, 0:6, 0:6 ) ); dd1z_C2C(:, : ,:) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
           ad1z_C2C, bd1z_C2C, cd1z_C2C, dd1z_C2C)
 
-    allocate (ad1z_P2C ( nsz, 6, 6 ) ); ad1z_P2C(:, :, :) = ZERO
-    allocate (bd1z_P2C ( nsz, 6, 6 ) ); bd1z_P2C(:, :, :) = ZERO
-    allocate (cd1z_P2C ( nsz, 6, 6 ) ); cd1z_P2C(:, :, :) = ZERO
-    allocate (dd1z_P2C ( nsz, 6, 6 ) ); dd1z_P2C(:, :, :) = ZERO
+    allocate (ad1z_P2C ( nsz, 0:6, 0:6 ) ); ad1z_P2C(:, :, :) = ZERO
+    allocate (bd1z_P2C ( nsz, 0:6, 0:6 ) ); bd1z_P2C(:, :, :) = ZERO
+    allocate (cd1z_P2C ( nsz, 0:6, 0:6 ) ); cd1z_P2C(:, :, :) = ZERO
+    allocate (dd1z_P2C ( nsz, 0:6, 0:6 ) ); dd1z_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
           ad1z_P2C, bd1z_P2C, cd1z_P2C, dd1z_P2C)
 !----------------------------------------------------------------------------------------------------------
 !   mid-point interpolation in z direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (am1z_P2C ( nsz, 6, 6 ) ); am1z_P2C(:, :, :) = ZERO
-    allocate (bm1z_P2C ( nsz, 6, 6 ) ); bm1z_P2C(:, :, :) = ZERO
-    allocate (cm1z_P2C ( nsz, 6, 6 ) ); cm1z_P2C(:, :, :) = ZERO
-    allocate (dm1z_P2C ( nsz, 6, 6 ) ); dm1z_P2C(:, :, :) = ZERO
+    allocate (am1z_P2C ( nsz, 0:6, 0:6 ) ); am1z_P2C(:, :, :) = ZERO
+    allocate (bm1z_P2C ( nsz, 0:6, 0:6 ) ); bm1z_P2C(:, :, :) = ZERO
+    allocate (cm1z_P2C ( nsz, 0:6, 0:6 ) ); cm1z_P2C(:, :, :) = ZERO
+    allocate (dm1z_P2C ( nsz, 0:6, 0:6 ) ); dm1z_P2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fP2C, &
           am1z_P2C, bm1z_P2C, cm1z_P2C, dm1z_P2C)
 
@@ -2054,10 +2153,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   2nd order deriviative in z direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad2z_C2C ( nsz, 6, 6 ) ); ad2z_C2C(:, :, :) = ZERO
-    allocate (bd2z_C2C ( nsz, 6, 6 ) ); bd2z_C2C(:, :, :) = ZERO
-    allocate (cd2z_C2C ( nsz, 6, 6 ) ); cd2z_C2C(:, :, :) = ZERO
-    allocate (dd2z_C2C ( nsz, 6, 6 ) ); dd2z_C2C(:, :, :) = ZERO
+    allocate (ad2z_C2C ( nsz, 0:6, 0:6 ) ); ad2z_C2C(:, :, :) = ZERO
+    allocate (bd2z_C2C ( nsz, 0:6, 0:6 ) ); bd2z_C2C(:, :, :) = ZERO
+    allocate (cd2z_C2C ( nsz, 0:6, 0:6 ) ); cd2z_C2C(:, :, :) = ZERO
+    allocate (dd2z_C2C ( nsz, 0:6, 0:6 ) ); dd2z_C2C(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fC2C, &
           ad2z_C2C, bd2z_C2C, cd2z_C2C, dd2z_C2C)
 !==========================================================================================================
@@ -2067,35 +2166,35 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st derivative in z direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad1z_P2P ( nsz, 6, 6 ) ); ad1z_P2P(:, :, :) = ZERO
-    allocate (bd1z_P2P ( nsz, 6, 6 ) ); bd1z_P2P(:, :, :) = ZERO
-    allocate (cd1z_P2P ( nsz, 6, 6 ) ); cd1z_P2P(:, :, :) = ZERO
-    allocate (dd1z_P2P ( nsz, 6, 6 ) ); dd1z_P2P(:, :, :) = ZERO
+    allocate (ad1z_P2P ( nsz, 0:6, 0:6 ) ); ad1z_P2P(:, :, :) = ZERO
+    allocate (bd1z_P2P ( nsz, 0:6, 0:6 ) ); bd1z_P2P(:, :, :) = ZERO
+    allocate (cd1z_P2P ( nsz, 0:6, 0:6 ) ); cd1z_P2P(:, :, :) = ZERO
+    allocate (dd1z_P2P ( nsz, 0:6, 0:6 ) ); dd1z_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
           ad1z_P2P, bd1z_P2P, cd1z_P2P, dd1z_P2P)
 
-    allocate (ad1z_C2P ( nsz, 6, 6 ) ); ad1z_C2P(:, :, :) = ZERO
-    allocate (bd1z_C2P ( nsz, 6, 6 ) ); bd1z_C2P(:, :, :) = ZERO
-    allocate (cd1z_C2P ( nsz, 6, 6 ) ); cd1z_C2P(:, :, :) = ZERO
-    allocate (dd1z_C2P ( nsz, 6, 6 ) ); dd1z_C2P(:, :, :) = ZERO
+    allocate (ad1z_C2P ( nsz, 0:6, 0:6 ) ); ad1z_C2P(:, :, :) = ZERO
+    allocate (bd1z_C2P ( nsz, 0:6, 0:6 ) ); bd1z_C2P(:, :, :) = ZERO
+    allocate (cd1z_C2P ( nsz, 0:6, 0:6 ) ); cd1z_C2P(:, :, :) = ZERO
+    allocate (dd1z_C2P ( nsz, 0:6, 0:6 ) ); dd1z_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
           ad1z_C2P, bd1z_C2P, cd1z_C2P, dd1z_C2P)
 !----------------------------------------------------------------------------------------------------------
 ! mid-point interpolation in z direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (am1z_C2P ( nsz, 6, 6 ) ); am1z_C2P(:, :, :) = ZERO
-    allocate (bm1z_C2P ( nsz, 6, 6 ) ); bm1z_C2P(:, :, :) = ZERO
-    allocate (cm1z_C2P ( nsz, 6, 6 ) ); cm1z_C2P(:, :, :) = ZERO
-    allocate (dm1z_C2P ( nsz, 6, 6 ) ); dm1z_C2P(:, :, :) = ZERO
+    allocate (am1z_C2P ( nsz, 0:6, 0:6 ) ); am1z_C2P(:, :, :) = ZERO
+    allocate (bm1z_C2P ( nsz, 0:6, 0:6 ) ); bm1z_C2P(:, :, :) = ZERO
+    allocate (cm1z_C2P ( nsz, 0:6, 0:6 ) ); cm1z_C2P(:, :, :) = ZERO
+    allocate (dm1z_C2P ( nsz, 0:6, 0:6 ) ); dm1z_C2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fC2P, &
           am1z_C2P, bm1z_C2P, cm1z_C2P, dm1z_C2P)
 !----------------------------------------------------------------------------------------------------------
 ! 2nd order deriviative in z direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad2z_P2P ( nsz, 6, 6 ) ); ad2z_P2P(:, :, :) = ZERO
-    allocate (bd2z_P2P ( nsz, 6, 6 ) ); bd2z_P2P(:, :, :) = ZERO
-    allocate (cd2z_P2P ( nsz, 6, 6 ) ); cd2z_P2P(:, :, :) = ZERO
-    allocate (dd2z_P2P ( nsz, 6, 6 ) ); dd2z_P2P(:, :, :) = ZERO
+    allocate (ad2z_P2P ( nsz, 0:6, 0:6 ) ); ad2z_P2P(:, :, :) = ZERO
+    allocate (bd2z_P2P ( nsz, 0:6, 0:6 ) ); bd2z_P2P(:, :, :) = ZERO
+    allocate (cd2z_P2P ( nsz, 0:6, 0:6 ) ); cd2z_P2P(:, :, :) = ZERO
+    allocate (dd2z_P2P ( nsz, 0:6, 0:6 ) ); dd2z_P2P(:, :, :) = ZERO
     call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), d2fP2P, &
         ad2z_P2P, bd2z_P2P, cd2z_P2P, dd2z_P2P)
 !==========================================================================================================
@@ -2110,20 +2209,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st derivative in x direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_C2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_C2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_C2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%ad1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bd1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cd1x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dd1x_C2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fC2C, &
             xtdma_lhs(i)%ad1x_C2C, &
             xtdma_lhs(i)%bd1x_C2C, &
             xtdma_lhs(i)%cd1x_C2C, &
             xtdma_lhs(i)%dd1x_C2C)
   
-      allocate (xtdma_lhs(i)%ad1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_P2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_P2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_P2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%ad1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bd1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cd1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dd1x_P2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fP2C, &
             xtdma_lhs(i)%ad1x_P2C, &
             xtdma_lhs(i)%bd1x_P2C, &
@@ -2132,10 +2231,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 2nd order deriviative in x direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad2x_C2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bd2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd2x_C2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cd2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd2x_C2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dd2x_C2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%ad2x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%ad2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd2x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bd2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd2x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cd2x_C2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd2x_C2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dd2x_C2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array( nsz, domain(i)%is_periodic(1), d2fC2C, &
           xtdma_lhs(i)%ad2x_C2C, &
           xtdma_lhs(i)%bd2x_C2C, &
@@ -2144,10 +2243,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! mid-point interpolation in x direction with nc unknows
 !----------------------------------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%am1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%am1x_P2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bm1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%bm1x_P2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cm1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%cm1x_P2C(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dm1x_P2C ( nsz, 6, 6 ) ); xtdma_lhs(i)%dm1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%am1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%am1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bm1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bm1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cm1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cm1x_P2C(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dm1x_P2C ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dm1x_P2C(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), m1fP2C, &
           xtdma_lhs(i)%am1x_P2C, &
           xtdma_lhs(i)%bm1x_P2C, &
@@ -2160,20 +2259,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st derivative in x direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_P2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_P2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_P2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%ad1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bd1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cd1x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dd1x_P2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fP2P, &
             xtdma_lhs(i)%ad1x_P2P, &
             xtdma_lhs(i)%bd1x_P2P, &
             xtdma_lhs(i)%cd1x_P2P, &
             xtdma_lhs(i)%dd1x_P2P)
   
-      allocate (xtdma_lhs(i)%ad1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad1x_C2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bd1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd1x_C2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cd1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd1x_C2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dd1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%ad1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%ad1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bd1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cd1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dd1x_C2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fC2P, &
             xtdma_lhs(i)%ad1x_C2P, &
             xtdma_lhs(i)%bd1x_C2P, &
@@ -2182,10 +2281,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 2nd order deriviative in x direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%ad2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%ad2x_P2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bd2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bd2x_P2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cd2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cd2x_P2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dd2x_P2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dd2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%ad2x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%ad2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bd2x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bd2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cd2x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cd2x_P2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dd2x_P2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dd2x_P2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array( nsz, domain(i)%is_periodic(1), d2fP2P, &
             xtdma_lhs(i)%ad2x_P2P, &
             xtdma_lhs(i)%bd2x_P2P, &
@@ -2194,10 +2293,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! mid-point interpolation in x direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-      allocate (xtdma_lhs(i)%am1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%am1x_C2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%bm1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%bm1x_C2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%cm1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%cm1x_C2P(:, :, :) = ZERO
-      allocate (xtdma_lhs(i)%dm1x_C2P ( nsz, 6, 6 ) ); xtdma_lhs(i)%dm1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%am1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%am1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%bm1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%bm1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%cm1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%cm1x_C2P(:, :, :) = ZERO
+      allocate (xtdma_lhs(i)%dm1x_C2P ( nsz, 0:6, 0:6 ) ); xtdma_lhs(i)%dm1x_C2P(:, :, :) = ZERO
       call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), m1fC2P, &
           xtdma_lhs(i)%am1x_C2P, &
           xtdma_lhs(i)%bm1x_C2P, &
@@ -2247,15 +2346,15 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, nc, coeff, ibc)
+  subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, nc, coeff, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 4, 6)
+    real(WP), intent(in ) :: coeff(5, 4, 0:6)
     integer,  intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: i, m, l
 
@@ -2278,7 +2377,11 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_P2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i + 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(1   ) + fi(i + 2) )
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0' = nc = np
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i + 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(nc   ) + fi(i + 2) )
@@ -2322,7 +2425,11 @@ contains
     i = nc
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_P2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i + 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i - 1) + fbc(2   ) )
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! i + 1 = nc' + 1 = 1
       ! i + 2 = nc' + 2 = 2
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(1) ) + &
@@ -2393,9 +2500,9 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 4, 6)
+    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
+    real(WP), optional, intent(in)  :: fbc(4) ! used for Dirichlet B.C. (1||2) & interior (3, 1,|| 2, 4)
 
     integer :: i, m, l
 
@@ -2420,7 +2527,13 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_C2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fbc(3) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = np
       !-1 = np - 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(np    ) ) + &
@@ -2447,7 +2560,14 @@ contains
     i = 2
     m = 1
     l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
+
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_C2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fbc(1) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = np
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1) + fi(np   ) )
@@ -2469,7 +2589,14 @@ contains
     i = np - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
+    
+    if ( ibc(m) == IBC_INTERIOR) then
+
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i)  + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       !
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1 ) + fi(i - 2 ) )
@@ -2491,7 +2618,13 @@ contains
     i = np
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_interp_C2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2   ) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4   ) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! np + 1 = 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) + fi(i - 1 ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(1    ) + fi(i - 2) )
@@ -2567,10 +2700,10 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 4, 6)
+    real(WP), intent(in ) :: coeff(5, 4, 0:6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in)  :: fbc(2) ! used for Dirichlet B.C.
+    real(WP), optional, intent(in)  :: fbc(4) ! used for Dirichlet B.C. or interior
 
     integer :: i, m, l
 
@@ -2588,6 +2721,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   for non-periodic or periodic
 !   ---(-1')-(-1)-(0')-(0)-(|1')-(1)-(2')-(2)-(3')---(i')---(nc'-1)-(nc-1)-(nc')-(nc)-(nc'+1|)-(nc+1)-(nc'+2)---
+!  interior bc
+!    3-1|| ---||2-4
 !----------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------
 !   i = 1
@@ -2595,7 +2730,13 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2C_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fbc(3) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = nc
       !-1 = nc - 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(nc   ) ) + &
@@ -2627,7 +2768,13 @@ contains
     i = 2
     m = 1
     l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2C_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fbc(1) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = nc
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(nc   ) )
@@ -2650,7 +2797,13 @@ contains
     i = nc - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2C_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2)    - fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       !i + 2 = nc + 1 = 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 2) )
@@ -2673,7 +2826,13 @@ contains
     i = nc
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2C_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4) - fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! nc + 1 = 1
       ! nc + 2 = 2
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - fi(i - 1) ) + &
@@ -2756,10 +2915,10 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 4, 6)
+    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
+    real(WP), optional, intent(in ) :: fbc(4) ! used for IBC_NEUMANN or interior
 
     integer :: m, l, i
 
@@ -2785,7 +2944,13 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_P2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fbc(3) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0' = np'
       !-1' = np' - 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(np   ) ) + &
@@ -2814,7 +2979,13 @@ contains
     i = 2
     m = 1
     l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_P2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fbc(1) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0' = np'
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(np   ) )
@@ -2837,7 +3008,13 @@ contains
     i = np - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_P2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2)    - fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       !np' + 1 = 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 2) )
@@ -2858,7 +3035,13 @@ contains
     i = np
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_P2P_RHS_array')
+      
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4) - fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! np' + 1 = 1'
       ! np' + 2 = 2'
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - fi(i - 1) ) + &
@@ -2949,10 +3132,10 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 4, 6)
+    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2) ! used for IBC_NEUMANN
+    real(WP), optional, intent(in ) :: fbc(4) ! used for IBC_NEUMANN, and interior
 
     integer :: i, m, l
 
@@ -2977,7 +3160,12 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fbc(3) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = np
       !-1 = np - 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(np    ) ) + &
@@ -3010,7 +3198,12 @@ contains
     i = 2
     m = 1
     l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fbc(1) )
+              
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = np
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1) - fi(np   ) )
@@ -3030,7 +3223,13 @@ contains
     i = np - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
+    
+    if ( ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i ) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2) - fi(i - 2 ) )
+    
+    else if ( ibc(m) == IBC_PERIODIC ) then
       !
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i     ) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 1 ) - fi(i - 2 ) )
@@ -3050,7 +3249,12 @@ contains
     i = np
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_C2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2) - fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4) - fi(i - 2) )
+              
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! np + 1 = 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i    ) - fi(i - 1 ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(1    ) - fi(i - 2) )
@@ -3131,16 +3335,16 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, dd, ibc)
+  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, dd, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 4, 6)
+    real(WP), intent(in ) :: coeff(5, 4, 0:6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: i, l, m
 
@@ -3163,7 +3367,12 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_P2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fbc(1)    )
+              
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0' = nc
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - fi(nc   ) )
@@ -3207,7 +3416,12 @@ contains
     i = nc
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_1deri_P2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - fi(i    ) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2)    - fi(i - 1) )
+              
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! i + 1 = nc' + 1 = 1
       ! i + 2 = nc' + 2 = 2
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - fi(i    ) ) + &
@@ -3268,10 +3482,10 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: nc ! unknow numbers
     real(WP),           intent(out) :: fo(nc)
-    real(WP),           intent(in ) :: coeff(5, 4, 6)
+    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: i, l, m
 
@@ -3294,7 +3508,12 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_C2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fbc(3) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = nc
       !-1 = nc - 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(nc   ) ) + &
@@ -3327,7 +3546,12 @@ contains
     i = 2
     m = 1
     l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_C2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fbc(1) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0 = nc
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(nc   ) )
@@ -3348,7 +3572,12 @@ contains
     i = nc - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_C2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2)    - TWO * fi(i) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       !nc + 1 = 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(1    ) - TWO * fi(i) + fi(i - 2) )
@@ -3369,7 +3598,12 @@ contains
     i = nc
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_C2C_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2) - TWO * fi(i) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4) - TWO * fi(i) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! nc + 1 = 1
       ! nc + 2 = 2
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1    ) - TWO * fi(i) + fi(i - 1) ) + &
@@ -3434,16 +3668,16 @@ contains
 !> \param[in]     fi            the input variable to build up the RHS array
 !> \param[out]    fo            the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc)
+  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc, fbc)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: np ! unknow numbers
     real(WP), intent(out) :: fo(np)
-    real(WP), intent(in ) :: coeff(5, 4, 6)
+    real(WP), intent(in ) :: coeff(5, 4, 0:6)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer  :: i, l, m
 
@@ -3470,7 +3704,12 @@ contains
     i = 1
     m = 1
     l = 1
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_P2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fbc(1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fbc(3) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0' = np'
       !-1' = np' - 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(np   ) ) + &
@@ -3497,7 +3736,12 @@ contains
     i = 2
     m = 1
     l = 2
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_P2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fbc(1) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! 0' = np'
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) + fi(np   ) )
@@ -3518,7 +3762,12 @@ contains
     i = np - 1
     m = 2
     l = 4
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_P2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(2   ) - TWO * fi(i) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       !np' + 1 = 1
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(1    ) - TWO * fi(i) + fi(i - 2) )
@@ -3539,7 +3788,12 @@ contains
     i = np
     m = 2
     l = 5
-    if ( ibc(m) == IBC_PERIODIC) then
+    if (ibc(m) == IBC_INTERIOR) then
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ Prepare_TDMA_2deri_P2P_RHS_array')
+      fo(i) = coeff( l, 1, ibc(m) ) * ( fbc(2) - TWO * fi(i) + fi(i - 1) ) + &
+              coeff( l, 2, ibc(m) ) * ( fbc(4) - TWO * fi(i) + fi(i - 2) )
+
+    else if ( ibc(m) == IBC_PERIODIC) then
       ! np' + 1 = 1'
       ! np' + 2 = 2'
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(1   ) - TWO * fi(i) + fi(i - 1) ) + &
@@ -3586,7 +3840,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !_______________________________________________________________________________
-  subroutine Get_x_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_midp_C2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3595,15 +3849,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: ixsub, nsz
 
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_midp_C2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+
+    ibc = ibc0
+    do i = 1, 2
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_midp_C2P_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_midp_C2P_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+    end do
 
     ixsub = dm%idom
     
@@ -3622,7 +3886,7 @@ contains
     return
   end subroutine Get_x_midp_C2P_1D
 !==========================================================================================================
-  subroutine Get_x_midp_P2C_1D (fi, fo, dm, ibc)
+  subroutine Get_x_midp_P2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3630,15 +3894,26 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: ixsub, nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_midp_P2C_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:), fbc)
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2)), &
@@ -3650,7 +3925,7 @@ contains
     return
   end subroutine Get_x_midp_P2C_1D
 !==========================================================================================================
-  subroutine Get_y_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_midp_C2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use tridiagonal_matrix_algorithm
     use udf_type_mod
@@ -3658,14 +3933,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
 
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_midp_C2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_midp_C2P_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_midp_C2P_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -3682,7 +3967,7 @@ contains
     return
   end subroutine Get_y_midp_C2P_1D
 !==========================================================================================================
-  subroutine Get_y_midp_P2C_1D (fi, fo, dm, ibc)
+  subroutine Get_y_midp_P2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3690,14 +3975,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
     
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_midp_P2C_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+    end do
+
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:) )
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:), fbc(:) )
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           am1y_P2C(:, ibc(1), ibc(2)), &
@@ -3709,7 +4005,7 @@ contains
     return
   end subroutine Get_y_midp_P2C_1D
 !==========================================================================================================
-  subroutine Get_z_midp_C2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_midp_C2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3717,14 +4013,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
-    integer :: nsz, i
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
+    integer :: nsz
 
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_midp_C2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_midp_C2P_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_midp_C2P_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -3741,7 +4047,7 @@ contains
     return
   end subroutine Get_z_midp_C2P_1D
 !==========================================================================================================
-  subroutine Get_z_midp_P2C_1D (fi, fo, dm, ibc)
+  subroutine Get_z_midp_P2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3749,14 +4055,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_midp_P2C_1D, degragded to IBC_INTRPL.')
+        ibc(i) = IBC_INTRPL
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :), ibc(:), fbc(:))
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           am1z_P2C(:, ibc(1), ibc(2)), &
@@ -3786,7 +4103,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_C2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3794,9 +4111,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: ixsub, nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     ixsub = dm%idom
     nsz = size(fo)
@@ -3814,7 +4146,7 @@ contains
     return
   end subroutine Get_x_1st_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_P2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_P2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3822,15 +4154,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: ixsub, nsz
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_P2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -3848,7 +4190,7 @@ contains
     return
   end subroutine Get_x_1st_derivative_P2P_1D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_C2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_C2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3856,20 +4198,29 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: ixsub, nsz
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_C2P_1D')
-    end if
-
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -3888,7 +4239,7 @@ contains
     return
   end subroutine Get_x_1st_derivative_C2P_1D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_P2C_1D (fi, fo, dm, ibc)
+  subroutine Get_x_1st_derivative_P2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3896,16 +4247,27 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz, ixsub
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_P2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
 
     ixsub = dm%idom
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(1), ibc(:) )
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(1), ibc(:), fbc(:) )
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2C(:, ibc(1), ibc(2)), &
@@ -3919,7 +4281,7 @@ contains
 !==========================================================================================================
 ! y - Get_1st_derivative_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_C2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3927,9 +4289,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -3948,7 +4325,7 @@ contains
     return
   end subroutine Get_y_1st_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_P2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_P2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3956,14 +4333,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_P2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_y_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -3982,7 +4369,7 @@ contains
     return
   end subroutine Get_y_1st_derivative_P2P_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_C2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_C2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -3990,19 +4377,28 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_C2P_1D')
-    end if
-
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_1st_derivative_C2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -4021,7 +4417,7 @@ contains
     return
   end subroutine Get_y_1st_derivative_C2P_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_P2C_1D (fi, fo, dm, ibc)
+  subroutine Get_y_1st_derivative_P2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4029,14 +4425,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_1st_derivative_P2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(2), ibc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad1y_P2C(:, ibc(1), ibc(2)), &
@@ -4052,7 +4459,7 @@ contains
 !==========================================================================================================
 ! z - Get_1st_derivative_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_C2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4060,10 +4467,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -4080,7 +4502,7 @@ contains
     return
   end subroutine Get_z_1st_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_P2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_P2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4088,14 +4510,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_P2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_z_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -4112,7 +4544,7 @@ contains
     return
   end subroutine Get_z_1st_derivative_P2P_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_C2P_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_C2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4120,19 +4552,28 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_C2P_1D')
-    end if
-
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_1st_derivative_C2P_1D')
-    end if
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -4149,7 +4590,7 @@ contains
     return
   end subroutine Get_z_1st_derivative_C2P_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_P2C_1D (fi, fo, dm, ibc)
+  subroutine Get_z_1st_derivative_P2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4157,14 +4598,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_1st_derivative_P2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(3), ibc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :), dm%h1r(3), ibc(:), fbc(:))
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad1z_P2C(:, ibc(1), ibc(2)), &
@@ -4194,7 +4646,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !==========================================================================================================
-  subroutine Get_x_2nd_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_x_2nd_derivative_C2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4202,9 +4654,24 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in)  :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz, ixsub
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_2nd_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_2nd_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -4222,7 +4689,7 @@ contains
     return
   end subroutine Get_x_2nd_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_x_2nd_derivative_P2P_1D (fi, fo, dm, ibc)
+  subroutine Get_x_2nd_derivative_P2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4230,15 +4697,26 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz, ixsub
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_2nd_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(1), ibc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(1), ibc(:), fbc(:))
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(1), fo(:), &
           xtdma_lhs(ixsub)%ad2x_P2P(:, ibc(1), ibc(2)), &
@@ -4252,7 +4730,7 @@ contains
 !==========================================================================================================
 ! y - Get_2nd_derivative_1D
 !==========================================================================================================
-  subroutine Get_y_2nd_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_y_2nd_derivative_C2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4260,10 +4738,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
     real(WP), allocatable :: fo1(:)
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_2nd_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_y_2nd_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
@@ -4278,6 +4771,7 @@ contains
           nsz)
 
     if(dm%is_stretching(2)) then 
+
       allocate ( fo1(nsz) ); fo1(:) = ZERO
       call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo1(:), nsz, d1rC2C(:, :, :), dm%h1r(2), ibc(:), fbc(:))
       if (dm%is_compact_scheme) &
@@ -4294,7 +4788,7 @@ contains
     return
   end subroutine Get_y_2nd_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_y_2nd_derivative_P2P_1D (fi, fo, dm, ibc)
+  subroutine Get_y_2nd_derivative_P2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4302,16 +4796,27 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: nsz
     real(WP), allocatable :: fo1(:)
 
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_2nd_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
+
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(2), ibc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(2), ibc(:), fbc(:))
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(2), fo(:), &
           ad2y_P2P(:, ibc(1), ibc(2)), &
@@ -4323,7 +4828,14 @@ contains
     if(dm%is_stretching(2)) then 
       allocate ( fo1(nsz) ); fo1(:) = ZERO
 
-      call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:))
+      do i = 1, 2
+        if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
+            ibc(i) = IBC_INTRPL
+            call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_y_2nd_derivative_P2P_1D, degragded to IBC_INTRPL.')
+        end if
+      end do
+
+      call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo1(:), nsz, d1rP2P(:, :, :), dm%h1r(2), ibc(:), fbc(:))
       if (dm%is_compact_scheme) &
       call Solve_TDMA(dm%is_periodic(2), fo1(:), &
            ad1y_P2P(:, ibc(1), ibc(2)), &
@@ -4340,7 +4852,7 @@ contains
 !==========================================================================================================
 ! z - Get_2nd_derivative_1D
 !==========================================================================================================
-  subroutine Get_z_2nd_derivative_C2C_1D (fi, fo, dm, ibc, fbc)
+  subroutine Get_z_2nd_derivative_C2C_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4348,9 +4860,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_2nd_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_z_2nd_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
+    
 
     nsz = size(fo)
     fo = ZERO
@@ -4367,7 +4895,7 @@ contains
     return
   end subroutine Get_z_2nd_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_z_2nd_derivative_P2P_1D (fi, fo, dm, ibc)
+  subroutine Get_z_2nd_derivative_P2P_1D (fi, fo, dm, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4375,14 +4903,25 @@ contains
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
-    integer,            intent(in ) :: ibc(2)
-    !real(WP), optional, intent(in ) :: fbc(2)
+    integer,            intent(in ) :: ibc0(2)
+    real(WP), optional, intent(in ) :: fbc(4)
     integer :: nsz
+
+    integer :: i
+    integer :: ibc(2)
+    
+    ibc = ibc0
+    do i = 1, 2
+      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
+          ibc(i) = IBC_INTRPL
+          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_2nd_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      end if
+    end do
 
     nsz = size(fo)
     fo = ZERO
 
-    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(3), ibc(:))
+    call Prepare_TDMA_2deri_P2P_RHS_array(fi(:), fo(:), nsz, d2rP2P(:, :, :), dm%h2r(3), ibc(:), fbc(:))
     if (dm%is_compact_scheme) &
     call Solve_TDMA(dm%is_periodic(3), fo(:), &
           ad2z_P2P(:, ibc(1), ibc(2)), &
@@ -4411,7 +4950,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !==========================================================================================================
-  subroutine Get_x_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use tridiagonal_matrix_algorithm
     use udf_type_mod
@@ -4420,15 +4959,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
 
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_midp_C2P_3D')
-    end if
 !----------------------------------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4436,6 +4972,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
         call Get_x_midp_C2P_1D (fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
@@ -4444,7 +4981,7 @@ contains
     return 
   end subroutine Get_x_midp_C2P_3D
 !==========================================================================================================
-  subroutine Get_x_midp_P2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_x_midp_P2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4453,10 +4990,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :) !2 layer each side
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j
+    real(WP)   :: fbc(4)
 !----------------------------------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4464,7 +5002,8 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_midp_P2C_1D (fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
+        call Get_x_midp_P2C_1D (fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4472,7 +5011,7 @@ contains
     return 
   end subroutine Get_x_midp_P2C_3D
 !==========================================================================================================
-  subroutine Get_y_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4481,15 +5020,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
 
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_midp_C2P_3D')
-    end if
 !----------------------------------------------------------------------------------------------------------
 !  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4497,6 +5033,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
         call Get_y_midp_C2P_1D (fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
@@ -4505,7 +5042,7 @@ contains
     return 
   end subroutine Get_y_midp_C2P_3D
 !==========================================================================================================
-  subroutine Get_y_midp_P2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_y_midp_P2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4514,10 +5051,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
     integer :: k, i
+    real(WP) :: fbc(4)
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4525,7 +5063,8 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_midp_P2C_1D (fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
+        call Get_y_midp_P2C_1D (fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -4533,7 +5072,7 @@ contains
     return 
   end subroutine Get_y_midp_P2C_3D
   !==========================================================================================================
-  subroutine Get_z_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_midp_C2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4542,15 +5081,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_midp_C2P_3D')
-    end if
 !----------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4558,6 +5094,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
         call Get_z_midp_C2P_1D (fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
@@ -4566,7 +5103,7 @@ contains
     return 
   end subroutine Get_z_midp_C2P_3D
 !==========================================================================================================
-  subroutine Get_z_midp_P2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_z_midp_P2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4575,10 +5112,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
     integer :: j, i
+    real(WP)   :: fbc(4)
 !----------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4586,7 +5124,8 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_midp_P2C_1D (fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
+        call Get_z_midp_P2C_1D (fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -4611,7 +5150,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4620,10 +5159,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
@@ -4632,6 +5172,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
         call Get_x_1st_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
@@ -4640,7 +5181,7 @@ contains
     return 
   end subroutine Get_x_1st_derivative_C2C_3D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4649,16 +5190,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
-
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_P2P_3D')
-    end if
 
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
@@ -4667,6 +5204,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
         call Get_x_1st_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
@@ -4675,7 +5213,7 @@ contains
     return 
   end subroutine Get_x_1st_derivative_P2P_3D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_1st_derivative_C2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4684,20 +5222,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
-
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_x_1st_derivative_C2P_3D')
-    end if
-
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2P_3D')
-    end if
 
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
@@ -4706,6 +5235,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
         call Get_x_1st_derivative_C2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
@@ -4714,7 +5244,7 @@ contains
     return 
   end subroutine Get_x_1st_derivative_C2P_3D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_x_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4723,10 +5253,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
@@ -4735,7 +5266,8 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_1st_derivative_P2C_1D(fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
+        call Get_x_1st_derivative_P2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -4743,7 +5275,7 @@ contains
     return 
   end subroutine Get_x_1st_derivative_P2C_3D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4752,16 +5284,18 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
 
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
         call Get_y_1st_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
@@ -4770,7 +5304,7 @@ contains
     return 
   end subroutine Get_y_1st_derivative_C2C_3D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4779,15 +5313,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_P2P_3D')
-    end if
 !!----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4795,6 +5326,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
         call Get_y_1st_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
@@ -4803,7 +5335,7 @@ contains
     return 
   end subroutine Get_y_1st_derivative_P2P_3D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_1st_derivative_C2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4812,20 +5344,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
-
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_y_1st_derivative_C2P_3D')
-    end if
-
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_1st_derivative_C2P_3D')
-    end if
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4833,6 +5356,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
         call Get_y_1st_derivative_C2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
@@ -4842,7 +5366,7 @@ contains
   end subroutine Get_y_1st_derivative_C2P_3D
 
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_y_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4851,10 +5375,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
@@ -4863,7 +5388,8 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_1st_derivative_P2C_1D(fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
+        call Get_y_1st_derivative_P2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -4871,7 +5397,7 @@ contains
     return 
   end subroutine Get_y_1st_derivative_P2C_3D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_C2C_3D (fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_C2C_3D (fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4880,9 +5406,10 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
@@ -4891,6 +5418,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
         call Get_z_1st_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
@@ -4900,7 +5428,7 @@ contains
   end subroutine Get_z_1st_derivative_C2C_3D
 
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4909,15 +5437,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_P2P_3D')
-    end if
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4925,6 +5450,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
         call Get_z_1st_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
@@ -4933,7 +5459,7 @@ contains
     return 
   end subroutine Get_z_1st_derivative_P2P_3D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_C2P_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_1st_derivative_C2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4942,20 +5468,12 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 
-    if (ibc(1) == IBC_NEUMANN .or. ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBC_NEUMANN@ Get_z_1st_derivative_C2P_3D')
-    end if
-
-    if (ibc(1) == IBC_DIRICHLET .or. ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) &
-      call Print_error_msg('Lack of fbc info for IBCDIRICHLET @ Get_z_1st_derivative_C2P_3D')
-    end if
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
@@ -4963,6 +5481,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
         call Get_z_1st_derivative_C2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
@@ -4971,7 +5490,7 @@ contains
     return 
   end subroutine Get_z_1st_derivative_C2P_3D
   !==========================================================================================================
-  subroutine Get_z_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_z_1st_derivative_P2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -4980,10 +5499,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
@@ -4992,7 +5512,8 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_1st_derivative_P2C_1D(fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
+        call Get_z_1st_derivative_P2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -5017,7 +5538,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !==========================================================================================================
-  subroutine Get_x_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_x_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5026,10 +5547,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
@@ -5038,6 +5560,7 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
         call Get_x_2nd_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
@@ -5046,7 +5569,7 @@ contains
     return
   end subroutine Get_x_2nd_derivative_C2C_3D
   !==========================================================================================================
-  subroutine Get_x_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_x_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5055,10 +5578,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 1) )
     real(WP)   :: fo( size(fo3d, 1) )
+    real(WP)   :: fbc(4)
     integer :: k, j
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
@@ -5067,7 +5591,8 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        call Get_x_2nd_derivative_P2P_1D(fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) =  fbc2d(1:4, j, k)
+        call Get_x_2nd_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -5075,7 +5600,7 @@ contains
     return
   end subroutine Get_x_2nd_derivative_P2P_3D
 !==========================================================================================================
-  subroutine Get_y_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_y_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5084,10 +5609,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
@@ -5096,6 +5622,7 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
         call Get_y_2nd_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
@@ -5104,7 +5631,7 @@ contains
     return
   end subroutine Get_y_2nd_derivative_C2C_3D
 !==========================================================================================================
-  subroutine Get_y_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_y_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc2d) ! not used.
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5113,10 +5640,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 2) )
     real(WP)   :: fo( size(fo3d, 2) )
+    real(WP)   :: fbc(4)
     integer :: k, i
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
@@ -5125,7 +5653,8 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        call Get_y_2nd_derivative_P2P_1D(fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
+        call Get_y_2nd_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -5133,7 +5662,7 @@ contains
     return
   end subroutine Get_y_2nd_derivative_P2P_3D
 !==========================================================================================================
-  subroutine Get_z_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc)
+  subroutine Get_z_2nd_derivative_C2C_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5142,10 +5671,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
@@ -5154,6 +5684,7 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
         call Get_z_2nd_derivative_C2C_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
@@ -5162,7 +5693,7 @@ contains
     return
   end subroutine Get_z_2nd_derivative_C2C_3D
 !==========================================================================================================
-  subroutine Get_z_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc)
+  subroutine Get_z_2nd_derivative_P2P_3D(fi3d, fo3d, dm, ibc, fbc2d)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -5171,10 +5702,11 @@ contains
     real(WP),           intent(out):: fo3d(:, :, :)
     type(t_domain),     intent(in) :: dm
     integer,            intent(in) :: ibc(2)
-    !real(WP), optional, intent(in) :: fbc(2)
+    real(WP), optional, intent(in) :: fbc2d(:, :, :)
 
     real(WP)   :: fi( size(fi3d, 3) )
     real(WP)   :: fo( size(fo3d, 3) )
+    real(WP)   :: fbc(4)
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
@@ -5183,12 +5715,1145 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        call Get_z_2nd_derivative_P2P_1D(fi, fo, dm, ibc)
+        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
+        call Get_z_2nd_derivative_P2P_1D(fi, fo, dm, ibc, fbc)
         fo3d(i, j, :) = fo(:)
       end do
     end do
 
     return
   end subroutine Get_z_2nd_derivative_P2P_3D
+
+
+!==========================================================================================================
+!==========================================================================================================
+!> \brief To test this subroutine for mid-point interpolation.
+!>
+!> This subroutine is called in \ref Test_algorithms. Define the logicals to choose
+!> which test section is required. 
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
+  subroutine Test_interpolation(dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    integer :: i, j, k
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    real(WP) :: ref
+    real(WP) :: err, err_Linf, err_L2
+    integer  :: wrt_unit
+
+    real(WP) :: fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3))
+    real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
+    real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
+    real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
+    real(WP) :: fbc(4)
+
+    real(WP) :: scale, shift
+
+    open (newunit = wrt_unit, file = 'test_interpolation.dat', position="append")
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+!----------------------------------------------------------------------------------------------------------
+! c2p
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+    end do
+
+! x direction, xc
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      fxc(i) = sin_wp ( xc / scale + shift)
+    end do
+! x: c2p
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    ! do i = 1, 4 
+    !   write(*,'(A,1I5.1,4ES13.5)') 'x-intpbc-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
+    ! end do
+    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = sin_wp(xp / scale + shift)
+      err = abs_wp(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-interp-c2p ', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-interp-c2p failed.")
+    write(wrt_unit, *) 'x-interp-c2p ', dm%np(1), err_Linf, err_L2
+
+! y direction, yc
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      fyc(j) = sin_wp ( yc / scale + shift)
+    end do
+! y: c2p
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = sin_wp(yp / scale + shift)
+      err = abs_wp(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-interp-c2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-interp-c2p failed.")
+    write(wrt_unit, *) 'y-interp-c2p ', dm%np(2), err_Linf, err_L2
+
+ ! z direction, zc
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      fzc(k) = sin_wp ( zc / scale + shift)
+    end do
+! z: c2p
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = sin_wp(zp / scale + shift)
+      err = abs_wp(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-interp-c2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-interp-c2p failed.")
+    write(wrt_unit, *) 'z-interp-c2p ', dm%np(3), err_Linf, err_L2
+!----------------------------------------------------------------------------------------------------------
+! p2c
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i == 1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+        end if
+      end if
+    end do
+! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
+    end do
+! x: p2c
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = sin_wp(xc / scale + shift)
+      err = abs_wp(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-interp-p2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-interp-p2c failed.")
+    write(wrt_unit, *) 'x-interp-p2c ', dm%nc(1), err_Linf, err_L2
+
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
+    end do
+! y: p2c
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = sin_wp(yc / scale + shift)
+      err = abs_wp(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-interp-p2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-interp-p2c failed.")
+    write(wrt_unit, *) 'y-interp-p2c ', dm%nc(2), err_Linf, err_L2
+
+
+! z direction, zp
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      fzp(k) = sin_wp ( zp / scale + shift)
+    end do
+! z: p2c
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = sin_wp(zc / scale + shift)
+      err = abs_wp(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-interp-p2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-interp-p2c failed.")
+    write(wrt_unit, *) 'z-interp-p2c ', dm%nc(3), err_Linf, err_L2
+    close(wrt_unit)
+
+    return 
+  end subroutine
+
+!==========================================================================================================
+!==========================================================================================================
+!> \brief To test this subroutine for mid-point interpolation.
+!>
+!> This subroutine is called in \ref Test_algorithms. Define the logicals to choose
+!> which test section is required. 
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
+  subroutine Test_1st_derivative(dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    integer :: i, j, k
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    real(WP) :: ref
+    real(WP) :: err, err_Linf, err_L2
+    integer  :: wrt_unit
+
+    real(WP) :: fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3))
+    real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
+    real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
+    real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
+    
+    real(WP) :: scale, shift
+    real(WP) :: fbc(4)
+
+
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    open (newunit = wrt_unit, file = 'test_1st_derivative.dat', position="append")
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+
+!----------------------------------------------------------------------------------------------------------
+! c2c
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+    end do
+
+! x direction, xc
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      fxc(i) = sin_wp ( xc / scale + shift)
+    end do
+! x: c2c
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(xc / scale + shift)
+      err = abs_wp(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-c2c failed.")
+    write(wrt_unit, *) 'x-1stder-c2c ', dm%nc(1), err_Linf, err_L2
+
+! y direction, yc
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      fyc(j) = sin_wp ( yc / scale + shift)
+    end do
+! y: c2c
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = ONE/scale * cos_wp(yc / scale + shift)
+      err = abs_wp(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-c2c failed.")
+    write(wrt_unit, *) 'y-1stder-c2c ', dm%nc(2), err_Linf, err_L2
+
+! z direction, zc
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      fzc(k) = sin_wp ( zc / scale + shift)
+    end do
+! z: c2c
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(zc / scale + shift)
+      err = abs_wp(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-c2c failed.")
+    write(wrt_unit, *) 'z-1stder-c2c ', dm%nc(3), err_Linf, err_L2
+!----------------------------------------------------------------------------------------------------------
+! c2p
+!----------------------------------------------------------------------------------------------------------
+! x: c2p
+    ! if (dm%ibcx(1, 5) == IBC_INTERIOR) then
+    ! do i = 1, 4 
+    !   write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
+    ! end do
+    ! end if
+
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = ONE/scale * cos_wp(xp / scale + shift)
+      err = abs_wp(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-c2p ', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-c2p failed.")
+    write(wrt_unit, *) 'x-1stder-c2p ', dm%np(1), err_Linf, err_L2
+
+! y: c2p
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = ONE/scale * cos_wp(yp / scale + shift)
+      err = abs_wp(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-c2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-c2p failed.")
+    write(wrt_unit, *) 'y-1stder-c2p ', dm%np(2), err_Linf, err_L2
+
+! z: c2p
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = ONE/scale * cos_wp(zp / scale + shift)
+      err = abs_wp(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-c2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-c2p failed.")
+    write(wrt_unit, *) 'z-1stder-c2p ', dm%np(3), err_Linf, err_L2
+
+!----------------------------------------------------------------------------------------------------------
+! p2p
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i == 1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+        end if
+      end if
+    end do
+
+ ! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
+    end do
+! x: p2p
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = ONE/scale * cos_wp(xp / scale + shift)
+      err = abs_wp(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2p', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-p2p failed.")
+    write(wrt_unit, *) 'x-1stder-p2p ', dm%np(1), err_Linf, err_L2
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
+    end do
+! y: p2p
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = ONE/scale * cos_wp(yp / scale + shift)
+      err = abs_wp(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-p2p failed.")
+    write(wrt_unit, *) 'y-1stder-p2p ', dm%np(2), err_Linf, err_L2
+! z direction, zp
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      fzp(k) = sin_wp ( zp / scale + shift)
+    end do
+! z: p2p
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = ONE/scale * cos_wp(zp / scale + shift)
+      err = abs_wp(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-p2p failed.")
+    write(wrt_unit, *) 'z-1stder-p2p ', dm%np(3), err_Linf, err_L2
+!----------------------------------------------------------------------------------------------------------
+! p2c
+!----------------------------------------------------------------------------------------------------------
+! x: p2c
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(xc / scale + shift)
+      err = abs_wp(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-1stder-p2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-1stder-p2c failed.")
+    write(wrt_unit, *) 'x-1stder-p2c ', dm%nc(1), err_Linf, err_L2
+
+! y: p2c
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = ONE/scale * cos_wp(yc / scale + shift)
+      err = abs_wp(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-1stder-p2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-1stder-p2c failed.")
+    write(wrt_unit, *) 'y-1stder-p2c ', dm%nc(2), err_Linf, err_L2
+
+! z: p2c
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = ONE/scale * cos_wp(zc / scale + shift)
+      err = abs_wp(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-1stder-p2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-1stder-p2c failed.")
+    write(wrt_unit, *) 'z-1stder-p2c ', dm%nc(3), err_Linf, err_L2
+
+    close(wrt_unit)
+
+    return 
+  end subroutine
+
+!==========================================================================================================
+!==========================================================================================================
+!> \brief To test this subroutine for mid-point interpolation.
+!>
+!> This subroutine is called in \ref Test_algorithms. Define the logicals to choose
+!> which test section is required. 
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!_______________________________________________________________________________
+  subroutine Test_2nd_derivative(dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    integer :: i, j, k
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    real(WP) :: ref
+    real(WP) :: err, err_Linf, err_L2
+    integer  :: wrt_unit
+
+    real(WP) :: fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3))
+    real(WP) :: fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3))
+    real(WP) :: fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3))
+    real(WP) :: fgxp(dm%np(1)), fgyp(dm%np(2)), fgzp(dm%np(3))
+    
+    real(WP) :: scale, shift
+    real(WP) :: fbc(4)
+
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
+        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
+        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    do i = 1, 2
+      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+        scale = ONE
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+        scale = ONE
+        shift = PI * HALF
+      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+        scale = TWO
+        shift = ZERO
+      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+      else 
+        scale = THREE
+        shift = ZERO
+        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
+        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+      end if
+    end do
+
+    open (newunit = wrt_unit, file = 'test_2nd_derivative.dat', position="append")
+    write(wrt_unit, *) 'xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit, *) 'zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+
+!----------------------------------------------------------------------------------------------------------
+! c2c
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i==1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i==1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+        else if(i ==2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+        end if
+      end if
+    end do
+
+! x direction, xc
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      fxc(i) = sin_wp ( xc / scale + shift)
+    end do
+! x: c2c
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%nc(1)
+      xc = dm%h(1) * (real(i - 1, WP) + HALF)
+      ref = - (ONE/scale)**2 * sin_wp(xc / scale + shift)
+      err = abs_wp(fgxc(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-c2c ', i, xc, ref, fgxc(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-2ndder-c2c failed.")
+    write(wrt_unit, *) 'x-2ndder-c2c ', dm%nc(1), err_Linf, err_L2
+
+! y direction, yc
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      fyc(j) = sin_wp ( yc / scale + shift)
+    end do
+! y: c2c
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%nc(2)
+      yc = dm%yc(j)
+      ref = - (ONE/scale)**2 * sin_wp(yc / scale + shift)
+      err = abs_wp(fgyc(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+     ! !write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-c2c ', j, yc, ref, fgyc(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-2ndder-c2c failed.")
+    write(wrt_unit, *) 'y-2ndder-c2c ', dm%nc(2), err_Linf, err_L2
+
+! z direction, zc
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      fzc(k) = sin_wp ( zc / scale + shift)
+    end do
+! z: c2c
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%nc(3)
+      zc = dm%h(3) * (real(k - 1, WP) + HALF)
+      ref = - (ONE/scale)**2 * sin_wp(zc / scale + shift)
+      err = abs_wp(fgzc(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-c2c ', k, zc, ref, fgzc(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-2ndder-c2c failed.")
+    write(wrt_unit, *) 'z-2ndder-c2c ', dm%nc(3), err_Linf, err_L2
+!----------------------------------------------------------------------------------------------------------
+! p2p
+!----------------------------------------------------------------------------------------------------------
+    do i = 1, 2
+      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+        scale = THREE
+        shift = ZERO
+        if(i == 1) then
+          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+        end if
+      end if
+      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+        scale = THREE
+        shift = ZERO 
+        if(i == 1) then
+          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+        else if(i == 2) then
+          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+        end if
+      end if
+    end do
+! x direction, xp
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      fxp(i) = sin_wp ( xp / scale + shift)
+    end do
+! x: p2p
+    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do i = 1, dm%np(1)
+      xp = dm%h(1) * real(i - 1, WP)
+      ref = - (ONE/scale)**2 * sin_wp(xp / scale + shift)
+      err = abs_wp(fgxp(i) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'x-2ndder-p2p ', i, xp, ref, fgxp(i), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test x-2ndder-p2p failed.")
+    write(wrt_unit, *) 'x-2ndder-p2p ', dm%np(1), err_Linf, err_L2
+
+
+! y direction, yp
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      fyp(j) = sin_wp ( yp / scale + shift)
+    end do
+! y: p2p
+    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do j = 1, dm%np(2)
+      yp = dm%yp(j)
+      ref = - (ONE/scale)**2 * sin_wp(yp / scale + shift)
+      err = abs_wp(fgyp(j) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'y-2ndder-p2p ', j, yp, ref, fgyp(j), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test y-2ndder-p2p failed.")
+    write(wrt_unit, *) 'y-2ndder-p2p ', dm%np(2), err_Linf, err_L2
+
+
+! z direction, zp
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      fzp(k) = sin_wp ( zp / scale + shift)
+    end do
+! z: p2p
+    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
+    err_Linf = ZERO
+    err_L2   = ZERO
+    do k = 1, dm%np(3)
+      zp = dm%h(3) * real(k - 1, WP)
+      ref = - (ONE/scale)**2 * sin_wp(zp / scale + shift)
+      err = abs_wp(fgzp(k) - ref)
+      if(err > err_Linf) err_Linf = err
+      err_L2 = err_L2 + err**2
+      !write(*,'(A,1I5.1,4ES13.5)') 'z-2ndder-p2p ', k, zp, ref, fgzp(k), err !test
+    end do
+    err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
+    if(err_L2 > 1.0e-4_WP) call Print_warning_msg("Test z-2ndder-p2p failed.")
+    write(wrt_unit, *) 'z-2ndder-p2p ', dm%np(3), err_Linf, err_L2
+    close(wrt_unit)
+
+    return 
+  end subroutine
 
 end module

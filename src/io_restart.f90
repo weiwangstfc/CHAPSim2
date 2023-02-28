@@ -24,7 +24,6 @@ contains
 
     character(120):: data_flname_path
     character(120):: keyword
-    logical :: file_exists = .FALSE.
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data ...")
 
@@ -62,7 +61,6 @@ contains
 
     character(120):: data_flname_path
     character(120):: keyword
-    logical :: file_exists = .FALSE.
     
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d thermo data ...")
@@ -92,7 +90,6 @@ contains
 
     character(120):: data_flname
     character(120):: keyword
-    logical :: file_exists = .FALSE.
 
 
     if(nrank == 0) call Print_debug_start_msg("read instantanous flow data ... ...")
@@ -134,8 +131,8 @@ contains
     type(t_flow),   intent(inout) :: fl
     real(WP) :: ubulk
     
-    call Apply_BC_velocity(dm, fl%qx, fl%qx, fl%qx)
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, fl%qx, ubulk, "ux")
+
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%qx, ubulk, "ux")
     if(nrank == 0) then
         Call Print_debug_mid_msg("  The restarted mass flux is:")
         write (*, wrtfmt1e) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -151,10 +148,12 @@ contains
     !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
     fl%pcor_zpencil_ggg(:, :, :) = ZERO
-    fl%dDens  (:, :, :) = ONE
-    fl%mVisc  (:, :, :) = ONE
-    fl%dDensm1(:, :, :) = ONE
-    fl%dDensm2(:, :, :) = ONE
+    if(dm%is_thermo) then
+      fl%dDens  (:, :, :) = ONE
+      fl%mVisc  (:, :, :) = ONE
+      fl%dDensm1(:, :, :) = ONE
+      fl%dDensm2(:, :, :) = ONE
+    end if
 
     return
   end subroutine
@@ -172,7 +171,6 @@ contains
 
     character(120):: data_flname
     character(120):: keyword
-    logical :: file_exists = .FALSE.
 
     if (.not. dm%is_thermo) return
     if(nrank == 0) call Print_debug_start_msg("read instantanous thermo data ... ...")
@@ -197,6 +195,7 @@ contains
     use udf_type_mod
     use thermo_info_mod
     use eq_energy_mod
+    use solver_tools_mod
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm

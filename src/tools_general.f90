@@ -38,7 +38,7 @@
     implicit none
     character(len=*), intent(IN) :: msg
 
-    write (*, *) msg
+    write (*, *) "    "//msg
     return
   end subroutine Print_debug_mid_msg
 !==========================================================================================================
@@ -114,6 +114,7 @@ module code_performance_mod
   real(wp), save :: t_iter_end
   real(wp), save :: t_step_end
   real(wp), save :: t_code_end
+  integer :: cpu_nfre 
 
   private :: Convert_sec_to_hms
   public :: call_cpu_time
@@ -261,6 +262,184 @@ module code_performance_mod
 end module
 
 
+module cubic_spline_interpolation
+
+
+  public :: cubic_spline
+  public :: spline_interpolation
+
+
+contains
+
+  !**********************************************************************************************************************************
+  subroutine cubic_spline (n, x, y, b, c, d)
+  !---------------------------------------------------------------------
+  !     this subroutine calculates the coefficients b, c, d of a cubic
+  !     spline to best approximate a discreet fonction given by n points
+  !
+  !     inputs:
+  !     n       number of given points
+  !     x, y    vectors of dimension n, storing the coordinates
+  !             of function f(x)
+  !
+  !     outputs:
+  !     b,c, d   vectors of dimension n, storing the coefficients
+  !             of the cubic spline
+  !     function:
+  !     y =  x
+  !     reference:
+  !     forsythe, g.e. (1977) computer methods for mathematical
+  !     computations. prentice - hall, inc.
+  !---------------------------------------------------------------------
+      use precision_mod
+      implicit none
+      integer(4), intent(in) :: n
+      real(wp), intent(in) :: x(n), y(n)
+      real(wp), intent(out) :: b(n), c(n), d(n)
+
+      integer(4) :: nm1, i, l
+      real(wp) :: t
+
+
+      if (n < 2) return
+      if (n < 3) then
+          b(1) = (y(2) - y(1)) / (x(2) - x(1))
+          c(1) = 0.0_wp
+          d(1) = 0.0_wp
+          b(2) = b(1)
+          c(2) = 0.0_wp
+          d(2) = 0.0_wp
+          return
+      end if
+
+      ! step 1: preparation
+      !        build the tridiagonal system
+      !        b (diagonal), d (upperdiagonal), c (second member)
+      nm1 = n - 1
+
+      d(1) = x(2) - x(1)
+      c(2) = (y(2) - y(1)) / d(1)
+      do i = 2, nm1
+          d(i) = x(i + 1) - x(i)
+          b(i) = 2.0_wp * (d(i - 1) + d(i))
+          c(i + 1) = (y(i + 1) - y(i)) / d(i)
+          c(i) = c(i + 1) - c(i)
+      end do
+
+      ! step 2: end conditions
+      !     conditions at limits
+      !     third derivatives obtained by divided differences
+      b(1) = - d(1)
+      b(n) = - d(n - 1)
+      c(1) = 0.0_wp
+      c(n) = 0.0_wp
+
+      if(n /= 3) then
+          c(1) = c(3) / (x(4) - x(2)) - c(2) / (x(3) - x(1))
+          c(n) = c(n - 1) / (x(n) - x(n - 2)) - c(n - 2) / (x(n - 1) - x(n - 3))
+          c(1) = c(1) * d(1) * d(1) / (x(4) - x(1))
+          c(n) = - c(n) * d(n - 1)**2 / (x(n) - x(n - 3))
+      end if
+
+      ! step 3:     forward elimination
+      do i = 2, n
+          t = d(i - 1) / b(i - 1)
+          b(i) = b(i) - t * d(i - 1)
+          c(i) = c(i) - t * c(i - 1)
+      end do
+
+      !step 4:     back substitution
+      c(n) = c(n) / b(n)
+      do  l = 1, nm1
+          i = n - l
+          c(i) = (c(i) - d(i) * c(i + 1)) / b(i)
+      end do
+
+      !step 5: coefficients of 3rd degree polynomial
+      b(n) = (y(n) - y(nm1)) / d(nm1) + d(nm1) * (c(nm1) + 2.0_wp * c(n))
+      do  i = 1, nm1
+          b(i) = (y(i + 1) - y(i)) / d(i) - d(i) * (c(i + 1) + 2.0_wp * c(i))
+          d(i) = (c(i + 1) -c(i)) / d(i)
+          c(i) = 3.0_wp * c(i)
+      end do
+      c(n) = 3.0_wp * c(n)
+      d(n) = d(nm1)
+
+      return
+  end subroutine
+
+  !**********************************************************************************************************************************
+  function spline_interpolation(n, yprofile, b, c, d, y) result(eval)
+    use precision_mod
+    implicit none
+    integer, intent(in) :: n
+    real(WP), intent(in) :: yprofile(n)
+    real(wp), intent(in) :: b(n), c(n), d(n)
+    real(WP), intent(in) :: y
+    real(WP) :: eval
+    
+    integer :: i, j, k
+    real(WP) :: dy
+
+
+    !*
+    !  binary search for for i, such that x(i) <= u <= x(i + 1)
+    !*
+    i = 1
+    j = n + 1
+    do while (j > i + 1)
+        k = (i + j) / 2
+        if(y < yprofile(k)) then
+            j = k
+        else
+            i = k
+        end if
+    end do
+    !*
+    !  evaluate spline interpolation
+    !*
+    dy = y - yprofile(i)
+    eval = yprofile(i) + dy * (b(i) + dy * (c(i) + dy * d(i)))
+
+  end function
+
+end module
+
+
+subroutine map_1d_profile_to_case(nin, yin, uin, nout, ycase, ucase)
+  use cubic_spline_interpolation
+  use precision_mod
+  implicit none
+  integer, intent(in) :: nin
+  real(WP), dimension(nin), intent(in) :: yin
+  real(WP), dimension(nin), intent(in) :: uin
+  integer, intent(in) :: nout
+  real(WP), dimension(nout), intent(in)  :: ycase
+  real(WP), dimension(nout), intent(out) :: ucase
+
+  integer :: i
+  real(WP), allocatable :: cs_b(:), cs_c(:), cs_d(:)
+
+  allocate(cs_b(nin))
+  allocate(cs_c(nin))
+  allocate(cs_d(nin))
+
+  call cubic_spline (nin, yin, uin, cs_b, cs_c, cs_d)
+
+
+  do i = 1, nout
+    ucase(i) = spline_interpolation(nin, uin, cs_b, cs_c, cs_d, ycase(i))
+  end do 
+
+  deallocate(cs_b)
+  deallocate(cs_c)
+  deallocate(cs_d)
+
+  return
+end subroutine
+
+
+!==========================================================================================================
 
 !==========================================================================================================
 module random_number_generation_mod

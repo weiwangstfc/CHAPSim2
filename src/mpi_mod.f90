@@ -31,6 +31,7 @@ contains
 !> \param[in]     d          domain type
 !==========================================================================================================
   subroutine Initialize_mpi()
+    implicit none
     call MPI_INIT(IERROR)
     call MPI_COMM_RANK(MPI_COMM_WORLD, nrank, IERROR)
     call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, IERROR)
@@ -39,7 +40,9 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine Finalise_mpi()  
+    implicit none
     call MPI_FINALIZE(IERROR)
+    return
   end subroutine Finalise_mpi
 
 end module mpi_mod

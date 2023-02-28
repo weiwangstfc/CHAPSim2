@@ -40,12 +40,12 @@ module thermo_info_mod
   private :: Initialize_thermo_parameters
   private :: ftplist_sort_t_small2big
   private :: Write_thermo_property
-  private :: Convert_thermo_BC_from_dim_to_undim
+  public  :: Buildup_undim_thermo_bc
 
   
   private :: ftp_is_T_in_scope
   private :: ftp_get_thermal_properties_dimensional_from_T
-  private :: ftp_refresh_thermal_properties_from_T_undim
+  public  :: ftp_refresh_thermal_properties_from_T_undim
   private :: ftp_refresh_thermal_properties_from_H
   private :: ftp_convert_undim_to_dim
   private :: ftp_print
@@ -53,7 +53,6 @@ module thermo_info_mod
 
   public  :: Buildup_thermo_mapping_relations
   public  :: Initialize_thermal_properties
-  public  :: Update_thermal_properties
   
 contains
 !==========================================================================================================
@@ -385,7 +384,7 @@ contains
     use parameters_constant_mod, only : MINP, ONE
     type(t_fluidThermoProperty), intent(inout) :: this
 
-    integer :: i1, i2, im, ix
+    integer :: i1, i2, im
     real(WP) :: d1, dm
     real(WP) :: w1, w2
 
@@ -953,62 +952,106 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Initialize_thermo_parameters
+
+
 !==========================================================================================================
 !==========================================================================================================
-  subroutine Convert_thermo_BC_from_dim_to_undim(tm, dm)
+  subroutine Buildup_undim_thermo_bc(tm, dm)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
     type(t_domain), intent(inout) :: dm
     type(t_thermo), intent(inout) :: tm
 
-    integer :: i 
+    integer :: i, j, k, n
 
     !----------------------------------------------------------------------------------------------------------
     !   for x-pencil
     !   scale the given thermo b.c. in dimensional to undimensional
     !----------------------------------------------------------------------------------------------------------
-    do i = 1, 2
+    !----------------------------------------------------------------------------------------------------------
+    ! x-bc
+    !----------------------------------------------------------------------------------------------------------
+    do k = 1, size(dm%ftpbcx_var, 3)
+      do j = 1, size(dm%ftpbcx_var, 2)
+        do n = 1, 2
+          if( dm%ibcx(n, 5) == IBC_DIRICHLET ) then
+            ! dimensional T --> undimensional T
+            dm%fbcx_var  (n,   j, k, 5)  = dm%fbcx_var(n,   j, k, 5) / tm%ref_T0 
+            dm%fbcx_var  (n+2, j, k, 5)  = dm%fbcx_var(n+2, j, k, 5) / tm%ref_T0 
+            dm%ftpbcx_var(n,   j, k)%t   = dm%fbcx_var(n,   j, k, 5)
+            dm%ftpbcx_var(n+2, j, k)%t   = dm%fbcx_var(n+2, j, k, 5)
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcx_var(n,   j, k))
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcx_var(n+2, j, k))
 
-      if( dm%ibcx(i, 5) == IBC_DIRICHLET ) then
-        ! dimensional T --> undimensional T
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) / tm%ref_T0 
-        tm%ftpbcx(i)%t = dm%fbcx(i, 5)
-        call ftp_refresh_thermal_properties_from_T_undim(tm%ftpbcx(i))
-      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
-        ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-        dm%fbcx(i, 5) = dm%fbcx(i, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-      else
-      end if
+          else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
+            ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
+            dm%fbcx_var(n,   j, k, 5) = dm%fbcx_var(n,   j, k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcx_var(n+2, j, k, 5) = dm%fbcx_var(n+2, j, k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+          else
+          end if
 
-      if( dm%ibcy(i, 5) == IBC_DIRICHLET ) then
-        ! dimensional T --> undimensional T
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) / tm%ref_T0 
-        tm%ftpbcy(i)%t = dm%fbcy(i, 5)
-        call ftp_Refresh_thermal_properties_from_T_undim(tm%ftpbcy(i))
-      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
-        ! dimensional heat flux (k*dT/dy) --> undimensional heat flux (k*dT/dy)
-        dm%fbcy(i, 5) = dm%fbcy(i, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-      else
-      end if
+        end do 
+      end do
+    end do 
 
-      if( dm%ibcz(i, 5) == IBC_DIRICHLET ) then
-        ! dimensional T --> undimensional T
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) / tm%ref_T0 
-        tm%ftpbcz(i)%t = dm%fbcz(i, 5)
-        call ftp_refresh_thermal_properties_from_T_undim(tm%ftpbcz(i))
-      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
-        ! dimensional heat flux (k*dT/dz) --> undimensional heat flux (k*dT/dz)
-        dm%fbcz(i, 5) = dm%fbcz(i, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-      else
-      end if
+    !----------------------------------------------------------------------------------------------------------
+    ! y-bc
+    !----------------------------------------------------------------------------------------------------------
+    do k = 1, size(dm%ftpbcy_var, 3)
+      do i = 1, size(dm%ftpbcy_var, 1)
+        do n = 1, 2
+          if( dm%ibcy(n, 5) == IBC_DIRICHLET ) then
+            ! dimensional T --> undimensional T
+            dm%fbcy_var  (i, n,   k, 5)  = dm%fbcy_var(i, n,   k, 5) / tm%ref_T0 
+            dm%fbcy_var  (i, n+2, k, 5)  = dm%fbcy_var(i, n+2, k, 5) / tm%ref_T0 
+            dm%ftpbcy_var(i, n,   k)%t   = dm%fbcy_var(i, n,   k, 5)
+            dm%ftpbcy_var(i, n+2, k)%t   = dm%fbcy_var(i, n+2, k, 5)
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcy_var(i, n,   k))
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcy_var(i, n+2, k))
 
-    end do
+          else if (dm%ibcy(1, 5) == IBC_NEUMANN) then
+            ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
+            dm%fbcy_var(i, n,   k, 5) = dm%fbcy_var(i, n,   k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcy_var(i, n+2, k, 5) = dm%fbcy_var(i, n+2, k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+          else
+          end if
+
+        end do 
+      end do
+    end do 
+
+    !----------------------------------------------------------------------------------------------------------
+    ! z-bc
+    !----------------------------------------------------------------------------------------------------------
+    do j = 1, size(dm%ftpbcz_var, 2)
+      do i = 1, size(dm%ftpbcz_var, 1)
+        do n = 1, 2
+          if( dm%ibcz(n, 5) == IBC_DIRICHLET ) then
+            ! dimensional T --> undimensional T
+            dm%fbcz_var  (i, j, n,   5)  = dm%fbcz_var(i, j, n,   5) / tm%ref_T0 
+            dm%fbcz_var  (i, j, n+2, 5)  = dm%fbcz_var(i, j, n+2, 5) / tm%ref_T0 
+            dm%ftpbcz_var(i, j, n  )%t   = dm%fbcz_var(i, j, n,   5)
+            dm%ftpbcz_var(i, j, n+2)%t   = dm%fbcz_var(i, j, n+2, 5)
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n  ))
+            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n+2))
+
+          else if (dm%ibcz(1, 5) == IBC_NEUMANN) then
+            ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
+            dm%fbcz_var(i, j, n  , 5) = dm%fbcz_var(i, j, n,   5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcz_var(i, j, n+2, 5) = dm%fbcz_var(i, j, n+2, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+          else
+          end if
+
+        end do 
+      end do
+    end do 
 
     return
   end subroutine
 
-  !==========================================================================================================
+
+!==========================================================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     
 !---------------------------------------------------------------------------------------------------------- 
 !> Scope:  mpi    called-freq    xdomain     module
@@ -1059,6 +1102,51 @@ contains
   end subroutine Initialize_thermal_properties
 
 !==========================================================================================================
+!> \brief Initialise thermal variables if ithermo = 1.     
+!---------------------------------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   private
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!----------------------------------------------------------------------------------------------------------
+!  mode           name          role                                           
+!----------------------------------------------------------------------------------------------------------
+!> \param[inout]  fl   flow type
+!> \param[inout]  tm   thermo type
+!==========================================================================================================
+!   subroutine get_bc_tdm (dm) ! apply once
+!     use parameters_constant_mod
+!     implicit none
+!     type(t_flow),   intent(inout) :: fl
+!     type(t_thermo), intent(inout) :: tm
+    
+!     type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
+
+!     do k = 1, size(dm%fbcx_var, 3)
+!       do j = 1, size(dm%fbcx_var, 2)
+!         do i = 1, size(dm%fbcx_var, 1)
+! !----------------------------------------------------------------------------------------------------------
+! !         update density and viscousity at b.c.
+! !         for temperature bc, heat flux bc (to chdck)
+! !----------------------------------------------------------------------------------------------------------
+!           ftpx%t = dm%fbcx_var(i, j, k, 5)
+!           ftpy%t = dm%fbcy_var(i, j, k, 5)
+!           ftpz%t = dm%fbcz_var(i, j, k, 5)
+!           call ftp_refresh_thermal_properties_from_T_undim(ftpx)
+!           call ftp_refresh_thermal_properties_from_T_undim(ftpy)
+!           call ftp_refresh_thermal_properties_from_T_undim(ftpz)
+
+!           dm%fbcx_var(i, j, k, 9)  = ftpx%d
+!           dm%fbcx_var(i, j, k, 10) = ftpx%m
+          
+!         end do
+!       end do
+!     end do
+
+!     return
+!   end subroutine apply_bc_thermmal_properties
+
+!==========================================================================================================
 !==========================================================================================================
 !> \brief The main code for thermal property initialisation.
 !> Scope:  mpi    called-freq    xdomain
@@ -1070,17 +1158,15 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
-  subroutine Buildup_thermo_mapping_relations(tm, dm)
+  subroutine Buildup_thermo_mapping_relations(tm)
     implicit none
     type(t_thermo), intent(inout) :: tm
-    type(t_domain), intent(inout) :: dm
 
     call Initialize_thermo_parameters(tm)
     if (fluidparam%ipropertyState == IPROPERTY_TABLE) call buildup_property_relations_from_table
     if (fluidparam%ipropertyState == IPROPERTY_FUNCS) call buildup_property_relations_from_function
     call Write_thermo_property ! for test
   
-    call Convert_thermo_BC_from_dim_to_undim(tm, dm)
     
     return
   end subroutine Buildup_thermo_mapping_relations

@@ -137,8 +137,6 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! default, used for fft only
     !----------------------------------------------------------------------------------------------------------
-    
-
     do i = 1, nxdomain
       call decomp_2d_init(domain(i)%np(1), domain(i)%np(2), domain(i)%np(3), p_row, p_col)
       call Initialize_domain_decomposition(domain(i))

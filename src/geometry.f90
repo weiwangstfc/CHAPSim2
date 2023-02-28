@@ -178,10 +178,7 @@ contains
 
     type(t_domain), intent(inout) :: dm
 
-    integer    :: i, j, k
-    integer    :: outputunit
-    logical    :: file_exists = .FALSE.
-    character( len = 128) :: filename
+    integer    :: i
     
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
 
@@ -206,6 +203,8 @@ contains
     !----------------------------------------------------------------------------------------------------------
     dm%h(1) = dm%lxx / real(dm%nc(1), WP)
     dm%h(3) = dm%lzz / real(dm%nc(3), WP)
+    dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) ! default, uniform
+    
     !----------------------------------------------------------------------------------------------------------
     ! allocate  variables for mapping physical domain to computational domain
     !----------------------------------------------------------------------------------------------------------
@@ -219,7 +218,7 @@ contains
       allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
       dm%yMappingpt(:, :) = ONE
       dm%yMappingcc(:, :) = ONE
-      dm%h(2) = ONE / real(dm%nc(2), WP)
+      dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain
       call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
       call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
     else
@@ -238,6 +237,16 @@ contains
       dm%h2r(i) = ONE / (dm%h(i) * dm%h(i))
       dm%h1r(i) = ONE / dm%h(i)
     end do
+
+    if(nrank == 0) then
+      write (*, wrtfmt1i) 'For the domain-x  = ', dm%idom
+      write (*, *)        '  is periodic in x, y, z :', dm%is_periodic(1:NDIM)
+      write (*, wrtfmt3i) '  geometry number of nodes     in x, y, z: :', dm%np_geo(1:NDIM)
+      write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)
+      write (*, wrtfmt3i) '  calculation number of points in x, y, z: :', dm%np(1:NDIM)
+      write (*, wrtfmt3r) '  grid spacing (uniform)       in x, y, z: :', dm%h(1:NDIM)
+    end if
+
     !----------------------------------------------------------------------------------------------------------
     ! print out data for debugging
     !----------------------------------------------------------------------------------------------------------

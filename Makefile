@@ -23,7 +23,7 @@ ifeq ($(cfg), gnu)
    -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
    -Wno-unused -fallow-argument-mismatch		   
   FFLGS= -DDOUBLE_PREC
-  FDEBG= -DDEBUG_STEPS  #-DDEBUG_FFT
+  FDEBG= -DDEBUG_STEPS # -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused

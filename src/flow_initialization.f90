@@ -154,7 +154,7 @@ contains
     real(WP) :: rd, lownoise
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_start_msg("Generating random field ...")
+    if(nrank == 0) call Print_debug_mid_msg("Generating random field ...")
     !----------------------------------------------------------------------------------------------------------
     !   Initialisation in x pencil
     !----------------------------------------------------------------------------------------------------------
@@ -200,9 +200,6 @@ contains
       end do
     end do
 
-    call Apply_BC_velocity(dm, ux, uy, uz)
-
-    if(nrank==0) call Print_debug_end_msg
     return
   end subroutine
 
@@ -260,7 +257,6 @@ contains
       ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
-    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Generate_poiseuille_flow_profile
 
@@ -295,14 +291,14 @@ contains
     integer :: i, j, k, jj
     real(WP) :: ubulk
     real(WP) :: ux_1c1(dm%nc(2))
-    real(WP) :: uxxza (dm%nc(2))
-    real(WP) :: uyxza (dm%np(2))
-    real(WP) :: uzxza (dm%nc(2))
+    ! real(WP) :: uxxza (dm%nc(2))
+    ! real(WP) :: uyxza (dm%np(2))
+    ! real(WP) :: uzxza (dm%nc(2))
     real(WP) :: ux_ypencil(dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3))
 
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Initializing Poiseuille flow field ...")
+    if(nrank == 0) call Print_debug_start_msg("Initializing Poiseuille flow field ...")
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : initial
     !----------------------------------------------------------------------------------------------------------
@@ -331,10 +327,7 @@ contains
         end do
       end do
     end do
-    !----------------------------------------------------------------------------------------------------------
-    !   x-pencil : build up boundary
-    !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity(dm, ux, uy, uz)
+
     if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for random velocities + given profile")
     call Find_maximum_absvar3d(ux, "maximum ux:", wrtfmt1e)
     call Find_maximum_absvar3d(uy, "maximum uy:", wrtfmt1e)
@@ -343,7 +336,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -351,8 +344,7 @@ contains
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
-    call Apply_BC_velocity(dm, ux, uy, uz)
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy(:, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -420,7 +412,78 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : apply b.c.
     !----------------------------------------------------------------------------------------------------------
-    call Apply_BC_velocity(dm, ux, uy, uz)
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine
+
+!==========================================================================================================
+  !==========================================================================================================
+  subroutine Initialize_flow_from_given_inlet(dm, ux, uy, uz, p, lnoise)
+    use udf_type_mod, only: t_domain
+    use precision_mod, only: WP
+    use parameters_constant_mod, only: ZERO
+    use boundary_conditions_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    real(WP),       intent(in) :: lnoise
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(out) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: uz
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(out) ::  p
+
+    integer :: i, j, k, ii, jj, kk
+    
+    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field with given profile...")
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : initial
+    !----------------------------------------------------------------------------------------------------------
+    p (:, :, :) = ZERO
+    ux(:, :, :) = ZERO
+    uy(:, :, :) = ZERO
+    uz(:, :, :) = ZERO
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : to get random fields [-1,1] for ux, uy, uz
+    !----------------------------------------------------------------------------------------------------------
+    call Generate_random_field(dm, ux, uy, uz, p, lnoise)
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : update values
+    !----------------------------------------------------------------------------------------------------------
+    do k = 1, dm%dpcc%xsz(3)
+      kk = dm%dpcc%xst(3) + k - 1
+      do j = 1, dm%dpcc%xsz(2)
+        jj = dm%dpcc%xst(2) + j - 1
+        do i = 1, dm%dpcc%xsz(1)
+          ii = dm%dpcc%xst(1) + i - 1
+          ux(i, j, k) = ux(i, j, k) + dm%fbcx_var(1, j, k, 1)
+        end do
+      end do
+    end do
+
+    do k = 1, dm%dcpc%xsz(3)
+      kk = dm%dcpc%xst(3) + k - 1
+      do j = 1, dm%dcpc%xsz(2)
+        jj = dm%dcpc%xst(2) + j - 1
+        do i = 1, dm%dcpc%xsz(1)
+          ii = dm%dcpc%xst(1) + i - 1
+          uy(i, j, k) = uy(i, j, k) + dm%fbcx_var(1, j, k, 2)
+        end do
+      end do
+    end do
+
+    do k = 1, dm%dccp%xsz(3)
+      kk = dm%dccp%xst(3) + k - 1
+      do j = 1, dm%dccp%xsz(2)
+        jj = dm%dccp%xst(2) + j - 1
+        do i = 1, dm%dccp%xsz(1)
+          ii = dm%dccp%xst(1) + i - 1
+          uz(i, j, k) = uz(i, j, k) + dm%fbcx_var(1, j, k, 3)
+        end do
+      end do
+    end do
+    !----------------------------------------------------------------------------------------------------------
+    !   x-pencil : apply b.c.
+    !----------------------------------------------------------------------------------------------------------
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -436,6 +499,7 @@ contains
     use wtformat_mod
     use solver_tools_mod
     use continuity_eq_mod
+    use boundary_conditions_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -445,11 +509,6 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("Initialize flow fields ...")
 
-  !----------------------------------------------------------------------------------------------------------
-  ! initialize common thermal variables
-  !----------------------------------------------------------------------------------------------------------
-    dm%fbc_dend(:, :) = ONE
-    dm%fbc_vism(:, :) = ONE
   !----------------------------------------------------------------------------------------------------------
   ! to allocate flow variables
   !----------------------------------------------------------------------------------------------------------
@@ -474,10 +533,7 @@ contains
       call Generate_random_field(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_INLET) then
-      velo(1) = dm%fbcx(1, 1)
-      velo(2) = dm%fbcx(1, 2)
-      velo(3) = dm%fbcx(1, 3)
-      call Initialize_flow_from_given_values(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel, velo(:))
+      call Initialize_flow_from_given_inlet(dm, fl%qx, fl%qy, fl%qz, fl%pres, fl%noiselevel)
 
     else if (fl%inittype == INIT_GVCONST) then
       velo(:) = fl%init_velo3d(:)
@@ -497,7 +553,6 @@ contains
       end if
     else
     end if
-
 !----------------------------------------------------------------------------------------------------------
 ! to initialize pressure correction term
 !----------------------------------------------------------------------------------------------------------
@@ -509,9 +564,11 @@ contains
     call Find_maximum_absvar3d(fl%qx, "init maximum ux:", wrtfmt1e)
     call Find_maximum_absvar3d(fl%qy, "init maximum uy:", wrtfmt1e)
     call Find_maximum_absvar3d(fl%qz, "init maximum uz:", wrtfmt1e)
-    call Check_mass_conservation(fl, dm) 
+    call Check_mass_conservation(fl, dm, 'initialization') 
 
     call write_snapshot_flow(fl, dm)
+
+    if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine
@@ -530,26 +587,10 @@ contains
     type(t_thermo), intent(inout) :: tm
 
     integer :: i
-    type(t_fluidThermoProperty) :: ftpx, ftpy, ftpz
 
     if(.not. dm%is_thermo) return
     if(nrank == 0) call Print_debug_start_msg("Initialize thermo fields ...")
 
-!----------------------------------------------------------------------------------------------------------
-! initialize common thermal variables
-!----------------------------------------------------------------------------------------------------------
-    do i = 1, 2
-      ftpx = tm%ftpbcx(i)
-      ftpy = tm%ftpbcy(i)
-      ftpz = tm%ftpbcz(i)
-
-      dm%fbc_dend(i, 1) = ftpx%d
-      dm%fbc_dend(i, 2) = ftpy%d
-      dm%fbc_dend(i, 3) = ftpz%d
-      dm%fbc_vism(i, 1) = ftpx%m
-      dm%fbc_vism(i, 2) = ftpy%m
-      dm%fbc_vism(i, 3) = ftpz%m
-    end do
 !----------------------------------------------------------------------------------------------------------
 ! to allocate thermal variables
 !----------------------------------------------------------------------------------------------------------

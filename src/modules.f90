@@ -121,7 +121,8 @@ module parameters_constant_mod
                         ICASE_ANNUAL  = 3, &
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
-                        ICASE_BURGERS = 6
+                        ICASE_BURGERS = 6, &
+                        ICASE_ALGTEST = 7
   integer, parameter :: NDIM = 3
 !----------------------------------------------------------------------------------------------------------
 ! flow initilisation
@@ -156,24 +157,19 @@ module parameters_constant_mod
 ! BC
 !----------------------------------------------------------------------------------------------------------
   ! warning : Don't change below order for BC types.
-  integer, parameter :: IBC_INTERIOR    = 0, &
-                        IBC_PERIODIC    = 1, &
-                        IBC_SYMMETRIC   = 2, &
-                        IBC_ASYMMETRIC  = 3, &
-                        IBC_DIRICHLET   = 4, &
-                        IBC_NEUMANN     = 5, &
-                        IBC_INTRPL      = 6, &
-                        IBC_CONVECTIVE  = 7, &
-                        IBC_TURBGEN     = 8, &
-                        IBC_UPROFILE    = 9, &
-                        IBC_DATABASE    = 10
-!                        IBC_INLET_MEAN  = 4, &
-!                        IBC_INLET_TG    = 5, &
-!                        IBC_INLET_MAP   = 6, &
-!                        IBC_INLET_DB    = 7, &
-!                        IBC_OUTLET_EXPO = 8, &
-!                        IBC_OUTLET_CONV = 9, &
-!                        IBC_INTERIOR    = 0, &      
+  integer, parameter :: IBC_INTERIOR    = 0, & ! basic and nominal, used in operations, bulk, 2 ghost layers
+                        IBC_PERIODIC    = 1, & ! basic and nominal, used in operations 
+                        IBC_SYMMETRIC   = 2, & ! basic and nominal, used in operations
+                        IBC_ASYMMETRIC  = 3, & ! basic and nominal, used in operations
+                        IBC_DIRICHLET   = 4, & ! basic and nominal, used in operations
+                        IBC_NEUMANN     = 5, & ! basic and nominal, used in operations
+                        IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
+                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_INTPRL
+                        IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
+                        IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
+                        IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
+                        IBC_OTHERS      = 11   ! exclusive
+  integer, parameter :: NBC = 5! u, v, w, p, T
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -289,25 +285,61 @@ module wtformat_mod
   character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.6)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.6)'
-  character(len = 14) :: wrtfmt1s   = '(2X, A48, A20)'
+  character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L3)'
+  character(len = 3)  :: wrtfmt1s   = '(A)'
 
 end module wtformat_mod
 !==========================================================================================================
 module udf_type_mod
-  use precision_mod
+  use parameters_constant_mod, only: NDIM, NBC, WP
   use mpi_mod
   implicit none
+!----------------------------------------------------------------------------------------------------------
+!  fluid thermal property info
+!---------------------------------------------------------------------------------------------------------- 
+  type t_fluidThermoProperty
+    real(WP) :: t  ! temperature
+    real(WP) :: d  ! density
+    real(WP) :: m  ! dynviscosity
+    real(WP) :: k  ! thermconductivity
+    real(WP) :: h  ! enthalpy
+    real(WP) :: dh ! mass enthalpy
+    real(WP) :: cp ! specific heat capacity 
+    real(WP) :: b  ! thermal expansion
+  end type t_fluidThermoProperty
+!----------------------------------------------------------------------------------------------------------
+!  parameters to calculate the fluid thermal property 
+!---------------------------------------------------------------------------------------------------------- 
+  type t_fluid_parameter
+    character(len = 64) :: inputProperty
+    integer :: ifluid
+    integer :: ipropertyState
+    integer :: nlist
+    real(WP) :: TM0
+    real(WP) :: TB0
+    real(WP) :: HM0
+    real(WP) :: CoD(0:1)
+    real(WP) :: CoK(0:2)
+    real(WP) :: CoB
+    real(WP) :: CoCp(-2:2)
+    real(WP) :: CoH(-1:3)
+    real(WP) :: CoM(-1:1)
+    real(WP) :: dhmax
+    real(WP) :: dhmin
+    type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
+    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
+  end type t_fluid_parameter
 !----------------------------------------------------------------------------------------------------------
 !  domain info
 !---------------------------------------------------------------------------------------------------------- 
   type t_domain
-    logical :: is_periodic(3)        ! is this direction periodic bc?
-    logical :: is_stretching(3)      ! is this direction of stretching grids?
+    logical :: is_periodic(NDIM)        ! is this direction periodic bc?
+    logical :: is_stretching(NDIM)      ! is this direction of stretching grids?
     logical :: is_compact_scheme     ! is compact scheme applied?
     logical :: is_thermo             ! is thermal field considered? 
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
-    integer :: icoordinate           ! coordinate type   
+    integer :: icoordinate           ! coordinate type
     
     integer :: icht
     integer :: iTimeScheme
@@ -316,23 +348,25 @@ module udf_type_mod
     integer :: ckpt_nfre
     integer :: visu_nfre
     integer :: visu_idim
-    integer :: visu_nskip(3)
+    integer :: visu_nskip(NDIM)
     integer :: stat_istart
-    integer :: stat_nskip(3)
+    integer :: stat_nskip(NDIM)
     integer :: nsubitr
     integer :: istret
-    integer :: nc(3) ! geometric cell number
-    integer :: np_geo(3) ! geometric points
-    integer :: np(3) ! calculated points
+    integer :: nc(NDIM) ! geometric cell number
+    integer :: np_geo(NDIM) ! geometric points
+    integer :: np(NDIM) ! calculated points
     integer :: proben   ! global number of probed points
-    integer  :: ibcx(2, 5) ! bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy(2, 5) ! bc type, (5 variables, 2 sides)
-    integer  :: ibcz(2, 5) ! bc type, (5 variables, 2 sides)
-    real(wp) :: fbcx(2, 5) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcy(2, 5) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcz(2, 5) ! bc values, (5 variables, 2 sides)
-    real(WP) :: fbc_vism(2, 3) ! bc values for mu, in 3 direction, 2 sides.
-    real(WP) :: fbc_dend(2, 3) ! bc values for density, in 3 direction, 2 sides.
+    integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
+    integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
+    integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
+    integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
+    real(wp) :: fbcx_const(2, NBC) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcy_const(2, NBC) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcz_const(2, NBC) ! bc values, (5 variables, 2 sides)
+
     real(wp) :: lxx
     real(wp) :: lyt
     real(wp) :: lyb
@@ -340,9 +374,9 @@ module udf_type_mod
     real(WP) :: rstret
     real(wp) :: dt
 
-    real(wp) :: h(3) ! uniform dx
-    real(wp) :: h1r(3) ! uniform (dx)^(-1)
-    real(wp) :: h2r(3) ! uniform (dx)^(-2)
+    real(wp) :: h(NDIM) ! uniform dx
+    real(wp) :: h1r(NDIM) ! uniform (dx)^(-1)
+    real(wp) :: h2r(NDIM) ! uniform (dx)^(-2)
     real(wp) :: tGamma(0:3)
     real(wp) :: tZeta (0:3)
     real(wp) :: tAlpha(0:3)
@@ -367,6 +401,12 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
+    real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
+    type(t_fluidThermoProperty), allocatable :: ftpbcx_var(:, :, :)  ! undim, xbc state
+    type(t_fluidThermoProperty), allocatable :: ftpbcy_var(:, :, :)  ! undim, ybc state
+    type(t_fluidThermoProperty), allocatable :: ftpbcz_var(:, :, :)  ! undim, zbc state
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
@@ -387,10 +427,10 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: ren
     real(WP) :: rre
-    real(WP) :: init_velo3d(3)
+    real(WP) :: init_velo3d(NDIM)
     real(wp) :: reninit
     real(WP) :: drvfc
-    real(WP) :: fgravity(3)
+    real(WP) :: fgravity(NDIM)
 
     real(wp) :: noiselevel
   
@@ -424,17 +464,6 @@ module udf_type_mod
 
   end type t_flow
 
-  
-  type t_fluidThermoProperty
-    real(WP) :: t  ! temperature
-    real(WP) :: d  ! density
-    real(WP) :: m  ! dynviscosity
-    real(WP) :: k  ! thermconductivity
-    real(WP) :: h  ! enthalpy
-    real(WP) :: dh ! mass enthalpy
-    real(WP) :: cp ! specific heat capacity 
-    real(WP) :: b  ! thermal expansion
-  end type t_fluidThermoProperty
 
   type t_thermo
     integer :: ifluid
@@ -449,10 +478,6 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: rPrRen
     
-    type(t_fluidThermoProperty) :: ftpbcx(2)  ! undim, xbc state
-    type(t_fluidThermoProperty) :: ftpbcy(2)  ! undim, ybc state
-    type(t_fluidThermoProperty) :: ftpbcz(2)  ! undim, zbc state
-
     real(WP), allocatable :: dh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)
@@ -464,27 +489,6 @@ module udf_type_mod
     real(WP), allocatable :: tt_mean(:, :, :)
 
   end type t_thermo
-
-  type t_fluid_parameter
-    character(len = 64) :: inputProperty
-    integer :: ifluid
-    integer :: ipropertyState
-    integer :: nlist
-    real(WP) :: TM0
-    real(WP) :: TB0
-    real(WP) :: HM0
-    real(WP) :: CoD(0:1)
-    real(WP) :: CoK(0:2)
-    real(WP) :: CoB
-    real(WP) :: CoCp(-2:2)
-    real(WP) :: CoH(-1:3)
-    real(WP) :: CoM(-1:1)
-    real(WP) :: dhmax
-    real(WP) :: dhmin
-    type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
-    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
-  end type t_fluid_parameter
-
 
 
 end module
@@ -513,6 +517,7 @@ contains
     call system('mkdir -p '//dir_visu)
     call system('mkdir -p '//dir_moni)
     call system('mkdir -p '//dir_chkp)
+    return
   end subroutine
 end module
 !==========================================================================================================
