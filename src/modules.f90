@@ -401,6 +401,8 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
+    real(wp), allocatable :: rci(:) ! reciprocal of raidus based on cell centre
+    real(wp), allocatable :: rpi(:) ! reciprocal of raidus based on node point
     real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
     real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
     real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
