@@ -22,8 +22,8 @@ module flow_thermo_initialiasation
   use solver_tools_mod
   implicit none
 
-  private  :: Allocate_flow_variables
-  private  :: Allocate_thermo_variables
+  private :: Allocate_flow_variables
+  private :: Allocate_thermo_variables
   private :: Generate_poiseuille_flow_profile
   private :: Generate_random_field
 
@@ -63,9 +63,9 @@ contains
     ! default : x pencil. 
     ! varaible index is LOCAL. means 1:xsize(1)
     !----------------------------------------------------------------------------------------------------------
-    call alloc_x(fl%qx,      dm%dpcc) ; fl%qx = ZERO
-    call alloc_x(fl%qy,      dm%dcpc) ; fl%qy = ZERO
-    call alloc_x(fl%qz,      dm%dccp) ; fl%qz = ZERO
+    call alloc_x(fl%qx,      dm%dpcc) ; fl%qx = ZERO ! qx = ux
+    call alloc_x(fl%qy,      dm%dcpc) ; fl%qy = ZERO ! qy = ur * rp
+    call alloc_x(fl%qz,      dm%dccp) ; fl%qz = ZERO ! qz = u_theta * rc
 
     call alloc_x(fl%pres,    dm%dccc) ; fl%pres = ZERO
     call alloc_x(fl%pcor,    dm%dccc) ; fl%pcor = ZERO
@@ -80,9 +80,9 @@ contains
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
     if(dm%is_thermo) then
-      call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO
-      call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO
-      call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO
+      call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO ! gx = rho * qx = rho * ux
+      call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO ! gy = rho * qy = rho * ur * rp
+      call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO ! gz = rho * qz = rho * u_theta * rc
       call alloc_x(fl%dDens,   dm%dccc) ; fl%dDens = ONE
       call alloc_x(fl%mVisc,   dm%dccc) ; fl%mVisc = ONE
 
@@ -133,7 +133,7 @@ contains
   !> \param[in]     
   !> \param[out]    
   !==========================================================================================================
-  subroutine Generate_random_field(dm, ux, uy, uz, p, lnoise)
+  subroutine Generate_random_field(dm, qx, qy, qz, p, lnoise)
     use random_number_generation_mod
     use parameters_constant_mod
     use mpi_mod
@@ -142,9 +142,9 @@ contains
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP),       intent(in) :: lnoise
-    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(inout) :: ux
-    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(inout) :: uy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(inout) :: uz
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(inout) :: qx
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(inout) :: qy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(inout) :: qz
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(inout) :: p
     
     integer :: seed
@@ -160,9 +160,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     seed = 0
     p(:, :, :) = ZERO
-    ux(:, :, :) = ZERO
-    uy(:, :, :) = ZERO
-    uz(:, :, :) = ZERO
+    qx(:, :, :) = ZERO
+    qy(:, :, :) = ZERO
+    qz(:, :, :) = ZERO
     nsz = dm%np(1) * dm%np(2) * dm%np(3)
 
     do n = 1, NDIM
@@ -191,14 +191,27 @@ contains
             !write(*,*) ii, jj, kk, seed
             call Initialize_random_number ( seed )
             call Generate_r_random( -ONE, ONE, rd)
-            if(n == 1) ux(i, j, k) = lownoise * rd
-            if(n == 2) uy(i, j, k) = lownoise * rd
-            if(n == 3) uz(i, j, k) = lownoise * rd
+            if(n == 1) qx(i, j, k) = lownoise * rd
+            if(n == 2) qy(i, j, k) = lownoise * rd / dm%rpi(jj)
+            if(n == 3) qz(i, j, k) = lownoise * rd / dm%rci(jj)
 
           end do
         end do
       end do
     end do
+
+    !----------------------------------------------------------------------------------------------------------
+    ! Correct dirichlet bc for random 
+    !----------------------------------------------------------------------------------------------------------
+    if(dm%ibcx(1, 1) == IBC_DIRICHLET) qx(1,              :, :) = ZERO
+    if(dm%ibcx(2, 1) == IBC_DIRICHLET) qx(dm%dpcc%xsz(1), :, :) = ZERO
+
+    if(dm%ibcy(1, 2) == IBC_DIRICHLET .and. dm%dcpc%xst(2) == 1)        qy(:, 1,              :) = ZERO
+    if(dm%ibcy(2, 2) == IBC_DIRICHLET .and. dm%dcpc%xen(2) == dm%np(2)) qy(:, dm%dcpc%xsz(2), :) = ZERO
+
+    if(dm%ibcz(1, 3) == IBC_DIRICHLET .and. dm%dccp%xst(3) == 1)        qz(:, :, 1             ) = ZERO
+    if(dm%ibcz(2, 3) == IBC_DIRICHLET .and. dm%dccp%xen(3) == dm%np(3)) qz(:, :, dm%dccp%xsz(3)) = ZERO
+    
 
     return
   end subroutine
@@ -273,7 +286,7 @@ contains
   !> \param[in]     d             domain
   !> \param[out]    f             flow
   !==========================================================================================================
-  subroutine Initialize_poiseuille_flow(dm, ux, uy, uz, p, lnoise)
+  subroutine Initialize_poiseuille_flow(dm, qx, qy, qz, p, lnoise)
     use input_general_mod
     use udf_type_mod
     use boundary_conditions_mod
@@ -283,9 +296,9 @@ contains
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP),       intent(in) :: lnoise   
-    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(out) :: ux
-    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: uy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: uz
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(out) :: qx
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(out) :: qy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(out) :: qz
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(out) ::  p
     integer :: pf_unit
     integer :: i, j, k, jj
@@ -303,13 +316,13 @@ contains
     !   x-pencil : initial
     !----------------------------------------------------------------------------------------------------------
     p (:, :, :) = ZERO
-    ux(:, :, :) = ZERO
-    uy(:, :, :) = ZERO
-    uz(:, :, :) = ZERO
+    qx(:, :, :) = ZERO
+    qy(:, :, :) = ZERO
+    qz(:, :, :) = ZERO
     !----------------------------------------------------------------------------------------------------------
-    !   x-pencil : to get random fields [-1,1] for ux, uy, uz
+    !   x-pencil : to get random fields [-1,1] for qx, qy, qz
     !----------------------------------------------------------------------------------------------------------
-    call Generate_random_field(dm, ux, uy, uz, p, lnoise)
+    call Generate_random_field(dm, qx, qy, qz, p, lnoise)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !----------------------------------------------------------------------------------------------------------
@@ -323,20 +336,19 @@ contains
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1
         do k = 1, dtmp%xsz(3)
-          ux(i, j, k) =  ux(i, j, k) + ux_1c1(jj)
+          qx(i, j, k) =  qx(i, j, k) + ux_1c1(jj)
         end do
       end do
     end do
 
     if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for random velocities + given profile")
-    call Find_maximum_absvar3d(ux, "maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(uy, "maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(uz, "maximum uz:", wrtfmt1e)
+    call Find_maximum_velocity(dm, qx, qy, qz)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -344,13 +356,14 @@ contains
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
-    if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for after scaling unit mass flux")
-    ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
+
+    ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho, check
 
     !----------------------------------------------------------------------------------------------------------
     !   some checking
@@ -561,9 +574,7 @@ contains
     !==========================================================================================================
     !  validation for each time step
     !==========================================================================================================
-    call Find_maximum_absvar3d(fl%qx, "init maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, "init maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, "init maximum uz:", wrtfmt1e)
+    call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
     call Check_mass_conservation(fl, dm, 'initialization') 
 
     call write_snapshot_flow(fl, dm)
@@ -615,6 +626,7 @@ contains
     end if
 
     call Calculate_massflux_from_velocity (fl, dm)
+    ! to do, to check, scaling of gx? to be unified?
     !----------------------------------------------------------------------------------------------------------
     ! to set up old arrays 
     !----------------------------------------------------------------------------------------------------------

@@ -252,9 +252,7 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
-        call Find_maximum_absvar3d(flow(i)%qx, "maximum ux:", wrtfmt1e)
-        call Find_maximum_absvar3d(flow(i)%qy, "maximum uy:", wrtfmt1e)
-        call Find_maximum_absvar3d(flow(i)%qz, "maximum uz:", wrtfmt1e)
+        call Find_maximum_velocity(domain(i), flow(i)%qx, flow(i)%qy, flow(i)%qz)
         call Check_mass_conservation(flow(i), domain(i)) 
       end if
 

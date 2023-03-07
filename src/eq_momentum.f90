@@ -866,13 +866,15 @@ contains
 ! x-pencil : flow drive terms (source terms) in periodic Streamwise flow
 !==========================================================================================================
     if (fl%idriven == IDRVF_X_MASSFLUX) then
-      call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
+      !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
       fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_X_Cf) then
       rhsx_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
       fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_Z_MASSFLUX) then
-      call Get_volumetric_average_3d(.false., dm%ibcy(:, 3), dm%fbcy_var(:, :, :, 3), dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
+      !call Get_volumetric_average_3d(.false., dm%ibcy(:, 3), dm%fbcy_var(:, :, :, 3), dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
       fl%mz_rhs(:, :, :) = fl%mz_rhs(:, :, :) - rhsz_bulk
     else if (fl%idriven == IDRVF_Z_Cf) then
       rhsz_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
@@ -1188,9 +1190,7 @@ contains
 
     
 #ifdef DEBUG_STEPS
-    call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, "at isub = "//trim(int2str(isub))//" maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, "at isub = "//trim(int2str(isub))//" maximum uz:", wrtfmt1e)
+    call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
     call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub))) 
 #endif
 

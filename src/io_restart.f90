@@ -132,7 +132,8 @@ contains
     real(WP) :: ubulk
     
 
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%qx, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%qx, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx, ubulk, "ux")
     if(nrank == 0) then
         Call Print_debug_mid_msg("  The restarted mass flux is:")
         write (*, wrtfmt1e) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -140,9 +141,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(fl%qx, "maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, "maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, "maximum uz:", wrtfmt1e)
+    call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
     !----------------------------------------------------------------------------------------------------------
     ! to set up other parameters for flow only, which will be updated in thermo flow.
     !----------------------------------------------------------------------------------------------------------

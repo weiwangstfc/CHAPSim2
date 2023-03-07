@@ -12,6 +12,7 @@ module solver_tools_mod
   public  :: Calculate_xz_mean_yprofile
   public  :: Adjust_to_xzmean_zero
   public  :: Get_volumetric_average_3d
+  public  :: Get_volumetric_average_3d_for_var_xcx
   public  :: Find_maximum_absvar3d
   public  :: Find_max_min_3d
 
@@ -19,6 +20,8 @@ module solver_tools_mod
   public  :: Calculate_velocity_from_massflux
 
   public  :: update_rhou_bc
+
+  public  :: multiple_cylindrical_rn
 
 contains
 !==========================================================================================================
@@ -255,7 +258,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Check_cfl_convection(u, v, w, dm)
+  subroutine Check_cfl_convection(qx, qy, qz, dm)
     use parameters_constant_mod
     use udf_type_mod
     use operations
@@ -264,9 +267,9 @@ contains
     implicit none
 
     type(t_domain),               intent(in) :: dm
-    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(in) :: u
-    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(in) :: v
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(in) :: w
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(in) :: qx
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(in) :: qy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(in) :: qz
 
     real(WP) :: var_xpencil (dm%dccc%xsz(1), &
                              dm%dccc%xsz(2), &
@@ -286,13 +289,13 @@ contains
     real(WP) :: accc_zpencil (dm%dccc%zsz(1), &
                              dm%dccc%zsz(2), &
                              dm%dccc%zsz(3))
-    real(WP) ::   v_ypencil (dm%dcpc%ysz(1), &
+    real(WP) ::   qy_ypencil (dm%dcpc%ysz(1), &
                              dm%dcpc%ysz(2), &
                              dm%dcpc%ysz(3))
-    real(WP) ::   w_ypencil (dm%dccp%ysz(1), &
+    real(WP) ::   qz_ypencil (dm%dccp%ysz(1), &
                              dm%dccp%ysz(2), &
                              dm%dccp%ysz(3))
-    real(WP) ::   w_zpencil (dm%dccp%zsz(1), &
+    real(WP) ::   qz_zpencil (dm%dccp%zsz(1), &
                              dm%dccp%zsz(2), &
                              dm%dccp%zsz(3))
     !real(WP)   :: cfl_convection, cfl_convection_work
@@ -306,24 +309,25 @@ contains
     accc_ypencil(:, :, :) = ZERO
     accc_zpencil(:, :, :) = ZERO
 !----------------------------------------------------------------------------------------------------------
-! X-pencil : u_ccc / dx * dt
+! X-pencil : qx_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_midp_P2C_3D(qx, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
-! Y-pencil : v_ccc / dy * dt
+! Y-pencil : qy_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
-    call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call transpose_x_to_y(qy,             qy_ypencil, dm%dcpc)
+    call Get_y_midp_P2C_3D(qy_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
-! Z-pencil : \overline{w}^z/dz at cell centre
+! Z-pencil : \overline{qz}^z/dz at cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
-    call transpose_x_to_y(w,             w_ypencil, dm%dccp)
-    call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    call transpose_x_to_y(qz,             qz_ypencil, dm%dccp)
+    call transpose_y_to_z(qz_ypencil,     qz_zpencil, dm%dccp)
+    call Get_z_midp_P2C_3D(qz_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
@@ -342,6 +346,7 @@ contains
 !>         fo = \int_1^nx \int_
 !> This is based only y-direction stretching.
 !> \todo Here is 2nd order Trapezoid Method. Need to improve! Check!
+!> too complicated. not used any more.
 !---------------------------------------------------------------------------------------------------------- 
 !> Scope:  mpi    called-freq    xdomain     module
 !>         all    needed         specified   pubic
@@ -513,6 +518,60 @@ contains
   end subroutine Get_volumetric_average_3d
 
 !==========================================================================================================
+  subroutine Get_volumetric_average_3d_for_var_xcx(dm, dtmp, var, fo_work, str)
+    use mpi_mod
+    use udf_type_mod
+    use parameters_constant_mod
+    use operations
+    use decomp_2d
+    use wtformat_mod
+    implicit none
+    type(t_domain),  intent(in) :: dm
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP),          intent(in) :: var(:, :, :)
+    real(WP),          intent(out):: fo_work
+    character(*), optional, intent(in) :: str
+ 
+    real(WP)   :: vol, fo, vol_work, vol_real
+    integer :: i, j, k, jj
+
+    !----------------------------------------------------------------------------------------------------------
+    ! default: x-pencil
+    !----------------------------------------------------------------------------------------------------------
+      
+      vol = ZERO
+      fo  = ZERO
+      do k = 1, dtmp%xsz(3)
+        do j = 1, dtmp%xsz(2)
+          jj = j + dtmp%xst(2) - 1
+          do i = 1, dtmp%xsz(1)
+            fo = fo + var(i, j, k) * dm%h(1) * dm%h(2) * ( dm%h(3) / dm%rci(jj) ) 
+            vol = vol + dm%h(1) * dm%h(2) * ( dm%h(3) / dm%rci(jj) )
+          end do
+        end do
+      end do
+
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      call mpi_allreduce( fo,  fo_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+      fo_work = fo_work / vol_work
+
+#ifdef DEBUG_STEPS  
+      if(nrank == 0) then
+        if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
+        if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
+        write(*, *) ' Check real volume, numerical volume = ', vol_real, vol_work
+      end if
+#endif
+
+    if(nrank == 0 .and. present(str)) then
+      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+    end if
+
+    return
+  end subroutine 
+
+!==========================================================================================================
   subroutine Find_maximum_absvar3d(var,  str, fmt)
     use precision_mod
     use math_mod
@@ -551,6 +610,99 @@ contains
 #ifdef DEBUG_FFT
     if(varmax_work > MAXVELO) stop ! test
 #endif
+    return
+  end subroutine
+
+
+  !==========================================================================================================
+  subroutine Find_maximum_velocity(dm, qx, qy, qz)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    real(WP), intent(in)  :: qx(:, :, :)
+    real(WP), intent(in)  :: qy(:, :, :)
+    real(WP), intent(in)  :: qz(:, :, :)
+
+    
+    real(WP):: varmax_work
+    real(WP)   :: varmax
+
+    integer :: i, j, k, jj, nx, ny, nz
+
+    
+!----------------------------------------------------------------------------------------------------------
+! ux
+!----------------------------------------------------------------------------------------------------------
+    nx = size(qx, 1)
+    ny = size(qx, 2)
+    nz = size(qx, 3)
+
+    varmax = ZERO
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if(abs_wp(qx(i, j, k)) > varmax) varmax = abs_wp(qx(i, j, k))
+        end do
+      end do
+    end do
+ 
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, *) ' The maximum ux = ', varmax_work
+    end if
+!----------------------------------------------------------------------------------------------------------
+! uy
+!----------------------------------------------------------------------------------------------------------
+    nx = size(qy, 1)
+    ny = size(qy, 2)
+    nz = size(qy, 3)
+
+    varmax = ZERO
+    do k = 1, nz
+      do j = 1, ny
+        jj = dm%dcpc%xst(2) + j - 1
+        do i = 1, nx
+          if(abs_wp(qy(i, j, k)) > varmax) varmax = abs_wp(qy(i, j, k) * dm%rpi(jj))
+        end do
+      end do
+    end do
+ 
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, *) ' The maximum uy (ur) = qy / rp = ', varmax_work
+    end if
+!----------------------------------------------------------------------------------------------------------
+! uz
+!----------------------------------------------------------------------------------------------------------
+    nx = size(qz, 1)
+    ny = size(qz, 2)
+    nz = size(qz, 3)
+
+    varmax = ZERO
+    do k = 1, nz
+      do j = 1, ny
+        jj = dm%dcpc%xst(2) + j - 1
+        do i = 1, nx
+          if(abs_wp(qz(i, j, k)) > varmax) varmax = abs_wp(qz(i, j, k) * dm%rci(jj))
+        end do
+      end do
+    end do
+ 
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, *) ' The maximum uz (u_theta) = qz / rc = ', varmax_work
+    end if
+
+
     return
   end subroutine
 
@@ -779,5 +931,48 @@ contains
 
     return
   end subroutine
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
+    implicit none 
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(inout) :: var(:, :, :)
+    real(WP), intent(in) :: r(:)
+    integer, intent(in) :: n
+    integer, intent(in) :: pencil
+
+    integer :: i, j, k, jj, nx, ny, nz, nyst
+ 
+    if(pencil == IPENCIL(1)) then
+      nx = dtmp%xsz(1)
+      ny = dtmp%xsz(2)
+      nz = dtmp%xsz(3)
+      nyst = dtmp%xst(2)
+    else if(pencil == IPENCIL(2)) then
+      nx = dtmp%ysz(1)
+      ny = dtmp%ysz(2)
+      nz = dtmp%ysz(3)
+      nyst = dtmp%yst(2)
+    else if(pencil == IPENCIL(3)) then
+      nx = dtmp%zsz(1)
+      ny = dtmp%zsz(2)
+      nz = dtmp%zsz(3)
+      nyst = dtmp%zst(2)
+    else
+    end if
+
+    do k = 1, nz
+      do j = 1, ny
+        jj = nyst + j - 1
+        do i = 1, nx
+          var(i, j, k) = var(i, j, k) * (r**n)
+        end do
+      end do
+    end do 
+  
+    return 
+  end subroutine
+  
 
 end module

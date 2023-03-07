@@ -9,6 +9,7 @@ contains
 !==========================================================================================================
 !==========================================================================================================
 !> \brief To calculate d(\rho)/dt in the continuity eq.
+!? to do, to check, same as CHAPSim1 method2, but different from CHAPSim1 method 3.
 !----------------------------------------------------------------------------------------------------------
 ! Arguments
 !______________________________________________________________________________.
@@ -66,61 +67,63 @@ contains
 !______________________________________________________________________________.
 !  mode           name          role                                           !
 !______________________________________________________________________________!
-!> \param[in]     ux           ux or gx
-!> \param[in]     uy           uy or gy
-!> \param[in]     uz           uz or gz
-!> \param[out]    div          div(u) or div(g)
+!> \param[in]     qx           qx or gx
+!> \param[in]     qy           qy or gy
+!> \param[in]     qz           qz or gz
+!> \param[out]    div          div(q) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Get_divergence_vel(ux, uy, uz, div, dm)
+  subroutine Get_divergence_vel(qx, qy, qz, div, dm)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
 
     type(t_domain), intent (in) :: dm
-    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (in ) :: ux
-    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (in ) :: uy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (in ) :: uz
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (in ) :: qx
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (in ) :: qy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (in ) :: qz
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent (out) :: div
 
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: div0
     real(WP), dimension(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3)) :: div0_ypencil
     real(WP), dimension(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3)) :: div0_zpencil
 
-    real(WP), dimension(dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: uy_ypencil
-    real(WP), dimension(dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3)) :: uz_ypencil
-    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: uz_zpencil
+    real(WP), dimension(dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: qy_ypencil
+    real(WP), dimension(dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3)) :: qz_ypencil
+    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: qz_zpencil
 
     div = ZERO
 !----------------------------------------------------------------------------------------------------------
-! operation in x pencil, du/dx
+! operation in x pencil, dqx/dx
 !----------------------------------------------------------------------------------------------------------
     div0 = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_1st_derivative_P2C_3D(qx, div0, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
 !----------------------------------------------------------------------------------------------------------
-! operation in y pencil, dv/dy
+! operation in y pencil, dqy/dy
 !----------------------------------------------------------------------------------------------------------
-    uy_ypencil = ZERO
+    qy_ypencil = ZERO
     div0_ypencil = ZERO
     div0 = ZERO
-    call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call transpose_x_to_y(qy, qy_ypencil, dm%dcpc)
+    call Get_y_1st_derivative_P2C_3D(qy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 1, IPENCIL(1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
-    uz_ypencil = ZERO
-    uz_zpencil = ZERO
+    qz_ypencil = ZERO
+    qz_zpencil = ZERO
     div0_zpencil = ZERO
     div0_ypencil = ZERO
     div0 = ZERO
-    call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
-    call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    call transpose_x_to_y(qz,         qz_ypencil, dm%dccp)
+    call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
+    call Get_z_1st_derivative_P2C_3D(qz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 2, IPENCIL(1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     
     return
