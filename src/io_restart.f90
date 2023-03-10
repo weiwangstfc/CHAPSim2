@@ -96,15 +96,15 @@ contains
 
     fl%iteration = fl%iterfrom
 
-    keyword = 'ux'
+    keyword = 'qx'
     call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
     call decomp_2d_read_one(X_PENCIL, fl%qx, trim(dir_data), trim(data_flname), io_name, dm%dpcc, reduce_prec=.false.)
 
-    keyword = 'uy'
+    keyword = 'qy'
     call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
     call decomp_2d_read_one(X_PENCIL, fl%qy, trim(dir_data), trim(data_flname), io_name, dm%dcpc, reduce_prec=.false.)
 
-    keyword = 'uz'
+    keyword = 'qz'
     call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
     call decomp_2d_read_one(X_PENCIL, fl%qz, trim(dir_data), trim(data_flname), io_name, dm%dccp, reduce_prec=.false.)
 

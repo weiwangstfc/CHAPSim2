@@ -121,39 +121,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[in]     none          NA
 !==========================================================================================================
-  subroutine Buildup_mpi_domain_decomposition
-    use vars_df_mod
-    use mpi_mod
-    use io_tools_mod
-    use io_monitor_mod
-    use io_visulisation_mod
-    use statistics_mod
+  subroutine Buildup_mpi_domain_decomposition(dm)
+    use udf_type_mod
     implicit none
-    integer :: i
-#ifdef DEBUG_STEPS
-    real(WP), allocatable :: id(:, :, :)
-#endif
+
+    type(t_domain), intent(inout) :: dm
 
     !----------------------------------------------------------------------------------------------------------
     ! default, used for fft only
     !----------------------------------------------------------------------------------------------------------
-    do i = 1, nxdomain
-      call decomp_2d_init(domain(i)%np(1), domain(i)%np(2), domain(i)%np(3), p_row, p_col)
-      call Initialize_domain_decomposition(domain(i))
-      call initialize_decomp_io(domain(i))
-      call write_monitor_ini(domain(i))
-      call write_snapshot_ini(domain(i))
-      call init_statistics_flow(flow(i), domain(i))
-      if(domain(i)%is_thermo) call init_statistics_thermo(thermo(i), domain(i))
-#ifdef DEBUG_STEPS
-      allocate( id ( domain(i)%dccc%xsz(1), domain(i)%dccc%xsz(2), domain(i)%dccc%xsz(3)) )
-      id(:, :, :) = real(nrank, WP)
-      call write_snapshot_any3darray(id, 'rank', 'mesh', domain(i)%dpcc, domain(i), 0)
-      deallocate(id)
-#endif
-    end do
-
-
+    call decomp_2d_init(dm%np(1), dm%np(2), dm%np(3), p_row, p_col)
+    call Initialize_domain_decomposition(dm)
+    
 
     return
   end subroutine Buildup_mpi_domain_decomposition

@@ -51,27 +51,60 @@ subroutine Initialize_chapsim
   use files_io_mod
   use boundary_conditions_mod
   use solver_tools_mod
+  use io_tools_mod
   implicit none
   integer :: i
 
-  !----------------------------------------------------------------------------------------------------------
-  ! initialisation of mpi, nrank, nproc
-  !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! initialisation of mpi, nrank, nproc
+!----------------------------------------------------------------------------------------------------------
   call create_directory
   call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi
-
-  !----------------------------------------------------------------------------------------------------------
-  ! reading input parameters
-  !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! reading input parameters
+!----------------------------------------------------------------------------------------------------------
   call Read_input_parameters
-  !----------------------------------------------------------------------------------------------------------
-  ! build up geometry information
-  !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! build up geometry information
+!----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call configure_bc_type(domain(i)) 
     call Buildup_geometry_mesh_info(domain(i))
-    call configure_bc_vars(domain(i)) 
+  end do
+!----------------------------------------------------------------------------------------------------------
+! build up domain decomposition
+!----------------------------------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    call Buildup_mpi_domain_decomposition(domain(i)) 
+  end do
+!----------------------------------------------------------------------------------------------------------
+! build up thermo_mapping_relations, independent of any domains
+!----------------------------------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    if(domain(i)%is_thermo) then
+      call Buildup_thermo_mapping_relations(thermo(i))
+      cycle
+    end if
+  end do
+!----------------------------------------------------------------------------------------------------------
+! build up initial boundary values
+!----------------------------------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    if(domain(i)%is_thermo) call buildup_thermo_bc_const(thermo(i), domain(i))
+    call buildup_flow_bc_const(flow(i), domain(i)) 
+    if(domain(i)%is_thermo) call update_gxgygz_bc(flow(i), thermo(i))
+  end do
+!----------------------------------------------------------------------------------------------------------
+! build up output_io
+!----------------------------------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    call initialize_decomp_io(domain(i))
+    call write_monitor_ini(domain(i))
+    call write_snapshot_ini(domain(i))
+    call init_statistics_flow(flow(i), domain(i))
+    if(dm%is_thermo) call init_statistics_thermo(thermo(i), domain(i))
+    call mesh_output(domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains
@@ -82,10 +115,6 @@ subroutine Initialize_chapsim
   call Test_algorithms()
 #endif
 !----------------------------------------------------------------------------------------------------------
-! build up domain decomposition
-!----------------------------------------------------------------------------------------------------------
-  call Buildup_mpi_domain_decomposition
-!----------------------------------------------------------------------------------------------------------
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
@@ -94,15 +123,6 @@ subroutine Initialize_chapsim
     call decomp_2d_poisson_init()
     if(nrank == 0 ) call Print_debug_end_msg
   end do
-  !----------------------------------------------------------------------------------------------------------
-  ! build up thermo_mapping_relations, independent of any domains
-  !----------------------------------------------------------------------------------------------------------
-  if(ANY(domain(:)%is_thermo)) then
-    i = 1 
-    call Buildup_thermo_mapping_relations(thermo(i))
-    call Buildup_undim_thermo_bc(thermo(i), domain(i))
-    call update_rhou_bc(domain(i))
-  end if
 !----------------------------------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
@@ -114,8 +134,11 @@ subroutine Initialize_chapsim
 ! update interface values for multiple domain
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain - 1
-    call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
-    if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+    call update_flow_bc_interface(domain(i), flow(i), domain(i+1), flow(i+1))
+    if(domain(i)%is_thermo) then
+      call update_thermo_bc_interface(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+      call update_gxgygz_bc(flow(i), thermo(i))
+    end if
   end do
   
   return
@@ -211,7 +234,7 @@ subroutine Solve_eqs_iteration
         if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
-        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+        call Check_cfl_diffusion (domain(i)%h2r(:), domain(i)%rci, flow(i)%rre, domain(i)%dt)
         call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
       !----------------------------------------------------------------------------------------------------------
@@ -238,8 +261,8 @@ subroutine Solve_eqs_iteration
       ! update interface values for multiple domain
       !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_flow(i))   call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
-        if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+        if(is_flow(i))   call update_flow_bc_interface(domain(i), flow(i), domain(i+1), flow(i+1))
+        if(is_thermo(i)) call update_thermo_bc_interface(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
     end do
 

@@ -13,9 +13,10 @@ module io_tools_mod
                         Y_PENCIL = 2, & ! y-pencil
                         Z_PENCIL = 3    ! z-pencil
 
-  public :: initialize_decomp_io
+  private :: initialize_decomp_io
   public :: generate_file_name
   public :: generate_pathfile_name
+  public :: mesh_output
   
 contains
 !==========================================================================================================
@@ -79,4 +80,21 @@ contains
     return
   end subroutine
 !==========================================================================================================
+!==========================================================================================================
+  subroutine mesh_output(dm)
+    use udf_type_mod
+    implicit none
+
+    type(t_domain), intent(in) :: dm
+
+
+    real(WP), allocatable :: id(:, :, :)
+
+    allocate( id ( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) )
+    id(:, :, :) = real(nrank, WP)
+    call write_snapshot_any3darray(id, 'rank', 'mesh', dm%dpcc, dm, 0)
+    deallocate(id)
+
+    return
+  end subroutine mesh_output
 end module

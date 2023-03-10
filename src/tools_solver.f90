@@ -19,7 +19,7 @@ module solver_tools_mod
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_velocity_from_massflux
 
-  public  :: update_rhou_bc
+  public  :: update_gxgygz_bc
 
   public  :: multiple_cylindrical_rn
 
@@ -223,19 +223,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Check_cfl_diffusion(x2r, rre, dt)
+  subroutine Check_cfl_diffusion(x2r, rci, rre, dt)
     use parameters_constant_mod
     !use iso_fortran_env
     use mpi_mod
     use wtformat_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
+    real(WP), intent(in) :: rci
     real(WP), intent(in) :: rre
     real(WP), intent(in) :: dt
     real(WP) :: cfl_diff
 
     ! check, ours is two times of the one in xcompact3d.
-    cfl_diff = sum(x2r) * TWO * dt * rre
+    cfl_diff = (x2r(1) + x2r(2) * rci + x2r(3) * rci**2) * TWO * dt * rre
     if(nrank == 0) then
       if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
       write (*, wrtfmt1r) "  Diffusion number :", cfl_diff
@@ -266,7 +267,7 @@ contains
     use wtformat_mod
     implicit none
 
-    type(t_domain),               intent(in) :: dm
+    type(t_domain), intent(in) :: dm
     real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(in) :: qx
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(in) :: qy
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(in) :: qz
@@ -328,6 +329,7 @@ contains
     call transpose_x_to_y(qz,             qz_ypencil, dm%dccp)
     call transpose_y_to_z(qz_ypencil,     qz_zpencil, dm%dccp)
     call Get_z_midp_P2C_3D(qz_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 2, IPENCIL(3))
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
@@ -911,23 +913,30 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_rhou_bc (dm) ! 
+  subroutine update_gxgygz_bc (fl, tm) ! 
     use parameters_constant_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent( inout)   :: dm
+    type(t_flow), intent( inout) :: fl
+    type(t_thermo), intent(in)   :: tm
 
-    integer :: m
-
-    if(.not. dm%is_thermo) return
 !----------------------------------------------------------------------------------------------------------
 !   get bc gx, gy, gz (at bc not cell centre)
 !----------------------------------------------------------------------------------------------------------
-    do m = NBC + 1, NBC + NDIM
-      dm%fbcx_var(:, :, :, m) = dm%fbcx_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcy_var(:, :, :, m) = dm%fbcy_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcz_var(:, :, :, m) = dm%fbcz_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-    end do
+    fl%fbcx_gx(:, :, :) = fl%fbcx_qx(:, :, :) * tm%fbcx_ftp(:, :, :)%d
+    fl%fbcx_gy(:, :, :) = fl%fbcx_qy(:, :, :) * tm%fbcx_ftp(:, :, :)%d
+    fl%fbcx_gz(:, :, :) = fl%fbcx_qz(:, :, :) * tm%fbcx_ftp(:, :, :)%d
+
+    fl%fbcy_gx(:, :, :) = fl%fbcy_qx(:, :, :) * tm%fbcy_ftp(:, :, :)%d
+    fl%fbcy_gy(:, :, :) = fl%fbcy_qy(:, :, :) * tm%fbcy_ftp(:, :, :)%d
+    fl%fbcy_gz(:, :, :) = fl%fbcy_qz(:, :, :) * tm%fbcy_ftp(:, :, :)%d
+
+    fl%fbcz_gx(:, :, :) = fl%fbcz_qx(:, :, :) * tm%fbcz_ftp(:, :, :)%d
+    fl%fbcz_gy(:, :, :) = fl%fbcz_qy(:, :, :) * tm%fbcz_ftp(:, :, :)%d
+    fl%fbcz_gz(:, :, :) = fl%fbcz_qz(:, :, :) * tm%fbcz_ftp(:, :, :)%d
+
+
+    
 
     return
   end subroutine

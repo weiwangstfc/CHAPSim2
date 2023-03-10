@@ -404,12 +404,7 @@ module udf_type_mod
     real(wp), allocatable :: yc(:)
     real(wp), allocatable :: rci(:) ! reciprocal of raidus based on cell centre
     real(wp), allocatable :: rpi(:) ! reciprocal of raidus based on node point
-    real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
-    real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
-    real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
-    type(t_fluidThermoProperty), allocatable :: ftpbcx_var(:, :, :)  ! undim, xbc state
-    type(t_fluidThermoProperty), allocatable :: ftpbcy_var(:, :, :)  ! undim, ybc state
-    type(t_fluidThermoProperty), allocatable :: ftpbcz_var(:, :, :)  ! undim, zbc state
+    
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
@@ -461,6 +456,34 @@ module udf_type_mod
     real(WP), allocatable :: my_rhs0(:, :, :)! last step rhs in y
     real(WP), allocatable :: mz_rhs0(:, :, :)! last step rhs in z
 
+    real(wp), allocatable :: fbcx_qx(:, :, :) ! qx bc at x dirction
+    real(wp), allocatable :: fbcy_qx(:, :, :) ! qx bc at y dirction
+    real(wp), allocatable :: fbcz_qx(:, :, :) ! qx bc at z dirction
+
+    real(wp), allocatable :: fbcx_qy(:, :, :) ! qy bc at x dirction
+    real(wp), allocatable :: fbcy_qy(:, :, :) ! qy bc at y dirction
+    real(wp), allocatable :: fbcz_qy(:, :, :) ! qy bc at z dirction
+
+    real(wp), allocatable :: fbcx_qz(:, :, :) ! qz bc at x dirction
+    real(wp), allocatable :: fbcy_qz(:, :, :) ! qz bc at y dirction
+    real(wp), allocatable :: fbcz_qz(:, :, :) ! qz bc at z dirction
+
+    real(wp), allocatable :: fbcx_pr(:, :, :) ! pr bc at x dirction
+    real(wp), allocatable :: fbcy_pr(:, :, :) ! pr bc at y dirction
+    real(wp), allocatable :: fbcz_pr(:, :, :) ! pr bc at z dirction
+
+    real(wp), allocatable :: fbcx_gx(:, :, :) ! gx bc at x dirction
+    real(wp), allocatable :: fbcy_gx(:, :, :) ! gx bc at y dirction
+    real(wp), allocatable :: fbcz_gx(:, :, :) ! gx bc at z dirction
+
+    real(wp), allocatable :: fbcx_gy(:, :, :) ! gy bc at x dirction
+    real(wp), allocatable :: fbcy_gy(:, :, :) ! gy bc at y dirction
+    real(wp), allocatable :: fbcz_gy(:, :, :) ! gy bc at z dirction
+
+    real(wp), allocatable :: fbcx_gz(:, :, :) ! gz bc at x dirction
+    real(wp), allocatable :: fbcy_gz(:, :, :) ! gz bc at y dirction
+    real(wp), allocatable :: fbcz_gz(:, :, :) ! gz bc at z dirction
+
     real(WP), allocatable :: u_vector_mean(:, :, :, :) ! u, v, w
     real(WP), allocatable :: pr_mean(:, :, :)
     real(WP), allocatable :: uu_tensor6_mean(:, :, :, :) ! uu, vv, ww, uv, uw, vw
@@ -490,6 +513,13 @@ module udf_type_mod
 
     real(WP), allocatable :: t_mean(:, :, :)
     real(WP), allocatable :: tt_mean(:, :, :)
+
+    type(t_fluidThermoProperty), allocatable :: fbcx_ftp(:, :, :)  ! undim, xbc state
+    type(t_fluidThermoProperty), allocatable :: fbcy_ftp(:, :, :)  ! undim, ybc state
+    type(t_fluidThermoProperty), allocatable :: fbcz_ftp(:, :, :)  ! undim, zbc state
+    real(WP), allocatable :: fbcx_heatflux(:, :, :) ! undim, heat flux
+    real(WP), allocatable :: fbcy_heatflux(:, :, :) ! undim, heat flux
+    real(WP), allocatable :: fbcz_heatflux(:, :, :) ! undim, heat flux
 
   end type t_thermo
 
