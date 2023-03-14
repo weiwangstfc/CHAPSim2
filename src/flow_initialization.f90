@@ -50,7 +50,7 @@ contains
 !> \param[in]     none          NA
 !> \param[out]    none          NA
 !==========================================================================================================
-  subroutine Allocate_flow_variables (fl, dm)
+  subroutine Allocate_flow_variables (dm, fl)
     use parameters_constant_mod
     use mpi_mod
     implicit none
@@ -83,11 +83,6 @@ contains
       call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO ! gx = rho * qx = rho * ux
       call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO ! gy = rho * qy = rho * ur * rp
       call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO ! gz = rho * qz = rho * u_theta * rc
-      call alloc_x(fl%dDens,   dm%dccc) ; fl%dDens = ONE
-      call alloc_x(fl%mVisc,   dm%dccc) ; fl%mVisc = ONE
-
-      call alloc_x(fl%dDensm1, dm%dccc) ; fl%dDensm1 = ONE
-      call alloc_x(fl%dDensm2, dm%dccc) ; fl%dDensm2 = ONE
     end if
 
     if(nrank == 0) call Print_debug_end_msg
@@ -95,7 +90,7 @@ contains
 
   end subroutine Allocate_flow_variables
   !==========================================================================================================
-  subroutine Allocate_thermo_variables (tm, dm)
+  subroutine Allocate_thermo_variables (dm, tm)
     use parameters_constant_mod
     use mpi_mod
     use udf_type_mod
@@ -115,6 +110,12 @@ contains
     call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
     call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
     call alloc_x(tm%tTemp, dm%dccc) ; tm%tTemp = ONE
+
+    call alloc_x(tm%dDens,   dm%dccc) ; tm%dDens = ONE
+    call alloc_x(tm%mVisc,   dm%dccc) ; tm%mVisc = ONE
+
+    call alloc_x(tm%dDensm1, dm%dccc) ; tm%dDensm1 = ONE
+    call alloc_x(tm%dDensm2, dm%dccc) ; tm%dDensm2 = ONE
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -503,7 +504,7 @@ contains
   end subroutine
 
   !==========================================================================================================
-  subroutine Initialize_flow_fields(fl, dm)
+  subroutine Initialize_flow_fields(dm, fl)
     use udf_type_mod
     use parameters_constant_mod
     use io_restart_mod
@@ -525,7 +526,7 @@ contains
   !----------------------------------------------------------------------------------------------------------
   ! to allocate flow variables
   !----------------------------------------------------------------------------------------------------------
-    call Allocate_flow_variables (fl, dm)
+    call Allocate_flow_variables (dm, fl)
   !----------------------------------------------------------------------------------------------------------
   ! to set up Re
   !----------------------------------------------------------------------------------------------------------
@@ -537,8 +538,8 @@ contains
     fl%iteration = 0
 
     if(fl%inittype == INIT_RESTART) then
-      call read_instantanous_flow_raw_data(fl, dm)
-      call restore_flow_variables_from_restart(fl, dm)
+      call read_instantanous_flow_raw_data(dm, fl)
+      call restore_flow_variables_from_restart(dm, fl)
 
     else if (fl%inittype == INIT_INTERPL) then
 
@@ -577,7 +578,7 @@ contains
     call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
     call Check_mass_conservation(fl, dm, 'initialization') 
 
-    call write_snapshot_flow(fl, dm)
+    call write_snapshot_flow(dm, fl)
 
     if(nrank == 0) call Print_debug_end_msg
 
@@ -605,7 +606,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to allocate thermal variables
 !----------------------------------------------------------------------------------------------------------
-    call Allocate_thermo_variables (tm, dm)
+    call Allocate_thermo_variables (dm, tm)
 !----------------------------------------------------------------------------------------------------------
 ! to set up Fr etc, require update flow Re first
 !----------------------------------------------------------------------------------------------------------
@@ -615,8 +616,8 @@ contains
 ! initialize primary variables
 !----------------------------------------------------------------------------------------------------------
     if(tm%inittype == INIT_RESTART) then
-      call read_instantanous_thermo_raw_data  (tm, dm)
-      call restore_thermo_variables_from_restart(fl, tm, dm)
+      call read_instantanous_thermo_raw_data  (dm, tm)
+      call restore_thermo_variables_from_restart(dm, fl, tm)
 
     else if (tm%inittype == INIT_INTERPL) then
     else
@@ -625,13 +626,13 @@ contains
       tm%iteration = 0
     end if
 
-    call Calculate_massflux_from_velocity (fl, dm)
+    call Calculate_massflux_from_velocity (dm, fl, tm)
     ! to do, to check, scaling of gx? to be unified?
     !----------------------------------------------------------------------------------------------------------
     ! to set up old arrays 
     !----------------------------------------------------------------------------------------------------------
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+    tm%dDensm1(:, :, :) = tm%dDens(:, :, :)
+    tm%dDensm2(:, :, :) = tm%dDens(:, :, :)
     
     return
   end subroutine
@@ -719,7 +720,7 @@ contains
   end subroutine Initialize_vortexgreen_2dflow
 !==========================================================================================================
 !==========================================================================================================
-  subroutine  Validate_TGV2D_error(fl, dm)
+  subroutine  Validate_TGV2D_error(dm, fl)
     use parameters_constant_mod
     use udf_type_mod
     use math_mod

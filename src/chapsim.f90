@@ -91,8 +91,8 @@ subroutine Initialize_chapsim
 ! build up initial boundary values
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    if(domain(i)%is_thermo) call buildup_thermo_bc_const(thermo(i), domain(i))
-    call buildup_flow_bc_const(flow(i), domain(i)) 
+    if(domain(i)%is_thermo) call buildup_thermo_boundary(thermo(i), domain(i))
+    call buildup_flow_boundary(flow(i), domain(i)) 
     if(domain(i)%is_thermo) call update_gxgygz_bc(flow(i), thermo(i))
   end do
 !----------------------------------------------------------------------------------------------------------
@@ -134,9 +134,13 @@ subroutine Initialize_chapsim
 ! update interface values for multiple domain
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain - 1
-    call update_flow_bc_interface(domain(i), flow(i), domain(i+1), flow(i+1))
+    call update_flow_bc_halo(domain(i), flow(i), domain(i+1), flow(i+1))
     if(domain(i)%is_thermo) then
-      call update_thermo_bc_interface(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+      call update_thermo_bc_2dm_halo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+    end if
+  end do
+  do i = 1, nxdomain
+    if(domain(i)%is_thermo) then
       call update_gxgygz_bc(flow(i), thermo(i))
     end if
   end do
@@ -261,8 +265,8 @@ subroutine Solve_eqs_iteration
       ! update interface values for multiple domain
       !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_flow(i))   call update_flow_bc_interface(domain(i), flow(i), domain(i+1), flow(i+1))
-        if(is_thermo(i)) call update_thermo_bc_interface(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+        if(is_flow(i))   call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1))
+        if(is_thermo(i)) call update_thermo_bc_2dm_halo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
     end do
 

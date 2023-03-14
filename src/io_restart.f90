@@ -13,7 +13,7 @@ module io_restart_mod
 contains 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine write_instantanous_flow_raw_data(fl, dm)
+  subroutine write_instantanous_flow_raw_data(dm, fl)
     use udf_type_mod
     use decomp_2d_io
     use io_tools_mod
@@ -49,7 +49,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine write_instantanous_thermo_raw_data(tm, dm)
+  subroutine write_instantanous_thermo_raw_data(dm, tm)
     use udf_type_mod
     use thermo_info_mod
     use decomp_2d_io
@@ -78,7 +78,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine read_instantanous_flow_raw_data(fl, dm)
+  subroutine read_instantanous_flow_raw_data(dm, fl)
     use udf_type_mod
     use decomp_2d_io
     use io_tools_mod
@@ -119,7 +119,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine restore_flow_variables_from_restart(fl, dm)
+  subroutine restore_flow_variables_from_restart(dm, fl)
     use udf_type_mod
     use mpi_mod
     use parameters_constant_mod
@@ -147,18 +147,12 @@ contains
     !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO
     fl%pcor_zpencil_ggg(:, :, :) = ZERO
-    if(dm%is_thermo) then
-      fl%dDens  (:, :, :) = ONE
-      fl%mVisc  (:, :, :) = ONE
-      fl%dDensm1(:, :, :) = ONE
-      fl%dDensm2(:, :, :) = ONE
-    end if
 
     return
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine read_instantanous_thermo_raw_data(tm, dm)
+  subroutine read_instantanous_thermo_raw_data(dm, tm)
     use udf_type_mod
     use thermo_info_mod
     use decomp_2d_io
@@ -190,7 +184,7 @@ contains
     return
   end subroutine
 !==========================================================================================================
-  subroutine restore_thermo_variables_from_restart(fl, tm, dm)
+  subroutine restore_thermo_variables_from_restart(dm, fl, tm)
     use udf_type_mod
     use thermo_info_mod
     use eq_energy_mod
@@ -201,11 +195,17 @@ contains
 
     if (.not. dm%is_thermo) return
 
-    call Update_thermal_properties(fl, tm, dm)
-    call Calculate_massflux_from_velocity (fl, dm)
 
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+    tm%dDens  (:, :, :) = ONE
+    tm%mVisc  (:, :, :) = ONE
+    tm%dDensm1(:, :, :) = ONE
+    tm%dDensm2(:, :, :) = ONE
+
+    call Update_thermal_properties(dm, tm)
+    call Calculate_massflux_from_velocity (dm, fl, tm)
+
+    tm%dDensm1(:, :, :) = tm%dDens(:, :, :)
+    tm%dDensm2(:, :, :) = tm%dDens(:, :, :)
 
     return
   end subroutine

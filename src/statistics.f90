@@ -17,7 +17,7 @@ module statistics_mod
 contains
 !==========================================================================================================
 !==========================================================================================================
-  subroutine init_statistics_flow(fl, dm)
+  subroutine init_statistics_flow(dm, fl)
     use udf_type_mod
     use parameters_constant_mod
     implicit none 
@@ -64,7 +64,7 @@ contains
   end subroutine
   !==========================================================================================================
 !==========================================================================================================
-  subroutine init_statistics_thermo(tm, dm)
+  subroutine init_statistics_thermo(dm, tm)
     use udf_type_mod
     use parameters_constant_mod
     implicit none 
@@ -88,7 +88,7 @@ contains
 !==========================================================================================================
 !==========================================================================================================
 
-  subroutine update_statistics_flow(fl, dm)
+  subroutine update_statistics_flow(dm, fl)
     use udf_type_mod
     use parameters_constant_mod
     use operations
@@ -155,7 +155,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine write_statistics_flow(fl, dm)
+  subroutine write_statistics_flow(dm, fl)
     use udf_type_mod
     implicit none 
     type(t_domain), intent(in) :: dm
@@ -176,7 +176,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_statistics_thermo(tm, dm)
+  subroutine update_statistics_thermo(dm, tm)
     use udf_type_mod
     use parameters_constant_mod
     implicit none 
@@ -203,7 +203,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine write_statistics_thermo(tm, dm)
+  subroutine write_statistics_thermo(dm, tm)
     use udf_type_mod
     implicit none 
     type(t_domain), intent(in) :: dm

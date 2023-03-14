@@ -213,6 +213,17 @@ contains
     dm%rpi(:) = ONE
     dm%rci(:) = ONE
 
+!----------------------------------------------------------------------------------------------------------
+! set up z-interior extention cells for pipe flow, zpencil only
+!----------------------------------------------------------------------------------------------------------
+    if(dm%icase == ICASE_PIPE)
+      allocate (dm%knc_sym(dm%nc(3)))
+      do k = 1, dm%nc(3)
+        dm%knc_sym(k) = k + dm%nc(3)/2
+        if(dm%knc_sym(k) > dm%nc(3)) dm%knc_sym(k) = dm%knc_sym(k) - dm%nc(3)
+      end do
+    end if
+
     !----------------------------------------------------------------------------------------------------------
     ! allocate  variables for mapping physical domain to computational domain
     !----------------------------------------------------------------------------------------------------------

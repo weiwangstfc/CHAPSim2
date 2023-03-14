@@ -368,7 +368,7 @@ contains
     return
   end subroutine 
 !==========================================================================================================
-  subroutine write_snapshot_flow(fl, dm)
+  subroutine write_snapshot_flow(dm, fl)
     use udf_type_mod
     use precision_mod
     use operations
@@ -426,7 +426,7 @@ contains
   end subroutine
 
   !==========================================================================================================
-  subroutine write_snapshot_thermo(tm, dm)
+  subroutine write_snapshot_thermo(dm, tm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -456,7 +456,7 @@ contains
   end subroutine
 
 !==========================================================================================================
-  subroutine write_snapshot_flow_stat(fl, dm)
+  subroutine write_snapshot_flow_stat(dm, fl)
     use udf_type_mod
     use precision_mod
     use operations
@@ -495,7 +495,7 @@ contains
   end subroutine
 
   !==========================================================================================================
-  subroutine write_snapshot_thermo_stat(tm, dm)
+  subroutine write_snapshot_thermo_stat(dm, tm)
     use udf_type_mod
     use precision_mod
     use operations

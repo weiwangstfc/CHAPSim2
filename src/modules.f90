@@ -404,6 +404,10 @@ module udf_type_mod
     real(wp), allocatable :: yc(:)
     real(wp), allocatable :: rci(:) ! reciprocal of raidus based on cell centre
     real(wp), allocatable :: rpi(:) ! reciprocal of raidus based on node point
+
+    real(wp), allocatable :: ijnp_sym(:)
+    real(wp), allocatable :: ijnc_sym(:)
+    real(wp), allocatable :: knc_sym(:) ! knc_sym = knp_sym 
     
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
@@ -443,11 +447,6 @@ module udf_type_mod
     real(WP), allocatable :: pcor(:, :, :)
     real(WP), allocatable :: pcor_zpencil_ggg(:, :, :)
 
-    real(WP), allocatable :: dDens(:, :, :)
-    real(WP), allocatable :: mVisc(:, :, :)
-    real(WP), allocatable :: dDensm1(:, :, :)
-    real(WP), allocatable :: dDensm2(:, :, :)
-
     real(WP), allocatable :: mx_rhs(:, :, :) ! current step rhs in x
     real(WP), allocatable :: my_rhs(:, :, :) ! current step rhs in y
     real(WP), allocatable :: mz_rhs(:, :, :) ! current step rhs in z
@@ -464,9 +463,15 @@ module udf_type_mod
     real(wp), allocatable :: fbcy_qy(:, :, :) ! qy bc at y dirction
     real(wp), allocatable :: fbcz_qy(:, :, :) ! qy bc at z dirction
 
+    real(wp), allocatable :: fbcy_qyr(:, :, :) ! qy/r = ur bc at y dirction
+    real(wp), allocatable :: fbcz_qyr(:, :, :) ! qy/r = ur bc at z dirction
+
     real(wp), allocatable :: fbcx_qz(:, :, :) ! qz bc at x dirction
     real(wp), allocatable :: fbcy_qz(:, :, :) ! qz bc at y dirction
     real(wp), allocatable :: fbcz_qz(:, :, :) ! qz bc at z dirction
+
+    real(wp), allocatable :: fbcy_qzr(:, :, :) ! qz/r = u_theta bc at y dirction
+    real(wp), allocatable :: fbcz_qzr(:, :, :) ! qz/r = u_theta bc at z dirction
 
     real(wp), allocatable :: fbcx_pr(:, :, :) ! pr bc at x dirction
     real(wp), allocatable :: fbcy_pr(:, :, :) ! pr bc at y dirction
@@ -504,6 +509,11 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: rPrRen
     
+    real(WP), allocatable :: dDens(:, :, :)
+    real(WP), allocatable :: mVisc(:, :, :)
+    real(WP), allocatable :: dDensm1(:, :, :)
+    real(WP), allocatable :: dDensm2(:, :, :)
+
     real(WP), allocatable :: dh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)

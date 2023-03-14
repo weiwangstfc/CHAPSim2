@@ -40,7 +40,7 @@ module thermo_info_mod
   private :: Initialize_thermo_parameters
   private :: ftplist_sort_t_small2big
   private :: Write_thermo_property
-  public  :: buildup_thermo_bc_const
+  public  :: buildup_thermo_boundary
   public  :: update_undim_thermo_bc
 
   
@@ -957,7 +957,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine buildup_thermo_bc_const(tm, dm)
+  subroutine buildup_thermo_boundary(dm, tm)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
@@ -1092,10 +1092,9 @@ contains
 !> \param[inout]  fl   flow type
 !> \param[inout]  tm   thermo type
 !==========================================================================================================
-  subroutine Initialize_thermal_properties (fl, tm)
+  subroutine Initialize_thermal_properties (tm)
     use parameters_constant_mod
     implicit none
-    type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     
     type(t_fluidThermoProperty) :: ftp_ini
@@ -1114,16 +1113,16 @@ contains
     !----------------------------------------------------------------------------------------------------------
     fluidparam%ftpini = ftp_ini
 
-    fl%dDens(:, :, :) = ftp_ini%d
-    fl%mVisc(:, :, :) = ftp_ini%m
+    tm%dDens(:, :, :) = ftp_ini%d
+    tm%mVisc(:, :, :) = ftp_ini%m
 
     tm%dh   (:, :, :) = ftp_ini%dh
     tm%hEnth(:, :, :) = ftp_ini%h
     tm%kCond(:, :, :) = ftp_ini%k
     tm%tTemp(:, :, :) = ftp_ini%t
 
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+    tm%dDensm1(:, :, :) = tm%dDens(:, :, :)
+    tm%dDensm2(:, :, :) = tm%dDensm1(:, :, :)
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -1201,11 +1200,10 @@ contains
 
 
   !==========================================================================================================
-  subroutine Update_thermal_properties(fl, tm, dm)
+  subroutine Update_thermal_properties(dm, tm)
     use udf_type_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
 
     integer :: i, j, k
@@ -1221,14 +1219,14 @@ contains
           tm%hEnth(i, j, k) = ftp%h
           tm%tTemp(i, j, k) = ftp%T
           tm%kCond(i, j, k) = ftp%k
-          fl%dDens(i, j, k) = ftp%d
-          fl%mVisc(i, j, k) = ftp%m
+          tm%dDens(i, j, k) = ftp%d
+          tm%mVisc(i, j, k) = ftp%m
         end do
       end do
     end do
 
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+    tm%dDensm1(:, :, :) = tm%dDens(:, :, :)
+    tm%dDensm2(:, :, :) = tm%dDensm1(:, :, :)
 
   return
   end subroutine Update_thermal_properties

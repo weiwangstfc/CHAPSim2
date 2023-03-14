@@ -293,7 +293,7 @@ contains
     return
   end subroutine Compute_burgers_rhs
 !==========================================================================================================
-  subroutine Validate_burgers_error(fl, dm)
+  subroutine Validate_burgers_error(dm, fl)
     use udf_type_mod,            only : t_flow, t_domain
     use parameters_constant_mod
     use operations

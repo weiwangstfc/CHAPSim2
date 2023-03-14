@@ -140,7 +140,7 @@ contains
     return
   end subroutine
 !==========================================================================================================
-  subroutine write_monitor_total(fl, dm)
+  subroutine write_monitor_total(dm, fl)
     use typeconvert_mod
     use parameters_constant_mod
     use wtformat_mod
@@ -219,7 +219,7 @@ contains
   end subroutine
 
 !==========================================================================================================
-  subroutine write_monitor_flow(fl, dm)
+  subroutine write_monitor_flow(dm, fl)
     use typeconvert_mod
     use parameters_constant_mod
     use wtformat_mod
@@ -272,7 +272,7 @@ contains
   end subroutine 
 
 !==========================================================================================================
-  subroutine write_monitor_thermo(tm, dm)
+  subroutine write_monitor_thermo(dm, tm)
     use typeconvert_mod
     use parameters_constant_mod
     use wtformat_mod

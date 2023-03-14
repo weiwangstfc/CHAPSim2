@@ -19,7 +19,7 @@ module solver_tools_mod
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_velocity_from_massflux
 
-  public  :: update_gxgygz_bc
+
 
   public  :: multiple_cylindrical_rn
 
@@ -765,12 +765,13 @@ contains
 !> \param[in]     dm             domain
 !> \param[in]     fm             flow
 !==========================================================================================================
-  subroutine Calculate_massflux_from_velocity(fl, dm)
+  subroutine Calculate_massflux_from_velocity(dm, fl, tm)
     use udf_type_mod
     use operations
     use decomp_2d
     implicit none
     type(t_domain), intent(in )   :: dm
+    type(t_thermo), intent(in)    :: tm
     type(t_flow  ), intent(inout) :: fl
 
     real(WP), dimension( dm%dpcc%xsz(1), &
@@ -810,13 +811,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : u1 -> g1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (tm%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
     fl%gx = fl%qx * d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
-    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
+    call transpose_x_to_y(tm%dDens,  d_ypencil, dm%dccc)
 
     call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
     gy_ypencil = qy_ypencil * d_cpc_ypencil
@@ -839,7 +840,7 @@ contains
 
 
   !==========================================================================================================
-  subroutine Calculate_velocity_from_massflux(fl, dm)
+  subroutine Calculate_velocity_from_massflux(dm, fl)
     use udf_type_mod
     use operations
     use decomp_2d
@@ -884,13 +885,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : g1 -> u1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (tm%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
     fl%qx = fl%gx / d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%gy,    gy_ypencil, dm%dcpc)
-    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
+    call transpose_x_to_y(tm%dDens,  d_ypencil, dm%dccc)
 
     call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
     qy_ypencil = gy_ypencil / d_cpc_ypencil
@@ -911,35 +912,7 @@ contains
     return
   end subroutine Calculate_velocity_from_massflux
 
-!==========================================================================================================
-!==========================================================================================================
-  subroutine update_gxgygz_bc (fl, tm) ! 
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_flow), intent( inout) :: fl
-    type(t_thermo), intent(in)   :: tm
 
-!----------------------------------------------------------------------------------------------------------
-!   get bc gx, gy, gz (at bc not cell centre)
-!----------------------------------------------------------------------------------------------------------
-    fl%fbcx_gx(:, :, :) = fl%fbcx_qx(:, :, :) * tm%fbcx_ftp(:, :, :)%d
-    fl%fbcx_gy(:, :, :) = fl%fbcx_qy(:, :, :) * tm%fbcx_ftp(:, :, :)%d
-    fl%fbcx_gz(:, :, :) = fl%fbcx_qz(:, :, :) * tm%fbcx_ftp(:, :, :)%d
-
-    fl%fbcy_gx(:, :, :) = fl%fbcy_qx(:, :, :) * tm%fbcy_ftp(:, :, :)%d
-    fl%fbcy_gy(:, :, :) = fl%fbcy_qy(:, :, :) * tm%fbcy_ftp(:, :, :)%d
-    fl%fbcy_gz(:, :, :) = fl%fbcy_qz(:, :, :) * tm%fbcy_ftp(:, :, :)%d
-
-    fl%fbcz_gx(:, :, :) = fl%fbcz_qx(:, :, :) * tm%fbcz_ftp(:, :, :)%d
-    fl%fbcz_gy(:, :, :) = fl%fbcz_qy(:, :, :) * tm%fbcz_ftp(:, :, :)%d
-    fl%fbcz_gz(:, :, :) = fl%fbcz_qz(:, :, :) * tm%fbcz_ftp(:, :, :)%d
-
-
-    
-
-    return
-  end subroutine
 
 !==========================================================================================================
 !==========================================================================================================
@@ -975,7 +948,7 @@ contains
       do j = 1, ny
         jj = nyst + j - 1
         do i = 1, nx
-          var(i, j, k) = var(i, j, k) * (r**n)
+          var(i, j, k) = var(i, j, k) * (r(jj)**n)
         end do
       end do
     end do 
