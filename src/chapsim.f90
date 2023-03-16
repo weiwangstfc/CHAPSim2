@@ -91,9 +91,8 @@ subroutine Initialize_chapsim
 ! build up initial boundary values
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    if(domain(i)%is_thermo) call buildup_thermo_boundary(thermo(i), domain(i))
-    call buildup_flow_boundary(flow(i), domain(i)) 
-    if(domain(i)%is_thermo) call update_gxgygz_bc(flow(i), thermo(i))
+    call buildup_thermo_bc_geo(thermo(i), domain(i))
+    call buildup_flow_bc_geo(flow(i), domain(i)) 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up output_io
@@ -141,7 +140,7 @@ subroutine Initialize_chapsim
   end do
   do i = 1, nxdomain
     if(domain(i)%is_thermo) then
-      call update_gxgygz_bc(flow(i), thermo(i))
+      call update_gxgygz_bc_geo(flow(i), thermo(i))
     end if
   end do
   
@@ -257,10 +256,20 @@ subroutine Solve_eqs_iteration
     !  main solver, domain coupling in each sub-iteration (check)
     !==========================================================================================================
     do isub = 1, domain(1)%nsubitr
+!----------------------------------------------------------------------------------------------------------
+!     solve governing equations and update b.c. if necessary
+!----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain
-        if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
-        if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
+        if(is_thermo(i)) then
+          call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
+          call update_thermo_bc_1dm_halo(domain(i), thermo(i))
+        end if
+        if(is_flow(i)) then
+          call Solve_momentum_eq(flow(i), domain(i), isub)
+          call update_flow_bc_1dm_halo(domain(i), flow(i))
+        end if
       end do
+
       !----------------------------------------------------------------------------------------------------------
       ! update interface values for multiple domain
       !----------------------------------------------------------------------------------------------------------

@@ -408,7 +408,7 @@ module udf_type_mod
     real(wp), allocatable :: ijnp_sym(:)
     real(wp), allocatable :: ijnc_sym(:)
     real(wp), allocatable :: knc_sym(:) ! knc_sym = knp_sym 
-    
+
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
@@ -463,15 +463,15 @@ module udf_type_mod
     real(wp), allocatable :: fbcy_qy(:, :, :) ! qy bc at y dirction
     real(wp), allocatable :: fbcz_qy(:, :, :) ! qy bc at z dirction
 
-    real(wp), allocatable :: fbcy_qyr(:, :, :) ! qy/r = ur bc at y dirction
-    real(wp), allocatable :: fbcz_qyr(:, :, :) ! qy/r = ur bc at z dirction
+    real(wp), allocatable :: fbcy_uy(:, :, :) ! qy/r = ur bc at y dirction
+    real(wp), allocatable :: fbcz_uy(:, :, :) ! qy/r = ur bc at z dirction
 
     real(wp), allocatable :: fbcx_qz(:, :, :) ! qz bc at x dirction
     real(wp), allocatable :: fbcy_qz(:, :, :) ! qz bc at y dirction
     real(wp), allocatable :: fbcz_qz(:, :, :) ! qz bc at z dirction
 
-    real(wp), allocatable :: fbcy_qzr(:, :, :) ! qz/r = u_theta bc at y dirction
-    real(wp), allocatable :: fbcz_qzr(:, :, :) ! qz/r = u_theta bc at z dirction
+    real(wp), allocatable :: fbcy_uz(:, :, :) ! qz/r = u_theta bc at y dirction
+    real(wp), allocatable :: fbcz_uz(:, :, :) ! qz/r = u_theta bc at z dirction
 
     real(wp), allocatable :: fbcx_pr(:, :, :) ! pr bc at x dirction
     real(wp), allocatable :: fbcy_pr(:, :, :) ! pr bc at y dirction

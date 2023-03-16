@@ -274,25 +274,25 @@ contains
 !                          | -[ipz]-> qxiz_pcp_zpencil(common) -[z2y]-> qxiz_pcp_ypencil(temp) -[y2x]-> qxiz_pcp_xpencil(no-thermal)
 !                          | -[1dz]-> qxdz_pcp_zpencil(common) -[z2y]-> qxdz_pcp_ypencil(temp) -[y2x]-> qxdz_pcp_xpencil(common)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, qxix_ccc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :))
-    call Get_x_1st_derivative_P2C_3D(fl%qx, qxdx_ccc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :))
+    call Get_x_midp_P2C_3D(fl%qx, qxix_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+    call Get_x_1st_derivative_P2C_3D(fl%qx, qxdx_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
 
     call transpose_x_to_y (fl%qx, apcc_ypencil, dm%dpcc) !qx_ypencil
-    call Get_y_1st_derivative_C2P_3D(apcc_ypencil, qxdy_ppc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_qx(:, :, :))
+    call Get_y_1st_derivative_C2P_3D(apcc_ypencil, qxdy_ppc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qx(:, :, :))
     call transpose_y_to_z(qxdy_ppc_ypencil, qxdy_ppc_xpencil, dm%dppc)
-    call Get_y_midp_C2P_3D(apcc_ypencil, qxiy_ppc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_qx(:, :, :))
+    call Get_y_midp_C2P_3D(apcc_ypencil, qxiy_ppc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qx(:, :, :))
     if(.not. dm%is_thermo) then
       call transpose_y_to_x (qxiy_ppc_ypencil, qxiy_ppc_xpencil, dm%dppc)
     end if
 
     call transpose_y_to_z (apcc_ypencil, apcc_zpencil, dm%dpcc)!qx_zpencil
-    call Get_z_midp_C2P_3D(apcc_zpencil, qxiz_pcp_zpencil, dm, dm%ibcz(:, 1), dm%fbcz_qx(:, :, :))
+    call Get_z_midp_C2P_3D(apcc_zpencil, qxiz_pcp_zpencil, dm, dm%ibcz(:, 1), fl%fbcz_qx(:, :, :))
     call transpose_z_to_y (qxiz_pcp_zpencil, apcp_ypencil, dm%dpcc)!qxiz_pcp_ypencil
     if(.not. dm%is_thermo) then
       call transpose_y_to_x (apcp_ypencil, qxiz_pcp_xpencil, dm%dpcp)
     end if
 
-    call Get_z_1st_derivative_C2P_3D(apcc_zpencil, qxdz_pcp_zpencil, dm, dm%ibcz(:, 1), dm%fbcz_qx(:, :, :))
+    call Get_z_1st_derivative_C2P_3D(apcc_zpencil, qxdz_pcp_zpencil, dm, dm%ibcz(:, 1), fl%fbcz_qx(:, :, :))
     call transpose_z_to_y(qxdz_pcp_zpencil, apcp_ypencil,     dm%dpc) !qxdz_pcp_ypencil
     call transpose_y_to_x(apcp_ypencil,     qxdz_pcp_xpencil, dm%dpc)
 !----------------------------------------------------------------------------------------------------------
@@ -306,28 +306,28 @@ contains
 !                          | -[ipz]-> qyiz_cpp_zpencil(no-cly) -[z2y]-> qyiz_cpp_ypencil(no-thermal)           
 !                          | -[1dz]-> qydz_cpp_zpencil(no-cly) -[z2y]-> qydz_cpp_ypencil(no-cly)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(fl%qy, qydx_ppc_xpencil, dm, dm%ibcx(:, 2), dm%fbcx_qy(:, :, :))
+    call Get_x_1st_derivative_C2P_3D(fl%qy, qydx_ppc_xpencil, dm, dm%ibcx(:, 2), fl%fbcx_qy(:, :, :))
     call transpose_x_to_y(qydx_ppc_xpencil, qydx_ppc_ypencil, dm%dppc)
-    call Get_x_midp_C2P_3D(fl%qy, qyix_ppc_xpencil, dm, dm%ibcx(:, 2), dm%fbcx_qy(:, :, :))
+    call Get_x_midp_C2P_3D(fl%qy, qyix_ppc_xpencil, dm, dm%ibcx(:, 2), fl%fbcx_qy(:, :, :))
     if(.not. dm%is_thermo) then
       call transpose_x_to_y (qyix_ppc_xpencil, qyix_ppc_ypencil, dm%dppc)
     end if
 
     call transpose_x_to_y (fl%qy, acpc_ypencil, dm%dcpc) !qy_ypencil
     if(dm%icoordinate == ICARTESIAN) then
-      call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qydy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :))
+      call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qydy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
     end if
     if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
-      call Get_y_midp_P2C_3D(acpc_ypencil, qyiy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :) )
+      call Get_y_midp_P2C_3D(acpc_ypencil, qyiy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :) )
     end if
 
     call transpose_z_to_y(acpc_ypencil, acpc_zpencil, dm%dcpc)!qy_zpencil
     if(dm%icoordinate == ICARTESIAN)then
-      call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qydz_cpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz_qy(:, :, :))
+      call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qydz_cpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_qy(:, :, :))
       call transpose_z_to_y(qydz_cpp_zpencil, qydz_cpp_ypencil, dm%dcpp)
     end if
     if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
-      call Get_z_midp_C2P_3D(acpc_zpencil, qyiz_cpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz_qy(:, :, :) )
+      call Get_z_midp_C2P_3D(acpc_zpencil, qyiz_cpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_qy(:, :, :) )
       if(.not. dm%is_thermo) then
         call transpose_z_to_y(qyiz_cpp_zpencil, qyiz_cpp_ypencil, dm%dcpp)
       end if
@@ -343,33 +343,33 @@ contains
 !                          | -[ipz]-> qziz_ccc_zpencil(common)
 !                          | -[1dz]-> qzdz_ccc_zpencil(cly-only) -[y2z]-> qzdz_ccc_zpencil(cly-only)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(fl%qz, qzdx_pcp_xpencil, dm, dm%ibcx(:, 3), dm%fbcx_qz(:, :, :))
+    call Get_x_1st_derivative_C2P_3D(fl%qz, qzdx_pcp_xpencil, dm, dm%ibcx(:, 3), fl%fbcx_qz(:, :, :))
     call transpose_x_to_y(qzdx_pcp_xpencil, apcp_ypencil, dm%dpcp)
     call transpose_y_to_z(apcp_ypencil, qzdx_pcp_zpencil, dm%dpcp)
 
-    call Get_x_midp_C2P_3D(fl%qz, qzix_pcp_xpencil, dm, dm%ibcx(:, 3), dm%fbcx_qz(:, :, :))
+    call Get_x_midp_C2P_3D(fl%qz, qzix_pcp_xpencil, dm, dm%ibcx(:, 3), fl%fbcx_qz(:, :, :))
     if(.not. dm%is_thermo) then
       call transpose_x_to_y(qzix_pcp_xpencil, apcp_ypencil, dm%dpcp) !qzix_pcp_ypencil
       call transpose_y_to_z(apcp_ypencil, qzix_pcp_zpencil, dm%dpcp)
     end if
 
     call transpose_x_to_y(fl%qz,        accp_ypencil, dm%dccp) ! qz_ypencil
-    call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzdy_cpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_qz(:, :, :))
+    call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzdy_cpp_ypencil, dm, dm%ibcy(:, 3), fl%fbcy_qz(:, :, :))
     if(dm%icoordinate == ICARTESIAN)then
       call transpose_y_to_z(qzdy_cpp_ypencil, qzdy_cpp_zpencil, dm%dcpp)
     end if
 
     if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
-      call Get_y_midp_C2P_3D(accp_ypencil, qziy_cpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_qz(:, :, :) )
+      call Get_y_midp_C2P_3D(accp_ypencil, qziy_cpp_ypencil, dm, dm%ibcy(:, 3), fl%fbcy_qz(:, :, :) )
       if(.not. dm%is_thermo) then
         call transpose_y_to_z(qziy_cpp_ypencil, qziy_cpp_zpencil, dm%dcpp)
       end if
     end if
 
     call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp) ! qz_zpencil
-    call Get_z_midp_P2C_3D(accp_zpencil, qziz_ccc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qz(:, :, :))
+    call Get_z_midp_P2C_3D(accp_zpencil, qziz_ccc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
     if(dm%icoordinate == ICYLINDRICAL) then
-      call Get_z_1st_derivative_P2C_3D(accp_zpencil, qzdz_ccc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qz(:, :, :))
+      call Get_z_1st_derivative_P2C_3D(accp_zpencil, qzdz_ccc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
       call transpose_z_to_y(qzdz_ccc_zpencil, qzdz_ccc_ypencil, dm%dccc)
     end if
 !==========================================================================================================
@@ -475,7 +475,7 @@ contains
       call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1)) ! qr/r
       call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%dcpc)
       
-      call Get_y_midp_P2C_3D(acpc_ypencil, qyriy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcz_qyr(:, :, :))
+      call Get_y_midp_P2C_3D(acpc_ypencil, qyriy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcz_qyr(:, :, :))
        
 
     end if
@@ -1433,7 +1433,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
   if(dm%is_thermo) then
     call Calculate_velocity_from_massflux(dm, fl)
-    call update_gxgygz_bc(dm)
+    call update_gxgygz_bc_geo(dm)
   end if
 
     
