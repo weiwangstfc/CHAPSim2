@@ -463,15 +463,15 @@ module udf_type_mod
     real(wp), allocatable :: fbcy_qy(:, :, :) ! qy bc at y dirction
     real(wp), allocatable :: fbcz_qy(:, :, :) ! qy bc at z dirction
 
-    real(wp), allocatable :: fbcy_uy(:, :, :) ! qy/r = ur bc at y dirction
-    real(wp), allocatable :: fbcz_uy(:, :, :) ! qy/r = ur bc at z dirction
+    real(wp), allocatable :: fbcy_qyr(:, :, :) ! qy/r = ur bc at y dirction
+    real(wp), allocatable :: fbcz_qyr(:, :, :) ! qy/r = ur bc at z dirction
 
     real(wp), allocatable :: fbcx_qz(:, :, :) ! qz bc at x dirction
     real(wp), allocatable :: fbcy_qz(:, :, :) ! qz bc at y dirction
     real(wp), allocatable :: fbcz_qz(:, :, :) ! qz bc at z dirction
 
-    real(wp), allocatable :: fbcy_uz(:, :, :) ! qz/r = u_theta bc at y dirction
-    real(wp), allocatable :: fbcz_uz(:, :, :) ! qz/r = u_theta bc at z dirction
+    real(wp), allocatable :: fbcy_qzr(:, :, :) ! qz/r = u_theta bc at y dirction
+    real(wp), allocatable :: fbcz_qzr(:, :, :) ! qz/r = u_theta bc at z dirction
 
     real(wp), allocatable :: fbcx_pr(:, :, :) ! pr bc at x dirction
     real(wp), allocatable :: fbcy_pr(:, :, :) ! pr bc at y dirction
@@ -485,9 +485,15 @@ module udf_type_mod
     real(wp), allocatable :: fbcy_gy(:, :, :) ! gy bc at y dirction
     real(wp), allocatable :: fbcz_gy(:, :, :) ! gy bc at z dirction
 
+    real(wp), allocatable :: fbcy_gyr(:, :, :) ! gy/r = rho * ur bc at y dirction
+    real(wp), allocatable :: fbcz_gyr(:, :, :) ! gy/r = rho * ur bc at z dirction
+
     real(wp), allocatable :: fbcx_gz(:, :, :) ! gz bc at x dirction
     real(wp), allocatable :: fbcy_gz(:, :, :) ! gz bc at y dirction
     real(wp), allocatable :: fbcz_gz(:, :, :) ! gz bc at z dirction
+
+    real(wp), allocatable :: fbcy_gzr(:, :, :) ! gz/r = rho * u_theta bc at y dirction
+    real(wp), allocatable :: fbcz_gzr(:, :, :) ! gz/r = rho * u_theta bc at z dirction
 
     real(WP), allocatable :: u_vector_mean(:, :, :, :) ! u, v, w
     real(WP), allocatable :: pr_mean(:, :, :)

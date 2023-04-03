@@ -481,52 +481,52 @@ contains
 !==========================================================================================================
     if(dm%icoordinate == ICYLINDRICAL) then
 !----------------------------------------------------------------------------------------------------------
-! y-bc, uy = qy/r
+! y-bc, qyr = qy/r = uy
 !----------------------------------------------------------------------------------------------------------
       do k = 1, dm%dcpc%ysz(3)
         do i = 1, dm%dcpc%ysz(1)
           do n = 1, 2
             if (n == 1) jj = 1
             if (n == 2) jj = dm%np_geo(2)
-            fl%fbcy_uy(i, n,   k) =  dm%fbcy_const(n, 2)
-            fl%fbcy_uy(i, n+2, k) =  fl%fbcy_uy(i, n, k)
+            fl%fbcy_qyr(i, n,   k) =  dm%fbcy_const(n, 2)
+            fl%fbcy_qyr(i, n+2, k) =  fl%fbcy_qyr(i, n, k)
           end do
         end do
       end do
 !----------------------------------------------------------------------------------------------------------
-! y-bc, uz = qz/r
+! y-bc, qzr = qz/r = uz
 !----------------------------------------------------------------------------------------------------------
       do k = 1, dm%dccp%ysz(3)
         do i = 1, dm%dccp%ysz(1)
           do n = 1, 2
             if (n == 1) jj = 1
             if (n == 2) jj = dm%np_geo(2)
-            fl%fbcy_uz(i, n,   k) =  dm%fbcy_const(n, 3)
-            fl%fbcy_uz(i, n+2, k) =  fl%fbcy_uz(i, n, k)
+            fl%fbcy_qzr(i, n,   k) =  dm%fbcy_const(n, 3)
+            fl%fbcy_qzr(i, n+2, k) =  fl%fbcy_qzr(i, n, k)
           end do
         end do
       end do
 !----------------------------------------------------------------------------------------------------------
-! z-bc, uy = qy/r
+! z-bc, qyr = qy/r = uy
 !----------------------------------------------------------------------------------------------------------
       do j = 1, dm%dcpc%zsz(2)
         jj = dm%dcpc%zst(2) + j - 1
         do i = 1, dm%dcpc%zsz(1)
           do n = 1, 2
-            fl%fbcz_uy(i, j, n  ) =  dm%fbcz_const(n, 2)
-            fl%fbcz_uy(i, j, n+2) =  fl%fbcz_uy(i, j, n)
+            fl%fbcz_qyr(i, j, n  ) =  dm%fbcz_const(n, 2)
+            fl%fbcz_qyr(i, j, n+2) =  fl%fbcz_qyr(i, j, n)
           end do
         end do
       end do
 !----------------------------------------------------------------------------------------------------------
-! z-bc, uz = qz/r
+! z-bc, qzr = qz/r = uz
 !----------------------------------------------------------------------------------------------------------
       do j = 1, dm%dccp%zsz(2)
         jj = dm%dccp%zst(2) + j - 1
         do i = 1, dm%dccp%zsz(1)
           do n = 1, 2
-            fl%fbcz_uz(i, j, n  ) =  dm%fbcz_const(n, 3)
-            fl%fbcz_uz(i, j, n+2) =  fl%fbcz_uz(i, j, n)
+            fl%fbcz_qzr(i, j, n  ) =  dm%fbcz_const(n, 3)
+            fl%fbcz_qzr(i, j, n+2) =  fl%fbcz_qzr(i, j, n)
           end do
         end do
       end do
@@ -647,10 +647,10 @@ contains
       allocate( fl%fbcz_pr(dm%dccc%zsz(1), dm%dccc%zsz(2), 4             ) )
 
     if(dm%icoordinate == ICYLINDRICAL) then 
-      allocate( fl%fbcy_uy(dm%dcpc%ysz(1), 4,              dm%dcpc%ysz(3)) )
-      allocate( fl%fbcz_uy(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4             ) )
-      allocate( fl%fbcy_uz(dm%dccp%ysz(1), 4,              dm%dccp%ysz(3)) )
-      allocate( fl%fbcz_uz(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
+      allocate( fl%fbcy_qyr(dm%dcpc%ysz(1), 4,              dm%dcpc%ysz(3)) )
+      allocate( fl%fbcz_qyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4             ) )
+      allocate( fl%fbcy_qzr(dm%dccp%ysz(1), 4,              dm%dccp%ysz(3)) )
+      allocate( fl%fbcz_qzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
     end if
 
     call apply_flow_bc_geo(dm, fl)
@@ -668,6 +668,13 @@ contains
       allocate( fl%fbcx_gz(4,              dm%dccp%xsz(2), dm%dccp%xsz(3)) )
       allocate( fl%fbcy_gz(dm%dccp%ysz(1), 4,              dm%dccp%ysz(3)) )
       allocate( fl%fbcz_gz(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
+
+      if(dm%icoordinate == ICYLINDRICAL) then 
+        allocate( fl%fbcy_gyr(dm%dcpc%ysz(1), 4,              dm%dcpc%ysz(3)) )
+        allocate( fl%fbcz_gyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4             ) )
+        allocate( fl%fbcy_gzr(dm%dccp%ysz(1), 4,              dm%dccp%ysz(3)) )
+        allocate( fl%fbcz_gzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
+      end if
 
       call apply_gxgygz_bc_geo(dm, fl)
       
@@ -1385,6 +1392,13 @@ contains
     fl%fbcz_gx(:, :, :) = fl%fbcz_qx(:, :, :) * tm%fbcz_ftp(:, :, :)%d
     fl%fbcz_gy(:, :, :) = fl%fbcz_qy(:, :, :) * tm%fbcz_ftp(:, :, :)%d
     fl%fbcz_gz(:, :, :) = fl%fbcz_qz(:, :, :) * tm%fbcz_ftp(:, :, :)%d
+
+    if(dm%icoordinate == ICYLINDRICAL) then 
+      fl%fbcy_gyr(:, :, :) = fl%fbcy_qyr(:, :, :) * tm%fbcy_ftp(:, :, :)%d
+      fl%fbcz_gyr(:, :, :) = fl%fbcz_qyr(:, :, :) * tm%fbcz_ftp(:, :, :)%d
+      fl%fbcy_gzr(:, :, :) = fl%fbcy_qzr(:, :, :) * tm%fbcy_ftp(:, :, :)%d
+      fl%fbcz_gzr(:, :, :) = fl%fbcz_qzr(:, :, :) * tm%fbcz_ftp(:, :, :)%d
+    end if
 
     return
   end subroutine
