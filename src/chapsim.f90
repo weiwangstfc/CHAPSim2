@@ -265,7 +265,11 @@ subroutine Solve_eqs_iteration
           call update_thermo_bc_1dm_halo(domain(i), thermo(i))
         end if
         if(is_flow(i)) then
-          call Solve_momentum_eq(flow(i), domain(i), isub)
+          if(is_thermo(i)) then
+            call Solve_momentum_eq(flow(i), domain(i), isub, thermo(i))
+          else
+            call Solve_momentum_eq(flow(i), domain(i), isub)
+          end if
           call update_flow_bc_1dm_halo(domain(i), flow(i))
         end if
       end do

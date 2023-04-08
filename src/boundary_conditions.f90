@@ -687,7 +687,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_flow_bc_1dm_halo(dm, fl)
+  subroutine update_flow_bc_1dm_halo(dm, fl) ! for cylindrical only
     use parameters_constant_mod
     use udf_type_mod
     implicit none
