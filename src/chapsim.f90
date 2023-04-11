@@ -91,7 +91,7 @@ subroutine Initialize_chapsim
 ! build up initial boundary values
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call buildup_thermo_bc_geo(thermo(i), domain(i))
+    call buildup_thermo_bc_geo(thermo(i), domain(i)) ! should be before flow.
     call buildup_flow_bc_geo(flow(i), domain(i)) 
   end do
 !----------------------------------------------------------------------------------------------------------
@@ -252,9 +252,9 @@ subroutine Solve_eqs_iteration
         end if
       end if
     end do
-    !==========================================================================================================
-    !  main solver, domain coupling in each sub-iteration (check)
-    !==========================================================================================================
+!==========================================================================================================
+!  main solver, domain coupling in each sub-iteration (check)
+!==========================================================================================================
     do isub = 1, domain(1)%nsubitr
 !----------------------------------------------------------------------------------------------------------
 !     solve governing equations and update b.c. if necessary
@@ -273,14 +273,18 @@ subroutine Solve_eqs_iteration
           call update_flow_bc_1dm_halo(domain(i), flow(i))
         end if
       end do
-
-      !----------------------------------------------------------------------------------------------------------
-      ! update interface values for multiple domain
-      !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! update interface values for multiple domain
+!----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_flow(i))   call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1))
         if(is_thermo(i)) call update_thermo_bc_2dm_halo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
-      end do
+        if(is_flow(i)) then
+          if(is_thermo(i+1)) then
+            call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1), thermo(i+1))
+          else
+            call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1))
+          end if
+        end do
     end do
 
     !==========================================================================================================

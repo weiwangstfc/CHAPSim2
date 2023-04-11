@@ -2,22 +2,63 @@ module boundary_conditions_mod
 
   character(12) :: filename(5)
   
+  private :: refresh_bc_type
   public  :: configure_bc_type
 
-  private :: map_bc_1d_uprofile
-  private :: apply_flow_bc_geo   ! constant given bc, apply once only  
+  private :: map_bc_1d_uprofile  ! for bc with a given profile
+
+  private :: apply_x_bc_geo
+  private :: apply_y_bc_geo
+  private :: apply_z_bc_geo
+
+  private :: apply_qxqyqzpr_bc_geo   ! constant given bc, apply once only  
   private :: apply_gxgygz_bc_geo ! constant given bc, apply once only
+
   public  :: buildup_thermo_bc_geo ! constant given bc, apply once only
   public  :: buildup_flow_bc_geo   ! constant given bc, apply once only
   
+  private :: get_cyindrical_x_axial_symmetry_bc
   public  :: update_thermo_bc_1dm_halo ! for pipe only, update every NS
   public  :: update_flow_bc_1dm_halo   ! for pipe only, update every NS 
   
-
-  public  :: update_flow_bc_2dm_halo   ! for multiple domains, update every NS 
-  public  :: update_thermo_bc_2dm_halo ! for multiple domains, update every NS
+  private :: apply_x_bc_2dm_halo
+  private :: apply_y_bc_2dm_halo
+  private :: apply_z_bc_2dm_halo
+  public  :: update_flow_bc_2dm_halo   ! for multiple domains only, update every NS 
+  public  :: update_thermo_bc_2dm_halo ! for multiple domains only, update every NS
   
 contains
+
+  subroutine refresh_bc_type(bc_nominal, bc_real)
+    use parameters_constant_mod
+    implicit none 
+    integer, intent(in) :: bc_nominal(2, NBC)
+    integer, intent(inout) :: bc_real(2, NBC)
+    integer :: n, m
+
+    do n = 1, 2
+      do m = 1, NBC
+        if (bc_nominal(n, m) == IBC_PROFILE1D)   then
+          bc_real(n, m) = IBC_DIRICHLET
+        else if (bc_nominal(n, m) == IBC_TURBGEN  .or. &
+                 bc_nominal(n, m) == IBC_DATABASE )   then
+          if(m /=5) then
+            bc_real(n, m) = IBC_INTERIOR
+          else 
+            bc_real(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, check
+          end if
+        else if (bc_nominal(n, m) == IBC_CONVECTIVE)   then
+          bc_real(n, m) = IBC_INTRPL
+        else
+          bc_real(n, m) = bc_nominal(n, m)   
+        end if
+      end do
+    end do
+
+    return
+  end subroutine 
+
+
 !==========================================================================================================
 !==========================================================================================================
   subroutine configure_bc_type(dm)
@@ -26,68 +67,12 @@ contains
     implicit none
     type(t_domain), intent(inout) :: dm
 
-
-    integer :: m, n
-
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc for calculation from given nominal b.c.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 2
-      do m = 1, NBC
-!----------------------------------------------------------------------------------------------------------
-! x-direction
-!----------------------------------------------------------------------------------------------------------
-        if (dm%ibcx_nominal(n, m) == IBC_PROFILE1D)   then
-          dm%ibcx(n, m) = IBC_DIRICHLET
-        else if (dm%ibcx_nominal(n, m) == IBC_TURBGEN  .or. &
-                 dm%ibcx_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            dm%ibcx(n, m) = IBC_INTERIOR ! for temperature, default is no incoming thermal flow, check
-          else 
-            dm%ibcx(n, m) = IBC_DIRICHLET
-          end if
-        else if (dm%ibcx_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcx(n, m) = IBC_INTRPL
-        else
-          dm%ibcx(n, m) = dm%ibcx_nominal(n, m)   
-        end if
-!----------------------------------------------------------------------------------------------------------
-! y-direction
-!----------------------------------------------------------------------------------------------------------
-        if (dm%ibcy_nominal(n, m) == IBC_PROFILE1D)   then
-          dm%ibcy(n, m) = IBC_DIRICHLET
-        else if (dm%ibcy_nominal(n, m) == IBC_TURBGEN  .or. &
-                 dm%ibcy_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            dm%ibcy(n, m) = IBC_INTERIOR
-          else 
-            dm%ibcy(n, m) = IBC_DIRICHLET
-          end if
-        else if (dm%ibcy_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcy(n, m) = IBC_INTRPL
-        else
-          dm%ibcy(n, m) = dm%ibcy_nominal(n, m)   
-        end if
-!----------------------------------------------------------------------------------------------------------
-! z-direction
-!----------------------------------------------------------------------------------------------------------
-        if (dm%ibcz_nominal(n, m) == IBC_PROFILE1D)   then
-          dm%ibcz(n, m) = IBC_DIRICHLET
-        else if (dm%ibcz_nominal(n, m) == IBC_TURBGEN  .or. &
-                 dm%ibcz_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            dm%ibcz(n, m) = IBC_INTERIOR
-          else 
-            dm%ibcz(n, m) = IBC_DIRICHLET
-          end if
-        else if (dm%ibcz_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcz(n, m) = IBC_INTRPL
-        else
-          dm%ibcz(n, m) = dm%ibcz_nominal(n, m)   
-        end if
-
-      end do
-    end do
+    call refresh_bc_type(dm%ibcx_nominal, dm%ibcx)
+    call refresh_bc_type(dm%ibcy_nominal, dm%ibcy)
+    call refresh_bc_type(dm%ibcz_nominal, dm%ibcz)
 !----------------------------------------------------------------------------------------------------------
 ! treatment for cylindrical coordinates
 !----------------------------------------------------------------------------------------------------------
@@ -96,7 +81,6 @@ contains
     end if
 
     if (dm(i)%icase == ICASE_PIPE) then
-      dm%ibcy(1, :) = IBC_INTERIOR
       dm%ibcy(1, :) = IBC_INTERIOR
       ! uy=0 at y=0
       dm%ibcy(1, 2) = IBC_DIRICHLET
@@ -185,7 +169,6 @@ contains
 
     return
   end subroutine
-
 !==========================================================================================================
 !==========================================================================================================
   subroutine buildup_thermo_bc_geo(dm, tm)
@@ -227,7 +210,7 @@ contains
           else if (dm%ibcx(n, 5) == IBC_NEUMANN) then
             ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
             tm%fbcx_heatflux(n,   j, k)%t = dm%fbcx_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            tm%fbcx_heatflux(n+2, j, k)%t = tm%fbcx_heatflux(n, j, k)%t
+            tm%fbcx_heatflux(n+2, j, k)%t = tm%fbcx_heatflux(n, j, k)%t ! to check
           else
           end if
 
@@ -307,6 +290,115 @@ contains
 
     return
   end subroutine
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine apply_x_bc_profile(fbcx, var1y, jst, ri)
+
+    real(WP), intent(inout) :: fbcx(:, :, :)
+    real(WP), intent(in)    :: var1y(:)
+    integer,  intent(in), optional :: jst
+    real(WP), intent(in), optional :: ri(:)
+
+    integer :: k, j, n
+
+
+    do k = 1, size(fbcx, 3)
+      do j = 1, size(fbcx, 2)
+        jj = jst + j - 1
+        if(present(ri)) then
+            fbcx(1, j, k) = var1y(jj) / ri(jj)
+        else
+          fbcx(1, j, k) = var1y(jj)
+        end if
+        fbcx(3, j, k) = fbcx(1, j, k)
+      end do
+    end do
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine apply_x_bc_geo(fbcx, fbcx_const, ri, jst)
+
+    real(WP), intent(inout) :: fbcx(:, :, :)
+    real(WP), intent(in)    :: fbcx_const(2)
+    integer,  intent(in), optional :: jst
+    real(WP), intent(in), optional :: ri(:)
+
+    integer :: k, j, n
+
+    do k = 1, size(fbcx, 3)
+      do j = 1, size(fbcx, 2)
+        if(present(jst)) jj = jst + j - 1
+        do n = 1, 2
+          if(present(ri)) then
+            fbcx(n,   j, k) =  fbcx_const(n) / ri(jj)
+          else
+            fbcx(n,   j, k) =  fbcx_const(n)
+          end if
+          fbcx(n+2, j, k) =  fbcx(n, j, k)
+        end do
+      end do
+    end do
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine apply_y_bc_geo(fbcy, fbcy_const, ri)
+
+    real(WP), intent(inout) :: fbcy(:, :, :)
+    real(WP), intent(in)    :: fbcy_const(2)
+    real(WP), intent(in), optional :: ri(:)
+
+    integer :: k, i, n
+    integer :: ri_new(2)
+
+    ri_new(1) = ri(1)
+    ri_new(2) = ri(size(ri))
+    
+
+    do k = 1, size(fbcy, 3)
+      do i = 1, size(fbcy, 1)
+        do n = 1, 2
+          if(present(ri)) then
+            fbcy(i, n,   k) =  fbcy_const(n) / ri_new(n) ! check  rpi=maxp?
+          else
+            fbcy(i, n,   k) =  fbcy_const(n)
+          end if
+          fbcy(i, n+2, k) =  fbcy(i, n, k)
+        end do
+      end do
+    end do
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine apply_z_bc_geo(fbcz, fbcz_const, ri, jst)
+    implicit none
+    real(WP), intent(inout) :: fbcz(:, :, :)
+    real(WP), intent(in)    :: fbcz_const(2)
+    integer,  intent(in), optional :: jst
+    real(WP), intent(in), optional :: ri(:)
+
+
+    integer :: i, j, n
+
+    do j = 1, 1, size(fbcz, 2)
+      if(present(jst)) jj = jst + j - 1
+      do i = 1, size(fbcz, 1)
+        do n = 1, 2
+        if(present(ri)) then
+            fbcz(i, j, n  ) =  fbcz_const(n) / ri(jj)
+          else
+            fbcz(i, j, n  ) =  fbcz_const(n)
+          end if
+          fbcz(i, j, n+2) =  fbcz(i, j, n)
+        end do
+      end do
+    end do
+
+    return
+  end subroutine
 !==========================================================================================================
 !> \brief Apply b.c. conditions 
 !---------------------------------------------------------------------------------------------------------- 
@@ -320,7 +412,7 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !==========================================================================================================
-  subroutine apply_flow_bc_geo (dm, fl) ! apply once only
+  subroutine apply_qxqyqzpr_bc_geo (dm, fl) ! apply once only
     use parameters_constant_mod
     use udf_type_mod
     implicit none
@@ -337,281 +429,83 @@ contains
 !                  2=4= geometric bc, side 2 
 !==========================================================================================================
 !----------------------------------------------------------------------------------------------------------
-! x-bc, qx
+! x-bc in x-pencil, qx, qy, qz, pr
 !----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dpcc%xsz(3)
-      do j = 1, dm%dpcc%xsz(2)
-        do n = 1, 2
-          fl%fbcx_qx(n,   j, k) =  dm%fbcx_const(n, 1)
-          fl%fbcx_qx(n+2, j, k) =  fl%fbcx_qx(n, j, k)
-        end do
-      end do
-    end do
+    call apply_x_bc_geo(fl%fbcx_qx, dm%fbcx_const(:, 1))
+    call apply_x_bc_geo(fl%fbcx_qy, dm%fbcx_const(:, 2), dm%rpi, dm%dcpc%xst(2))
+    call apply_x_bc_geo(fl%fbcx_qz, dm%fbcx_const(:, 3), dm%rci, dm%dccp%xst(2))
+    call apply_x_bc_geo(fl%fbcx_pr, dm%fbcx_const(:, 4))
 !----------------------------------------------------------------------------------------------------------
-! x-bc, qy
+! y-bc in y-pencil, qx, qy, qz, pr
 !----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dcpc%xsz(3)
-      do j = 1, dm%dcpc%xsz(2)
-        jj = dm%dcpc%xst(2) + j - 1
-        do n = 1, 2
-          fl%fbcx_qy(n,   j, k) =  dm%fbcx_const(n, 2) / dm%rpi(jj)
-          fl%fbcx_qy(n+2, j, k) =  fl%fbcx_qy(n, j, k)
-        end do
-      end do
-    end do
+    call apply_y_bc_geo(fl%fbcy_qx, dm%fbcy_const(:, 1))
+    call apply_y_bc_geo(fl%fbcy_qy, dm%fbcy_const(:, 2), dm%rpi)
+    call apply_y_bc_geo(fl%fbcy_qz, dm%fbcy_const(:, 3), dm%rpi) ! geo_bc, rpi, not rci
+    call apply_y_bc_geo(fl%fbcy_pr, dm%fbcy_const(:, 4))
 !----------------------------------------------------------------------------------------------------------
-! x-bc, qz
+! z-bc in z-pencil, qx, qy, qz, pr
 !----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dccp%xsz(3)
-      do j = 1, dm%dccp%xsz(2)
-        jj = dm%dccp%xst(2) + j - 1
-        do n = 1, 2
-          fl%fbcx_qz(n,   j, k) =  dm%fbcx_const(n, 3) / dm%rci(jj)
-          fl%fbcx_qz(n+2, j, k) =  fl%fbcx_qz(n, j, k)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! x-bc, pr
-!----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dccc%xsz(3)
-      do j = 1, dm%dccc%xsz(2)
-        do n = 1, 2
-          fl%fbcx_pr(n,   j, k) =  dm%fbcx_const(n, 4)
-          fl%fbcx_pr(n+2, j, k) =  fl%fbcx_pr(n, j, k)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! y-bc, qx
-!----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dpcc%ysz(3)
-      do i = 1, dm%dpcc%ysz(1)
-        do n = 1, 2
-          fl%fbcy_qx(i, n,   k) =  dm%fbcy_const(n, 1)
-          fl%fbcy_qx(i, n+2, k) =  fl%fbcy_qx(i, n, k)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! y-bc, qy
-!----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dcpc%ysz(3)
-      do i = 1, dm%dcpc%ysz(1)
-        do n = 1, 2
-          if (n == 1) jj = 1
-          if (n == 2) jj = dm%np_geo(2)
-          fl%fbcy_qy(i, n,   k) =  dm%fbcy_const(n, 2) / dm%rpi(jj) ! check  rpi=maxp?
-          fl%fbcy_qy(i, n+2, k) =  fl%fbcy_qy(i, n, k)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! y-bc, qz
-!----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dccp%ysz(3)
-      do i = 1, dm%dccp%ysz(1)
-        do n = 1, 2
-          if (n == 1) jj = 1
-          if (n == 2) jj = dm%np_geo(2)
-          fl%fbcy_qz(i, n,   k) =  dm%fbcy_const(n, 3) / dm%rpi(jj) ! check, rpi not rci
-          fl%fbcy_qz(i, n+2, k) =  fl%fbcy_qz(i, n, k)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! y-bc, pr
-!----------------------------------------------------------------------------------------------------------
-    do k = 1, dm%dccc%ysz(3)
-      do i = 1, dm%dccc%ysz(1)
-        do n = 1, 2
-          fl%fbcy_pr(i, n,   k) =  dm%fbcy_const(n, 4)
-          fl%fbcy_pr(i, n+2, k) =  fl%fbcy_pr(i, n, k)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! z-bc, qx
-!----------------------------------------------------------------------------------------------------------
-    do j = 1, dm%dpcc%zsz(2)
-      do i = 1, dm%dpcc%zsz(1)
-        do n = 1, 2
-          fl%fbcz_qx(i, j, n  ) =  dm%fbcz_const(n, 1)
-          fl%fbcz_qx(i, j, n+2) =  fl%fbcz_qx(i, j, n)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! z-bc, qy
-!----------------------------------------------------------------------------------------------------------
-    do j = 1, dm%dcpc%zsz(2)
-      jj = dm%dcpc%zst(2) + j - 1
-      do i = 1, dm%dcpc%zsz(1)
-        do n = 1, 2
-          fl%fbcz_qy(i, j, n  ) =  dm%fbcz_const(n, 2) / dm%rpi(jj)
-          fl%fbcz_qy(i, j, n+2) =  fl%fbcz_qy(i, j, n)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! z-bc, qz
-!----------------------------------------------------------------------------------------------------------
-    do j = 1, dm%dccp%zsz(2)
-      jj = dm%dccp%zst(2) + j - 1
-      do i = 1, dm%dccp%zsz(1)
-        do n = 1, 2
-          fl%fbcz_qz(i, j, n  ) =  dm%fbcz_const(n, 3) / dm%rci(jj)
-          fl%fbcz_qz(i, j, n+2) =  fl%fbcz_qz(i, j, n)
-        end do
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! z-bc
-!----------------------------------------------------------------------------------------------------------
-    do j = 1, dm%dccc%zsz(2)
-      do i = 1, dm%dccc%zsz(1)
-        do n = 1, 2
-          fl%fbcz_pr(i, j, n, ) =  dm%fbcz_const(n, 4)
-          fl%fbcz_pr(i, j, n+2) =  fl%fbcz_pr(i, j, n)
-        end do
-      end do
-    end do
+    call apply_z_bc_geo(fl%fbcz_qx, dm%fbcz_const(:, 1))
+    call apply_z_bc_geo(fl%fbcz_qy, dm%fbcz_const(:, 2), dm%rpi, dm%dcpc%zst(2))
+    call apply_z_bc_geo(fl%fbcz_qz, dm%fbcz_const(:, 3), dm%rci, dm%dccp%zst(2))
+    call apply_z_bc_geo(fl%fbcz_pr, dm%fbcz_const(:, 4))
 !==========================================================================================================
 ! y bc for primary variables, uy, uz
 !==========================================================================================================
     if(dm%icoordinate == ICYLINDRICAL) then
 !----------------------------------------------------------------------------------------------------------
-! y-bc, qyr = qy/r = uy
+! y-bc in y-pencil, qyr = qy/r = uy; qzr = qz/r = uz
 !----------------------------------------------------------------------------------------------------------
-      do k = 1, dm%dcpc%ysz(3)
-        do i = 1, dm%dcpc%ysz(1)
-          do n = 1, 2
-            if (n == 1) jj = 1
-            if (n == 2) jj = dm%np_geo(2)
-            fl%fbcy_qyr(i, n,   k) =  dm%fbcy_const(n, 2)
-            fl%fbcy_qyr(i, n+2, k) =  fl%fbcy_qyr(i, n, k)
-          end do
-        end do
-      end do
+      call apply_y_bc_geo(fl%fbcy_qyr, dm%fbcy_const(:, 2))
+      call apply_y_bc_geo(fl%fbcy_qzr, dm%fbcy_const(:, 3))
 !----------------------------------------------------------------------------------------------------------
-! y-bc, qzr = qz/r = uz
+! z-bc in z-pencil, qyr = qy/r = uy; qzr = qz/r = uz
 !----------------------------------------------------------------------------------------------------------
-      do k = 1, dm%dccp%ysz(3)
-        do i = 1, dm%dccp%ysz(1)
-          do n = 1, 2
-            if (n == 1) jj = 1
-            if (n == 2) jj = dm%np_geo(2)
-            fl%fbcy_qzr(i, n,   k) =  dm%fbcy_const(n, 3)
-            fl%fbcy_qzr(i, n+2, k) =  fl%fbcy_qzr(i, n, k)
-          end do
-        end do
-      end do
-!----------------------------------------------------------------------------------------------------------
-! z-bc, qyr = qy/r = uy
-!----------------------------------------------------------------------------------------------------------
-      do j = 1, dm%dcpc%zsz(2)
-        jj = dm%dcpc%zst(2) + j - 1
-        do i = 1, dm%dcpc%zsz(1)
-          do n = 1, 2
-            fl%fbcz_qyr(i, j, n  ) =  dm%fbcz_const(n, 2)
-            fl%fbcz_qyr(i, j, n+2) =  fl%fbcz_qyr(i, j, n)
-          end do
-        end do
-      end do
-!----------------------------------------------------------------------------------------------------------
-! z-bc, qzr = qz/r = uz
-!----------------------------------------------------------------------------------------------------------
-      do j = 1, dm%dccp%zsz(2)
-        jj = dm%dccp%zst(2) + j - 1
-        do i = 1, dm%dccp%zsz(1)
-          do n = 1, 2
-            fl%fbcz_qzr(i, j, n  ) =  dm%fbcz_const(n, 3)
-            fl%fbcz_qzr(i, j, n+2) =  fl%fbcz_qzr(i, j, n)
-          end do
-        end do
-      end do
-
+      call apply_z_bc_geo(fl%fbcz_qyr, dm%fbcz_const(:, 2))
+      call apply_z_bc_geo(fl%fbcz_qzr, dm%fbcz_const(:, 3))
     end if
 
 !==========================================================================================================
 ! to build up bc for var(x_const, y, z)
-!==========================================================================================================
-    filename(1) = 'pf1d_u1y.dat' !(undim)
-    filename(2) = 'pf1d_v1y.dat' !(undim)
-    filename(3) = 'pf1d_w1y.dat' !(undim)
-    filename(4) = 'pf1d_p1y.dat' !(undim)
-!----------------------------------------------------------------------------------------------------------
+!==========================================================================================================!----------------------------------------------------------------------------------------------------------
 ! x-bc1, qx(x_c, y, z)
 !----------------------------------------------------------------------------------------------------------
     if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D) then
-
       var1y = ZERO
       ny = dm%nc(2)
+      filename(1) = 'pf1d_u1y.dat' !(undim)
       call map_bc_1d_uprofile( filename(1), ny, dm%yc, var1y(1:ny) )
-
-      do k = 1, dm%dpcc%xsz(3)
-        do j = 1, dm%dpcc%xsz(2)
-          jj = dm%dpcc%xst(2) + j - 1
-          fl%fbcx_qx(1, j, k) = var1y(jj)
-          fl%fbcx_qx(3, j, k) = fl%fbcx_qx(1, j, k)
-        end do
-      end do
-
+      call apply_x_bc_profile(fl%fbcx_qx, var1y, dm%dpcc%xst(2))
     end if
 !----------------------------------------------------------------------------------------------------------
 ! x-bc1, qy(x_c, y, z)
 !----------------------------------------------------------------------------------------------------------
     if(dm%ibcx_nominal(1, 2) == IBC_PROFILE1D) then
-
       var1y = ZERO
       ny = dm%np(2)
+      filename(2) = 'pf1d_v1y.dat' !(undim)
       call map_bc_1d_uprofile( filename(2), ny, dm%yp, var1y(1:ny) )
-
-      do k = 1, dm%dcpc%xsz(3)
-        do j = 1, dm%dcpc%xsz(2)
-          jj = dm%dpcc%xst(2) + j - 1
-          fl%fbcx_qy(1, j, k) = var1y(jj) / dm%rpi(jj)
-          fl%fbcx_qy(3, j, k) = fl%fbcx_qy(1, j, k)
-        end do
-      end do
-      
+      call apply_x_bc_profile(fl%fbcx_qy, var1y, dm%dcpc%xst(2), dm%rpi)
     end if
-
 !----------------------------------------------------------------------------------------------------------
 ! x-bc1, qz(x_c, y, z)
 !----------------------------------------------------------------------------------------------------------
     if(dm%ibcx_nominal(1, 3) == IBC_PROFILE1D) then
-
       var1y = ZERO
       ny = dm%nc(2)
+      filename(3) = 'pf1d_w1y.dat' !(undim)
       call map_bc_1d_uprofile( filename(3), ny, dm%yc, var1y(1:ny) )
-
-      do k = 1, dm%dccp%xsz(3)
-        do j = 1, dm%dccp%xsz(2)
-          jj = dm%dccp%xst(2) + j - 1
-          fl%fbcx_qz(1, j, k) = var1y(jj) / dm%rci(jj)
-          fl%fbcx_qz(3, j, k) = fl%fbcx_qz(1, j, k)
-        end do
-      end do
-      
+      call apply_x_bc_profile(fl%fbcx_qz, var1y, dm%dccp%xst(2), dm%rci(jj))
     end if
 !----------------------------------------------------------------------------------------------------------
 ! x-bc1, pr(x_c, y, z)
 !----------------------------------------------------------------------------------------------------------
     if(dm%ibcx_nominal(1, 4) == IBC_PROFILE1D) then
-
       var1y = ZERO
       ny = dm%nc(2)
+      filename(4) = 'pf1d_p1y.dat' !(undim)
       call map_bc_1d_uprofile( filename(4), ny, dm%yc, var1y(1:ny) )
-
-      do k = 1, dm%dccc%xsz(3)
-        do j = 1, dm%dccc%xsz(2)
-          jj = dm%dccc%xst(2) + j - 1
-          fl%fbcx_pr(1, j, k) = var1y(jj)
-          fl%fbcx_pr(3, j, k) = fl%fbcx_pr(1, j, k)
-        end do
-      end do
-
+      call apply_x_bc_profile(fl%fbcx_pr, var1y, dm%dccc%xst(2))
     end if
 
     return
@@ -653,7 +547,7 @@ contains
       allocate( fl%fbcz_qzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
     end if
 
-    call apply_flow_bc_geo(dm, fl)
+    call apply_qxqyqzpr_bc_geo(dm, fl)
     
     if(dm%is_thermo) then
 
@@ -682,7 +576,37 @@ contains
 
     return
   end subroutine 
+!==========================================================================================================
+!==========================================================================================================
+  subroutine get_cyindrical_x_axial_symmetry_bc(var_xpencil, fbcy, ksym, dtmp)
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(in) :: var_xpencil(:, :, :)
+    real(WP), intent(inout) :: fbcy(:, :, :)
+    integer, intent(in) :: ksyn
 
+    real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) ) :: var_ypencil
+    real(WP), dimension( dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3) ) :: var_zpencil
+    real(WP), dimension( dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3) ) :: var_zpencil1
+
+    integer :: k
+!----------------------------------------------------------------------------------------------------------
+!   all in z-pencil
+!   no overlap of values
+!----------------------------------------------------------------------------------------------------------
+    call transpose_x_to_y(var_xpencil, var_ypencil, dtmp)
+    call transpose_y_to_z(var_ypencil, var_zpencil, dtmp)
+
+    do k = 1, dtmp%zsz(3)
+      var_zp1(:, :, k) = var_zpencil(:, :, dm%knc_sym(k))
+    end do
+    call transpose_z_to_y(var_zpencil1, var_ypencil, dtmp)
+
+    fbcy(:, 1, :) = var_ypencil(:, 1, :)
+    fbcy(:, 3, :) = var_ypencil(:, 2, :)
+
+    return
+  end subroutine 
 
 
 !==========================================================================================================
@@ -694,531 +618,525 @@ contains
     type(t_domain), intent(inout) :: dm
     type(t_flow), intent(in)      :: fl
 
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: apcc_ypencil
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc_zpencil
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc1_zpencil
-
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp1_zpencil
-    
-    integer :: k
-
     if(dm%icase /= ICASE_PIPE) return
+
 !----------------------------------------------------------------------------------------------------------
-!   all in z-pencil
-!   no overlap of values
+!   (qx, qy, qz, pr) bc in y - direction, interior
 !----------------------------------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------------------------------
-!   (qx, qy, qz, pr) bc in y - direction
-!----------------------------------------------------------------------------------------------------------
+    ! ux, dm0-dm1, nc
     if(dm%ibcy(1, 1) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl%qx,        apcc_ypencil, dm%apcc)
-      call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%apcc)
-
-      do k = 1, dm%dpcc%zsz(3)
-        apcc1_zpencil(:, :, k) = apcc_zpencil(:, :, dm%knc_sym(k))
-      end do
-      call transpose_z_to_y(apcc1_zpencil, apcc_ypencil, dm%apcc)
-
-      fl%fbcy_qx(:, 1, :) = apcc_ypencil(:, 1, :)
-      fl%fbcy_qx(:, 3, :) = apcc_ypencil(:, 2, :)
+      call get_cyindrical_x_axial_symmetry_bc(fl%qx, fl%fbcy_qx, dm%knc_sym, dm%dpcc)
+      if( dm%is_thermo) &
+      call get_cyindrical_x_axial_symmetry_bc(fl%gx, fl%fbcy_gx, dm%knc_sym, dm%dpcc)
     end if
 
     ! uy, dm0-dm1, np
-    fl%fbcy_qy(:, 1, :) = ZERO
-    fl%fbcy_ur(:, 1, :) = ZERO
+    if(dm%ibcy(1, 2) /= IBC_DIRICHLET) call Print_error_msg('BC error.') ! check, axial-symmetric at y=2?
+    fl%fbcy_qy (:, 1, :) = ZERO
+    fl%fbcy_qyr(:, 1, :) = ZERO
+    if( dm%is_thermo) then
+      fl%fbcy_gy (:, 1, :) = ZERO
+      fl%fbcy_gyr(:, 1, :) = ZERO
+    end if
 
     ! uz, dm0-dm1, nc
     if(dm%ibcy(1, 3) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl%qz,        accp_ypencil, dm%accp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-
-      do k = 1, dm%dpcc%zsz(3)
-        accp1_zpencil(:, :, k) = accp_zpencil(:, :, dm%knc_sym(k))
-      end do
-      call transpose_z_to_y(accp1_zpencil, accp_ypencil, dm%accp)
-
-      fl%fbcy_qz(:, 1, :) = accp_ypencil(:, 1, :)
-      fl%fbcy_qz(:, 3, :) = accp_ypencil(:, 2, :)
-
-      fl%fbcy_uz(:, 1, :) = fl%fbcy_qz(:, 1, :) * dm%rci(1)
-      fl%fbcy_uz(:, 3, :) = fl%fbcy_qz(:, 3, :) * dm%rci(2)
-
+      call get_cyindrical_x_axial_symmetry_bc(fl%qz, fl%fbcy_qz, dm%knc_sym, dm%dcpc)
+      fl%fbcy_qzr(:, 1, :) = fl%fbcy_qz(:, 1, :) * dm%rci(1)
+      fl%fbcy_qzr(:, 3, :) = fl%fbcy_qz(:, 3, :) * dm%rci(2)
+      if( dm%is_thermo) then
+        call get_cyindrical_x_axial_symmetry_bc(fl%gz, fl%fbcy_gz, dm%knc_sym, dm%dcpc)
+        fl%fbcy_gzr(:, 1, :) = fl%fbcy_gz(:, 1, :) * dm%rci(1)
+        fl%fbcy_gzr(:, 3, :) = fl%fbcy_gz(:, 3, :) * dm%rci(2)
+      end if
     end if
 
     ! p, dm0-dm1, nc
     if(dm%ibcy(1, 4) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl%pres,      accc_ypencil, dm%accc)
-      call transpose_y_to_z(accc_ypencil, accc_zpencil, dm%accc)
-
-      do k = 1, dm%dpcc%zsz(3)
-        accc1_zpencil(:, :, k) = accc_zpencil(:, :, dm%knc_sym(k))
-      end do
-      call transpose_z_to_y(accc1_zpencil, accc_ypencil, dm%accc)
-
-      fl%fbcy_pr(:, 1, :) = accp_ypencil(:, 1, :)
-      fl%fbcy_pr(:, 3, :) = accp_ypencil(:, 2, :)
-
-    end if
-!----------------------------------------------------------------------------------------------------------
-!   (gx, gy, gz) bc in y - direction
-!----------------------------------------------------------------------------------------------------------
-    if( dm%is_thermo) then
-      if(dm%ibcy(1, 1) == IBC_INTERIOR) then
-        call transpose_x_to_y(fl%gx,        apcc_ypencil, dm%apcc)
-        call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%apcc)
-
-        do k = 1, dm%dpcc%zsz(3)
-          apcc1_zpencil(:, :, k) = apcc_zpencil(:, :, dm%knc_sym(k))
-        end do
-        call transpose_z_to_y(apcc1_zpencil, apcc_ypencil, dm%apcc)
-
-        fl%fbcy_gx(:, 1, :) = apcc_ypencil(:, 1, :)
-        fl%fbcy_gx(:, 3, :) = apcc_ypencil(:, 2, :)
-      end if
-
-      ! uy, dm0-dm1, np
-      fl%fbcy_gy(:, 1, :) = ZERO
-
-      ! uz, dm0-dm1, nc
-      if(dm%ibcy(1, 3) == IBC_INTERIOR) then
-        call transpose_x_to_y(fl%gz,        accp_ypencil, dm%accp)
-        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-
-        do k = 1, dm%dpcc%zsz(3)
-          accp1_zpencil(:, :, k) = accp_zpencil(:, :, dm%knc_sym(k))
-        end do
-        call transpose_z_to_y(accp1_zpencil, accp_ypencil, dm%accp)
-
-        fl%fbcy_gz(:, 1, :) = accp_ypencil(:, 1, :)
-        fl%fbcy_gz(:, 3, :) = accp_ypencil(:, 2, :)
-
-      end if
+      call get_cyindrical_x_axial_symmetry_bc(fl%pres, fl%fbcy_pr, dm%knc_sym, dm%dccc)
     end if
 
 
     return
   end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine apply_x_bc_2dm_halo(fbcx, var, iside, n)
 
+    real(WP), intent(inout) :: fbcx(:, :, :)
+    real(WP), intent(in)    :: var(:, :, :)
+    integer, intent(in)     :: iside
+    integer, intent(in)     :: n
+
+    integer :: isign
+    
+    if(iside == 1) then
+      isign = 1
+    else if(iside == 2) then
+      isign = -1
+    else
+      call Print_error_msg('Error input.')
+    end if
+
+    fbcx(iside,   :, :) = var(n,       :, :)
+    fbcx(iside+2, :, :) = var(n-isign, :, :)
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine apply_y_bc_2dm_halo(fbcy, var, iside, n, dtmp)
+
+    real(WP), intent(inout) :: fbcy(:, :, :)
+    real(WP), intent(in)    :: var(:, :, :)
+    integer, intent(in)     :: iside
+    integer, intent(in)     :: n
+    type(DECOMP_INFO), intent(in) :: dtmp
+
+
+    real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) ) :: var_ypencil
+    integer :: isign
+
+    if(iside == 1) then
+      isign = 1
+    else if(iside == 2) then
+      isign = -1
+    else
+      call Print_error_msg('Error input.')
+    end if
+
+    call transpose_x_to_y(var, var_ypencil, dtmp)
+    fbcy(:, m,   :) = var_ypencil(:, n,       :)
+    fbcy(:, m+2, :) = var_ypencil(:, n-isign, :)
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine apply_z_bc_2dm_halo(fbcz, var, iside, n, dtmp)
+
+    real(WP), intent(inout) :: fbcz(:, :, :)
+    real(WP), intent(in)    :: var(:, :, :)
+    integer, intent(in)     :: iside
+    integer, intent(in)     :: n
+    type(DECOMP_INFO), intent(in) :: dtmp
+
+    real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) ) :: var_ypencil
+    real(WP), dimension( dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3) ) :: var_zpencil
+    integer :: isign
+
+    if(iside == 1) then
+      isign = 1
+    else if(iside == 2) then
+      isign = -1
+    else
+      call Print_error_msg('Error input.')
+    end if
+
+    call transpose_x_to_y(var,         var_ypencil, dtmp)
+    call transpose_y_to_z(var_ypencil, var_zpencil, dtmp)
+    fbcz(:, :, m, ) = var_zpencil(:, :, n,     )
+    fbcz(:, :, m+2) = var_zpencil(:, :, n-isign)
+
+    return
+  end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_flow_bc_2dm_halo(dm0, fl0, dm1, fl1)
+  subroutine update_flow_bc_2dm_halo(dm0, fl0, dm1, fl1, tm1)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
-    type(t_domain), intent(inout) :: dm0, dm1
-    type(t_flow), intent(in)      :: fl0, fl1
-    
-    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: apcc_ypencil
-    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc_zpencil
+    type(t_domain), intent(in)           :: dm0, dm1
+    type(t_flow),   intent(inout)        :: fl0, fl1
+    type(t_thermo), intent(in), optional :: tm1
+
+    integer :: iside, n0
     real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc_xpencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
-    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: acpc_zpencil
     real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp_xpencil
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
-    real(WP), dimension( dm%dccc%ysz(1), dm%cpcc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%cpcc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
+    
+!----------------------------------------------------------------------------------------------------------
+!   x-bc for qx, qy, qz, pres,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+    iside = 1
+    n0 = dm0%nc(1)
+    if(dm1%ibcx(iside, 1) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl1%fbcx_qx, fl0%qx,   iside, n0)
 
-!----------------------------------------------------------------------------------------------------------
-!   default in x-pencil
-!----------------------------------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------------------------------
-!   qx, qy, qz, pres, bc in x - direction,  no overlap of values
-!----------------------------------------------------------------------------------------------------------
-    ! qx - x, dm0<->dm1, np
-    if(dm1%ibcx(1, 1) == IBC_INTERIOR) then
-      fl1%fbcx_qx(1, :, :) = fl0%qx(dm0%np_geo(1) - 1, :, :)
-      fl1%fbcx_qx(3, :, :) = fl0%qx(dm0%np_geo(1) - 2, :, :)
-    end if
-    if(dm0%ibcx(2, 1) == IBC_INTERIOR) then
-      fl0%fbcx_qx(2, :, :) = fl1%qx(2, :, :)
-      fl0%fbcx_qx(4, :, :) = fl1%qx(3, :, :)
-    end if
-    ! qy - x, dm0<->dm1, nc
-    if(dm1%ibcx(1, 2) == IBC_INTERIOR) then
-      fl1%fbcx_qy(1, :, :) = fl0%qy(dm0%nc(1),     :, :)
-      fl1%fbcx_qy(3, :, :) = fl0%qy(dm0%nc(1) - 1, :, :)
-    end if
-    if(dm0%ibcx(2, 2) == IBC_INTERIOR) then
-      fl0%fbcx_qy(2, :, :) = fl1%qy(1, :, :)
-      fl0%fbcx_qy(4, :, :) = fl1%qy(2, :, :)
-    end if
-    ! qz - x, dm0<->dm1, nc
-    if(dm1%ibcx(1, 3) == IBC_INTERIOR) then
-      fl1%fbcx_qz(1, :, :) = fl0%qz(dm0%nc(1),     :, :)
-      fl1%fbcx_qz(3, :, :) = fl0%qz(dm0%nc(1) - 1, :, :)
-    end if
-    if(dm0%ibcx(2, 3) == IBC_INTERIOR) then
-      fl0%fbcx_qz(2, :, :, m) = fl1%qz(1, :, :)
-      fl0%fbcx_qz(4, :, :, m) = fl1%qz(2, :, :)
-    end if
-    ! p - x, dm0-dm1, nc
-    if(dm1%ibcx(1, 4) == IBC_INTERIOR) then
-      fl1%fbcx_pr(1, :, :) = fl0%pres(dm0%nc(1),     :, :)
-      fl1%fbcx_pr(3, :, :) = fl0%pres(dm0%nc(1) - 1, :, :)
-    end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
-      fl0%fbcx_pr(2, :, :) = fl1%pres(1, :, :)
-      fl0%fbcx_pr(4, :, :) = fl1%pres(2, :, :)
-    end if
-!----------------------------------------------------------------------------------------------------------
-!   qx, qy, qz, pres, bc in y - direction,  no overlap of values
-!----------------------------------------------------------------------------------------------------------
-    ! qx - y, dm0<->dm1, nc
-    if(dm1%ibcy(1, 1) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%qx, apcc_ypencil, dm%apcc)
-      fl1%fbcy_qx(:, 1, :) = apcc_ypencil(:, dm0%nc(2),     :)
-      fl1%fbcy_qx(:, 3, :) = apcc_ypencil(:, dm0%nc(2) - 1, :)
-    end if
-    if(dm0%ibcy(2, 1) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%qx, apcc_ypencil, dm%apcc)
-      fl0%fbcy_qx(:, 2, :) = apcc_ypencil(:, 1, :)
-      fl0%fbcy_qx(:, 4, :) = apcc_ypencil(:, 2, :)
-    end if
-    ! qy - y, dm0<->dm1, np
-    if(dm1%ibcy(1, 2) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%qy, acpc_ypencil, dm%acpc)
-      fl1%fbcy_qy(:, 1, :) = acpc_ypencil(:, dm0%np_geo(2) - 1, :)
-      fl1%fbcy_qy(:, 3, :) = acpc_ypencil(:, dm0%np_geo(2) - 2, :)
-    end if
-    if(dm0%ibcy(2, 2) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%qy, acpc_ypencil, dm%acpc)
-      fl0%fbcy_qy(:, 2, :) = acpc_ypencil(:, 2, :)
-      fl0%fbcy_qy(:, 4, :) = acpc_ypencil(:, 3, :)
-    end if
-    ! qz - y, dm0<->dm1, nc
-    if(dm1%ibcy(1, 3) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%qz, accp_ypencil, dm%accp)
-      fl1%fbcy_qz(:, 1, :) = accp_ypencil(:, dm0%nc(2),     :)
-      fl1%fbcy_qz(:, 3, :) = accp_ypencil(:, dm0%nc(2) - 1, :)
-    end if
-    if(dm0%ibcy(2, 3) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%qz, accp_ypencil, dm%accp)
-      fl0%fbcy_qz(:, 2, :) = accp_ypencil(:, 1, :)
-      fl0%fbcy_qz(:, 4, :) = accp_ypencil(:, 2, :)
-    end if
-    ! p - y, dm0<->dm1, nc
-    if(dm1%ibcy(1, 4) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%pres, accc_ypencil, dm%accc)
-      fl1%fbcy_pr(:, 1, :) = accc_ypencil(:, dm0%nc(2),     :)
-      fl1%fbcy_pr(:, 3, :) = accc_ypencil(:, dm0%nc(2) - 1, :)
-    end if
-    if(dm0%ibcy(2, 4) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%pres, accc_ypencil, dm%accc)
-      fl0%fbcy_pr(:, 2, :) = accc_ypencil(:, 1, :)
-      fl0%fbcy_pr(:, 4, :) = accc_ypencil(:, 2, :)
-    end if
+    if(dm1%ibcx(iside, 2) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl1%fbcx_qy, fl0%qy,   iside, n0)
 
-!----------------------------------------------------------------------------------------------------------
-!   qx, qy, qz, pres, bc in z - direction,  no overlap of values
-!----------------------------------------------------------------------------------------------------------
-    ! qx - z, dm0<->dm1, nc
-    if(dm1%ibcz(1, 1) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%qx, apcc_ypencil, dm%apcc)
-      call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%apcc)
-      fl1%fbcz_qx(:, :, 1) = apcc_zpencil(:, :, dm0%nc(2)    )
-      fl1%fbcz_qx(:, :, 3) = apcc_zpencil(:, :, dm0%nc(2) - 1)
-    end if
-    if(dm0%ibcz(2, 1) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%qx, apcc_ypencil, dm%apcc)
-      call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%apcc)
-      fl0%fbcz_qx(:, :, 2) = apcc_zpencil(:, :, 1)
-      fl0%fbcz_qx(:, :, 4) = apcc_zpencil(:, :, 2)
-    end if
-    ! qy - z, dm0-dm1, np
-    if(dm1%ibcz(1, 2) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%qy, acpc_ypencil, dm%acpc)
-      call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%acpc)
-      fl1%fbcz_qy(:, :, 1) = acpc_zpencil(:, :, dm0%nc(2)    )
-      fl1%fbcz_qy(:, :, 3) = acpc_zpencil(:, :, dm0%nc(2) - 1)
-    end if
-    if(dm0%ibcz(2, 2) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%qy, acpc_ypencil, dm%acpc)
-      call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%acpc)
-      fl0%fbcz_qy(:, :, 2) = acpc_zpencil(:, :, 1)
-      fl0%fbcz_qy(:, :, 4) = acpc_zpencil(:, :, 2)
-    end if
-    ! qz - z, dm0-dm1, nc
-    if(dm1%ibcz(1, 3) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%qz, accp_ypencil, dm%accp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-      fl1%fbcz_qz(:, :, 1) = accp_zpencil(:, :, dm0%np_geo(2) - 1)
-      fl1%fbcz_qz(:, :, 3) = accp_zpencil(:, :, dm0%np_geo(2) - 2)
-    end if
-    if(dm0%ibcz(2, 3) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%qz, accp_ypencil, dm%accp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-      fl0%fbcz_qz(:, :, 2) = accp_zpencil(:, :, 2)
-      fl0%fbcz_qz(:, :, 4) = accp_zpencil(:, :, 3)
-    end if
-    ! p - z, dm0-dm1, nc
-    if(dm1%ibcz(1, 4) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl0%pres, accc_ypencil, dm%accc)
-      call transpose_y_to_z(accc_ypencil, accc_zpencil, dm%accc)
-      fl1%fbcz_pr(:, :, 1) = accc_zpencil(:, :, dm0%nc(2)    )
-      fl1%fbcz_pr(:, :, 3) = accc_zpencil(:, :, dm0%nc(2) - 1)
-    end if
-    if(dm0%ibcz(2, 4) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl1%pres, accc_ypencil, dm%accc)
-      call transpose_y_to_z(accc_ypencil, accc_zpencil, dm%accc)
-      fl0%fbcz_pr(:, :, 2) = accc_zpencil(:, :, 1)
-      fl0%fbcz_pr(:, :, 4) = accc_zpencil(:, :, 2)
-    end if
+    if(dm1%ibcx(iside, 3) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl1%fbcx_qz, fl0%qz,   iside, n0)
 
+    if(dm1%ibcx(iside, 4) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl1%fbcx_pr, fl0%pres, iside, n0)
+    
+    iside = 2
+    n0 = 1
+    if(dm0%ibcx(iside, 1) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl0%fbcx_qx, fl1%qx,   iside, n0+1)
+
+    if(dm0%ibcx(iside, 2) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl0%fbcx_qy, fl1%qy,   iside, n0)
+
+    if(dm0%ibcx(iside, 3) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl0%fbcx_qz, fl1%qz,   iside, n0)
+
+    if(dm0%ibcx(iside, 4) == IBC_INTERIOR) &
+    call apply_x_bc_2dm_halo(fl0%fbcx_pr, fl1%pres, iside, n0)
 !----------------------------------------------------------------------------------------------------------
+!   y-bc for qx, qy, qz, pres,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+    iside = 1
+    n0 = dm0%nc(2)
+    if(dm1%ibcy(iside, 1) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl1%fbcy_qx, fl0%qx,   iside, n0, dm0%apcc)
+
+    if(dm1%ibcy(iside, 2) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl1%fbcy_qy, fl0%qy,   iside, n0, dm0%acpc)
+
+    if(dm1%ibcy(iside, 3) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl1%fbcy_qz, fl0%qz,   iside, n0, dm0%accp)
+
+    if(dm1%ibcy(iside, 4) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl1%fbcy_pr, fl0%pres, iside, n0, dm0%accc)
+
+    iside = 2
+    n0 = 1
+    if(dm0%ibcy(iside, 1) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl0%fbcy_qx, fl1%qx,   iside, n0,   dm1%apcc)
+
+    if(dm0%ibcy(iside, 2) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl0%fbcy_qy, fl1%qy,   iside, n0+1, dm1%acpc)
+
+    if(dm0%ibcy(iside, 3) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl0%fbcy_qz, fl1%qz,   iside, n0,   dm1%accp)
+
+    if(dm0%ibcy(iside, 4) == IBC_INTERIOR) &
+    call apply_y_bc_2dm_halo(fl0%fbcy_pr, fl1%pres, iside, n0,   dm1%accc)
+!----------------------------------------------------------------------------------------------------------
+!   z-bc for qx, qy, qz, pres,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+    iside = 1
+    n0 = dm0%nc(3)
+    if(dm1%ibcz(iside, 1) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl1%fbcz_qx, fl0%qx,   iside, n0, dm0%apcc)
+
+    if(dm1%ibcz(iside, 2) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl1%fbcz_qy, fl0%qy,   iside, n0, dm0%acpc)
+
+    if(dm1%ibcz(iside, 3) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl1%fbcz_qz, fl0%qz,   iside, n0, dm0%accp)
+
+    if(dm1%ibcz(iside, 4) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl1%fbcz_pr, fl0%pres, iside, n0, dm0%accc)
+    
+    iside = 2
+    n0 = 1
+    if(dm0%ibcz(iside, 1) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl0%fbcz_qx, fl1%qx,   iside, n0,   dm1%apcc)
+
+    if(dm0%ibcz(iside, 2) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl0%fbcz_qy, fl1%qy,   iside, n0,   dm1%acpc)
+
+    if(dm0%ibcz(iside, 3) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl0%fbcz_qz, fl1%qz,   iside, n0+1, dm1%accp)
+
+    if(dm0%ibcz(iside, 4) == IBC_INTERIOR) &
+    call apply_z_bc_2dm_halo(fl0%fbcz_pr, fl1%pres, iside, n0,   dm1%accc)
+!==========================================================================================================
 !   thermal only
+!==========================================================================================================
+    if(dm1%is_thermo .and. dm0%is_thermo) then  
 !----------------------------------------------------------------------------------------------------------
-    ! gx - x, dm0<->dm1, np
-    if(dm1%is_thermo .and. dm1%ibcx(1, 1) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        fl1%fbcx_gx(1, :, :) = fl0%gx(dm0%np_geo(1) - 1, :, :)
-        fl1%fbcx_gx(3, :, :) = fl0%gx(dm0%np_geo(1) - 2, :, :)
-      else
-        fl1%fbcx_gx(1, :, :) = fl0%fbcx_qx(1, :, :) * tm1%fbcx_ftp(1, :, :)%d
-        fl1%fbcx_gx(3, :, :) = fl0%fbcx_qx(3, :, :) * tm1%fbcx_ftp(3, :, :)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcx(2, 1) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        fl1%fbcx_gx(2, :, :) = fl0%gx(2, :, :)
-        fl1%fbcx_gx(4, :, :) = fl0%gx(3, :, :)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gy - x, dm0<->dm1, nc
-    if(dm1%is_thermo .and. dm1%ibcx(1, 2) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        fl1%fbcx_gy(1, :, :) = fl0%gy(dm0%nc(1),     :, :)
-        fl1%fbcx_gy(3, :, :) = fl0%gy(dm0%nc(1) - 1, :, :)
-      else
-        fl1%fbcx_gy(1, :, :) = fl0%fbcx_qy(1, :, :) * tm1%fbcx_ftp(1, :, :)%d
-        fl1%fbcx_gy(3, :, :) = fl0%fbcx_qy(3, :, :) * tm1%fbcx_ftp(3, :, :)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcx(2, 2) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        fl0%fbcx_gy(2, :, :) = fl1%gy(1, :, :)
-        fl0%fbcx_gy(4, :, :) = fl1%gy(2, :, :)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    !gz - x, dm0<->dm1, nc
-    if(dm1%is_thermo .and. dm1%ibcx(1, 3) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        fl1%fbcx_gz(1, :, :) = fl0%gz(dm0%nc(1),     :, :)
-        fl1%fbcx_gz(3, :, :) = fl0%gz(dm0%nc(1) - 1, :, :)
-      else
-        fl1%fbcx_gz(1, :, :) = fl0%fbcx_qz(1, :, :) * tm1%fbcx_ftp(1, :, :)%d
-        fl1%fbcx_gz(3, :, :) = fl0%fbcx_qz(3, :, :) * tm1%fbcx_ftp(3, :, :)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcx(2, 3) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        fl0%fbcx_gz(2, :, :) = fl1%gz(1, :, :)
-        fl0%fbcx_gz(4, :, :) = fl1%gz(2, :, :)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gx - y, dm0<->dm1, nc
-    if(dm1%is_thermo .and. dm1%ibcy(1, 1) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        call transpose_x_to_y(fl0%gx, apcc_ypencil, dm%apcc)
-        fl1%fbcy_gx(:, 1, :) = apcc_ypencil(:, dm0%nc(2),     :)
-        fl1%fbcy_gx(:, 3, :) = apcc_ypencil(:, dm0%nc(2) - 1, :)
-      else
-        fl1%fbcy_gx(:, 1, :) = fl1%fbcy_qx(:, 1, :) * tm1%fbcy_ftp(:, 1, :)%d
-        fl1%fbcy_gx(:, 3, :) = fl1%fbcy_qx(:, 3, :) * tm1%fbcy_ftp(:, 1, :)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcy(2, 1) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        call transpose_x_to_y(fl1%gx, apcc_ypencil, dm%apcc)
-        fl0%fbcy_gx(:, 2, :) = apcc_ypencil(:, 1, :)
-        fl0%fbcy_gx(:, 4, :) = apcc_ypencil(:, 2, :)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gy - y, dm0<->dm1, np
-    if(dm1%is_thermo .and. dm1%ibcy(1, 2) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        call transpose_x_to_y(fl0%gy, acpc_ypencil, dm%acpc)
-        fl1%fbcy_gy(:, 1, :) = acpc_ypencil(:, dm0%np_geo(2) - 1, :)
-        fl1%fbcy_gy(:, 3, :) = acpc_ypencil(:, dm0%np_geo(2) - 2, :)
-      else
-        fl1%fbcy_gy(:, 1, :) = fl1%fbcy_qy(:, 1, :) * tm1%fbcy_ftp(:, 1, :)%d
-        fl1%fbcy_gy(:, 3, :) = fl1%fbcy_qy(:, 3, :) * tm1%fbcy_ftp(:, 1, :)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcy(2, 2) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        call transpose_x_to_y(fl1%gy, acpc_ypencil, dm%acpc)
-        fl0%fbcy_gy(:, 2, :) = acpc_ypencil(:, 2, :)
-        fl0%fbcy_gy(:, 4, :) = acpc_ypencil(:, 3, :)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gz - y, dm0<->dm1, nc
-    if(dm1%is_thermo .and. dm1%ibcy(1, 3) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        call transpose_x_to_y(fl0%gz, accp_ypencil, dm%accp)
-        fl1%fbcy_gz(:, 1, :) = accp_ypencil(:, dm0%nc(2),     :)
-        fl1%fbcy_gz(:, 3, :) = accp_ypencil(:, dm0%nc(2) - 1, :)
-      else 
-        fl1%fbcy_gz(:, 1, :) = fl1%fbcy_qz(:, 1, :) * tm1%fbcy_ftp(:, 1, :)%d
-        fl1%fbcy_gz(:, 3, :) = fl1%fbcy_qz(:, 3, :) * tm1%fbcy_ftp(:, 1, :)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcy(2, 3) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        call transpose_x_to_y(fl1%gz, accp_ypencil, dm%accp)
-        fl0%fbcy_gz(:, 2, :) = accp_ypencil(:, 1, :)
-        fl0%fbcy_gz(:, 4, :) = accp_ypencil(:, 2, :)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gx - z, dm0<->dm1, nc
-    if(dm1%is_thermo .and. dm1%ibcz(1, 1) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        call transpose_x_to_y(fl0%gx, apcc_ypencil, dm%apcc)
-        call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%apcc)
-        fl1%fbcz_gx(:, :, 1) = apcc_zpencil(:, :, dm0%nc(2)    )
-        fl1%fbcz_gx(:, :, 3) = apcc_zpencil(:, :, dm0%nc(2) - 1)
-      else
-        fl1%fbcz_gx(:, :, 1) = fl1%fbcz_qx(:, :, 1) * tm1%fbcz_ftp(:, :, 1)%d
-        fl1%fbcz_gx(:, :, 3) = fl1%fbcz_qx(:, :, 3) * tm1%fbcz_ftp(:, :, 1)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcz(2, 1) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        call transpose_x_to_y(fl1%gx, apcc_ypencil, dm%apcc)
-        call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%apcc)
-        fl0%fbcz_gx(:, :, 2) = apcc_zpencil(:, :, 1)
-        fl0%fbcz_gx(:, :, 4) = apcc_zpencil(:, :, 2)
-      else 
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gy - z, dm0-dm1, np
-    if(dm1%is_thermo .and. dm1%ibcz(1, 2) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        call transpose_x_to_y(fl0%gy, acpc_ypencil, dm%acpc)
-        call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%acpc)
-        fl1%fbcz_gy(:, :, 1) = acpc_zpencil(:, :, dm0%nc(2)    )
-        fl1%fbcz_gy(:, :, 3) = acpc_zpencil(:, :, dm0%nc(2) - 1)
-      else
-        fl1%fbcz_gy(:, :, 1) = fl1%fbcz_qy(:, :, 1) * tm1%fbcz_ftp(:, :, 1)%d
-        fl1%fbcz_gy(:, :, 3) = fl1%fbcz_qy(:, :, 3) * tm1%fbcz_ftp(:, :, 1)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcz(2, 2) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        call transpose_x_to_y(fl1%qy, acpc_ypencil, dm%acpc)
-        call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%acpc)
-        fl0%fbcz_qy(:, :, 2) = acpc_zpencil(:, :, 1)
-        fl0%fbcz_qy(:, :, 4) = acpc_zpencil(:, :, 2)
-      else
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
-    ! gz - z, dm0-dm1, nc
-    if(dm1%is_thermo .and. dm1%ibcz(1, 3) == IBC_INTERIOR) then
-      if (dm0%is_thermo) then
-        call transpose_x_to_y(fl0%gz, accp_ypencil, dm%accp)
-        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-        fl1%fbcz_gz(:, :, 1) = accp_zpencil(:, :, dm0%np_geo(2) - 1)
-        fl1%fbcz_gz(:, :, 3) = accp_zpencil(:, :, dm0%np_geo(2) - 2)
-      else
-        fl1%fbcz_gz(:, :, 1) = fl1%fbcz_qz(:, :, 1) * tm1%fbcz_ftp(:, :, 1)%d
-        fl1%fbcz_gz(:, :, 3) = fl1%fbcz_qz(:, :, 3) * tm1%fbcz_ftp(:, :, 1)%d
-      end if
-    end if
-    if(dm0%is_thermo .and. dm0%ibcz(2, 3) == IBC_INTERIOR) then
-      if (dm1%is_thermo) then
-        call transpose_x_to_y(fl1%qz, accp_ypencil, dm%accp)
-        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-        fl0%fbcz_qz(:, :, 2) = accp_zpencil(:, :, 2)
-        fl0%fbcz_qz(:, :, 4) = accp_zpencil(:, :, 3)
-      else 
-        call Print_warning_msg("Error in setting up thermo b.c.")
-      end if
-    end if
+!   x-bc for gx, gy, gz, no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
 !----------------------------------------------------------------------------------------------------------
+      iside = 1
+      n0 = dm0%nc(1)
+      if(dm1%ibcx(iside, 1) == IBC_INTERIOR) &
+      call apply_x_bc_2dm_halo(fl1%fbcx_gx, fl0%gx,   iside, n0)
+
+      if(dm1%ibcx(iside, 2) == IBC_INTERIOR) &
+      call apply_x_bc_2dm_halo(fl1%fbcx_gy, fl0%gy,   iside, n0)
+
+      if(dm1%ibcx(iside, 3) == IBC_INTERIOR) &
+      call apply_x_bc_2dm_halo(fl1%fbcx_gz, fl0%gz,   iside, n0)
+      
+      iside = 2
+      n0 = 1
+      if(dm0%ibcx(iside, 1) == IBC_INTERIOR) &
+      call apply_x_bc_2dm_halo(fl0%fbcx_gx, fl1%gx,   iside, n0+1)
+
+      if(dm0%ibcx(iside, 2) == IBC_INTERIOR) &
+      call apply_x_bc_2dm_halo(fl0%fbcx_gy, fl1%gy,   iside, n0)
+
+      if(dm0%ibcx(iside, 3) == IBC_INTERIOR) &
+      call apply_x_bc_2dm_halo(fl0%fbcx_gz, fl1%gz,   iside, n0)
+!----------------------------------------------------------------------------------------------------------
+!   y-bc for gx, gy, gz, no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+      iside = 1
+      n0 = dm0%nc(2)
+      if(dm1%ibcy(iside, 1) == IBC_INTERIOR) &
+      call apply_y_bc_2dm_halo(fl1%fbcy_gx, fl0%gx,   iside, n0, dm0%apcc)
+
+      if(dm1%ibcy(iside, 2) == IBC_INTERIOR) &
+      call apply_y_bc_2dm_halo(fl1%fbcy_gy, fl0%gy,   iside, n0, dm0%acpc)
+
+      if(dm1%ibcy(iside, 3) == IBC_INTERIOR) &
+      call apply_y_bc_2dm_halo(fl1%fbcy_gz, fl0%gz,   iside, n0, dm0%accp)
+
+      iside = 2
+      n0 = 1
+      if(dm0%ibcy(iside, 1) == IBC_INTERIOR) &
+      call apply_y_bc_2dm_halo(fl0%fbcy_gx, fl1%gx,   iside, n0,   dm1%apcc)
+
+      if(dm0%ibcy(iside, 2) == IBC_INTERIOR) &
+      call apply_y_bc_2dm_halo(fl0%fbcy_gy, fl1%gy,   iside, n0+1, dm1%acpc)
+
+      if(dm0%ibcy(iside, 3) == IBC_INTERIOR) &
+      call apply_y_bc_2dm_halo(fl0%fbcy_gz, fl1%gz,   iside, n0,   dm1%accp)
+!----------------------------------------------------------------------------------------------------------
+!   z-bc for gx, gy, gz,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+      iside = 1
+      n0 = dm0%nc(3)
+      if(dm1%ibcz(iside, 1) == IBC_INTERIOR) &
+      call apply_z_bc_2dm_halo(fl1%fbcz_gx, fl0%gx,   iside, n0, dm0%apcc)
+
+      if(dm1%ibcz(iside, 2) == IBC_INTERIOR) &
+      call apply_z_bc_2dm_halo(fl1%fbcz_gy, fl0%gy,   iside, n0, dm0%acpc)
+
+      if(dm1%ibcz(iside, 3) == IBC_INTERIOR) &
+      call apply_z_bc_2dm_halo(fl1%fbcz_gz, fl0%gz,   iside, n0, dm0%accp)
+      
+      iside = 2
+      n0 = 1
+      if(dm0%ibcz(iside, 1) == IBC_INTERIOR) &
+      call apply_z_bc_2dm_halo(fl0%fbcz_gx, fl1%gx,   iside, n0,   dm1%apcc)
+
+      if(dm0%ibcz(iside, 2) == IBC_INTERIOR) &
+      call apply_z_bc_2dm_halo(fl0%fbcz_gy, fl1%gy,   iside, n0,   dm1%acpc)
+
+      if(dm0%ibcz(iside, 3) == IBC_INTERIOR) &
+      call apply_z_bc_2dm_halo(fl0%fbcz_gz, fl1%gz,   iside, n0+1, dm1%accp)
+
+    else if (dm1%is_thermo .and. (.not.dm0%is_thermo)) then
+      if(.not. present(tm1)) call Print_error_msg('Input Error.')
+!----------------------------------------------------------------------------------------------------------
+!   x, y, z-bc for gx, gy, gz, no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+      iside = 1
+      do n0 = 1, 3, 2
+        if(dm1%ibcx(iside, 1) == IBC_INTERIOR) &
+        fl1%fbcx_gx(n0, :, :) = fl0%fbcx_qx(n0, :, :) * tm1%fbcx_ftp(1, :, :)%d
+
+        if(dm1%ibcx(iside, 2) == IBC_INTERIOR) &
+        fl1%fbcx_gy(n0, :, :) = fl0%fbcx_qy(n0, :, :) * tm1%fbcx_ftp(1, :, :)%d
+
+        if(dm1%ibcx(iside, 3) == IBC_INTERIOR) &
+        fl1%fbcx_gz(n0, :, :) = fl0%fbcx_qz(n0, :, :) * tm1%fbcx_ftp(1, :, :)%d
+
+        if(dm1%ibcy(iside, 1) == IBC_INTERIOR) &
+        fl1%fbcy_gx(:, n0, :) = fl1%fbcy_qx(:, n0, :) * tm1%fbcy_ftp(:, 1, :)%d
+        
+        if(dm1%ibcy(iside, 2) == IBC_INTERIOR) &
+        fl1%fbcy_gy(:, n0, :) = fl1%fbcy_qy(:, n0, :) * tm1%fbcy_ftp(:, 1, :)%d
+        
+        if(dm1%ibcy(iside, 3) == IBC_INTERIOR) &
+        fl1%fbcy_gz(:, n0, :) = fl1%fbcy_qz(:, n0, :) * tm1%fbcy_ftp(:, 1, :)%d
+
+        if(dm1%ibcz(iside, 1) == IBC_INTERIOR) &
+        fl1%fbcz_gx(:, :, n0) = fl1%fbcz_qx(:, :, n0) * tm1%fbcz_ftp(:, :, 1)%d
+        
+        if(dm1%ibcz(iside, 2) == IBC_INTERIOR) &
+        fl1%fbcz_gy(:, :, n0) = fl1%fbcz_qy(:, :, n0) * tm1%fbcz_ftp(:, :, 1)%d
+
+        if(dm1%ibcz(iside, 3) == IBC_INTERIOR) &
+        fl1%fbcz_gz(:, :, n0) = fl1%fbcz_qz(:, :, n0) * tm1%fbcz_ftp(:, :, 1)%d
+      end do
+    else 
+      call Print_error_msg("Error in setting up thermo b.c.")
+    end if
+!==========================================================================================================
 !   clyindrical only
+!==========================================================================================================
+    if(dm1%icoordinate == ICYLINDRICAL .or. dm0%icoordinate == ICYLINDRICAL) then
 !----------------------------------------------------------------------------------------------------------
-   if(dm1%icoordinate == ICYLINDRICAL .or. dm0%icoordinate == ICYLINDRICAL) then
-      ! uy = qr/r - y, dm0-dm1, np
-      if(dm1%ibcy(1, 2) == IBC_INTERIOR) then
+!   y-bc for qy/r, qz/r,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+      iside = 1
+      n0 = dm0%nc(2)
+      if(dm1%ibcy(iside, 2) == IBC_INTERIOR) then
         acpc_xpencil = fl0%qy
         call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
-        call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%acpc)
-        fl1%fbcy_uy(:, 1, :) = acpc_ypencil(:, dm0%np_geo(2) - 1, :)
-        fl1%fbcy_uy(:, 3, :) = acpc_ypencil(:, dm0%np_geo(2) - 2, :)
-      end if
-      if(dm0%ibcy(2, 2) == IBC_INTERIOR) then
-        acpc_xpencil = fl1%qy
-        call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
-        call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%acpc)
-        fl0%fbcy_uy(:, 2, :) = acpc_ypencil(:, 2, :)
-        fl0%fbcy_uy(:, 4, :) = acpc_ypencil(:, 3, :)
-      end if
-      ! uz = qz/r - y, dm0-dm1, nc
-      if(dm1%ibcy(1, 3) == IBC_INTERIOR) then
-        accp_xpencil = fl0%qz
-        call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
-        call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%accp)
-        fl1%fbcy_uz(:, 1, :) = accp_ypencil(:, dm0%nc(2),     :)
-        fl1%fbcy_uz(:, 3, :) = accp_ypencil(:, dm0%nc(2) - 1, :)
-      end if
-      if(dm0%ibcy(2, 3) == IBC_INTERIOR) then
-        accp_xpencil = fl1%qz
-        call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
-        call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%accp)
-        fl0%fbcy_uz(:, 2, :) = accp_ypencil(:, 1, :)
-        fl0%fbcy_uz(:, 4, :) = accp_ypencil(:, 2, :)
-      end if
-      ! uy = qr/r - z, dm0-dm1, np
-      if(dm1%ibcz(1, 2) == IBC_INTERIOR) then
-        acpc_xpencil = fl0%qy
-        call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
-        call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%acpc)
-        call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%acpc)
-        fl1%fbcz_uy(:, :, 1) = acpc_zpencil(:, :, dm0%nc(2)    )
-        fl1%fbcz_uy(:, :, 3) = acpc_zpencil(:, :, dm0%nc(2) - 1)
-      end if
-      if(dm0%ibcz(2, 2) == IBC_INTERIOR) then
-        acpc_xpencil = fl1%qy
-        call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
-        call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%acpc)
-        call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%acpc)
-        fl0%fbcz_uy(:, :, 2) = acpc_zpencil(:, :, 1)
-        fl0%fbcz_uy(:, :, 4) = acpc_zpencil(:, :, 2)
+        call apply_y_bc_2dm_halo(fl1%fbcy_qyr, acpc_xpencil, iside, n0, dm0%acpc)
       end if
 
-      ! uz = qz/r - z, dm0-dm1, nc
-      if(dm1%ibcz(1, 3) == IBC_INTERIOR) then
+      if(dm1%ibcy(iside, 3) == IBC_INTERIOR) then
         accp_xpencil = fl0%qz
         call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
-        call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%accp)
-        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-        fl1%fbcz_uz(:, :, 1) = accp_zpencil(:, :, dm0%np_geo(2) - 1)
-        fl1%fbcz_uz(:, :, 3) = accp_zpencil(:, :, dm0%np_geo(2) - 2)
+        call apply_y_bc_2dm_halo(fl1%fbcy_qzr, accp_xpencil, iside, n0, dm0%accp)
       end if
-      if(dm0%ibcz(2, 3) == IBC_INTERIOR) then
+
+      iside = 2
+      n0 = 1
+      if(dm0%ibcy(iside, 2) == IBC_INTERIOR) then
+        acpc_xpencil = fl1%qy
+        call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+        call apply_y_bc_2dm_halo(fl0%fbcy_qyr, acpc_xpencil, iside, n0+1, dm1%acpc)
+      end if
+
+      if(dm0%ibcy(iside, 3) == IBC_INTERIOR) then
         accp_xpencil = fl1%qz
         call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
-        call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%accp)
-        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%accp)
-        fl0%fbcz_uz(:, :, 2) = accp_zpencil(:, :, 2)
-        fl0%fbcz_uz(:, :, 4) = accp_zpencil(:, :, 3)
+        call apply_y_bc_2dm_halo(fl0%fbcy_qzr, accp_xpencil, iside, n0,   dm1%accp)
       end if
+!----------------------------------------------------------------------------------------------------------
+!   z-bc for qy/r, qz/r,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+      iside = 1
+      n0 = dm0%nc(3)
+      if(dm1%ibcz(iside, 2) == IBC_INTERIOR) then
+        acpc_xpencil = fl0%qy
+        call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+        call apply_z_bc_2dm_halo(fl1%fbcz_qyr, acpc_xpencil, iside, n0, dm0%acpc)
+      end if
+
+      if(dm1%ibcy(iside, 3) == IBC_INTERIOR) then
+        accp_xpencil = fl0%qz
+        call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
+        call apply_z_bc_2dm_halo(fl1%fbcz_qzr, accp_xpencil, iside, n0, dm0%accp)
+      end if
+
+      iside = 2
+      n0 = 1
+      if(dm0%ibcy(iside, 2) == IBC_INTERIOR) then
+        acpc_xpencil = fl1%qy
+        call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+        call apply_z_bc_2dm_halo(fl0%fbcz_qyr, acpc_xpencil, iside, n0, dm1%acpc)
+      end if
+
+      if(dm0%ibcy(iside, 3) == IBC_INTERIOR) then
+        accp_xpencil = fl1%qz
+        call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
+        call apply_z_bc_2dm_halo(fl0%fbcz_qzr, accp_xpencil, iside, n0+1, dm1%accp)
+      end if
+
+      if(dm1%is_thermo .and. dm0%is_thermo) then  
+!----------------------------------------------------------------------------------------------------------
+!   y-bc for gy/r, gz/r,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+        iside = 1
+        n0 = dm0%nc(2)
+        if(dm1%ibcy(iside, 2) == IBC_INTERIOR) then
+          acpc_xpencil = fl0%gy
+          call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+          call apply_y_bc_2dm_halo(fl1%fbcy_gyr, acpc_xpencil, iside, n0, dm0%acpc)
+        end if
+
+        if(dm1%ibcy(iside, 3) == IBC_INTERIOR) then
+          accp_xpencil = fl0%gz
+          call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
+          call apply_y_bc_2dm_halo(fl1%fbcy_gzr, accp_xpencil, iside, n0, dm0%accp)
+        end if
+
+        iside = 2
+        n0 = 1
+        if(dm0%ibcy(iside, 2) == IBC_INTERIOR) then
+          acpc_xpencil = fl1%gy
+          call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+          call apply_y_bc_2dm_halo(fl0%fbcy_gyr, acpc_xpencil, iside, n0+1, dm1%acpc)
+        end if
+
+        if(dm0%ibcy(iside, 3) == IBC_INTERIOR) then
+          accp_xpencil = fl1%gz
+          call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
+          call apply_y_bc_2dm_halo(fl0%fbcy_gzr, accp_xpencil, iside, n0,   dm1%accp)
+        end if
+!----------------------------------------------------------------------------------------------------------
+!   z-bc for qy/r, qz/r,  no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!   iside = 2, 0<--1  : |-domain-0---|-2-4-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+        iside = 1
+        n0 = dm0%nc(3)
+        if(dm1%ibcz(iside, 2) == IBC_INTERIOR) then
+          acpc_xpencil = fl0%gy
+          call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+          call apply_z_bc_2dm_halo(fl1%fbcz_gyr, acpc_xpencil, iside, n0, dm0%acpc)
+        end if
+
+        if(dm1%ibcy(iside, 3) == IBC_INTERIOR) then
+          accp_xpencil = fl0%gz
+          call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
+          call apply_z_bc_2dm_halo(fl1%fbcz_gzr, accp_xpencil, iside, n0, dm0%accp)
+        end if
+
+        iside = 2
+        n0 = 1
+        if(dm0%ibcy(iside, 2) == IBC_INTERIOR) then
+          acpc_xpencil = fl1%gy
+          call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1))
+          call apply_z_bc_2dm_halo(fl0%fbcz_gyr, acpc_xpencil, iside, n0, dm1%acpc)
+        end if
+
+        if(dm0%ibcy(iside, 3) == IBC_INTERIOR) then
+          accp_xpencil = fl1%gz
+          call multiple_cylindrical_rn(accp_xpencil, dm%dccp, dm%rci, 1, IPENCIL(1))
+          call apply_z_bc_2dm_halo(fl0%fbcz_gzr, accp_xpencil, iside, n0+1, dm1%accp)
+        end if
+
+      else if (dm1%is_thermo .and. (.not.dm0%is_thermo)) then
+        if(.not. present(tm1)) call Print_error_msg('Input Error.')
+!----------------------------------------------------------------------------------------------------------
+!    y, z-bc for gyr, gzr, no overlap of values
+!   iside = 1, 0-->1  : |-domain-0----3-1|-domain-1-----|
+!----------------------------------------------------------------------------------------------------------
+        iside = 1
+        do n0 = 1, 3, 2
+          
+          if(dm1%ibcx(iside, 2) == IBC_INTERIOR) &
+          fl1%fbcx_gyr(n0, :, :) = fl0%fbcx_qyr(n0, :, :) * tm1%fbcx_ftp(1, :, :)%d
+
+          if(dm1%ibcx(iside, 3) == IBC_INTERIOR) &
+          fl1%fbcx_gzr(n0, :, :) = fl0%fbcx_qzr(n0, :, :) * tm1%fbcx_ftp(1, :, :)%d
+
+          
+          if(dm1%ibcy(iside, 2) == IBC_INTERIOR) &
+          fl1%fbcy_gyr(:, n0, :) = fl1%fbcy_qyr(:, n0, :) * tm1%fbcy_ftp(:, 1, :)%d
+          
+          if(dm1%ibcy(iside, 3) == IBC_INTERIOR) &
+          fl1%fbcy_gzr(:, n0, :) = fl1%fbcy_qzr(:, n0, :) * tm1%fbcy_ftp(:, 1, :)%d
+
+          
+          if(dm1%ibcz(iside, 2) == IBC_INTERIOR) &
+          fl1%fbcz_gyr(:, :, n0) = fl1%fbcz_qyr(:, :, n0) * tm1%fbcz_ftp(:, :, 1)%d
+
+          if(dm1%ibcz(iside, 3) == IBC_INTERIOR) &
+          fl1%fbcz_gzr(:, :, n0) = fl1%fbcz_qzr(:, :, n0) * tm1%fbcz_ftp(:, :, 1)%d
+        end do
+      else 
+        call Print_error_msg("Error in setting up thermo b.c.")
+      end if
+
     end if
     
     return
@@ -1379,7 +1297,7 @@ contains
     if(.not. dm%is_thermo) return
 
 !----------------------------------------------------------------------------------------------------------
-!   get bc gx, gy, gz (at bc not cell centre)
+!   get bc gx, gy, gz (at geo-bc, not cell centre)
 !----------------------------------------------------------------------------------------------------------
     fl%fbcx_gx(:, :, :) = fl%fbcx_qx(:, :, :) * tm%fbcx_ftp(:, :, :)%d
     fl%fbcx_gy(:, :, :) = fl%fbcx_qy(:, :, :) * tm%fbcx_ftp(:, :, :)%d
