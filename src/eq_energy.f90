@@ -48,13 +48,13 @@ contains
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
     
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: gy_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_zpencil 
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: gy_cpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_ccp_zpencil 
 
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: hEnth_pcc
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: kCond_pcc
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: hEnth_cpc_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: hEnth_ccp_zpencil
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: hix_pcc_xpencil
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: kix_pcc_xpencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: hiy_cpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: hiz_ccp_zpencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: Ttemp_ypencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: ene_rhs_ypencil
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: kCond_cpc_ypencil
@@ -70,7 +70,7 @@ contains
 !==========================================================================================================
 !   preparation
 !==========================================================================================================
-    call transpose_x_to_y(fl%gy,        gy_ypencil,   dm%dcpc)   ! for d(g_y h)/dy
+    call transpose_x_to_y(fl%gy,        gy_cpc_ypencil,   dm%dcpc)   ! for d(g_y h)/dy
     call transpose_x_to_y(fl%gz,        accp_ypencil, dm%dccp)   ! intermediate, accp_ypencil = gz_ypencil
     call transpose_y_to_z(accp_ypencil, gz_zpencil,   dm%dccp)   ! for d(g_z h)/dz
 !----------------------------------------------------------------------------------------------------------
@@ -78,17 +78,17 @@ contains
 !      --> h_ypencil --> h_cpc_ypencil
 !                    --> h_zpencil --> h_ccp_zpencil
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_pcc,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%h ) ! for d(g_x h_pcc))/dy
+    call Get_x_midp_C2P_3D(tm%hEnth,     hix_pcc_xpencil,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%h ) ! for d(g_x h_pcc))/dy
     call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%h)! for d(g_y h_cpc)/dy
+    call Get_y_midp_C2P_3D(accc_ypencil, hiy_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%h)! for d(g_y h_cpc)/dy
     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%h) ! for d(g_z h_ccp)/dz
+    call Get_z_midp_C2P_3D(accc_zpencil, hiz_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%h) ! for d(g_z h_ccp)/dz
 !----------------------------------------------------------------------------------------------------------
 !    k --> k_pcc
 !      --> k_ypencil --> k_cpc_ypencil
 !                    --> k_zpencil --> k_ccp_zpencil              
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%kCond,      kCond_pcc,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
+    call Get_x_midp_C2P_3D(tm%kCond,      kix_pcc_xpencil,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
     call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%k)
     call transpose_y_to_z (accc_ypencil,  kCond_zpencil, dm%dccc) 
@@ -102,20 +102,45 @@ contains
 ! the RHS of energy equation
 ! x-pencil : the RHS terms of energy (derivative) operating in the x direction
 !==========================================================================================================
-!----------------------------------------------------------------------------------------------------------
-! x-pencil : d (gx * h_pcc) / dx 
-!----------------------------------------------------------------------------------------------------------
+    i = 5
     tm%ene_rhs = ZERO
-    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%dh * dm%fbcx_var(:, :, :, 1 + NBC) ) ! accc = -d(gx * h)/dx
-    tm%ene_rhs = tm%ene_rhs + accc
+    ene_rhs_ypencil = ZERO
+    ene_rhs_zpencil = ZERO
 !----------------------------------------------------------------------------------------------------------
-! x-pencil : d (T) / dx 
+! convection-x, x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%t )
+    apcc_xpencil = fl%gx * hix_pcc_xpencil
+    call get_dirichlet_geo_bcx(dm%ibcx(:, i), fl%fbcx_gx * tm%fbcx_ftp%dh, fbcx_4cc)
+    call Get_x_1st_derivative_P2C_3D( apcc_xpencil, accc_xpencil, dm, dm%ibcx(:, i),  fbcx_4cc)
+    tm%ene_rhs = tm%ene_rhs - accc_xpencil
+!----------------------------------------------------------------------------------------------------------
+! convection-y, y-pencil : d (gy * h_cpc) / dy  * (1/r)
+!----------------------------------------------------------------------------------------------------------
+    acpc_ypencil = gy_cpc_ypencil * hiy_cpc_ypencil
+    call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_gy * tm%fbcy_ftp%h, fbcy_c4c)
+    call Get_y_1st_derivative_P2C_3D( acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c )
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
+    ene_rhs_ypencil = ene_rhs_ypencil - accc_ypencil
+!----------------------------------------------------------------------------------------------------------
+! convection-z, z-pencil : d (gz/r * h_ccp) / dz 
+!----------------------------------------------------------------------------------------------------------
+    accp_zpencil = gz_ccp_zpencil * hiz_ccp_zpencil
+    call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gz * tm%fbcz_ftp%h, fbcz_ccp)
+    if(dm%icoordinate == ICYLINDRICAL) then
+      call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
+      call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gzr * tm%fbcz_ftp%h, fbcz_ccp)
+    end if
+    call Get_z_1st_derivative_P2C_3D( accp_zpencil, accc_zpencil, dm, dm%ibcz(:, i), fbcz_ccp ) )
+    ene_rhs_zpencil = ene_rhs_zpencil - accc_zpencil
+!----------------------------------------------------------------------------------------------------------
+! diffusion-x, d ( k_pcc * d (T) / dx ) dx
+!----------------------------------------------------------------------------------------------------------
+    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%ibcx(:, i), tm%fbcx_ftp%t )
+    apcc_xpencil = apcc_xpencil * kix_pcc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : k_pcc * d (T) / dx 
 !----------------------------------------------------------------------------------------------------------
-    apcc = apcc * kCond_pcc
+    apcc = apcc * kix_pcc_xpencil
     do n = 1, 2
       if (dm%ibcx(n, 5) == IBC_NEUMANN) then
         fbcx(:, :, :) = dm%fbcx_var(:, :, :, 5)
@@ -133,12 +158,7 @@ contains
 ! the RHS of energy equation
 ! y-pencil : the RHS terms of energy (derivative) operating in the y direction
 !==========================================================================================================
-!----------------------------------------------------------------------------------------------------------
-! y-pencil : d (gy * h_cpc) / dy 
-!----------------------------------------------------------------------------------------------------------
-    ene_rhs_ypencil = ZERO
-    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%ftpbcy_var(:, :, :)%dh * dm%fbcy_var(:, :, :, 2 + NBC) )
-    ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
+
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d (T) / dy
 !----------------------------------------------------------------------------------------------------------
@@ -166,12 +186,7 @@ contains
 ! the RHS of energy equation
 ! z-pencil : the RHS terms of energy (derivative) operating in the z direction
 !==========================================================================================================
-!----------------------------------------------------------------------------------------------------------
-! z-pencil : d (gz * h_ccp) / dz 
-!----------------------------------------------------------------------------------------------------------
-    ene_rhs_zpencil = ZERO
-    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%ftpbcz_var(:, :, :)%dh * dm%fbcz_var(:, :, :, 3 + NBC ) )
-    ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
+
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d (T) / dz
 !----------------------------------------------------------------------------------------------------------

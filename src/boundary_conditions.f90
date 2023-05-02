@@ -43,7 +43,7 @@ contains
         else if (bc_nominal(n, m) == IBC_TURBGEN  .or. &
                  bc_nominal(n, m) == IBC_DATABASE )   then
           if(m /=5) then
-            bc_real(n, m) = IBC_INTERIOR
+            bc_real(n, m) = IBC_INTERIOR  ! for u, v, w, p
           else 
             bc_real(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, check
           end if
@@ -1321,4 +1321,92 @@ contains
     return
   end subroutine
 
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine get_dirichlet_geo_bcx(ibcx, varx, fbcx)
+    use parameters_constant_mod
+    implicit none
+    integer,  intent(in)    :: ibcx(2)
+    real(WP), intent(in)    :: varx(:, :, :)
+    real(WP), intent(inout) :: fbcx(:, :, :)
+
+    integer :: n
+
+    if(ANY(ibcx) /= IBC_DIRICHLET) return
+
+    if(size(vary, 3) /= size(fbcz, 3) .or. &
+       size(vary, 2) /= size(fbcz, 2)) call Print_error_msg("Error input.")
+
+    if (ibcx(1) == IBC_DIRICHLET) then
+      fbcx(1, :, :) = varx(1, :, :)
+      fbcx(3, :, :) = fbcx(1, :, :)
+    end if
+
+    if (ibcx(2) == IBC_DIRICHLET) then
+      n = size(varx, 1)
+      fbcx(2, :, :) = vary(n, :, :)
+      fbcx(4, :, :) = fbcy(2, :, :)
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine get_dirichlet_geo_bcy(ibcy, vary, fbcy)
+    use parameters_constant_mod
+    implicit none
+    integer,  intent(in)    :: ibcy(2)
+    real(WP), intent(in)    :: vary(:, :, :)
+    real(WP), intent(inout) :: fbcy(:, :, :)
+
+    integer :: n
+
+    if(ANY(ibcy) /= IBC_DIRICHLET) return
+
+    if(size(vary, 1) /= size(fbcy, 1) .or. &
+       size(vary, 3) /= size(fbcy, 3)) call Print_error_msg("Error input.")
+
+    if (ibcy(1) == IBC_DIRICHLET) then
+      fbcy(:, 1, :) = vary(:, 1, :)
+      fbcy(:, 3, :) = fbcy(:, 1, :)
+    end if
+
+    if (ibcy(2) == IBC_DIRICHLET) then
+      n = size(vary, 2)
+      fbcy(:, 2, :) = vary(:, n, :)
+      fbcy(:, 4, :) = fbcy(:, 2, :)
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine get_dirichlet_geo_bcz(ibcz, varz, fbcz)
+    use parameters_constant_mod
+    implicit none
+    integer,  intent(in)    :: ibcz(2)
+    real(WP), intent(in)    :: varz(:, :, :)
+    real(WP), intent(inout) :: fbcz(:, :, :)
+
+    integer :: n
+
+    if(ANY(ibcz) /= IBC_DIRICHLET) return
+
+    if(size(vary, 1) /= size(fbcz, 1) .or. &
+       size(vary, 2) /= size(fbcz, 2)) call Print_error_msg("Error input.")
+
+    if (ibcz(1) == IBC_DIRICHLET) then
+      fbcz(:, :, 1) = varz(:, :, 1)
+      fbcz(:, :, 3) = fbcz(:, :, 1)
+    end if
+
+    if (ibcz(2) == IBC_DIRICHLET) then
+      n = size(varz, 3)
+      fbcy(:, :, 2) = vary(:, :, n)
+      fbcy(:, :, 4) = fbcy(:, :, 2)
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
 end module

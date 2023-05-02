@@ -120,6 +120,8 @@ contains
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div_ccc_xpencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: div_ccc_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: div_ccc_zpencil
+
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: div_pcc_xpencil ! for dirichlet bc.
     
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qxix_ccc_xpencil ! qx^x, x-c1, common
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qxiy_ppc_xpencil ! qx^y, y-c1, no-thermal
@@ -127,6 +129,7 @@ contains
     real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qxiz_pcp_xpencil ! qx^z, z-c1, no-thermal
     real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qxiz_pcp_zpencil ! qx^z, x-c3, common
     
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: qxdx_pcc_xpencil ! for dirichlet bc
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qxdx_ccc_xpencil ! d(qx)/dx, x-v1, common
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qxdy_ppc_xpencil ! d(qx)/dy, y-v1, common
     real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qxdy_ppc_ypencil ! d(qx)/dy, x-v2, common
@@ -272,6 +275,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !    qx 
 !    | -[ipx]-> qxix_ccc_xpencil(common)
+!    | -[idx]-> qxdx_pcc_xpencil (for dirichlet bc)
 !    | -[1dx]-> qxdx_ccc_xpencil(common)
 !    | -[x2y]-> qx_ypencil(temp) 
 !               | -[ipy]-> qxiy_ppc_ypencil(common) -[y2x]-> qxiy_ppc_xpencil(no thermal)
@@ -282,6 +286,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call Get_x_midp_P2C_3D(fl%qx, qxix_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
     call Get_x_1st_derivative_P2C_3D(fl%qx, qxdx_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+    call Get_x_1st_derivative_P2P_3D(fl%qx, qxdx_pcc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
 
     call transpose_x_to_y (fl%qx, apcc_ypencil, dm%dpcc) !qx_ypencil
     call Get_y_1st_derivative_C2P_3D(apcc_ypencil, qxdy_ppc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qx(:, :, :))
@@ -612,13 +617,13 @@ contains
 !----------------------------------------------------------------------------------------------------------  
     if ( .not. dm%is_thermo) then
       accc_xpencil = qxix_ccc_xpencil
+      call get_dirichlet_geo_bcx(dm%ibcx(:, i), fl%fbcx_qx * fl%fbcx_qx, fbcx_4cc)
     else
       accc_xpencil = gxix_ccc_xpencil
+      call get_dirichlet_geo_bcx(dm%ibcx(:, i), fl%fbcx_gx * fl%fbcx_qx, fbcx_4cc)
     end if
     
     accc_xpencil =  accc_xpencil * qxix_ccc_xpencil
-    fbcx_4cc =
-    
     call Get_x_1st_derivative_C2P_3D( accc_xpencil, apcc_xpencil, dm, dm%ibcx(:, i), fbcx_4cc )
     fl%mx_rhs = fl%mx_rhs - apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -631,8 +636,8 @@ contains
     end if
     
     appc_ypencil = appc_ypencil * qxiy_ppc_ypencil
-    fbcy_p4c = !
-    
+
+    call get_dirichlet_geo_bcy(dm%ibcy(:, i), appc_ypencil, fbcy_p4c)
     call Get_y_1st_derivative_P2C_3D( appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i), fbcy_p4c )
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil = mx_rhs_ypencil - apcc_ypencil
@@ -646,8 +651,8 @@ contains
     end if
 
     apcp_zpencil = apcp_zpencil * qxiz_pcp_zpencil
-    fbcz_pc4 = !
 
+    call get_dirichlet_geo_bcz(dm%ibcz(:, i), apcp_zpencil, fbcz_pc4)
     call Get_z_1st_derivative_P2C_3D( apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), fbcz_pc4 )
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_zpencil, dm%dpcc, dm%rci, 2, IPENCIL(3))
     mx_rhs_zpencil = mx_rhs_zpencil - apcc_zpencil
@@ -667,9 +672,8 @@ contains
 ! X-mom diffusion term (x-v-1/3), X-pencil, d_x [2 * mu * (d_x qx - 1/3*div) ] at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
     accc_xpencil = ( qxdx_ccc_xpencil - ONE_THIRD * div_ccc_xpencil) * TWO * mu_ccc_xpencil
-    fbcx_4cc = !
-
-    call Get_x_1st_derivative_C2P_3D(accc_xpencil,  apcc_xpencil, dm, dm%ibcx(:, 1), fbcx_4cc) 
+    ibcx(1:2) = IBC_INTRPL ! check 
+    call Get_x_1st_derivative_C2P_3D(accc_xpencil,  apcc_xpencil, dm, ibcx) 
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! X-mom diffusion term (x-v-2/3), Y-pencil, (1/r) * d_y [mu^{x,y} * (d_x q_y + r * d_y q_x) ] at (i', j, k)
@@ -678,8 +682,8 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_ypencil, dm%dppc, ONE/dm%rpi, 1, IPENCIL(2))
     
     appc_ypencil = ( appc_ypencil + qydx_ppc_ypencil) * muixy_ppc_ypencil
-    fbcy_p4c = !
 
+    call get_dirichlet_geo_bcy(dm%ibcy(:, i), appc_ypencil, fbcy_p4c)
     call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i), fbcy_p4c)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil =  mx_rhs_ypencil + apcc_ypencil
@@ -687,8 +691,8 @@ contains
 ! X-mom diffusion term (x-v-3/3), Z-pencil, (1/r^2) * d_z [mu^{x,z} * (d_x q_z + d_z q_x) ] at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
     apcp_zpencil = ( qxdz_pcp_zpencil + qzdx_pcp_zpencil) * muixz_pcp_zpencil
-    fbcz_pc4 = !
 
+    call get_dirichlet_geo_bcz(dm%ibcz(:, i), apcp_zpencil, fbcz_pc4)
     call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), fbcz_pc4)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_zpencil, dm%dpcc, dm%rci, 2, IPENCIL(3))
     mx_rhs_zpencil =  mx_rhs_zpencil + apcc_zpencil
@@ -720,8 +724,8 @@ contains
     end if
     
     appc_xpencil = appc_xpencil * qyix_ppc_xpencil
-    fbcx_4pc = !
-    
+
+    call get_dirichlet_geo_bcx(dm%ibcx(:, i), appc_xpencil, fbcx_4pc)
     call Get_x_1st_derivative_P2C_3D( appc_xpencil, acpc_xpencil, dm, dm%ibcx(:, i), fbcx_4pc )
     fl%my_rhs = fl%my_rhs - acpc_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -739,8 +743,23 @@ contains
       accc_ypencil = gyiy_ccc_ypencil
     end if
 
+    if(ANY(dm%ibcy(:, i)) == IBC_DIRICHLET) then
+      if(dm%icoordinate == ICYLINDRICAL) then
+        if ( .not. dm%is_thermo) then
+          call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_qy * fl%fbcy_qyr, fbcy_c4c)
+        else
+          call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_gy * fl%fbcy_qyr, fbcy_c4c)
+        end if
+      else
+        if ( .not. dm%is_thermo) then
+          call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_qy * fl%fbcy_qy, fbcy_c4c)
+        else
+          call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_gy * fl%fbcy_qy, fbcy_c4c)
+        end if
+      end if
+    end if
+
     accc_ypencil = accc_ypencil1 * accc_ypencil
-    fbcy_c4c = !
     
     call Get_y_1st_derivative_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c )
     my_rhs_ypencil = my_rhs_ypencil - acpc_ypencil
@@ -764,8 +783,8 @@ contains
     end if
     
     acpp_zpencil = acpp_zpencil1 * acpp_zpencil
-    fbcz_cp4 = !
 
+    call get_dirichlet_geo_bcz(dm%ibcz(:, i), acpp_zpencil, fbcz_cp4)
     call Get_z_1st_derivative_P2C_3D( acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, i), fbcz_cp4 )
     my_rhs_zpencil = my_rhs_zpencil - acpc_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -774,13 +793,14 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) then
       if ( .not. dm%is_thermo) then
         accc_ypencil = qzriz_ccc_ypencil
+        call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_qzr * fl%fbcy_qzr, fbcy_c4p)
       else
         accc_ypencil = gzriz_ccc_ypencil
+        call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_gzr * fl%fbcy_qzr, fbcy_c4p)
       end if
 
-      accc_ypencil = accc_ypencil * qzriz_ccc_ypencil
-      fbcy_c4c = ! 
-
+      accc_ypencil = accc_ypencil * qzriz_ccc_ypencil 
+      
       call Get_y_midp_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c)
       my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
     end if
@@ -804,8 +824,8 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_xpencil1, dm%dppc, ONE/dm%rpi, 1, IPENCIL(1))
     
     appc_xpencil = ( appc_xpencil1 + qydx_ppc_xpencil) * muixy_ppc_xpencil
-    fbcx_4pc = !
 
+    call get_dirichlet_geo_bcx(dm%ibcx(:, i), appc_xpencil, fbcx_4pc)
     call Get_x_1st_derivative_P2C_3D(appc_xpencil, acpc_xpencil, dm, dm%ibcx(:, i), fbcx_4pc)
     fl%my_rhs = fl%my_rhs + acpc_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -816,12 +836,12 @@ contains
     else
       accc_ypencil1 = qydy_ccc_ypencil
     end if
-
+    
     accc_ypencil = ( accc_ypencil1 - ONE_THIRD * div_ccc_ypencil) * TWO * mu_ccc_ypencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, ONE/dm%rci, 1, IPENCIL(2))
-    fbcy_c4c = !
-
-    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  acpc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c) 
+    
+    ibcy(1:2) = IBC_INTRPL ! check!
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  acpc_ypencil, dm, ibcy) 
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term (y-v-3/4), Z-pencil, d_z [mu^{y,z} * (dy(qz/r) + 1/r dz(qr/r) - 1/r * (qz/r)^r)] at (i, j', k)
@@ -842,8 +862,8 @@ contains
     end if
     
     acpp_zpencil = acpp_zpencil * muiyz_cpp_zpencil
-    fbcz_cp4 = !
 
+    call get_dirichlet_geo_bcz(dm%ibcz(:, i), acpp_zpencil, fbcz_cp4)
     call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2), fbcz_cp4)
     my_rhs_zpencil =  my_rhs_zpencil + acpc_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -857,9 +877,9 @@ contains
       call multiple_cylindrical_rn(accc_ypencil1, dm%dccc, dm%rci, 1, IPENCIL(2))
 
       accc_ypencil = (accc_ypencil - ONE_THIRD * div_ccc_ypencil + accc_ypencil1) * TWO * mu_ccc_ypencil
-      fbcy_c4c = 
+      ibcy(1:2) = IBC_INTRPL ! check
 
-      call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c)
+      call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, ibcy)
       my_rhs_ypencil =  my_rhs_ypencil - acpc_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -893,8 +913,8 @@ contains
     end if
 
     apcp_xpencil = apcp_xpencil * qzix_pcp_xpencil
-    fbcx_4cp = !
-    
+
+    call get_dirichlet_geo_bcx(dm%ibcx(:, i), apcp_xpencil, fbcx_4cp)
     call Get_x_1st_derivative_P2C_3D( appc_xpencil, accp_xpencil, dm, dm%ibcx(:, i), fbcx_4cp )
     fl%mz_rhs = fl%mz_rhs - accp_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -913,8 +933,8 @@ contains
     end if
 
     acpp_ypencil = acpp_ypencil * acpp_ypencil1
-    fbcy_c4p = !
 
+    call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
     call Get_y_1st_derivative_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p )
     mz_rhs_ypencil = mz_rhs_ypencil - accp_ypencil
 !----------------------------------------------------------------------------------------------------------
@@ -922,12 +942,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if ( .not. dm%is_thermo) then
       accc_zpencil = qziz_ccc_zpencil
+      call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_qz * fl%fbcz_qz, fbcz_cc4)
     else
       accc_zpencil = gziz_ccc_zpencil
+      call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gz * fl%fbcz_qz, fbcz_cc4)
     end if
 
     accc_zpencil = accc_zpencil * qziz_ccc_zpencil
-    fbcz_cc4 = !
 
     call Get_z_1st_derivative_C2P_3D( accc_zpencil, accp_zpencil, dm, dm%ibcz(:, i), fbcz_cc4 )
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccc, dm%rci, 2, IPENCIL(3))
@@ -943,8 +964,8 @@ contains
       end if
 
       acpp_ypencil = acpp_ypencil * qzriy_cpp_ypencil
-      fbcy_c4p = ! 
 
+      call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
       call Get_y_midp_C2P_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p)
       mz_rhs_ypencil = mz_rhs_ypencil - accp_ypencil
     end if
@@ -964,8 +985,8 @@ contains
 ! Z-mom diffusion term (z-v-1/4), X-pencil, d_x [mu^{x,z} * (d_x q_z + d_z q_x) ] at (i, j, k')
 !----------------------------------------------------------------------------------------------------------
     apcp_xpencil = ( qxdz_pcp_xpencil + qzdx_pcp_xpencil) * muixz_pcp_xpencil
-    fbcx_4cp = !
 
+    call get_dirichlet_geo_bcx(dm%ibcx(:, i), apcp_xpencil, fbcx_4cp)
     call Get_x_1st_derivative_P2C_3D(apcp_xpencil, accp_xpencil, dm, dm%ibcx(:, i), fbcx_4cp)
     fl%mz_rhs = fl%mz_rhs + accp_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -984,8 +1005,8 @@ contains
     end if
     
     acpp_ypencil = acpp_ypencil * muiyz_cpp_ypencil
-    fbcy_c4p = !
 
+    call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
     call Get_y_1st_derivative_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p)
     mz_rhs_ypencil =  mz_rhs_ypencil + accp_ypencil
 !----------------------------------------------------------------------------------------------------------
@@ -1002,9 +1023,9 @@ contains
     end if
 
     accc_zpencil = ( accc_zpencil - ONE_THIRD * div_ccc_zpencil + accc_zpencil1) * TWO * mu_ccc_zpencil
-    fbcz_cc4 = !
+    ibcz(1:2) = IBC_INTRPL
     
-    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, i), fbcz_cc4) 
+    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, ibcz) 
     mz_rhs_zpencil = mz_rhs_zpencil + accp_zpencil
 
 !----------------------------------------------------------------------------------------------------------
@@ -1021,8 +1042,8 @@ contains
       call multiple_cylindrical_rn(acpp_ypencil1, dm%dcpp, dm%rpi, 1, IPENCIL(2))
 
       acpp_ypencil = (acpp_ypencil - acpp_ypencil1) * muiyz_cpp_ypencil
-      fbcy_c4p = 
 
+      call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
       call Get_y_midp_C2P_3D(acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p)
       mz_rhs_ypencil =  mz_rhs_ypencil + accp_ypencil
     end if
