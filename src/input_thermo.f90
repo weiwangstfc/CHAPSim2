@@ -41,9 +41,6 @@ module thermo_info_mod
   private :: ftplist_sort_t_small2big
   private :: Write_thermo_property
   
-  public  :: update_undim_thermo_bc
-
-  
   private :: ftp_is_T_in_scope
   private :: ftp_get_thermal_properties_dimensional_from_T
   public  :: ftp_refresh_thermal_properties_from_T_undim

@@ -91,8 +91,8 @@ subroutine Initialize_chapsim
 ! build up initial boundary values
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call buildup_thermo_bc_geo(thermo(i), domain(i)) ! should be before flow.
-    call buildup_flow_bc_geo(flow(i), domain(i)) 
+    call buildup_thermo_bc_geo(domain(i), thermo(i)) ! should be before flow.
+    call buildup_flow_bc_geo(domain(i), flow(i), thermo(i)) 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up output_io
@@ -101,8 +101,8 @@ subroutine Initialize_chapsim
     call initialize_decomp_io(domain(i))
     call write_monitor_ini(domain(i))
     call write_snapshot_ini(domain(i))
-    call init_statistics_flow(flow(i), domain(i))
-    if(dm%is_thermo) call init_statistics_thermo(thermo(i), domain(i))
+    call init_statistics_flow(domain(i), flow(i))
+    if(dm%is_thermo) call init_statistics_thermo(domain(i), thermo(i))
     call mesh_output(domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------

@@ -743,7 +743,7 @@ contains
       accc_ypencil = gyiy_ccc_ypencil
     end if
 
-    if(ANY(dm%ibcy(:, i)) == IBC_DIRICHLET) then
+    if(ANY(dm%ibcy(:, i) == IBC_DIRICHLET)) then
       if(dm%icoordinate == ICYLINDRICAL) then
         if ( .not. dm%is_thermo) then
           call get_dirichlet_geo_bcy(dm%ibcy(:, i), fl%fbcy_qy * fl%fbcy_qyr, fbcy_c4c)

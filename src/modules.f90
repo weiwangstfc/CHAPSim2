@@ -405,9 +405,9 @@ module udf_type_mod
     real(wp), allocatable :: rci(:) ! reciprocal of raidus based on cell centre
     real(wp), allocatable :: rpi(:) ! reciprocal of raidus based on node point
 
-    real(wp), allocatable :: ijnp_sym(:)
-    real(wp), allocatable :: ijnc_sym(:)
-    real(wp), allocatable :: knc_sym(:) ! knc_sym = knp_sym 
+    integer, allocatable :: ijnp_sym(:)
+    integer, allocatable :: ijnc_sym(:)
+    integer, allocatable :: knc_sym(:) ! knc_sym = knp_sym 
 
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
