@@ -8,7 +8,7 @@ module eq_momentum_mod
   private :: Compute_momentum_rhs
   private :: Correct_massflux
   private :: solve_poisson
-  private :: solve_poisson_x2z
+  !private :: solve_poisson_x2z
   
   public  :: Solve_momentum_eq
   
@@ -438,14 +438,14 @@ contains
 !               | -[y2z]-> gx_zpencil(temp) 
 !                          | -[ipz]-> gxiz_pcp_zpencil(temp) -[z2y]-> gxiz_pcp_ypencil(temp) -[y2x]-> gxiz_pcp_xpencil
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_P2C_3D(fl%gx, gxix_ccc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_gx(:, :, :))
+      call Get_x_midp_P2C_3D(fl%gx, gxix_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_gx(:, :, :))
       
       call transpose_x_to_y (fl%gx, apcc_ypencil, dm%dpcc) !gx_ypencil
-      call Get_y_midp_C2P_3D(apcc_ypencil, appc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_gx(:, :, :))
+      call Get_y_midp_C2P_3D(apcc_ypencil, appc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_gx(:, :, :))
       call transpose_y_to_x (appc_ypencil, gxiy_ppc_xpencil, dm%dppc)
 
       call transpose_y_to_z (apcc_ypencil, apcc_zpencil, dm%dpcc)!gx_zpencil
-      call Get_z_midp_C2P_3D(apcc_zpencil, apcp_zpencil, dm, dm%ibcz(:, 1), dm%fbcz_gx(:, :, :))
+      call Get_z_midp_C2P_3D(apcc_zpencil, apcp_zpencil, dm, dm%ibcz(:, 1), fl%fbcz_gx(:, :, :))
       call transpose_z_to_y (apcp_zpencil, apcp_ypencil, dm%dpcc)!qxiz_pcp_ypencil
       call transpose_y_to_x (apcp_ypencil, gxiz_pcp_xpencil, dm%dpcp)
 !----------------------------------------------------------------------------------------------------------
@@ -456,14 +456,14 @@ contains
 !               | -[y2z]-> gy_zpencil(temp) 
 !                          | -[ipz]-> gyiz_cpp_zpencil(temp) -[z2y]-> gyiz_cpp_ypencil          
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_C2P_3D(fl%gy, appc_xpencil, dm, dm%ibcx(:, 2), dm%fbcx_gy(:, :, :))
+      call Get_x_midp_C2P_3D(fl%gy, appc_xpencil, dm, dm%ibcx(:, 2), fl%fbcx_gy(:, :, :))
       call transpose_x_to_y (appc_xpencil, gyix_ppc_ypencil, dm%dppc)
 
       call transpose_x_to_y (fl%gy, acpc_ypencil, dm%dcpc) !gy_ypencil
-      call Get_y_midp_P2C_3D(acpc_ypencil, gyiy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_gy(:, :, :) )
+      call Get_y_midp_P2C_3D(acpc_ypencil, gyiy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_gy(:, :, :) )
 
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)!qy_zpencil
-      call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz_gy(:, :, :) )
+      call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_gy(:, :, :) )
       call transpose_z_to_y(acpp_zpencil, gyiz_cpp_ypencil, dm%dcpp)
 !----------------------------------------------------------------------------------------------------------
 !    gz 
@@ -473,19 +473,19 @@ contains
 !               | -[y2z]-> gz_zpencil(temp) 
 !                          | -[ipz]-> gziz_ccc_zpencil
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_C2P_3D(fl%gz, apcp_xpencil, dm, dm%ibcx(:, 3), dm%fbcx_gz(:, :, :))
+      call Get_x_midp_C2P_3D(fl%gz, apcp_xpencil, dm, dm%ibcx(:, 3), fl%fbcx_gz(:, :, :))
       call transpose_x_to_y(apcp_xpencil, apcp_ypencil, dm%dpcp)
       call transpose_y_to_z(apcp_ypencil, gzix_pcp_zpencil, dm%dpcp)
 
       call transpose_x_to_y(fl%gz, accp_ypencil, dm%dccp) ! gz_ypencil
       
       if((dm%icoordinate == ICARTESIAN) then
-        call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_gz(:, :, :) )
+        call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%ibcy(:, 3), fl%fbcy_gz(:, :, :) )
         call transpose_y_to_z(acpp_ypencil, gziy_cpp_zpencil, dm%dcpp)
       end if
 
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp) ! gz_zpencil
-      call Get_z_midp_P2C_3D(accp_zpencil, gziz_ccc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_gz(:, :, :))
+      call Get_z_midp_P2C_3D(accp_zpencil, gziz_ccc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_gz(:, :, :))
 !----------------------------------------------------------------------------------------------------------
 !    m = mu_ccc_xpencil
 !    | -[ipx]-> muix_pcc_xpencil(temp) -[x2y]-> muix_pcc_ypencil(temp)
@@ -659,7 +659,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-mom pressure gradient in x direction, X-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D( fl%pres, apcc_xpencil, dm, dm%ibcx(:, 4), dm%fbcx_pr(:, :, :) )
+    call Get_x_1st_derivative_C2P_3D( fl%pres, apcc_xpencil, dm, dm%ibcx(:, 4), fl%fbcx_pr(:, :, :) )
     mx_rhs_pfc_xpencil=  mx_rhs_pfc_xpencil - apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! X-mom gravity in x direction, X-pencil
@@ -807,7 +807,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom pressure gradient in y direction, Y-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_C2P_3D( pres_ypencil, acpc_ypencil, dm, dm%ibcy(:, 4), dm%fbcy_pr(:, :, :) )
+    call Get_y_1st_derivative_C2P_3D( pres_ypencil, acpc_ypencil, dm, dm%ibcy(:, 4), fl%fbcy_pr(:, :, :) )
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil - acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
@@ -972,7 +972,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom pressure gradient in z direction, Z-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_C2P_3D( pres_zpencil, accp_zpencil, dm, dm%ibcz(:, 4), dm%fbcz_pr(:, :, :) )
+    call Get_z_1st_derivative_C2P_3D( pres_zpencil, accp_zpencil, dm, dm%ibcz(:, 4), fl%fbcz_pr(:, :, :) )
     mz_rhs_pfc_zpencil =  my_rhs_pfc_zpencil - accp_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom gravity in z direction, Z-pencil
@@ -1081,14 +1081,14 @@ contains
 !==========================================================================================================
     if (fl%idriven == IDRVF_X_MASSFLUX) then
       call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
-      !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
+      !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), fl%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
       fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_X_Cf) then
       rhsx_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
       fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_Z_MASSFLUX) then
       call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
-      !call Get_volumetric_average_3d(.false., dm%ibcy(:, 3), dm%fbcy_var(:, :, :, 3), dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
+      !call Get_volumetric_average_3d(.false., dm%ibcy(:, 3), fl%fbcy_var(:, :, :, 3), dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
       fl%mz_rhs(:, :, :) = fl%mz_rhs(:, :, :) - rhsz_bulk
     else if (fl%idriven == IDRVF_Z_Cf) then
       rhsz_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
@@ -1125,6 +1125,10 @@ contains
     
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: pphi_ccc_zpencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dphidz_ccp_zpencil
+
+    real(WP), dimension( fbcx_var(4,              dm%dccc%xsz(2), dm%dccc%xsz(3)) )
+    real(WP), dimension( fbcy_var(dm%dccc%ysz(1), 4,              dm%dccc%ysz(3)) )
+    real(WP), dimension( fbcz_var(dm%dccc%zsz(1), dm%dccc%zsz(2), 4             ) )
     
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
@@ -1134,7 +1138,8 @@ contains
 !   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
 !----------------------------------------------------------------------------------------------------------
     dphidx_pcc = ZERO
-    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), dm%fbcx_var(:, :, :, 4) )
+    fbcx_var = ZERO ! check
+    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), fbcx_var )
     ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 !----------------------------------------------------------------------------------------------------------
 !   y-pencil, uy = uy - dt * alpha * d(phi_ccc)/dy
@@ -1142,8 +1147,9 @@ contains
     phi_ccc_ypencil = ZERO
     dphidy_cpc_ypencil = ZERO
     dphidy_cpc = ZERO
+    fbcy_var = ZERO
     call transpose_x_to_y (phi_ccc, phi_ccc_ypencil, dm%dccc)
-    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%ibcy(:, 4), dm%fbcy_var(:, :, :, 4) )
+    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%ibcy(:, 4), fbcy_var )
     call transpose_y_to_x (dphidy_cpc_ypencil, dphidy_cpc, dm%dcpc)
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
 !----------------------------------------------------------------------------------------------------------
@@ -1153,8 +1159,9 @@ contains
     dphidz_ccp_zpencil = ZERO
     dphidz_ccp_ypencil = ZERO
     dphidz_ccp = ZERO
+    fbcz_var = ZERO
     call transpose_y_to_z (phi_ccc_ypencil, pphi_ccc_zpencil, dm%dccc)
-    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%ibcz(:, 4), dm%fbcz_var(:, :, :, 4) )
+    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%ibcz(:, 4), fbcz_var )
     call transpose_z_to_y (dphidz_ccp_zpencil, dphidz_ccp_ypencil, dm%dccp)
     call transpose_y_to_x (dphidz_ccp_ypencil, dphidz_ccp,         dm%dccp)
     uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp
@@ -1206,11 +1213,7 @@ contains
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !----------------------------------------------------------------------------------------------------------
     div  = ZERO
-    if (dm%is_thermo) then
-      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
-    else
-      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
-    end if
+    call Get_divergence(fl, div, dm)
 
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
@@ -1238,72 +1241,72 @@ contains
 
     return
   end subroutine
-!==========================================================================================================
-  subroutine solve_poisson_x2z(fl, dm, isub)
-    use udf_type_mod
-    use parameters_constant_mod
-    use decomp_2d_poisson
-    use decomp_extended_mod
-    use continuity_eq_mod
+! !==========================================================================================================
+!   subroutine solve_poisson_x2z(fl, dm, isub)
+!     use udf_type_mod
+!     use parameters_constant_mod
+!     use decomp_2d_poisson
+!     use decomp_extended_mod
+!     use continuity_eq_mod
 
-    implicit none
-    type(t_domain), intent( in    ) :: dm
-    type(t_flow),   intent( inout ) :: fl                  
-    integer,        intent( in    ) :: isub
+!     implicit none
+!     type(t_domain), intent( in    ) :: dm
+!     type(t_flow),   intent( inout ) :: fl                  
+!     integer,        intent( in    ) :: isub
 
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: rhs
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
+!     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: rhs
+!     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
+!     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
 
   
 
-    real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
-                         dm%dccc%zst(2) : dm%dccc%zen(2), &
-                         dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
-    !integer :: i, j, k, jj, ii
+!     real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
+!                          dm%dccc%zst(2) : dm%dccc%zen(2), &
+!                          dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
+!     !integer :: i, j, k, jj, ii
 
-!==========================================================================================================
-! RHS of Poisson Eq.
-!==========================================================================================================
-    fl%pcor_zpencil_ggg = ZERO
-!----------------------------------------------------------------------------------------------------------
-! $d\rho / dt$ at cell centre
-!----------------------------------------------------------------------------------------------------------
-    if (dm%is_thermo) then
-      rhs = ZERO
-      rhs_ypencil = ZERO
-      rhs_zpencil = ZERO
-      rhs_zpencil_ggg = ZERO
-      call Calculate_drhodt(dm, tm%dDens, tm%dDensm1, tm%dDensm2, rhs)
-      call transpose_x_to_y(rhs,         rhs_ypencil)
-      call transpose_y_to_z(rhs_ypencil, rhs_zpencil)
-      call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
-      fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
-    end if
-!----------------------------------------------------------------------------------------------------------
-! $d(\rho u_i)) / dx_i $ at cell centre
-!----------------------------------------------------------------------------------------------------------
-    rhs_zpencil_ggg  = ZERO
-    if (dm%is_thermo) then
-      call Get_divergence_vel_x2z(fl%gx, fl%gy, fl%gz, rhs_zpencil_ggg, dm)
-    else
-      call Get_divergence_vel_x2z(fl%qx, fl%qy, fl%qz, rhs_zpencil_ggg, dm)
-    end if
-    fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
-    fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
-!==========================================================================================================
-!   solve Poisson
-!==========================================================================================================
-    call poisson(fl%pcor_zpencil_ggg)
-!==========================================================================================================
-!   convert back RHS from zpencil ggg to xpencil gll
-!==========================================================================================================
-    call zpencil_index_ggg2llg(fl%pcor_zpencil_ggg, rhs_zpencil, dm%dccc)
-    call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
-    call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
+! !==========================================================================================================
+! ! RHS of Poisson Eq.
+! !==========================================================================================================
+!     fl%pcor_zpencil_ggg = ZERO
+! !----------------------------------------------------------------------------------------------------------
+! ! $d\rho / dt$ at cell centre
+! !----------------------------------------------------------------------------------------------------------
+!     if (dm%is_thermo) then
+!       rhs = ZERO
+!       rhs_ypencil = ZERO
+!       rhs_zpencil = ZERO
+!       rhs_zpencil_ggg = ZERO
+!       call Calculate_drhodt(dm, tm%dDens, tm%dDensm1, tm%dDensm2, rhs)
+!       call transpose_x_to_y(rhs,         rhs_ypencil)
+!       call transpose_y_to_z(rhs_ypencil, rhs_zpencil)
+!       call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
+!       fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
+!     end if
+! !----------------------------------------------------------------------------------------------------------
+! ! $d(\rho u_i)) / dx_i $ at cell centre
+! !----------------------------------------------------------------------------------------------------------
+!     rhs_zpencil_ggg  = ZERO
+!     if (dm%is_thermo) then
+!       call Get_divergence_x2z(fl%gx, fl%gy, fl%gz, rhs_zpencil_ggg, dm)
+!     else
+!       call Get_divergence_x2z(fl%qx, fl%qy, fl%qz, rhs_zpencil_ggg, dm)
+!     end if
+!     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg
+!     fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
+! !==========================================================================================================
+! !   solve Poisson
+! !==========================================================================================================
+!     call poisson(fl%pcor_zpencil_ggg)
+! !==========================================================================================================
+! !   convert back RHS from zpencil ggg to xpencil gll
+! !==========================================================================================================
+!     call zpencil_index_ggg2llg(fl%pcor_zpencil_ggg, rhs_zpencil, dm%dccc)
+!     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
+!     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 
-    return
-  end subroutine
+!     return
+!   end subroutine
 
 !==========================================================================================================
 !> \brief To update the provisional u or rho u.
@@ -1405,8 +1408,13 @@ contains
 
     
 #ifdef DEBUG_STEPS
-    call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
-    call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub))) 
+    if(dm%is_thermo) then
+      call Find_maximum_velocity(dm, fl%gx, fl%gy, fl%gz)
+      call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub)), tm) 
+    else
+      call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
+      call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub))) 
+    end if
 #endif
 
     return

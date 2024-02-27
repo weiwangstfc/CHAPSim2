@@ -79,10 +79,54 @@ contains
     call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
+    allocate (fl%fbcx_qx(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)))
+    allocate (fl%fbcx_qy(4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)))
+    allocate (fl%fbcx_qz(4, dm%dccp%xsz(2), dm%dccp%xsz(3)))
+
+    allocate (fl%fbcy_qx(dm%dpcc%ysz(1), 4, dm%dpcc%ysz(3)))
+    allocate (fl%fbcy_qy(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
+    allocate (fl%fbcy_qz(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
+
+    allocate (fl%fbcz_qx(dm%dpcc%zsz(1), dm%dpcc%zsz(2), 4))
+    allocate (fl%fbcz_qy(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
+    allocate (fl%fbcz_qz(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
+
+    allocate (fl%fbcx_pr(4, dm%dccc%xsz(2), dm%dccc%xsz(3)))
+    allocate (fl%fbcy_pr(dm%dccc%ysz(1), 4, dm%dccc%ysz(3)))
+    allocate (fl%fbcz_pr(dm%dccc%zsz(1), dm%dccc%zsz(2), 4))
+
+
+    if(dm%icoordinate == ICYLINDRICAL) then
+      allocate (fl%fbcy_qyr(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
+      allocate (fl%fbcz_qyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
+      allocate (fl%fbcy_qzr(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
+      allocate (fl%fbcz_qzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
+    end if
+
     if(dm%is_thermo) then
       call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO ! gx = rho * qx = rho * ux
       call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO ! gy = rho * qy = rho * ur * rp
       call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO ! gz = rho * qz = rho * u_theta * rc
+
+      allocate (fl%fbcx_gx(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)))
+      allocate (fl%fbcx_gy(4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)))
+      allocate (fl%fbcx_gz(4, dm%dccp%xsz(2), dm%dccp%xsz(3)))
+  
+      allocate (fl%fbcy_gx(dm%dpcc%ysz(1), 4, dm%dpcc%ysz(3)))
+      allocate (fl%fbcy_gy(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
+      allocate (fl%fbcy_gz(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
+  
+      allocate (fl%fbcz_gx(dm%dpcc%zsz(1), dm%dpcc%zsz(2), 4))
+      allocate (fl%fbcz_gy(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
+      allocate (fl%fbcz_gz(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
+  
+      if(dm%icoordinate == ICYLINDRICAL) then
+        allocate (fl%fbcy_gyr(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
+        allocate (fl%fbcz_gyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
+        allocate (fl%fbcy_gzr(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
+        allocate (fl%fbcz_gzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
+      end if
+
     end if
 
     if(nrank == 0) call Print_debug_end_msg
@@ -348,7 +392,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), fl%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
@@ -357,7 +401,7 @@ contains
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
-    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), fl%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
@@ -469,7 +513,7 @@ contains
         jj = dm%dpcc%xst(2) + j - 1
         do i = 1, dm%dpcc%xsz(1)
           ii = dm%dpcc%xst(1) + i - 1
-          ux(i, j, k) = ux(i, j, k) + dm%fbcx_var(1, j, k, 1)
+          ux(i, j, k) = ux(i, j, k) + fl%fbcx_var(1, j, k, 1)
         end do
       end do
     end do
@@ -480,7 +524,7 @@ contains
         jj = dm%dcpc%xst(2) + j - 1
         do i = 1, dm%dcpc%xsz(1)
           ii = dm%dcpc%xst(1) + i - 1
-          uy(i, j, k) = uy(i, j, k) + dm%fbcx_var(1, j, k, 2)
+          uy(i, j, k) = uy(i, j, k) + fl%fbcx_var(1, j, k, 2)
         end do
       end do
     end do
@@ -491,7 +535,7 @@ contains
         jj = dm%dccp%xst(2) + j - 1
         do i = 1, dm%dccp%xsz(1)
           ii = dm%dccp%xst(1) + i - 1
-          uz(i, j, k) = uz(i, j, k) + dm%fbcx_var(1, j, k, 3)
+          uz(i, j, k) = uz(i, j, k) + fl%fbcx_var(1, j, k, 3)
         end do
       end do
     end do
@@ -575,8 +619,13 @@ contains
     !==========================================================================================================
     !  validation for each time step
     !==========================================================================================================
-    call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
-    call Check_mass_conservation(fl, dm, 'initialization') 
+    if(dm%is_thermo) then
+      call Find_maximum_velocity(dm, fl%gx, fl%gy, fl%gz)
+      call Check_mass_conservation(fl, dm, 'initialization', tm) 
+    else
+      call Find_maximum_velocity(dm, fl%qx, fl%qy, fl%qz)
+      call Check_mass_conservation(fl, dm, 'initialization') 
+    end if
 
     call write_snapshot_flow(dm, fl)
 

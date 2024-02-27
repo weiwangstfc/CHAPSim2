@@ -178,7 +178,7 @@ contains
 
     type(t_domain), intent(inout) :: dm
 
-    integer    :: i
+    integer    :: i, k
     
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
 
@@ -216,7 +216,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! set up z-interior extention cells for pipe flow, zpencil only
 !----------------------------------------------------------------------------------------------------------
-    if(dm%icase == ICASE_PIPE)
+    if(dm%icase == ICASE_PIPE) then
       allocate (dm%knc_sym(dm%nc(3)))
       do k = 1, dm%nc(3)
         dm%knc_sym(k) = k + dm%nc(3)/2

@@ -294,6 +294,7 @@ end module wtformat_mod
 module udf_type_mod
   use parameters_constant_mod, only: NDIM, NBC, WP
   use mpi_mod
+  use decomp_2d
   implicit none
 !----------------------------------------------------------------------------------------------------------
 !  fluid thermal property info
@@ -364,9 +365,9 @@ module udf_type_mod
     integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
     integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
-    real(wp) :: fbcx_const(2, NBC) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcy_const(2, NBC) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcz_const(2, NBC) ! bc values, (5 variables, 2 sides)
+    real(wp) :: fbcx_const(4, NBC) ! bc values, (5 variables, 2 sides (3,1,...,2,4))
+    real(wp) :: fbcy_const(4, NBC) ! bc values, (5 variables, 2 sides (3,1,...,2,4))
+    real(wp) :: fbcz_const(4, NBC) ! bc values, (5 variables, 2 sides (3,1,...,2,4))
 
     real(wp) :: lxx
     real(wp) :: lyt

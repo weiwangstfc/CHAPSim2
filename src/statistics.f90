@@ -123,13 +123,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   ux
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, accc1, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) )
+    call Get_x_midp_P2C_3D(fl%qx, accc1, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :) )
     fl%u_vector_mean(:, :, :, 1) = am * fl%u_vector_mean(:, :, :, 1) + ac * accc1(:, :, :)
 !----------------------------------------------------------------------------------------------------------
 !   uy
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
     call transpose_y_to_x(accc_ypencil, accc2, dm%dccc)
     fl%u_vector_mean(:, :, :, 2) = am * fl%u_vector_mean(:, :, :, 2) + ac * accc2(:, :, :)
 !----------------------------------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qz, accp_ypencil, dm%dccp)
     call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3) )
+    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :) )
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc3, dm%dccc)
     fl%u_vector_mean(:, :, :, 3) = am * fl%u_vector_mean(:, :, :, 3) + ac * accc3(:, :, :)

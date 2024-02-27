@@ -259,7 +259,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Check_cfl_convection(qx, qy, qz, dm)
+  subroutine Check_cfl_convection(fl, dm)
     use parameters_constant_mod
     use udf_type_mod
     use operations
@@ -268,10 +268,7 @@ contains
     implicit none
 
     type(t_domain), intent(in) :: dm
-    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent(in) :: qx
-    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent(in) :: qy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent(in) :: qz
-
+    type(t_flow),    intent(in) :: fl
     real(WP) :: var_xpencil (dm%dccc%xsz(1), &
                              dm%dccc%xsz(2), &
                              dm%dccc%xsz(3))
@@ -312,23 +309,23 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : qx_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(qx, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_midp_P2C_3D(fl%qx, accc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : qy_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
-    call transpose_x_to_y(qy,             qy_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(qy_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call transpose_x_to_y(fl%qy,          qy_ypencil, dm%dcpc)
+    call Get_y_midp_P2C_3D(qy_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : \overline{qz}^z/dz at cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
-    call transpose_x_to_y(qz,             qz_ypencil, dm%dccp)
+    call transpose_x_to_y(fl%qz,           qz_ypencil, dm%dccp)
     call transpose_y_to_z(qz_ypencil,     qz_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(qz_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    call Get_z_midp_P2C_3D(qz_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 2, IPENCIL(3))
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
@@ -534,7 +531,10 @@ contains
     real(WP),          intent(out):: fo_work
     character(*), optional, intent(in) :: str
  
-    real(WP)   :: vol, fo, vol_work, vol_real
+    real(WP) :: vol, fo, vol_work!
+#ifdef DEBUG_STEPS 
+    real(WP) :: vol_real
+#endif
     integer :: i, j, k, jj
 
     !----------------------------------------------------------------------------------------------------------
@@ -622,6 +622,7 @@ contains
     use math_mod
     use mpi_mod
     use parameters_constant_mod
+    use udf_type_mod
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP), intent(in)  :: qx(:, :, :)
@@ -811,7 +812,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : u1 -> g1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (tm%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (tm%dDens, d_pcc, dm, dm%ibcx(:, 5), tm%fbcx_ftp(:, :, :)%d)
     fl%gx = fl%qx * d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
@@ -819,7 +820,7 @@ contains
     call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
     call transpose_x_to_y(tm%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), tm%fbcy_ftp(:, :, :)%d)
     gy_ypencil = qy_ypencil * d_cpc_ypencil
     call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
@@ -829,7 +830,7 @@ contains
     call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
     call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), tm%fbcz_ftp(:, :, :)%d)
     gz_zpencil = qz_zpencil * d_ccp_zpencil
 
     call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
@@ -840,13 +841,14 @@ contains
 
 
   !==========================================================================================================
-  subroutine Calculate_velocity_from_massflux(dm, fl)
+  subroutine Calculate_velocity_from_massflux(dm, fl, tm)
     use udf_type_mod
     use operations
     use decomp_2d
     implicit none
-    type(t_domain), intent(in )   :: dm
-    type(t_flow  ), intent(inout) :: fl
+    type(t_domain), intent(in   ) :: dm
+    type(t_flow  ),  intent(inout) :: fl
+    type(t_thermo), intent(inout) :: tm
 
     real(WP), dimension( dm%dpcc%xsz(1), &
                          dm%dpcc%xsz(2), &
@@ -885,7 +887,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : g1 -> u1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (tm%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (tm%dDens, d_pcc, dm, dm%ibcx(:, 5), tm%fbcx_ftp(:, :, :)%d)
     fl%qx = fl%gx / d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
@@ -893,17 +895,17 @@ contains
     call transpose_x_to_y(fl%gy,    gy_ypencil, dm%dcpc)
     call transpose_x_to_y(tm%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), tm%fbcy_ftp(:, :, :)%d)
     qy_ypencil = gy_ypencil / d_cpc_ypencil
     call transpose_y_to_x(qy_ypencil, fl%qy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : u3 -> g3
 !----------------------------------------------------------------------------------------------------------
     call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
-    call transpose_x_to_y(fl%gz,      gz_ypencil, dm%dccp)
+    call transpose_x_to_y(fl%gz,       gz_ypencil, dm%dccp)
     call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), tm%fbcz_ftp(:, :, :)%d)
     qz_zpencil = gz_zpencil / d_ccp_zpencil
 
     call transpose_z_to_y(qz_zpencil, qz_ypencil, dm%dccp)
@@ -917,6 +919,8 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
+    use udf_type_mod
+    use parameters_constant_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP), intent(inout) :: var(:, :, :)
@@ -942,6 +946,10 @@ contains
       nz = dtmp%zsz(3)
       nyst = dtmp%zst(2)
     else
+      nx = 0
+      ny = 0
+      nz = 0
+      nyst = 0
     end if
 
     do k = 1, nz

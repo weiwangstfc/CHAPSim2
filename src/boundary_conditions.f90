@@ -202,19 +202,18 @@ contains
         do n = 1, 2
           if( dm%ibcx(n, 5) == IBC_DIRICHLET ) then
             ! dimensional T --> undimensional T
-            tm%fbcx_ftp(n,   j, k)%t = dm%fbcx_const(n, 5) / fluidparam%ftp0ref%t
-            tm%fbcx_ftp(n+2, j, k)%t = tm%fbcx_ftp(n, j, k)%t
+            tm%fbcx_ftp(n, j, k)%t = dm%fbcx_const(n, 5) / fluidparam%ftp0ref%t
             call ftp_refresh_thermal_properties_from_T_undim( tm%fbcx_ftp(n,   j, k))
-            call ftp_refresh_thermal_properties_from_T_undim( tm%fbcx_ftp(n+2, j, k))
-
+            tm%fbcx_ftp(n+2, j, k) = tm%fbcx_ftp(n, j, k)
           else if (dm%ibcx(n, 5) == IBC_NEUMANN) then
             ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
             tm%fbcx_heatflux(n,   j, k) = dm%fbcx_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            tm%fbcx_heatflux(n+2, j, k) = tm%fbcx_heatflux(n, j, k) ! to check
+            tm%fbcx_heatflux(n+2, j, k) = tm%fbcx_heatflux(n, j, k)
           else
           end if
 
-        end do 
+        end do
+
       end do
     end do 
 
@@ -322,7 +321,7 @@ contains
   subroutine apply_x_bc_geo(fbcx, fbcx_const, ri, jst)
     implicit none
     real(WP), intent(inout) :: fbcx(:, :, :)
-    real(WP), intent(in)    :: fbcx_const(2)
+    real(WP), intent(in)    :: fbcx_const(4)
     integer,  intent(in), optional :: jst
     real(WP), intent(in), optional :: ri(:)
 
@@ -332,13 +331,12 @@ contains
     do k = 1, size(fbcx, 3)
       do j = 1, size(fbcx, 2)
         if(present(jst)) jj = jst + j - 1
-        do n = 1, 2
+        do n = 1, 4
           if(present(ri)) then
             fbcx(n,   j, k) =  fbcx_const(n) / ri(jj)
           else
             fbcx(n,   j, k) =  fbcx_const(n)
           end if
-          fbcx(n+2, j, k) =  fbcx(n, j, k)
         end do
       end do
     end do
