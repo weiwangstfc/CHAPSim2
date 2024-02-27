@@ -15,6 +15,7 @@ module solver_tools_mod
   public  :: Get_volumetric_average_3d_for_var_xcx
   public  :: Find_maximum_absvar3d
   public  :: Find_max_min_3d
+  public  :: Find_maximum_velocity
 
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_velocity_from_massflux
@@ -229,17 +230,27 @@ contains
     use mpi_mod
     use wtformat_mod
     implicit none
-    real(WP), intent(in) :: x2r(3)
-    real(WP), intent(in) :: rci
+    real(WP), intent(in) :: x2r(:)
+    real(WP), intent(in) :: rci(:)
     real(WP), intent(in) :: rre
     real(WP), intent(in) :: dt
-    real(WP) :: cfl_diff
+    real(WP) :: cfl_diff, rtmp, cfl_diff_work
+    integer :: j, n
 
     ! check, ours is two times of the one in xcompact3d.
-    cfl_diff = (x2r(1) + x2r(2) * rci + x2r(3) * rci**2) * TWO * dt * rre
+    n = size(rci)
+    cfl_diff = ZERO
+    do j = 1, n
+      rtmp = (x2r(1) + x2r(2) * rci(j) + x2r(3) * rci(j)**2) * TWO * dt * rre
+      if(rtmp > cfl_diff) cfl_diff = rtmp
+    end do
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(cfl_diff, cfl_diff_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+
     if(nrank == 0) then
       if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-      write (*, wrtfmt1r) "  Diffusion number :", cfl_diff
+      write (*, wrtfmt1r) "  Diffusion number :", cfl_diff_work
     end if
     
     return
@@ -259,7 +270,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Check_cfl_convection(fl, dm)
+  subroutine Check_cfl_convection(dm, fl)
     use parameters_constant_mod
     use udf_type_mod
     use operations
@@ -848,7 +859,7 @@ contains
     implicit none
     type(t_domain), intent(in   ) :: dm
     type(t_flow  ),  intent(inout) :: fl
-    type(t_thermo), intent(inout) :: tm
+    type(t_thermo), intent(in) :: tm
 
     real(WP), dimension( dm%dpcc%xsz(1), &
                          dm%dpcc%xsz(2), &

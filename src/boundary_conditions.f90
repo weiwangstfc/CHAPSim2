@@ -748,6 +748,7 @@ contains
   subroutine update_flow_bc_2dm_halo(dm0, fl0, dm1, fl1, tm1)
     use parameters_constant_mod
     use udf_type_mod
+    use solver_tools_mod
     implicit none
     type(t_domain), intent(in)           :: dm0, dm1
     type(t_flow),   intent(inout)        :: fl0, fl1

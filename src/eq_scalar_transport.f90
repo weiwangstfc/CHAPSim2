@@ -87,11 +87,11 @@ contains
 !      --> k_ypencil --> k_cpc_ypencil
 !                    --> k_zpencil --> k_ccp_zpencil              
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%kCond,      kCond_pcc,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
+    call Get_x_midp_C2P_3D(tm%kCond,      kCond_pcc,         dm, dm%ibcx(:, 5),  tm%fbcx_ftp(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%k)
+    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%ibcy(:, 5),  tm%fbcy_ftp(:, :, :)%k)
     call transpose_y_to_z (accc_ypencil,  kCond_zpencil, dm%dccc) 
-    call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%k)
+    call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%ibcz(:, 5),  tm%fbcz_ftp(:, :, :)%k)
 !----------------------------------------------------------------------------------------------------------
 !    T --> T_ypencil --> T_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ contains
         fbcx(i) = dm%fbcx_var(i, 5)
       end if
     end do
-    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, ibcx(:), fbcx(:) )
+    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, ibcx(:), fbcx_4cc )
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : k_pcc * d (T) / dx 
 !----------------------------------------------------------------------------------------------------------

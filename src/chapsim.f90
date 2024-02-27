@@ -52,6 +52,8 @@ subroutine Initialize_chapsim
   use boundary_conditions_mod
   use solver_tools_mod
   use io_tools_mod
+  use io_monitor_mod
+  use statistics_mod
   implicit none
   integer :: i
 
@@ -102,7 +104,7 @@ subroutine Initialize_chapsim
     call write_monitor_ini(domain(i))
     call write_snapshot_ini(domain(i))
     call init_statistics_flow(domain(i), flow(i))
-    if(dm%is_thermo) call init_statistics_thermo(domain(i), thermo(i))
+    if(domain(i)%is_thermo) call init_statistics_thermo(domain(i), thermo(i))
     call mesh_output(domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
@@ -126,21 +128,29 @@ subroutine Initialize_chapsim
 ! Initialize flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call Initialize_flow_fields(flow(i), domain(i))
-    if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
+    call Initialize_flow_fields(domain(i), flow(i))
+    if(domain(i)%is_thermo) then
+      call Initialize_thermo_fields(domain(i), flow(i), thermo(i))
+      call Find_maximum_velocity(domain(i), flow(i)%gx, flow(i)%gy, flow(i)%gz)
+      call Check_mass_conservation(domain(i), flow(i), 'initialization', thermo(i))
+    else
+      call Find_maximum_velocity(domain(i), flow(i)%qx, flow(i)%qy, flow(i)%qz)
+      call Check_mass_conservation(domain(i), flow(i), 'initialization') 
+    end if    
+    call write_snapshot_flow(domain(i), flow(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain - 1
-    call update_flow_bc_halo(domain(i), flow(i), domain(i+1), flow(i+1))
+    call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1))
     if(domain(i)%is_thermo) then
-      call update_thermo_bc_2dm_halo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+      call update_thermo_bc_2dm_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
     end if
   end do
   do i = 1, nxdomain
     if(domain(i)%is_thermo) then
-      call update_gxgygz_bc_geo(flow(i), thermo(i))
+      call apply_gxgygz_bc_geo(flow(i), thermo(i))
     end if
   end do
   
@@ -238,7 +248,7 @@ subroutine Solve_eqs_iteration
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
         call Check_cfl_diffusion (domain(i)%h2r(:), domain(i)%rci, flow(i)%rre, domain(i)%dt)
-        call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+        call Check_cfl_convection(domain(i), flow(i))
       end if
       !----------------------------------------------------------------------------------------------------------
       !     setting up thermo solver
@@ -261,14 +271,14 @@ subroutine Solve_eqs_iteration
 !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain
         if(is_thermo(i)) then
-          call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
+          call Solve_energy_eq  (domain(i), flow(i), thermo(i), isub)
           call update_thermo_bc_1dm_halo(domain(i), thermo(i))
         end if
         if(is_flow(i)) then
           if(is_thermo(i)) then
-            call Solve_momentum_eq(flow(i), domain(i), isub, thermo(i))
+            call Solve_momentum_eq(domain(i), flow(i), isub, thermo(i))
           else
-            call Solve_momentum_eq(flow(i), domain(i), isub)
+            call Solve_momentum_eq(domain(i), flow(i), isub)
           end if
           call update_flow_bc_1dm_halo(domain(i), flow(i))
         end if
@@ -277,14 +287,15 @@ subroutine Solve_eqs_iteration
 ! update interface values for multiple domain
 !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_thermo(i)) call update_thermo_bc_2dm_halo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+        if(is_thermo(i)) call update_thermo_bc_2dm_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
         if(is_flow(i)) then
           if(is_thermo(i+1)) then
             call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1), thermo(i+1))
           else
             call update_flow_bc_2dm_halo(domain(i), flow(i), domain(i+1), flow(i+1))
           end if
-        end do
+        end if
+      end do
     end do
 
     !==========================================================================================================
@@ -297,56 +308,56 @@ subroutine Solve_eqs_iteration
       if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
         call Find_maximum_velocity(domain(i), flow(i)%qx, flow(i)%qy, flow(i)%qz)
-        call Check_mass_conservation(flow(i), domain(i)) 
+        call Check_mass_conservation(domain(i), flow(i)) 
       end if
 
       !----------------------------------------------------------------------------------------------------------
       !  update statistics
       !----------------------------------------------------------------------------------------------------------
       if (iter > domain(i)%stat_istart .and. is_flow(i)) then
-        call update_statistics_flow(flow(i), domain(i))
+        call update_statistics_flow(domain(i), flow(i))
       end if
       if(domain(i)%is_thermo .and. is_thermo(i)) then
         if (iter > domain(i)%stat_istart) then
-          call update_statistics_thermo(thermo(i), domain(i))
+          call update_statistics_thermo(domain(i), thermo(i))
         end if
       end if
       !----------------------------------------------------------------------------------------------------------
       !  monitoring 
       !----------------------------------------------------------------------------------------------------------
-      !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
+      !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (domain(i), flow(i))
       if(is_flow(i)) then
-        call write_monitor_total(flow(i), domain(i))
-        call write_monitor_flow(flow(i), domain(i))
+        call write_monitor_total(domain(i), flow(i))
+        call write_monitor_flow(domain(i), flow(i))
       end if
       if(domain(i)%is_thermo .and. is_thermo(i)) then
-        call write_monitor_thermo(thermo(i), domain(i))
+        call write_monitor_thermo(domain(i), thermo(i))
       end if
       !----------------------------------------------------------------------------------------------------------
       !  write out check point data for restart
       !----------------------------------------------------------------------------------------------------------
       if (mod(iter, domain(i)%ckpt_nfre) == 0) then
         if(is_flow(i)) then
-          call write_instantanous_flow_raw_data(flow(i), domain(i))
-          if(iter > domain(i)%stat_istart) call write_statistics_flow(flow(i), domain(i))
+          call write_instantanous_flow_raw_data(domain(i), flow(i))
+          if(iter > domain(i)%stat_istart) call write_statistics_flow(domain(i), flow(i))
         end if
         if(domain(i)%is_thermo .and. is_thermo(i)) then
-          call write_instantanous_thermo_raw_data(thermo(i), domain(i))
-          if(iter > domain(i)%stat_istart) call write_statistics_thermo(thermo(i), domain(i))
+          call write_instantanous_thermo_raw_data(domain(i), thermo(i))
+          if(iter > domain(i)%stat_istart) call write_statistics_thermo(domain(i), thermo(i))
         end if
       end if
       !----------------------------------------------------------------------------------------------------------
       ! write data for visualisation
       !----------------------------------------------------------------------------------------------------------
       if(MOD(iter, domain(i)%visu_nfre) == 0) then
-        if(is_flow(i)) call write_snapshot_flow(flow(i), domain(i))
+        if(is_flow(i)) call write_snapshot_flow(domain(i), flow(i))
         if(domain(i)%is_thermo .and. is_thermo(i)) then
-          call write_snapshot_thermo(thermo(i), domain(i))
+          call write_snapshot_thermo(domain(i), thermo(i))
         end if
         if(iter > domain(i)%stat_istart ) then
-          if(is_flow(i)) call write_snapshot_flow_stat(flow(i), domain(i))
+          if(is_flow(i)) call write_snapshot_flow_stat(domain(i), flow(i))
           if(domain(i)%is_thermo .and. is_thermo(i)) then
-            call write_snapshot_thermo_stat(thermo(i), domain(i))
+            call write_snapshot_thermo_stat(domain(i), thermo(i))
           end if
         end if
       end if

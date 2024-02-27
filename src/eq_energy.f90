@@ -47,7 +47,25 @@ contains
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc_xpencil
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_xpencil
+!----------------------------------------------------------------------------------------------------------
+! bc variables
+!----------------------------------------------------------------------------------------------------------
+    real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc
+    !real(WP), dimension( 4, dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: fbcx_4pc
+    !real(WP), dimension( 4, dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: fbcx_4cp
     
+    !real(WP), dimension( dm%dpcc%ysz(1), 4, dm%dpcc%ysz(3) ) :: fbcy_p4c
+    real(WP), dimension( dm%dccc%ysz(1), 4, dm%dccc%ysz(3) ) :: fbcy_c4c
+    !real(WP), dimension( dm%dccp%ysz(1), 4, dm%dccp%ysz(3) ) :: fbcy_c4p
+    
+    !real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), 4 ) :: fbcz_pc4
+    !real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4 ) :: fbcz_cp4
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), 4 ) :: fbcz_cc4
+!----------------------------------------------------------------------------------------------------------
+! bc variables
+!----------------------------------------------------------------------------------------------------------
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: gy_cpc_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_ccp_zpencil 
 
@@ -66,33 +84,33 @@ contains
     real(WP) :: fbcx(4, dm%np(2), dm%np(3))
     real(WP) :: fbcy(dm%np(1), 4, dm%np(3))
     real(WP) :: fbcz(dm%np(1), dm%np(2), 4)
-    integer  :: n
+    integer  :: n, i
 !==========================================================================================================
 !   preparation
 !==========================================================================================================
-    call transpose_x_to_y(fl%gy,        gy_cpc_ypencil,   dm%dcpc)   ! for d(g_y h)/dy
-    call transpose_x_to_y(fl%gz,        accp_ypencil, dm%dccp)   ! intermediate, accp_ypencil = gz_ypencil
-    call transpose_y_to_z(accp_ypencil, gz_zpencil,   dm%dccp)   ! for d(g_z h)/dz
+    call transpose_x_to_y(fl%gy,        gy_cpc_ypencil, dm%dcpc)   ! for d(g_y h)/dy
+    call transpose_x_to_y(fl%gz,        accp_ypencil,   dm%dccp)   ! intermediate, accp_ypencil = gz_ypencil
+    call transpose_y_to_z(accp_ypencil, gz_ccp_zpencil, dm%dccp)   ! for d(g_z h)/dz
 !----------------------------------------------------------------------------------------------------------
 !    h --> h_pcc
 !      --> h_ypencil --> h_cpc_ypencil
 !                    --> h_zpencil --> h_ccp_zpencil
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%hEnth,     hix_pcc_xpencil,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%h ) ! for d(g_x h_pcc))/dy
+    call Get_x_midp_C2P_3D(tm%hEnth,     hix_pcc_xpencil,         dm, dm%ibcx(:, 5), tm%fbcx_ftp(:, :, :)%h ) ! for d(g_x h_pcc))/dy
     call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3D(accc_ypencil, hiy_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%h)! for d(g_y h_cpc)/dy
+    call Get_y_midp_C2P_3D(accc_ypencil, hiy_cpc_ypencil, dm, dm%ibcy(:, 5),  tm%fbcy_ftp(:, :, :)%h)! for d(g_y h_cpc)/dy
     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-    call Get_z_midp_C2P_3D(accc_zpencil, hiz_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%h) ! for d(g_z h_ccp)/dz
+    call Get_z_midp_C2P_3D(accc_zpencil, hiz_ccp_zpencil, dm, dm%ibcz(:, 5),  tm%fbcz_ftp(:, :, :)%h) ! for d(g_z h_ccp)/dz
 !----------------------------------------------------------------------------------------------------------
 !    k --> k_pcc
 !      --> k_ypencil --> k_cpc_ypencil
 !                    --> k_zpencil --> k_ccp_zpencil              
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%kCond,      kix_pcc_xpencil,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
+    call Get_x_midp_C2P_3D(tm%kCond,      kix_pcc_xpencil,         dm, dm%ibcx(:, 5),  tm%fbcx_ftp(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%k)
+    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%ibcy(:, 5),  tm%fbcy_ftp(:, :, :)%k)
     call transpose_y_to_z (accc_ypencil,  kCond_zpencil, dm%dccc) 
-    call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%k)
+    call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%ibcz(:, 5),  tm%fbcz_ftp(:, :, :)%k)
 !----------------------------------------------------------------------------------------------------------
 !    T --> T_ypencil --> T_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -125,17 +143,17 @@ contains
 ! convection-z, z-pencil : d (gz/r * h_ccp) / dz 
 !----------------------------------------------------------------------------------------------------------
     accp_zpencil = gz_ccp_zpencil * hiz_ccp_zpencil
-    call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gz * tm%fbcz_ftp%h, fbcz_ccp)
+    call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gz * tm%fbcz_ftp%h, fbcz_cc4)
     if(dm%icoordinate == ICYLINDRICAL) then
       call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
-      call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gzr * tm%fbcz_ftp%h, fbcz_ccp)
+      call get_dirichlet_geo_bcz(dm%ibcz(:, i), fl%fbcz_gzr * tm%fbcz_ftp%h, fbcz_cc4)
     end if
-    call Get_z_1st_derivative_P2C_3D( accp_zpencil, accc_zpencil, dm, dm%ibcz(:, i), fbcz_ccp ) )
+    call Get_z_1st_derivative_P2C_3D( accp_zpencil, accc_zpencil, dm, dm%ibcz(:, i), fbcz_cc4)
     ene_rhs_zpencil = ene_rhs_zpencil - accc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-x, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%ibcx(:, i), tm%fbcx_ftp%t )
+    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%ibcx(:, i), tm%fbcx_ftp(:, :, :)%t )
     apcc_xpencil = apcc_xpencil * kix_pcc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : k_pcc * d (T) / dx 
@@ -143,9 +161,9 @@ contains
     apcc = apcc * kix_pcc_xpencil
     do n = 1, 2
       if (dm%ibcx(n, 5) == IBC_NEUMANN) then
-        fbcx(:, :, :) = dm%fbcx_var(:, :, :, 5)
+        fbcx(:, :, :) = tm%fbcx_ftp(:, :, :)%t
       else if (dm%ibcx(n, 5) == IBC_DIRICHLET) then
-        fbcx(:, :, :) = dm%ftpbcx_var(:, :, :)%t * dm%ftpbcx_var(:, :, :)%k
+        fbcx(:, :, :) =  tm%fbcx_ftp(:, :, :)%t *  tm%fbcx_ftp(:, :, :)%k
       end if
     end do
 !----------------------------------------------------------------------------------------------------------
@@ -162,16 +180,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d (T) / dy
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%t )
+    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, dm%ibcy(:, 5),  tm%fbcy_ftp(:, :, :)%t )
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : k_cpc * d (T) / dy 
 !----------------------------------------------------------------------------------------------------------
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
     do n = 1, 2
       if (dm%ibcy(1, 5) == IBC_NEUMANN) then
-        fbcy(:, :, :) = dm%fbcy_var(:, :, :, 5)
+        fbcy(:, :, :) = tm%fbcy_ftp(:, :, :)%t
       else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
-        fbcy(:, :, :) = dm%ftpbcy_var(:, :, :)%t * dm%ftpbcy_var(:, :, :)%k
+        fbcy(:, :, :) =  tm%fbcy_ftp(:, :, :)%t * tm%fbcy_ftp(:, :, :)%k
       end if
     end do
 !----------------------------------------------------------------------------------------------------------
@@ -190,16 +208,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d (T) / dz
 !----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%t )
+    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, dm%ibcz(:, 5),  tm%fbcz_ftp(:, :, :)%t )
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : k_ccp * d (T) / dz 
 !----------------------------------------------------------------------------------------------------------
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     do n = 1, 2
       if (dm%ibcz(1, 5) == IBC_NEUMANN) then
-        fbcz(:, :, :) = dm%fbcz_var(:, :, :, 5)
+        fbcz(:, :, :) = tm%fbcz_ftp(:, :, :)%t
       else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
-        fbcz(:, :, :) = dm%ftpbcz_var(:, :, :)%t * dm%ftpbcz_var(:, :, :)%k
+        fbcz(:, :, :) =  tm%fbcz_ftp(:, :, :)%t *  tm%fbcz_ftp(:, :, :)%k
       end if
     end do
 !----------------------------------------------------------------------------------------------------------
@@ -221,7 +239,7 @@ contains
   end subroutine Compute_energy_rhs
 !==========================================================================================================
 !==========================================================================================================
-  subroutine Solve_energy_eq(fl, tm, dm, isub)
+  subroutine Solve_energy_eq(dm, fl, tm, isub)
     use udf_type_mod
     use thermo_info_mod 
     use solver_tools_mod

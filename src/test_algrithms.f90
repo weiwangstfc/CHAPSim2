@@ -23,7 +23,7 @@ module burgers_eq_mod
   public  :: Plot_burgers_profile
 
 contains
-  subroutine  Initialize_burgers_flow(dm, ux, uy, uz, p)
+  subroutine  Initialize_burgers_flow(dm, fl)
     use udf_type_mod, only : t_domain, t_flow
     use math_mod, only : sin_wp
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
@@ -31,20 +31,17 @@ contains
     implicit none
 
     type(t_domain), intent(inout)   :: dm
-    real(WP),       intent(inout) :: ux(:, :, :), &
-                                     uy(:, :, :), &
-                                     uz(:, :, :), &
-                                     p (:, :, :)
+    type(t_flow), intent(inout)     :: fl
 
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     integer(4) :: i, j, k
     real(WP) :: A, x0, omega0
     
-    ux = ZERO
-    uy = ZERO
-    uz = ZERO
-    p  = ZERO
+    fl%qx = ZERO
+    fl%qy = ZERO
+    fl%qz = ZERO
+    fl%pres  = ZERO
 
     dm%icase = icase
 
@@ -72,9 +69,9 @@ contains
       nu = ONE
       do i = 1, dm%np(idir)
         xp = dm%h(idir) * real(i - 1, WP)
-        if(idir == 1) ux(i, :, :) =  - sin_wp ( PI * xp )
-        if(idir == 2) uy(:, i, :) =  - sin_wp ( PI * xp )
-        if(idir == 3) uz(:, :, i) =  - sin_wp ( PI * xp )
+        if(idir == 1) fl%qx(i, :, :) =  - sin_wp ( PI * xp )
+        if(idir == 2) fl%qy(:, i, :) =  - sin_wp ( PI * xp )
+        if(idir == 3) fl%qz(:, :, i) =  - sin_wp ( PI * xp )
       end do 
 
     else if (icase == ICASE_BURGERS1D_INVISCID) then
@@ -83,22 +80,22 @@ contains
       !beta  = ZERO
       do i = 1, dm%np(idir)
         xp = dm%h(idir) * real(i - 1, WP)
-        if(idir == 1) ux(i, :, :) =  alpha * xp + beta
-        if(idir == 2) uy(:, i, :) =  alpha * xp + beta
-        if(idir == 3) uz(:, :, i) =  alpha * xp + beta
+        if(idir == 1) fl%qx(i, :, :) =  alpha * xp + beta
+        if(idir == 2) fl%qy(:, i, :) =  alpha * xp + beta
+        if(idir == 3) fl%qz(:, :, i) =  alpha * xp + beta
       end do 
       if(idir == 1) then
         dm%ibcx(:,:) = IBC_DIRICHLET
-        dm%fbcx_var(1, :, :, idir) = beta / (ONE)
-        dm%fbcx_var(2, :, :, idir) = (alpha * dm%lxx + beta) / (ONE)
+        fl%fbcx_qx(1, :, :) = beta / (ONE)
+        fl%fbcx_qx(2, :, :) = (alpha * dm%lxx + beta) / (ONE)
       else if(idir == 2) then
         dm%ibcy(:,:) = IBC_DIRICHLET
-        dm%fbcy_var(:, 1, :, idir) = beta / (ONE)
-        dm%fbcy_var(:, 2, :, idir) = (alpha * dm%lyt + beta) / (ONE)
+        fl%fbcy_qy(:, 1, :) = beta / (ONE)
+        fl%fbcy_qy(:, 2, :) = (alpha * dm%lyt + beta) / (ONE)
       else if(idir == 3) then
         dm%ibcz(:,:) = IBC_DIRICHLET
-        dm%fbcz_var(:, :, 1, idir) = beta / (ONE)
-        dm%fbcz_var(:, :, 2, idir) = (alpha * dm%lzz + beta) / (ONE)
+        fl%fbcz_qz(:, :, 1) = beta / (ONE)
+        fl%fbcz_qz(:, :, 2) = (alpha * dm%lzz + beta) / (ONE)
       else
       end if 
     else if (icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
@@ -109,9 +106,9 @@ contains
       omega0=0.838242d0*dm%h1r(idir)
       do i = 1, dm%np(idir)
         xp = dm%h(idir) * real(i - 1, WP)
-        if(idir == 1) ux(i, :, :) =  exp(-A * (xp - x0)* (xp - x0)) * sin_wp(omega0 * xp)
-        if(idir == 2) uy(:, i, :) =  exp(-A * (xp - x0)* (xp - x0)) * sin_wp(omega0 * xp)
-        if(idir == 3) uz(:, :, i) =  exp(-A * (xp - x0)* (xp - x0)) * sin_wp(omega0 * xp)
+        if(idir == 1) fl%qx(i, :, :) =  exp(-A * (xp - x0)* (xp - x0)) * sin_wp(omega0 * xp)
+        if(idir == 2) fl%qy(:, i, :) =  exp(-A * (xp - x0)* (xp - x0)) * sin_wp(omega0 * xp)
+        if(idir == 3) fl%qz(:, :, i) =  exp(-A * (xp - x0)* (xp - x0)) * sin_wp(omega0 * xp)
         !write(*,*) 'test', i, ux(i, dm%nc(2)/2, dm%nc(2)/2)
       end do 
     else
@@ -123,7 +120,7 @@ contains
     return
   end subroutine Initialize_burgers_flow
 
-  subroutine Compute_burgers_rhs(fl, dm, isub)
+  subroutine Compute_burgers_rhs(dm, fl, isub)
     use udf_type_mod
     use parameters_constant_mod
     use operations
@@ -162,14 +159,14 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) * dm%fbcx_var(:, :, :, 1) * HALF)
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+        call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :) * fl%fbcx_qx(:, :, :) * HALF)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1)* nu)
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :)* nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
       end if
@@ -177,14 +174,14 @@ contains
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
         !call Get_x_2nd_derivative_P2P_3D( fl%qx, mx_rhs, dm, dm%ibcx(:, 1) )
-        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) )
-        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) )
+        call Get_x_1st_derivative_P2C_3D( fl%qx,  qx_ccc, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :) )
+        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :) )
         fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) * nu)
+        call Get_x_midp_P2C_3D          (fl%qx,        qx_ccc, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :) * nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
       end if
@@ -210,8 +207,8 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 2))
-        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2) * dm%fbcy_var(:, :, :, 2) * HALF)
+        call Get_y_midp_P2C_3D          (qy_ypencil,                              qy_ccc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qy(:, :, :))
+        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :) * fl%fbcy_qy(:, :, :) * HALF)
 
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
@@ -219,14 +216,14 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
-        call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2) )
+        call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :) )
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + fl%rre * my_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
-        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2) * nu)
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
+        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :) * nu)
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
       end if
@@ -393,7 +390,7 @@ contains
 
   end subroutine 
   !==========================================================================================================
-  subroutine Plot_burgers_profile(fl, dm, iter)
+  subroutine Plot_burgers_profile(dm, fl, iter)
     use udf_type_mod,            only : t_flow, t_domain
     use parameters_constant_mod
     use input_general_mod
@@ -474,7 +471,7 @@ contains
     integer :: iterfrom
     integer :: niter
     
-    call Plot_burgers_profile(flow(1), domain(1), 0)
+    call Plot_burgers_profile(domain(1), flow(1), 0)
 
     iterfrom = HUGE(0)
     niter     = 0
@@ -517,12 +514,12 @@ contains
 !     main solver
 !==========================================================================================================
         do isub = 1, domain(i)%nsubitr
-          !if(is_thermo) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
-          !if(is_flow)   call Solve_momentum_eq(flow(i), domain(i), isub)
-          call Compute_burgers_rhs(flow(i), domain(i), isub)
+          !if(is_thermo) call Solve_energy_eq  (domain(i), flow(i), thermo(i), isub)
+          !if(is_flow)   call Solve_momentum_eq(domain(i), flow(i), isub)
+          call Compute_burgers_rhs(domain(i), flow(i), isub)
         end do
-        call Plot_burgers_profile(flow(i), domain(i), iter)
-        call Validate_burgers_error (flow(i), domain(i))
+        call Plot_burgers_profile(domain(i), flow(i), iter)
+        call Validate_burgers_error (domain(i), flow(i))
         !if( MOD(iter, domain(i)%visu_nfre) == 0 ) &
         
 

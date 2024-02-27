@@ -13,7 +13,7 @@ module io_tools_mod
                         Y_PENCIL = 2, & ! y-pencil
                         Z_PENCIL = 3    ! z-pencil
 
-  private :: initialize_decomp_io
+  public :: initialize_decomp_io
   public :: generate_file_name
   public :: generate_pathfile_name
   public :: mesh_output

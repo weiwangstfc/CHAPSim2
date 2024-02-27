@@ -303,7 +303,7 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Check_mass_conservation(fl, dm, str0, tm)
+  subroutine Check_mass_conservation(dm, fl, str0, tm)
     use precision_mod
     use udf_type_mod
     use input_general_mod    
