@@ -37,23 +37,23 @@ end program
 !> This subroutine is called at beginning of the main program
 !==========================================================================================================
 subroutine Initialize_chapsim
-  use code_performance_mod
-  use input_general_mod
-  use geometry_mod
-  use thermo_info_mod
-  use operations
-  use domain_decomposition_mod
-  use flow_thermo_initialiasation
-  use mpi_mod
-  use code_performance_mod
-  use decomp_2d_poisson
-  use poisson_interface_mod
-  use files_io_mod
   use boundary_conditions_mod
-  use solver_tools_mod
-  use io_tools_mod
+  use code_performance_mod
+  use continuity_eq_mod
+  use decomp_2d_poisson
+  use domain_decomposition_mod
+  use files_io_mod
+  use flow_thermo_initialiasation
+  use geometry_mod
+  use input_general_mod
   use io_monitor_mod
+  use io_tools_mod
+  use mpi_mod
+  use operations
+  use poisson_interface_mod
+  use solver_tools_mod
   use statistics_mod
+  use thermo_info_mod
   implicit none
   integer :: i
 
@@ -150,7 +150,7 @@ subroutine Initialize_chapsim
   end do
   do i = 1, nxdomain
     if(domain(i)%is_thermo) then
-      call apply_gxgygz_bc_geo(flow(i), thermo(i))
+      call apply_gxgygz_bc_geo(domain(i), flow(i), thermo(i))
     end if
   end do
   
@@ -185,7 +185,6 @@ subroutine Solve_eqs_iteration
   use input_general_mod
   use mpi_mod
   use wtformat_mod
-  use io_visulisation_mod
   use io_monitor_mod
   use io_tools_mod
   use io_restart_mod
@@ -308,7 +307,7 @@ subroutine Solve_eqs_iteration
       if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
         call Find_maximum_velocity(domain(i), flow(i)%qx, flow(i)%qy, flow(i)%qz)
-        call Check_mass_conservation(domain(i), flow(i)) 
+        call Check_mass_conservation(domain(i), flow(i), 'iteration = '//trim(int2str(isub))) 
       end if
 
       !----------------------------------------------------------------------------------------------------------

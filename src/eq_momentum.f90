@@ -87,6 +87,7 @@ contains
     use operations
     use solver_tools_mod
     use typeconvert_mod
+    use boundary_conditions_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -1342,7 +1343,7 @@ contains
     use mpi_mod
     use solver_tools_mod
 #ifdef DEBUG_STEPS
-    use io_visulisation_mod
+    use io_tools_mod
     use typeconvert_mod
     use wtformat_mod
 #endif
@@ -1420,7 +1421,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
   if(dm%is_thermo) then
     call Calculate_velocity_from_massflux(dm, fl, tm)
-    call apply_gxgygz_bc_geo(dm)
+    call apply_gxgygz_bc_geo(dm, fl, tm)
   end if
 
     

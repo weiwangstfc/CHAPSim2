@@ -13,7 +13,7 @@ module boundary_conditions_mod
   private :: apply_z_bc_geo
 
   private :: apply_qxqyqzpr_bc_geo   ! constant given bc, apply once only  
-  private :: apply_gxgygz_bc_geo ! constant given bc, apply once only
+  public  :: apply_gxgygz_bc_geo ! constant given bc, apply once only
 
   public  :: buildup_thermo_bc_geo ! constant given bc, apply once only
   public  :: buildup_flow_bc_geo   ! constant given bc, apply once only
@@ -27,6 +27,10 @@ module boundary_conditions_mod
   private :: apply_z_bc_2dm_halo
   public  :: update_flow_bc_2dm_halo   ! for multiple domains only, update every NS 
   public  :: update_thermo_bc_2dm_halo ! for multiple domains only, update every NS
+
+  public  :: get_dirichlet_geo_bcx
+  public  :: get_dirichlet_geo_bcy
+  public  :: get_dirichlet_geo_bcz
   
 contains
 
@@ -572,7 +576,7 @@ contains
         allocate( fl%fbcz_gzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
       end if
 
-      call apply_gxgygz_bc_geo(fl, tm, dm)
+      call apply_gxgygz_bc_geo(dm, fl, tm)
       
     end if
 
@@ -746,9 +750,9 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine update_flow_bc_2dm_halo(dm0, fl0, dm1, fl1, tm1)
+    !use solver_tools_mod
     use parameters_constant_mod
     use udf_type_mod
-    use solver_tools_mod
     implicit none
     type(t_domain), intent(in)           :: dm0, dm1
     type(t_flow),   intent(inout)        :: fl0, fl1
@@ -1297,7 +1301,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine apply_gxgygz_bc_geo (fl, tm, dm) ! 
+  subroutine apply_gxgygz_bc_geo (dm, fl, tm) ! 
     use parameters_constant_mod
     use udf_type_mod
     implicit none

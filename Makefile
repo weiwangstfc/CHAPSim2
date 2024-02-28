@@ -76,7 +76,6 @@ OBJS1= mpi_mod.o\
       geometry.o\
       io_tools.o\
       io_monitor.o\
-      io_visulisation.o\
       statistics.o\
       domain_decomposition.o\
       poisson_interface.o\
@@ -95,6 +94,7 @@ default :
 	make $(PROGRAM) -f Makefile
 	@mv *.mod $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
+	@echo -e "======Successfully compiled.======\a"
 
 $(PROGRAM): $(OBJS)
 	$(FC) $(FOPTS) $(FFLGS) $(FDEBG) -o $@ $(OBJS) $(LIBS)
@@ -108,7 +108,7 @@ all:
 	make $(PROGRAM) -f Makefile
 	@mv $(PROGRAM) $(DIR_BIN)
 	@mv *.mod $(DIR_OBJ)
-	@echo -e "Successfully compiled. \a"
+	@echo -e "======Successfully compiled.======\a"
 
 clean:
 	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BIN)/$(PROGRAM)

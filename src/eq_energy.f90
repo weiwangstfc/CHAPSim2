@@ -34,6 +34,8 @@ contains
     use operations
     use udf_type_mod
     use thermo_info_mod
+    use solver_tools_mod
+    use boundary_conditions_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
