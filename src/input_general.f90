@@ -43,13 +43,13 @@ contains
 !> \param[out]    none          NA
 !==========================================================================================================
   subroutine Read_input_parameters
-    use wtformat_mod
-    use mpi_mod
-    use parameters_constant_mod
-    use vars_df_mod
-    use thermo_info_mod
     use boundary_conditions_mod
     use code_performance_mod
+    use mpi_mod
+    use parameters_constant_mod
+    use thermo_info_mod
+    use vars_df_mod
+    use wtformat_mod
     implicit none
 
     character(len = 18) :: flname = 'input_chapsim.ini'
@@ -136,21 +136,16 @@ contains
       else if ( secname(1:slen) == '[domain]' ) then
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%icase
-        domain(:)%icase = domain(1)%icase
-
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%lxx
-
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%lyt
-        domain(:)%lyt = domain(1)%lyt
-
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%lyb
-        domain(:)%lyb = domain(1)%lyb
-
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%lzz
+        domain(:)%icase = domain(1)%icase
+        domain(:)%lyt = domain(1)%lyt
+        domain(:)%lyb = domain(1)%lyb
         domain(:)%lzz = domain(1)%lzz
-
         !----------------------------------------------------------------------------------------------------------
-        !     restore domain size to default if not set properly
+        ! restore domain size to default if not set properly
         !----------------------------------------------------------------------------------------------------------
         do i = 1, nxdomain
           if (domain(i)%icase == ICASE_CHANNEL) then
@@ -181,21 +176,17 @@ contains
           else 
             ! do nothing...
           end if
-
           !----------------------------------------------------------------------------------------------------------
           ! coordinates type
           !----------------------------------------------------------------------------------------------------------
-          if (domain(i)%icase == ICASE_PIPE) then
-            domain(i)%icoordinate = ICYLINDRICAL
-          else if (domain(i)%icase == ICASE_ANNUAL) then
+          if (domain(i)%icase == ICASE_PIPE .or. &
+              domain(i)%icase == ICASE_ANNUAL) then
             domain(i)%icoordinate = ICYLINDRICAL
           else 
             domain(i)%icoordinate = ICARTESIAN
           end if
-
         end do
 
-        
         if(nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
@@ -210,33 +201,32 @@ contains
             write (*, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
           end do
         end if
-        
       !----------------------------------------------------------------------------------------------------------
       ! [boundary] 
       !----------------------------------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[boundary]' ) then
-
+        ! x : 3-|1 ... 2|-4
         do i = 1, nxdomain
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
-          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5) ! dimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1) ! u_x, undimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2) ! v_x, undimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3) ! w_x, undimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4) ! p_x, undimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5) ! T_x, dimensional  
           domain(i)%fbcx_const(3:4, :) = domain(i)%fbcx_const(1:2, :)
         end do
-
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5) ! dimensional
+        ! y : 3-|1 ... 2|-4
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1) ! u_y, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2) ! v_y, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3) ! w_y, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4) ! p_y, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5) ! T_y, dimensional
         domain(1)%fbcy_const(3:4, :) = domain(1)%fbcy_const(1:2, :)
-        
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5) ! dimensional
+        ! z : 3-|1 ... 2|-4
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1) ! u_z, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2) ! v_z, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3) ! w_z, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4) ! p_z, undimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5) ! T_z, undimensional 
         domain(1)%fbcz_const(3:4, :) = domain(1)%fbcz_const(1:2, :)
 
         do i = 1, nxdomain
@@ -246,6 +236,9 @@ contains
           domain(i)%fbcy_const(:, :) = domain(1)%fbcy_const(:, :)
           domain(i)%fbcz_const(:, :) = domain(1)%fbcz_const(:, :)
 
+          !----------------------------------------------------------------------------------------------------------
+          ! set up periodic bc
+          !----------------------------------------------------------------------------------------------------------
           domain(i)%is_periodic(:) = .false.
           do j = 1, 5
             if(domain(i)%ibcx_nominal(1, j) == IBC_PERIODIC .or. &
@@ -278,7 +271,7 @@ contains
           write (*, wrtfmt1s) '   4 = IBC_DIRICHLET, 5 = IBC_NEUMANN,   6  = IBC_INTRPL,    7 = IBC_CONVECTIVE, '
           write (*, wrtfmt1s) '   8 = IBC_TURBGEN,   9 = IBC_PROFILE1D, 10 = IBC_DATABASE '
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) 'Provided BC vallues for the domain-x  = ', i
             write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
             write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2)
             write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
@@ -302,12 +295,12 @@ contains
       else if ( secname(1:slen) == '[mesh]' ) then
         read(inputUnit, *, iostat = ioerr) varname, domain(1:nxdomain)%nc(1)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%nc(2)
-        domain(:)%nc(2) = domain(1)%nc(2)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%nc(3)
-        domain(:)%nc(3) = domain(1)%nc(3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%istret
-        domain(:)%istret = domain(1)%istret
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%rstret
+        domain(:)%nc(2) = domain(1)%nc(2)
+        domain(:)%nc(3) = domain(1)%nc(3)
+        domain(:)%istret = domain(1)%istret
         domain(:)%rstret = domain(1)%rstret
 
         do i = 1, nxdomain
@@ -321,25 +314,25 @@ contains
               domain(i)%istret /= ISTRET_2SIDES .and. &
               domain(i)%istret /= ISTRET_NO ) then
 
-            if(nrank == 0) call Print_warning_msg ("Grids are neither uniform nor two-side clustered.")
+            if(nrank == 0) call Print_warning_msg ("Please provide uniform or two-side clustered grids for a better resolution.")
           
           else if (domain(i)%icase == ICASE_PIPE .and. &
                    domain(i)%istret /= ISTRET_TOP) then
 
-            if(nrank == 0) call Print_warning_msg ("Grids are not near-wall clustered.")
+            if(nrank == 0) call Print_warning_msg ("Please provide a near-wall clustered grid for a better resolution.")
 
           else if (domain(i)%icase == ICASE_ANNUAL .and. &
                    domain(i)%istret /= ISTRET_2SIDES .and. &
                    domain(i)%istret /= ISTRET_NO) then
 
-            if(nrank == 0) call Print_warning_msg ("Grids are neither uniform nor two-side clustered.")
+            if(nrank == 0) call Print_warning_msg ("Please provide uniform or two-side clustered grids for a better resolution.")
 
           else if (domain(i)%icase == ICASE_TGV2D .or. &
                    domain(i)%icase == ICASE_TGV3D .or. &
                    domain(i)%icase == ICASE_ALGTEST) then
 
             if(domain(i)%istret /= ISTRET_NO .and. nrank == 0) &
-            call Print_warning_msg ("Grids are clustered.")
+            call Print_warning_msg ("Please provide uniform grids for a better resolution.")
 
           else 
             ! do nothing...
