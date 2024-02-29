@@ -28,8 +28,11 @@ contains
     integer :: nplc
     logical :: is_y, is_z
     integer, allocatable :: probeid(:, :)
-
-    
+!----------------------------------------------------------------------------------------------------------
+    if(nrank == 0) then
+      Call Print_debug_start_msg("  Probed points for monitoring ...")
+    end if
+!----------------------------------------------------------------------------------------------------------    
     allocate( dm%probe_is_in(dm%proben) )
     dm%probe_is_in(:) = .false.
 
@@ -44,15 +47,15 @@ contains
       idgb(1) = ceiling ( dm%probexyz(1, i) / dm%h(1) )
       idgb(3) = ceiling ( dm%probexyz(3, i) / dm%h(3) )
 
-      if(dm%is_periodic(2)) then 
-        if( dm%probexyz(2, i) >= dm%yp(dm%np(2)) .and. dm%probexyz(2, i) < dm%lyt) idgb(2) = dm%nc(2)
-      end if
       do j = 1, dm%np(2) - 1
         if (dm%probexyz(2, i) >= dm%yp(j) .and. &
             dm%probexyz(2, i) < dm%yp(j+1)) then
           idgb(2) = j
         end if
       end do
+      if( dm%probexyz(2, i) >= dm%yp(dm%np(2)) .and. dm%probexyz(2, i) < dm%lyt) then
+        idgb(2) = dm%nc(2)
+      end if
 !----------------------------------------------------------------------------------------------------------
 ! convert global id to local, based on x-pencil
 !----------------------------------------------------------------------------------------------------------
@@ -66,6 +69,7 @@ contains
         probeid(1, nplc) = idgb(1)
         probeid(2, nplc) = idgb(2) - dm%dccc%xst(2) + 1
         probeid(3, nplc) = idgb(3) - dm%dccc%xst(3) + 1
+        !write(*,*) 'test', i, nrank, nplc, probeid(1:3, nplc)
       end if
     end do
 
@@ -76,6 +80,18 @@ contains
     end do
 
     deallocate (probeid)
+!----------------------------------------------------------------------------------------------------------
+! create probe history file for flow
+!----------------------------------------------------------------------------------------------------------
+    nplc = 0
+    do i = 1, dm%proben
+      if(dm%probe_is_in(i)) then
+        nplc = nplc + 1
+        write (*, '(A, I1, A, I1, A, 3F5.2, A, 3I6)') &
+            '  pt global id =', i, ', at nrank =', nrank, ', location xyz=', dm%probexyz(1:3, i), &
+            ', local id = ', dm%probexid(1:3, nplc)
+      end if
+    end do
 !----------------------------------------------------------------------------------------------------------
 ! create probe history file for flow
 !----------------------------------------------------------------------------------------------------------
@@ -136,7 +152,7 @@ contains
       end if
     end if
 
-
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
 !==========================================================================================================
@@ -235,20 +251,19 @@ contains
     character(200) :: iotxt
     integer :: ioerr, myunit
     integer :: ix, iy, iz
-    integer :: i, j
+    integer :: i, nplc
 !----------------------------------------------------------------------------------------------------------
 ! based on x-pencil
 !----------------------------------------------------------------------------------------------------------
-    j = 0
+    nplc = 0
     do i = 1, dm%proben
-      if( dm%probe_is_in(i) ) j = j + 1
-      if(j > 0) then
+      if( dm%probe_is_in(i) ) nplc = nplc + 1
+      if(nplc > 0) then
 !----------------------------------------------------------------------------------------------------------
 ! open file
 !----------------------------------------------------------------------------------------------------------
         keyword = "monitor_pt"//trim(int2str(i))//"_flow"
         call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
-
         open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
             iostat = ioerr, iomsg = iotxt)
         if(ioerr /= 0) then
@@ -259,12 +274,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write out local data
 !----------------------------------------------------------------------------------------------------------
-        ix = dm%probexid(1, j)
-        iy = dm%probexid(2, j)
-        iz = dm%probexid(3, j)
+        ix = dm%probexid(1, nplc)
+        iy = dm%probexid(2, nplc)
+        iz = dm%probexid(3, nplc)
         write(myunit, *) fl%time, fl%qx(ix, iy, iz), fl%qy(ix, iy, iz), fl%qz(ix, iy, iz)
         close(myunit)
       end if
+      nplc = 0
     end do
 
     return
