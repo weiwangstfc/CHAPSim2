@@ -568,6 +568,11 @@ contains
 
     call write_snapshot_flow(fl, dm)
 
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 'ux', '@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 'uy', '@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 'uz', '@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 'pr', '@bf solv') ! debug_ww
+
     if(nrank == 0) call Print_debug_end_msg
 
     return

@@ -635,3 +635,60 @@ contains
   end subroutine Generate_r_random
 end module random_number_generation_mod
 
+
+
+subroutine wrt_3d_pt_debug(var, dtmp, iter, str, loc)
+  use precision_mod
+  use udf_type_mod
+  implicit none 
+  type(DECOMP_INFO), intent(in) :: dtmp
+  real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
+  character(*), intent(in) :: str
+  character(*), intent(in) :: loc
+  
+  integer, intent(in) :: iter
+
+  integer, parameter :: npt = 4
+  integer, parameter :: nfil = 20
+  integer  :: nid(4, 3), a(12)
+
+  character(1) :: pntim
+  character(128) :: flnm
+  logical :: file_exists
+  integer :: n, i, j, k, jj, kk
+
+  a = (/8, 16, 32, 40, 8, 16, 32, 40, 8, 16, 32, 40/)
+  nid = reshape(a, (/4, 3/))
+  do n = 1, npt
+      write(pntim,'(i1.1)') n
+      flnm = 'chapsim2_p'//pntim//'_'//trim(str)//'.dat'   
+      do k =1, dtmp%xsz(3)
+          kk = dtmp%xst(3) + k - 1
+          if(kk == nid(n, 3)) then
+              do j = 1, dtmp%xsz(2)
+                  jj = dtmp%xst(2) + j - 1
+                  if(jj == nid(n, 2)) then
+                    do i = 1, dtmp%xsz(1)
+                        if(i == nid(n, 1)) then
+                          inquire(file=trim(adjustl(flnm)), exist=file_exists) 
+                          if(file_exists) then
+                            open(nfil+n,file=trim(adjustl(flnm)), position='append')
+                            !write(nfil+n,*) '# iter = ', iter
+                          else
+                            open(nfil+n,file=trim(adjustl(flnm)) )
+                            !write(nfil+n,*) '# iter = ', iter
+                          end if
+                          write(nfil+n, '(A, A, 3I4.1, 1ES17.7)') trim(str), trim(loc), i, jj, kk, var(i, j, k)
+                          close(nfil+n)
+                        end if
+                      end do
+                  end if
+              end do
+          end if
+      end do
+    end do
+
+return
+
+end subroutine
+
