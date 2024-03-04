@@ -637,7 +637,7 @@ end module random_number_generation_mod
 
 
 
-subroutine wrt_3d_pt_debug(var, dtmp, iter, str, loc)
+subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
   use precision_mod
   use udf_type_mod
   implicit none 
@@ -646,7 +646,7 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, str, loc)
   character(*), intent(in) :: str
   character(*), intent(in) :: loc
   
-  integer, intent(in) :: iter
+  integer, intent(in) :: iter, irk
 
   integer, parameter :: npt = 4
   integer, parameter :: nfil = 20
@@ -678,7 +678,7 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, str, loc)
                             open(nfil+n,file=trim(adjustl(flnm)) )
                             !write(nfil+n,*) '# iter = ', iter
                           end if
-                          write(nfil+n, '(A, A, 3I4.1, 1ES17.7)') trim(str), trim(loc), i, jj, kk, var(i, j, k)
+                          write(nfil+n, '(A, A, 2I3.1, 3I4.1, 1ES17.7)') trim(str), trim(loc), iter, irk, i, jj, kk, var(i, j, k)
                           close(nfil+n)
                         end if
                       end do

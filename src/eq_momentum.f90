@@ -60,7 +60,6 @@ contains
 
       ! times the time step 
           rhs1(i, j, k) = dm%dt * rhs_total
-
         end do
       end do
     end do
@@ -849,19 +848,24 @@ contains
 !==========================================================================================================
 ! x-pencil : to build up rhs in total, in all directions
 !==========================================================================================================
-    !write(*,*) nrank,  'test-7'
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : x-momentum
 !----------------------------------------------------------------------------------------------------------
+    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisX', '@bf stepping') ! debug_ww
     call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_pfc, dm%dpcc, dm, isub)  
+    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisX', '@af stepping') ! debug_ww
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !----------------------------------------------------------------------------------------------------------
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY', '@bf stepping') ! debug_ww
     call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_pfc, dm%dcpc, dm, isub)
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY', '@af stepping') ! debug_ww
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : z-momentum
 !----------------------------------------------------------------------------------------------------------
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ', '@bf stepping') ! debug_ww
     call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_pfc, dm%dccp, dm, isub)
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ', '@af stepping') ! debug_ww
 !==========================================================================================================
 ! x-pencil : flow drive terms (source terms) in periodic Streamwise flow
 !==========================================================================================================
@@ -999,6 +1003,7 @@ contains
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
 
+    call wrt_3d_pt_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@RHS phi') ! debug_ww
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
 !==========================================================================================================
@@ -1019,6 +1024,8 @@ contains
     call zpencil_index_ggg2llg(rhs_zpencil_ggg, rhs_zpencil, dm%dccc)
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
+
+    call wrt_3d_pt_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
 
     return
   end subroutine
@@ -1140,6 +1147,10 @@ contains
       call Print_error_msg("Error in velocity updating")
     end if
 
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', '@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', '@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', '@bf divg') ! debug_ww
+
     !in order for a high order spacial accuracy
     ! to use Alternating direction implicit method
     ! ref: Cui2013: Convergence analysis of high-order compact 
@@ -1177,6 +1188,7 @@ contains
     call Print_debug_mid_msg("Correcting the pressure term ...")
 #endif
     fl%pres(:, :, :) = fl%pres(:, :, :) + fl%pcor(:, :, :)
+    call wrt_3d_pt_debug(fl%pres, dm%dccc,   fl%iteration, isub, 'pr', '@updated') ! debug_ww
 
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity from gx gy gz 
@@ -1186,6 +1198,9 @@ contains
     call update_rhou_bc(dm)
   end if
 
+  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', '@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', '@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', '@updated') ! debug_ww
     
 #ifdef DEBUG_STEPS
     call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
