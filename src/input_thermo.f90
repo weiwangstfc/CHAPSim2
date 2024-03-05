@@ -1198,9 +1198,9 @@ contains
         end do
       end do
     end do
-
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    
 
   return
   end subroutine Update_thermal_properties

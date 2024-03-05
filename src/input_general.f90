@@ -604,7 +604,7 @@ contains
         domain(i)%tZeta (2) = - SEVENTEEN / SIXTY
         domain(i)%tZeta (3) = - FIVE / TWELVE
   
-      else if (domain(i)%iTimeScheme == ITIME_AB2) then
+      else if (domain(i)%iTimeScheme == ITIME_AB2) then !Adams-Bashforth
   
         domain(i)%nsubitr = 1
         domain(i)%tGamma(0) = ONE
