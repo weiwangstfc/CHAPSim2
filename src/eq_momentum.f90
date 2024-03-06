@@ -957,7 +957,7 @@ contains
     use decomp_2d_poisson
     use decomp_extended_mod
     use continuity_eq_mod
-
+    use mpi_mod
     implicit none
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl                  
@@ -1026,6 +1026,8 @@ contains
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 
     call wrt_3d_pt_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
+
+    !if(nrank == 0) write(*,*) fl%pcor(:, 1, 1)
 
     return
   end subroutine

@@ -657,6 +657,8 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
   logical :: file_exists
   integer :: n, i, j, k, jj, kk
 
+ ! based on x pencil
+ 
   a = (/8, 16, 32, 40, 8, 16, 32, 40, 8, 16, 32, 40/)
   nid = reshape(a, (/4, 3/))
   do n = 1, npt
