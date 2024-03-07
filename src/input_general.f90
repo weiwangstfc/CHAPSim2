@@ -625,7 +625,7 @@ contains
   
       end if 
       
-      domain(i)%tAlpha(:) = domain(i)%tGamma(:) + domain(i)%tZeta(:)
+      domain(i)%tAlpha(0:3) = domain(i)%tGamma(0:3) + domain(i)%tZeta(0:3)
 
     end do
 

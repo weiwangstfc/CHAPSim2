@@ -118,7 +118,7 @@ subroutine Initialize_chapsim
     if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
   end do
 
-  call test_poisson(domain(1)) ! debug_ww
+  !call test_poisson(domain(1)) ! debug_ww
   
   return
 end subroutine Initialize_chapsim

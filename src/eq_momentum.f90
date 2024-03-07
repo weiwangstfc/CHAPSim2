@@ -974,7 +974,7 @@ contains
                          dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
     !integer :: i, j, k, jj, ii
 
-
+    real(WP) :: coeff
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
     call Print_debug_mid_msg("Calculating the RHS of Poisson Equation ...")
@@ -999,11 +999,12 @@ contains
     else
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
-
+    coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     fl%pcor = fl%pcor + div
-    fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
+    fl%pcor = fl%pcor * coeff
 
-    call wrt_3d_pt_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@RHS phi') ! debug_ww
+    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
+    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
 !==========================================================================================================
@@ -1025,7 +1026,8 @@ contains
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 
-    call wrt_3d_pt_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
+    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
+    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
 
     !if(nrank == 0) write(*,*) fl%pcor(:, 1, 1)
 
