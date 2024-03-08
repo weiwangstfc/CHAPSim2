@@ -91,12 +91,17 @@ OBJS1= mpi_mod.o\
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 
 default :
+	@cp $(DIR_BIN)/* .
+	@cp $(DIR_OBJ)/* .
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
 	@mv *.mod $(DIR_OBJ)
 	@mv $(PROGRAM) $(DIR_BIN)
+	@mv *.o $(DIR_OBJ)
+	@echo "\n ======Successfully compiled====== \n"
 
 $(PROGRAM): $(OBJS)
+	@echo -n "\n ======Linking  ...====== \n"
 	$(FC) $(FOPTS) $(FFLGS) $(FDEBG) -o $@ $(OBJS) $(LIBS)
 
 $(DIR_OBJ)/%.o : $(DIR_SRC)/%.f90
@@ -106,12 +111,10 @@ all:
 	@make clean
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
-	@mv $(PROGRAM) $(DIR_BIN)
 	@mv *.mod $(DIR_OBJ)
-	@echo -e "Successfully compiled. \a"
+	@mv $(PROGRAM) $(DIR_BIN)
+	@echo "\n ======Successfully compiled====== \n"
 
 clean:
 	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BIN)/$(PROGRAM)
 	@rm -f *.mod *.o $(DIR_SRC)/*.mod $(DIR_SRC)/*.o
-
-

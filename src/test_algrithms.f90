@@ -607,6 +607,7 @@ subroutine test_poisson(dm)
   use udf_type_mod
   use decomp_extended_mod
   use decomp_2d_poisson
+  use math_mod
 ! based on TGV3D mesh
   type(t_domain), intent(in) :: dm
 
@@ -632,7 +633,7 @@ subroutine test_poisson(dm)
         zc = dm%h(3) * (real(kk - 1, WP) + HALF)
         
         ! test x or y or z direction
-        rhs(i, j, k) = - sin(zc)
+        rhs(i, j, k) = -FOUR * sin_wp(xc) * cos_wp(xc)
 
 
       end do
@@ -640,8 +641,8 @@ subroutine test_poisson(dm)
   end do
 
   if(nrank == 0) then
-    do k = 1, dm%dccc%xsz(3)
-      write(*, *) 'input', k, rhs(8, 8, k)
+    do i = 1, dm%dccc%xsz(1)
+      write(*, *) 'innput', i, rhs(i, 8, 8)
     end do
   end if
 
@@ -660,8 +661,8 @@ subroutine test_poisson(dm)
   call transpose_y_to_x (rhs_ypencil, rhs,         dm%dccc)
 
   if(nrank == 0) then
-    do k = 1, dm%dccc%xsz(3)
-      write(*, *) 'output', k, rhs(8, 8, k)
+    do i = 1, dm%dccc%xsz(1)
+      write(*, *) 'output', i, rhs(i, 8, 8)
     end do
   end if
 

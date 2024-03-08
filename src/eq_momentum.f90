@@ -1002,7 +1002,6 @@ contains
     coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor * coeff
-
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
 !==========================================================================================================
