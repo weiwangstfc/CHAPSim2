@@ -567,12 +567,13 @@ contains
     call Check_mass_conservation(fl, dm, 'initialization') 
 
     call write_snapshot_flow(fl, dm)
-
+    
+#ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'ux', '@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'uy', '@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'uz', '@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr', '@bf solv') ! debug_ww
-
+#endif  
     if(nrank == 0) call Print_debug_end_msg
 
     return

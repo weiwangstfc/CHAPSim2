@@ -243,7 +243,7 @@ subroutine Solve_eqs_iteration
         if(is_flow(i))   call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
         if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
-      STOP ! debug_ww
+
     end do
     
     !==========================================================================================================
