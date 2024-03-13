@@ -1017,6 +1017,7 @@ contains
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
+    write(*,*) 'fft-1', fl%pcor(:, 1, 1)
 #endif
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
@@ -1045,6 +1046,7 @@ contains
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
+    write(*,*) 'fft2', fl%pcor(:, 1, 1)
 #endif
     !if(nrank == 0) write(*,*) fl%pcor(:, 1, 1)
 
