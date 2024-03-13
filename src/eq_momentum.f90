@@ -1030,8 +1030,12 @@ contains
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
     call Print_debug_mid_msg("Solving the Poisson Equation ...")
+    write(*,*) 'fft0', rhs_zpencil_ggg(:, 1, 1)
 #endif
     call poisson(rhs_zpencil_ggg)
+#ifdef DEBUG_STEPS  
+    write(*,*) 'fft1', rhs_zpencil_ggg(:, 1, 1)
+#endif
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
 !==========================================================================================================
