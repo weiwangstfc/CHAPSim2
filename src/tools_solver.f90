@@ -663,7 +663,7 @@ contains
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, *) ' The maximum ux = ', varmax_work
+      write (*, *) ' The maximum ux                     = ', varmax_work
     end if
 !----------------------------------------------------------------------------------------------------------
 ! uy
@@ -686,7 +686,7 @@ contains
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, *) ' The maximum uy (ur) = qy / rp = ', varmax_work
+      write (*, *) ' The maximum uy (ur)      = qy / rp = ', varmax_work
     end if
 !----------------------------------------------------------------------------------------------------------
 ! uz

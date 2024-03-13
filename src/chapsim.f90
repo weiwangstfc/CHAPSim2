@@ -305,10 +305,10 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       !  validation for each time step
       !----------------------------------------------------------------------------------------------------------
-      if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
+      !if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
         call Find_maximum_velocity(domain(i), flow(i)%qx, flow(i)%qy, flow(i)%qz)
-        call Check_mass_conservation(domain(i), flow(i), 'iteration = '//trim(int2str(isub))) 
+        call Check_mass_conservation(domain(i), flow(i), 'iteration = '//trim(int2str(iter))) 
       end if
 
       !----------------------------------------------------------------------------------------------------------

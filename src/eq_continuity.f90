@@ -350,7 +350,7 @@ contains
     call write_snapshot_any3darray(div, 'divU', trim(str), dm%dccc, dm, fl%iteration)
 #endif
 
-    call Find_maximum_absvar3d(div, trim(str)//" Check Mass Conservation:", wrtfmt1e)
+    call Find_maximum_absvar3d(div, trim(str)//" Check Mass Conservation = ", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax
