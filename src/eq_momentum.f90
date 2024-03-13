@@ -853,6 +853,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisX', '@bf stepping') ! debug_ww
+    write(*,*) 'fl%mx_rhs', fl%mx_rhs(:, 1, 1), fl%mx_rhs(:, 8, 8)
 #endif
     call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_pfc, dm%dpcc, dm, isub)  
 #ifdef DEBUG_STEPS
@@ -863,6 +864,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY', '@bf stepping') ! debug_ww
+    write(*,*) 'fl%my_rhs', fl%my_rhs(:, 1, 1), fl%my_rhs(:, 8, 8)
 #endif
     call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_pfc, dm%dcpc, dm, isub)
 #ifdef DEBUG_STEPS
@@ -873,6 +875,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ', '@bf stepping') ! debug_ww
+    write(*,*) 'fl%mz_rhs', fl%mz_rhs(:, 1, 1), fl%mz_rhs(:, 8, 8)
 #endif
     call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_pfc, dm%dccp, dm, isub)
 #ifdef DEBUG_STEPS
