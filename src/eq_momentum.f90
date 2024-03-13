@@ -1228,7 +1228,7 @@ contains
                          dm%dccc%zst(2) : dm%dccc%zen(2), &
                          dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
     !integer :: i, j, k, jj, ii
-
+    real(WP) :: coeff
 
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
@@ -1250,9 +1250,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
     div  = ZERO
     call Get_divergence(fl, div, dm)
-
+    coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     fl%pcor = fl%pcor + div
-    fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
+    fl%pcor = fl%pcor * coeff
 
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
@@ -1270,8 +1270,12 @@ contains
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
     call Print_debug_mid_msg("Solving the Poisson Equation ...")
+    write(*, *) 'fft0', rhs_zpencil_ggg(:, 1, 1)
 #endif
     call poisson(rhs_zpencil_ggg)
+#ifdef DEBUG_STEPS
+    write(*, *) 'fft1', rhs_zpencil_ggg(:, 1, 1)
+#endif
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
 !==========================================================================================================
