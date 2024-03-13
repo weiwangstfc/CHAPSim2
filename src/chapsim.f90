@@ -93,8 +93,9 @@ subroutine Initialize_chapsim
 ! build up initial boundary values
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call buildup_thermo_bc_geo(domain(i), thermo(i)) ! should be before flow.
-    call buildup_flow_bc_geo(domain(i), flow(i), thermo(i)) 
+    if(domain(i)%is_thermo) call buildup_thermo_bc_geo(domain(i), thermo(i)) ! should be before flow.
+    call buildup_flow_bc_geo(domain(i), flow(i)) 
+    if(domain(i)%is_thermo) call apply_gxgygz_bc_geo(domain(i), flow(i), thermo(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up output_io

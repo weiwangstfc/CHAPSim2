@@ -357,18 +357,18 @@ contains
     integer :: k, i, n
     real(WP) :: ri_new(2)
 
-    ri_new(1) = ri(1)
-    ri_new(2) = ri(size(ri))
+    if(present(ri)) then
+      ri_new(1) = ri(1)
+      ri_new(2) = ri(size(ri))
+    else
+      ri_new = ONE
+    end if
     
 
     do k = 1, size(fbcy, 3)
       do i = 1, size(fbcy, 1)
         do n = 1, 2
-          if(present(ri)) then
-            fbcy(i, n,   k) =  fbcy_const(n) / ri_new(n) ! check  rpi=maxp?
-          else
-            fbcy(i, n,   k) =  fbcy_const(n)
-          end if
+          fbcy(i, n,   k) =  fbcy_const(n) / ri_new(n) ! check  rpi=maxp?
           fbcy(i, n+2, k) =  fbcy(i, n, k)
         end do
       end do
@@ -519,12 +519,11 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine buildup_flow_bc_geo(dm, fl, tm)
+  subroutine buildup_flow_bc_geo(dm, fl)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
     type(t_domain), intent(in)  :: dm
-    type(t_thermo), intent(inout) :: tm
     type(t_flow), intent(inout) :: fl
 
 !----------------------------------------------------------------------------------------------------------
@@ -575,8 +574,6 @@ contains
         allocate( fl%fbcy_gzr(dm%dccp%ysz(1), 4,              dm%dccp%ysz(3)) )
         allocate( fl%fbcz_gzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
       end if
-
-      call apply_gxgygz_bc_geo(dm, fl, tm)
       
     end if
 

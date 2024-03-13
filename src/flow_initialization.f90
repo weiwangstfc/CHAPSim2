@@ -79,54 +79,10 @@ contains
     call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
-    allocate (fl%fbcx_qx(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)))
-    allocate (fl%fbcx_qy(4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)))
-    allocate (fl%fbcx_qz(4, dm%dccp%xsz(2), dm%dccp%xsz(3)))
-
-    allocate (fl%fbcy_qx(dm%dpcc%ysz(1), 4, dm%dpcc%ysz(3)))
-    allocate (fl%fbcy_qy(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
-    allocate (fl%fbcy_qz(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
-
-    allocate (fl%fbcz_qx(dm%dpcc%zsz(1), dm%dpcc%zsz(2), 4))
-    allocate (fl%fbcz_qy(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
-    allocate (fl%fbcz_qz(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
-
-    allocate (fl%fbcx_pr(4, dm%dccc%xsz(2), dm%dccc%xsz(3)))
-    allocate (fl%fbcy_pr(dm%dccc%ysz(1), 4, dm%dccc%ysz(3)))
-    allocate (fl%fbcz_pr(dm%dccc%zsz(1), dm%dccc%zsz(2), 4))
-
-
-    if(dm%icoordinate == ICYLINDRICAL) then
-      allocate (fl%fbcy_qyr(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
-      allocate (fl%fbcz_qyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
-      allocate (fl%fbcy_qzr(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
-      allocate (fl%fbcz_qzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
-    end if
-
     if(dm%is_thermo) then
       call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO ! gx = rho * qx = rho * ux
       call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO ! gy = rho * qy = rho * ur * rp
       call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO ! gz = rho * qz = rho * u_theta * rc
-
-      allocate (fl%fbcx_gx(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)))
-      allocate (fl%fbcx_gy(4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)))
-      allocate (fl%fbcx_gz(4, dm%dccp%xsz(2), dm%dccp%xsz(3)))
-  
-      allocate (fl%fbcy_gx(dm%dpcc%ysz(1), 4, dm%dpcc%ysz(3)))
-      allocate (fl%fbcy_gy(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
-      allocate (fl%fbcy_gz(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
-  
-      allocate (fl%fbcz_gx(dm%dpcc%zsz(1), dm%dpcc%zsz(2), 4))
-      allocate (fl%fbcz_gy(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
-      allocate (fl%fbcz_gz(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
-  
-      if(dm%icoordinate == ICYLINDRICAL) then
-        allocate (fl%fbcy_gyr(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)))
-        allocate (fl%fbcz_gyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4))
-        allocate (fl%fbcy_gzr(dm%dccp%ysz(1), 4, dm%dccp%ysz(3)))
-        allocate (fl%fbcz_gzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4))
-      end if
-
     end if
 
     if(nrank == 0) call Print_debug_end_msg

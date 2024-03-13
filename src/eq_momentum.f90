@@ -985,7 +985,7 @@ contains
 ! Z-mom pressure gradient in z direction, Z-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
     call Get_z_1st_derivative_C2P_3D( pres_zpencil, accp_zpencil, dm, dm%ibcz(:, 4), fl%fbcz_pr(:, :, :) )
-    mz_rhs_pfc_zpencil =  my_rhs_pfc_zpencil - accp_zpencil
+    mz_rhs_pfc_zpencil =  mz_rhs_pfc_zpencil - accp_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom gravity in z direction, Z-pencil
 !----------------------------------------------------------------------------------------------------------
