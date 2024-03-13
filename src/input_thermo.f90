@@ -1096,8 +1096,8 @@ contains
         end do
       end do
     end do
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    tm%dDensm2(:, :, :) = tm%dDensm1(:, :, :)
+    tm%dDensm1(:, :, :) = tm%dDens(:, :, :)
     
 
   return

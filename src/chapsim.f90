@@ -296,6 +296,9 @@ subroutine Solve_eqs_iteration
           end if
         end if
       end do
+#ifdef DEBUG_STEPS
+  stop
+#endif      
     end do
 
     !==========================================================================================================
