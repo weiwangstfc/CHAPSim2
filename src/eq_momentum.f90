@@ -1413,9 +1413,9 @@ contains
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', '@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', '@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', '@bf divg') ! debug_ww
-    write(*,*) 'qx', fl%qx(:, 1, 1)
-    write(*,*) 'qy', fl%qy(:, 1, 1)
-    write(*,*) 'qz', fl%qz(:, 1, 1)
+    write(*,*) 'qx', fl%qx(:, 1, 1), fl%qx(:, 8, 8)
+    write(*,*) 'qy', fl%qy(:, 1, 1), fl%qy(:, 8, 8)
+    write(*,*) 'qz', fl%qz(:, 1, 1), fl%qz(:, 8, 8)
 #endif
 
     !in order for a high order spacial accuracy
