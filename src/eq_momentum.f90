@@ -1084,15 +1084,33 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : x-momentum
 !----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisX', '@bf stepping') ! debug_ww
+#endif
     call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_pfc_xpencil, dm%dpcc, dm, isub)  
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisX', '@af stepping') ! debug_ww
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY', '@bf stepping') ! debug_ww
+#endif
     call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_pfc_xpencil, dm%dcpc, dm, isub)
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY', '@af stepping') ! debug_ww
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : z-momentum
 !----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ', '@bf stepping') ! debug_ww
+#endif
     call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_pfc_xpencil, dm%dccp, dm, isub)
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ', '@af stepping') ! debug_ww
+#endif
 !==========================================================================================================
 ! x-pencil : flow drive terms (source terms) in periodic Streamwise flow
 !==========================================================================================================
@@ -1236,6 +1254,10 @@ contains
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
 
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
+    !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
+#endif
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
 !==========================================================================================================
@@ -1257,6 +1279,10 @@ contains
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
+    !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
+#endif
     return
   end subroutine
 ! !==========================================================================================================
@@ -1378,17 +1404,23 @@ contains
       call Print_error_msg("Error in velocity updating")
     end if
 
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', '@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', '@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', '@bf divg') ! debug_ww
+#endif
+
     !in order for a high order spacial accuracy
     ! to use Alternating direction implicit method
     ! ref: Cui2013: Convergence analysis of high-order compact 
-    ! alternating direction implicit schemes for the two-dimensional 
+    ! alternating direction implicit nnn/schemes for the two-dimensional 
     ! time fractional equation
 
-#ifdef DEBUG_STEPS
-  call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
-  call write_snapshot_any3darray(fl%qy, 'qys_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
-  call write_snapshot_any3darray(fl%qz, 'qzs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
-#endif
+! #ifdef DEBUG_STEPS
+!   call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+!   call write_snapshot_any3darray(fl%qy, 'qys_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+!   call write_snapshot_any3darray(fl%qz, 'qzs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
+! #endif
 !----------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
 !----------------------------------------------------------------------------------------------------------
@@ -1404,6 +1436,17 @@ contains
     call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
 !----------------------------------------------------------------------------------------------------------
+! to update pressure
+!----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS  
+    if(nrank == 0) &
+    call Print_debug_mid_msg("Correcting the pressure term ...")
+#endif
+    fl%pres(:, :, :) = fl%pres(:, :, :) + fl%pcor(:, :, :)
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%pres, dm%dccc,   fl%iteration, isub, 'pr', '@updated') ! debug_ww
+#endif
+!----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("  Updating velocity/mass flux ...")
@@ -1412,15 +1455,11 @@ contains
     else
       call Correct_massflux(fl%gx, fl%gy, fl%gz, fl%pcor, dm, isub)
     end if
-!----------------------------------------------------------------------------------------------------------
-! to update pressure
-!----------------------------------------------------------------------------------------------------------
-#ifdef DEBUG_STEPS  
-    if(nrank == 0) &
-    call Print_debug_mid_msg("Correcting the pressure term ...")
+#ifdef DEBUG_STEPS
+  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', '@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', '@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', '@updated') ! debug_ww
 #endif
-    fl%pres(:, :, :) = fl%pres(:, :, :) + fl%pcor(:, :, :)
-
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity from gx gy gz 
 !----------------------------------------------------------------------------------------------------------
