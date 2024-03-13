@@ -1257,7 +1257,6 @@ contains
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
     !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS', '@RHS phi') ! debug_ww
-    write(*,*) 'fft-1', fl%pcor(:, 1, 1)
 #endif
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
@@ -1271,12 +1270,12 @@ contains
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
     call Print_debug_mid_msg("Solving the Poisson Equation ...")
-    write(*, *) 'fft0', rhs_zpencil_ggg(:, 1, 1)
+    !write(*, *) 'fft0', rhs_zpencil_ggg(:, 1, 1)
 #endif
     call poisson(rhs_zpencil_ggg)
-#ifdef DEBUG_STEPS
-    write(*, *) 'fft1', rhs_zpencil_ggg(:, 1, 1)
-#endif
+! #ifdef DEBUG_STEPS
+!     write(*, *) 'fft1', rhs_zpencil_ggg(:, 1, 1)
+! #endif
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
 !==========================================================================================================
@@ -1287,7 +1286,7 @@ contains
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
     !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', '@sol phi') ! debug_ww
-    write(*,*) 'fft2', fl%pcor(:, 1, 1)
+    !write(*,*) 'fft2', fl%pcor(:, 1, 1)
 #endif
     return
   end subroutine
@@ -1414,6 +1413,9 @@ contains
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', '@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', '@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', '@bf divg') ! debug_ww
+    write(*,*) 'qx', fl%qx(:, 1, 1)
+    write(*,*) 'qy', fl%qy(:, 1, 1)
+    write(*,*) 'qz', fl%qz(:, 1, 1)
 #endif
 
     !in order for a high order spacial accuracy
