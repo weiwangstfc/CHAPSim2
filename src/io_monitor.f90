@@ -28,8 +28,11 @@ contains
     integer :: nplc
     logical :: is_y, is_z
     integer, allocatable :: probeid(:, :)
-
-    
+!----------------------------------------------------------------------------------------------------------
+    if(nrank == 0) then
+      Call Print_debug_start_msg("  Probed points for monitoring ...")
+    end if
+!----------------------------------------------------------------------------------------------------------    
     allocate( dm%probe_is_in(dm%proben) )
     dm%probe_is_in(:) = .false.
 
@@ -76,6 +79,18 @@ contains
     end do
 
     deallocate (probeid)
+!----------------------------------------------------------------------------------------------------------
+! create probe history file for flow
+!----------------------------------------------------------------------------------------------------------
+    nplc = 0
+    do i = 1, dm%proben
+      if(dm%probe_is_in(i)) then
+        nplc = nplc + 1
+        write (*, '(A, I1, A, I1, A, 3F5.2, A, 3I6)') &
+            '  pt global id =', i, ', at nrank =', nrank, ', location xyz=', dm%probexyz(1:3, i), &
+            ', local id = ', dm%probexid(1:3, nplc)
+      end if
+    end do
 !----------------------------------------------------------------------------------------------------------
 ! create probe history file for flow
 !----------------------------------------------------------------------------------------------------------
@@ -136,7 +151,7 @@ contains
       end if
     end if
 
-
+    if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
 !==========================================================================================================

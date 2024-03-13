@@ -99,8 +99,8 @@ module parameters_constant_mod
 
   
 
-  real(WP), parameter :: PI          = 3.14159265358979323846_WP !dacos( -ONE ) 
-  real(WP), parameter :: TWOPI       = 6.28318530717958647692_WP!TWO * dacos( -ONE )
+  real(WP), parameter :: PI          = 2.0_WP*(DASIN(1.0_WP)) !3.14159265358979323846_WP !dacos( -ONE ) 
+  real(WP), parameter :: TWOPI       = TWO * PI !6.28318530717958647692_WP!TWO * dacos( -ONE )
 
   complex(mytype),parameter :: cx_one_one=cmplx(one, one, kind=mytype)
 

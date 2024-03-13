@@ -221,23 +221,23 @@ contains
     !   dicix6 = ZERO
     ! end if
 
-    !ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
-    !aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
-    !bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
-    !cicix6   = zero
-    !dicix6   = zero
+    ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
+    aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
+    bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
+    cicix6   = zero
+    dicix6   = zero
 
-    ! ailcaiy6 = ailcaix6
-    ! aiciy6   = aicix6
-    ! biciy6   = bicix6
-    ! ciciy6   = cicix6
-    ! diciy6   = dicix6
+    ailcaiy6 = ailcaix6
+    aiciy6   = aicix6
+    biciy6   = bicix6
+    ciciy6   = cicix6
+    diciy6   = dicix6
 
-    ! ailcaiz6 = ailcaix6
-    ! aiciz6   = aicix6
-    ! biciz6   = bicix6
-    ! ciciz6   = cicix6
-    ! diciz6   = dicix6
+    ailcaiz6 = ailcaix6
+    aiciz6   = aicix6
+    biciz6   = bicix6
+    ciciz6   = cicix6
+    diciz6   = dicix6
 !----------------------------------------------------------------------------------------------------------
 
     !module waves
@@ -620,7 +620,7 @@ module decomp_extended_mod
   public :: zpencil_index_ggg2llg
 
   contains
-
+!==========================================================================================================
   subroutine ypencil_index_lgl2ggl(vin, vou, dtmp)
     use decomp_2d
     implicit none
@@ -641,7 +641,7 @@ module decomp_extended_mod
     end do
     return
   end subroutine 
-
+!==========================================================================================================
   subroutine zpencil_index_llg2ggg(vin, vou, dtmp)
     use decomp_2d
     implicit none
@@ -664,7 +664,7 @@ module decomp_extended_mod
     end do
     return
   end subroutine
-  
+!==========================================================================================================  
   subroutine zpencil_index_ggg2llg(vin, vou, dtmp)
     use decomp_2d
     implicit none
