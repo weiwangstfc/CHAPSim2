@@ -1345,7 +1345,7 @@ contains
 
     integer :: n
 
-    if(ANY(ibcx /= IBC_DIRICHLET)) return
+    if( any(ibcx /= IBC_DIRICHLET) ) return
 
     if(size(varx, 3) /= size(fbcx, 3) .or. &
        size(varx, 2) /= size(fbcx, 2)) call Print_error_msg("Error input.")
@@ -1373,7 +1373,7 @@ contains
 
     integer :: n
 
-    if(ANY(ibcy /= IBC_DIRICHLET)) return
+    if( any(ibcy /= IBC_DIRICHLET) ) return
 
     if(size(vary, 1) /= size(fbcy, 1) .or. &
        size(vary, 3) /= size(fbcy, 3)) call Print_error_msg("Error input.")
@@ -1401,7 +1401,7 @@ contains
 
     integer :: n
 
-    if(ANY(ibcz /= IBC_DIRICHLET)) return
+    if( any(ibcz /= IBC_DIRICHLET) ) return
 
     if ( ANY(ibcz /= IBC_DIRICHLET) ) return
 

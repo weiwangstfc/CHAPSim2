@@ -48,6 +48,56 @@
   end subroutine
   
 !==========================================================================================================
+  subroutine multiple_cylindrical_rn_xpx(var, dtmp, r, n, pencil)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none 
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(inout) :: var(:, :, :)
+    real(WP), intent(in) :: r(:)
+    integer, intent(in) :: n
+    integer, intent(in) :: pencil
+
+    integer :: i, j, k, jj, nx, ny, nz, nyst
+ 
+    if(pencil == IPENCIL(1)) then
+      call Print_warning_msg("Warning: This is for y-pencil only.")
+      nx = dtmp%xsz(1)
+      ny = dtmp%xsz(2)
+      nz = dtmp%xsz(3)
+      nyst = dtmp%xst(2)
+    else if(pencil == IPENCIL(2)) then
+      nx = dtmp%ysz(1)
+      ny = dtmp%ysz(2)
+      nz = dtmp%ysz(3)
+      nyst = dtmp%yst(2)
+    else if(pencil == IPENCIL(3)) then
+      call Print_warning_msg("Warning: This is for y-pencil only.")
+      nx = dtmp%zsz(1)
+      ny = dtmp%zsz(2)
+      nz = dtmp%zsz(3)
+      nyst = dtmp%zst(2)
+    else
+      call Print_warning_msg("Warning: This is for y-pencil only.")
+      nx = 0
+      ny = 0
+      nz = 0
+      nyst = 0
+    end if
+
+    do k = 1, nz
+      do i = 1, nx
+        jj = nyst + ny - 1
+        var(i, 1, k) = var(i, 1, k) * (r(1)**n)
+        var(i, 3, k) = var(i, 1, k)
+        var(i, 2, k) = var(i, 1, k) * (r(jj)**n)
+        var(i, 4, k) = var(i, 2, k)
+      end do
+    end do 
+  
+    return 
+  end subroutine
+!==========================================================================================================
   subroutine Print_error_msg(msg)
     !use iso_fortran_env
     implicit none

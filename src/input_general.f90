@@ -459,7 +459,7 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
         read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
 
-        if(ANY(domain(:)%is_thermo)) is_any_energyeq = .true.
+        if( any(domain(:)%is_thermo)) is_any_energyeq = .true.
         if(is_any_energyeq) allocate( thermo(nxdomain) )
         allocate ( itmpx(nxdomain) ); itmpx = 0
         allocate ( rtmpx(nxdomain) ); rtmpx = ZERO

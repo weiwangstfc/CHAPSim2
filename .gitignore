@@ -14,4 +14,4 @@ test_*/
 *.mod
 *.a
 .DS_Store
-*.code-workspace
+*-workspace
