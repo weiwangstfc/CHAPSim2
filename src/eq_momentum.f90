@@ -462,11 +462,12 @@ contains
     call transpose_x_to_y (div_ccc_xpencil, div_ccc_ypencil, dm%dccc)
     call transpose_y_to_z (div_ccc_ypencil, div_ccc_zpencil, dm%dccc)
 
-
-
     div_4cc_xpencil = qxdx_4cc_xpencil + qydy_4cc_xpencil + qzdz_4cc_xpencil
-    div_c4c_ypencil = qxdx_4cc_xpencil + qydy_4cc_xpencil + qzdz_4cc_xpencil
-    div_cc4_zpencil = qxdx_4cc_xpencil + qydy_4cc_xpencil + qzdz_4cc_xpencil 
+    div_c4c_ypencil = qxdx_c4c_ypencil + qydy_c4c_ypencil + qzdz_c4c_ypencil
+    div_cc4_zpencil = qxdx_cc4_zpencil + qydy_cc4_zpencil + qzdz_cc4_zpencil 
+#ifdef DEBUG_STEPS
+    write(*,*) 'div_in_momen', div_ccc_xpencil(:, 1, 1), div_ccc_xpencil(:, 8, 8)
+#endif
 !==========================================================================================================
 ! preparation of intermediate variables to be used - thermal only
 !==========================================================================================================
