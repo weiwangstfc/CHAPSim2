@@ -702,11 +702,11 @@ contains
     call Get_y_1st_derivative_P2C_3D(qy_ypencil,   accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, i))
     if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
       ! to get bc of du/dx at (i', j, k)
-      call Get_y_1st_derivative_P2P_3D(qy_ypencil, acpc, dm, dm%ibcy(:, i), dm%fbcy_var(:, :, :, i))
-      fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = acpc(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = acpc(1:dm%dcpc%ysz(1), dm%dcpc%ysz(2), 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 3, 1:dm%dcpc%ysz(3)) = fbcy(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 4, 1:dm%dcpc%ysz(3)) = fbcy(1:dm%dcpc%ysz(1),              2, 1:dm%dcpc%ysz(3))
+      call Get_y_1st_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_var(:, :, :, i))
+      fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = acpc_ypencil(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
+      fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = acpc_ypencil(1:dm%dcpc%ysz(1), dm%dcpc%ysz(2), 1:dm%dcpc%ysz(3))
+      fbcy(1:dm%dcpc%ysz(1), 3, 1:dm%dcpc%ysz(3)) =         fbcy(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
+      fbcy(1:dm%dcpc%ysz(1), 4, 1:dm%dcpc%ysz(3)) =         fbcy(1:dm%dcpc%ysz(1),              2, 1:dm%dcpc%ysz(3))
     else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
       fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = dm%fbcy_var(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3), i)
       fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = dm%fbcy_var(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3), i)

@@ -205,6 +205,7 @@ contains
             write (*, wrtfmt1i) '  current coordinates system : ', domain(i)%icoordinate
             write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
             write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
+            if((domain(i)%lyt - domain(i)%lyb) < ZERO) call Print_error_msg("Y length is smaller than zero.")
             write (*, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
           end do
         end if

@@ -564,7 +564,7 @@ contains
     !
     !  ModIFied:
     !
-    !    04 FebruARy 2001
+    !    04 Februray 2001
     !
     !  Author:
     !

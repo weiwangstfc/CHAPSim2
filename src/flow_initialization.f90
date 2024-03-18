@@ -139,6 +139,8 @@ contains
     use mpi_mod
     use math_mod
     use boundary_conditions_mod
+    use flatten_index_mod
+    use io_visulisation_mod
     implicit none
     type(t_domain), intent(in) :: dm
     real(WP),       intent(in) :: lnoise
@@ -151,6 +153,7 @@ contains
     integer :: i, j, k! local id
     integer :: n, nsz  
     integer :: ii, jj, kk ! global id
+    integer :: seed0 = 123456
     real(WP) :: rd, lownoise
     type(DECOMP_INFO) :: dtmp
 
@@ -166,6 +169,7 @@ contains
     nsz = dm%np(1) * dm%np(2) * dm%np(3)
 
     do n = 1, NDIM
+
       if(n == 1) then
         dtmp = dm%dpcc
       else if(n == 2) then
@@ -175,30 +179,65 @@ contains
       else
       end if
 
-      do i = 1, dtmp%xsz(1)
-        ii = i
+!     random field from 0 to 1
+      do k = 1, dtmp%xsz(3)
+        kk = dtmp%xst(3) + k - 1
         do j = 1, dtmp%xsz(2)
           jj = dtmp%xst(2) + j - 1
-          ! if( ( 1.0_WP - abs_wp(dm%yp(jj)) ) < 0.250_WP) then
-          !   lownoise = lnoise * lnoise
-          ! else
-             lownoise = lnoise
-          ! end if
-          do k = 1, dtmp%xsz(3)
-            kk = dtmp%xst(3) + k - 1
-            seed = (nrank + 1) * nsz * n + ii * 313 + jj * 571 + kk * 937
-            !seed = ii + jj + kk + nsz * (n - 1)
-            !write(*,*) ii, jj, kk, seed
+          if( ( ONE - abs_wp(dm%yp(jj)) ) < QUARTER) then
+            lownoise = lnoise * lnoise
+          else
+            lownoise = lnoise
+          end if
+          do i = 1, dtmp%xsz(1)
+            ii = i
+            seed = flatten_index(ii, jj, kk, dtmp%xsz(1), dtmp%ysz(2), dtmp%zsz(3)) + seed0 * n
             call Initialize_random_number ( seed )
             call Generate_r_random( -ONE, ONE, rd)
             if(n == 1) ux(i, j, k) = lownoise * rd
             if(n == 2) uy(i, j, k) = lownoise * rd
             if(n == 3) uz(i, j, k) = lownoise * rd
-
           end do
         end do
       end do
+!     for dirichelt, the perturbation velocity should be zero.
+      if(n == 1) then
+        if(dm%ibcx(1, n) == IBC_DIRICHLET) ux(          1, :, :) = ZERO
+        if(dm%ibcx(2, n) == IBC_DIRICHLET) ux(dtmp%xsz(1), :, :) = ZERO
+      end if
+      if(n == 2) then
+        if( dm%ibcy(1, n) == IBC_DIRICHLET ) then
+          if(dtmp%xst(2) == 1) then
+            uy(:,           1, :) = ZERO
+          end if
+        end if
+        if( dm%ibcy(2, n) == IBC_DIRICHLET ) then
+          if(dtmp%xen(2) == dtmp%ysz(2)) then
+            uy(:, dtmp%xsz(2), :) = ZERO
+          end if
+        end if
+      end if
+      if(n == 3) then
+        if( dm%ibcz(1, n) == IBC_DIRICHLET ) then
+          if(dtmp%xst(3) == 1) then
+            uz(:, :, 1) = ZERO
+          end if
+        end if
+        if( dm%ibcz(2, n) == IBC_DIRICHLET ) then
+          if(dtmp%xen(3) == dtmp%zsz(3)) then
+            uz(:, :, dtmp%xsz(3)) = ZERO
+          end if
+        end if
+      end if
+
     end do
+! to validate the random number generated is MPI processor independent.
+#ifdef DEBUG_STEPS
+    !call write_snapshot_any3darray(ux, 'ux_random_init', 'debug', dm%dpcc, dm, 0)
+    !call write_snapshot_any3darray(uy, 'uy_random_init', 'debug', dm%dcpc, dm, 0)
+    !call write_snapshot_any3darray(uz, 'uz_random_init', 'debug', dm%dccp, dm, 0)
+#endif
+
 
     return
   end subroutine

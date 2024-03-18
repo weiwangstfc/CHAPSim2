@@ -91,8 +91,8 @@ OBJS1= mpi_mod.o\
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 
 default :
-	@cp $(DIR_BIN)/* .
-	@cp $(DIR_OBJ)/* .
+	@cp -r $(DIR_BIN)/* .
+	@cp -r $(DIR_OBJ)/* .
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
 	@mv *.mod $(DIR_OBJ)
