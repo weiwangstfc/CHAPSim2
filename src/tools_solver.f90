@@ -501,13 +501,13 @@ contains
     call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     fo_work = fo_work / vol_work
 
-! #ifdef DEBUG_STEPS  
+ !#ifdef DEBUG_STEPS  
 
-    if(nrank == 0 .and. present(str)) then
-      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
-    end if
+    ! if(nrank == 0 .and. present(str)) then
+    !   write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+    ! end if
 
-! #endif
+ !#endif
 
     return 
   end subroutine Get_volumetric_average_3d
@@ -546,7 +546,7 @@ contains
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, fmt) str, varmax_work
+      write (*, fmt) 'maximum '//str, varmax_work
     end if
 #ifdef DEBUG_FFT
     if(varmax_work > MAXVELO) stop ! test
@@ -556,7 +556,7 @@ contains
 
 
   !==========================================================================================================
-  subroutine Find_max_min_3d(var, vmax, vmin)
+  subroutine Find_max_min_3d(var,  str, fmt)
     use precision_mod
     use math_mod
     use mpi_mod
@@ -564,7 +564,8 @@ contains
     implicit none
 
     real(WP), intent(in)  :: var(:, :, :)
-    real(WP), intent(out) :: vmax, vmin
+    character(len = *), intent(in) :: str
+    character(len = *), intent(in) :: fmt
     
     real(WP):: varmax_work, varmin_work
     real(WP)   :: varmax, varmin
@@ -589,8 +590,13 @@ contains
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
-    vmax = varmax_work
-    vmin = varmin_work
+    if(nrank == 0) then
+      write (*, fmt) 'maximum '//str, varmax_work, ' minimum '//str, varmin_work
+    end if
+#ifdef DEBUG_FFT
+    if(varmax_work >   MAXVELO) stop
+    if(varmin_work < - MAXVELO) stop
+#endif
 
     return
   end subroutine

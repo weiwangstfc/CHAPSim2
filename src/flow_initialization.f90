@@ -349,6 +349,10 @@ contains
     !   x-pencil : to get random fields [-1,1] for ux, uy, uz
     !----------------------------------------------------------------------------------------------------------
     call Generate_random_field(dm, ux, uy, uz, p, lnoise)
+    if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for generated random velocities (initial):")
+    call Find_max_min_3d(ux, "ux:", wrtfmt2e)
+    call Find_max_min_3d(uy, "uy:", wrtfmt2e)
+    call Find_max_min_3d(uz, "uz:", wrtfmt2e)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !----------------------------------------------------------------------------------------------------------
@@ -366,29 +370,27 @@ contains
         end do
       end do
     end do
-
-    if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for random velocities + given profile")
-    call Find_maximum_absvar3d(ux, "maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(uy, "maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(uz, "maximum uz:", wrtfmt1e)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
-      Call Print_debug_mid_msg("  The initial mass flux is:")
-      write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      Call Print_debug_mid_msg("  The initial bulk velocity (original) is:")
+      write (*, *) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
-      Call Print_debug_mid_msg("  The scaled mass flux is:")
-      write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      call Print_debug_mid_msg("  The initial bulk velocity (corrected) is:")
+      write (*, *) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      call Print_debug_mid_msg(" Maximum velocity for real initial flow field:")
+      call Find_max_min_3d(ux, "ux:", wrtfmt2e)
+      call Find_max_min_3d(uy, "uy:", wrtfmt2e)
+      call Find_max_min_3d(uz, "uz:", wrtfmt2e)
     end if
-    if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for after scaling unit mass flux")
     ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
 
     !----------------------------------------------------------------------------------------------------------

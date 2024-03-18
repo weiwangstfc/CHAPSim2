@@ -283,6 +283,7 @@ module wtformat_mod
   character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.6)'
   character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F23.15)'
   character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
+  character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES23.15, A24, 1ES23.15)'
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.6)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.6)'
   character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L3)'
