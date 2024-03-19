@@ -218,7 +218,7 @@ contains
       allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
       dm%yMappingpt(:, :) = ONE
       dm%yMappingcc(:, :) = ONE
-      dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain
+      dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain, check
       call Buildup_grid_mapping_1D ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
       call Buildup_grid_mapping_1D ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
     else

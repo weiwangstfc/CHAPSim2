@@ -184,7 +184,7 @@ contains
         kk = dtmp%xst(3) + k - 1
         do j = 1, dtmp%xsz(2)
           jj = dtmp%xst(2) + j - 1
-          if( ( ONE - abs_wp(dm%yp(jj)) ) < QUARTER) then
+          if( ( ONE - abs_wp(dm%yp(jj)) ) .LT. QUARTER) then
             lownoise = lnoise * lnoise
           else
             lownoise = lnoise
@@ -233,6 +233,9 @@ contains
     end do
 ! to validate the random number generated is MPI processor independent.
 #ifdef DEBUG_STEPS
+    ! write(*,*) 'random ux', ux(:, 8, 8)
+    ! write(*,*) 'random uy', uy(:, 8, 8)
+    ! write(*,*) 'random uz', uz(:, 8, 8)
     !call write_snapshot_any3darray(ux, 'ux_random_init', 'debug', dm%dpcc, dm, 0)
     !call write_snapshot_any3darray(uy, 'uy_random_init', 'debug', dm%dcpc, dm, 0)
     !call write_snapshot_any3darray(uz, 'uz_random_init', 'debug', dm%dccp, dm, 0)
@@ -350,9 +353,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     call Generate_random_field(dm, ux, uy, uz, p, lnoise)
     if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for generated random velocities (initial):")
-    call Find_max_min_3d(ux, "ux:", wrtfmt2e)
-    call Find_max_min_3d(uy, "uy:", wrtfmt2e)
-    call Find_max_min_3d(uz, "uz:", wrtfmt2e)
+    call Find_max_min_absvar3d(ux, "ux:", wrtfmt2e)
+    call Find_max_min_absvar3d(uy, "uy:", wrtfmt2e)
+    call Find_max_min_absvar3d(uz, "uz:", wrtfmt2e)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !----------------------------------------------------------------------------------------------------------
@@ -361,6 +364,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to add profile to ux (default: x streamwise)
     !----------------------------------------------------------------------------------------------------------
+    ! write(*,*) 'ux, random', ux(:, 8, 8), ux(:, 1, 8) !debug_test
+    ! write(*,*) 'uy, random', uy(:, 8, 8), uy(:, 1, 8) !debug_test
+    ! write(*,*) 'uz, random', uz(:, 8, 8), uz(:, 1, 8) !debug_test
     dtmp = dm%dpcc
     do i = 1, dtmp%xsz(1)
       do j = 1, dtmp%xsz(2)
@@ -370,27 +376,35 @@ contains
         end do
       end do
     end do
+    ! write(*,*) 'ux, random+Vini', ux(:, 8, 8), ux(:, 1, 8) !debug_test
+    ! write(*,*) 'uy, random+Vini', uy(:, 8, 8), uy(:, 1, 8) !debug_test
+    ! write(*,*) 'uz, random+Vini', uz(:, 8, 8), uz(:, 1, 8) !debug_test
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
-      Call Print_debug_mid_msg("  The initial bulk velocity (original) is:")
-      write (*, *) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
+      Call Print_debug_mid_msg("     The initial bulk velocity (original) is:")
+      write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
+    ! write(*,*) 'ux, scaled', ux(:, 8, 8), ux(:, 1, 8) !debug_test
+    ! write(*,*) 'uy, scaled', uy(:, 8, 8), uy(:, 1, 8) !debug_test
+    ! write(*,*) 'uz, scaled', uz(:, 8, 8), uz(:, 1, 8) !debug_test
+
     call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
-      call Print_debug_mid_msg("  The initial bulk velocity (corrected) is:")
-      write (*, *) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
-      call Print_debug_mid_msg(" Maximum velocity for real initial flow field:")
-      call Find_max_min_3d(ux, "ux:", wrtfmt2e)
-      call Find_max_min_3d(uy, "uy:", wrtfmt2e)
-      call Find_max_min_3d(uz, "uz:", wrtfmt2e)
+      call Print_debug_mid_msg("     The initial bulk velocity (corrected) is:")
+      write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
     end if
+    if(nrank == 0) &
+    call Print_debug_mid_msg(" Maximum velocity for real initial flow field:")
+    call Find_max_min_absvar3d(ux, "ux:", wrtfmt2e)
+    call Find_max_min_absvar3d(uy, "uy:", wrtfmt2e)
+    call Find_max_min_absvar3d(uz, "uz:", wrtfmt2e)
     ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
 
     !----------------------------------------------------------------------------------------------------------
@@ -405,9 +419,9 @@ contains
               file    = trim(dir_chkp)//'/check_poiseuille_profile.dat', &
               status  = 'replace',         &
               action  = 'write')
-      write(pf_unit, '(A)') "# yc, ux_laminar, ux_real"
+      write(pf_unit, '(A)') "#id,  yc, ux_laminar, ux_real"
       do j = 1, dm%nc(2)
-        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1)/2, j, dm%dpcc%yen(3)/2)
+        write(pf_unit, '(1I3.1, 5ES15.7)') j, dm%yc(j), ux_1c1(j), ux_ypencil(1, j, 1)
       end do
       close(pf_unit)
     end if
@@ -602,14 +616,14 @@ contains
     !==========================================================================================================
     !  validation for each time step
     !==========================================================================================================
-    call Find_maximum_absvar3d(fl%qx, "init maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, "init maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, "init maximum uz:", wrtfmt1e)
     call Check_mass_conservation(fl, dm, 'initialization') 
 
     call write_snapshot_flow(fl, dm)
     
 #ifdef DEBUG_STEPS
+    write(*,*) 'init ux', fl%qx(:, 8, 8)!, fl%qx(:, 1, 8) !debug_test
+    write(*,*) 'init uy', fl%qy(:, 8, 8)!, fl%qy(:, 1, 8) !debug_test
+    write(*,*) 'init uz', fl%qz(:, 8, 8)!, fl%qz(:, 1, 8) !debug_test
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'ux', '@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'uy', '@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'uz', '@bf solv') ! debug_ww

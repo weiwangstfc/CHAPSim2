@@ -14,6 +14,7 @@ module solver_tools_mod
   public  :: Get_volumetric_average_3d
   public  :: Find_maximum_absvar3d
   public  :: Find_max_min_3d
+  public  :: Find_max_min_absvar3d
 
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_velocity_from_massflux
@@ -401,7 +402,7 @@ contains
       do k = 1, dtmp%xsz(3)
         do j = 1, dtmp%xsz(2)
           do i = 1, dtmp%xsz(1)
-            fo = fo + var(i, j, k)
+            fo = fo + var(i, j, k) * dm%h(1) * dm%h(3) * dm%h(2)
             vol = vol + ONE
           end do
         end do
@@ -601,7 +602,51 @@ contains
     return
   end subroutine
 
+!==========================================================================================================
+  subroutine Find_max_min_absvar3d(var,  str, fmt)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
 
+    real(WP), intent(in)  :: var(:, :, :)
+    character(len = *), intent(in) :: str
+    character(len = *), intent(in) :: fmt
+    
+    real(WP):: varmax_work, varmin_work
+    real(WP)   :: varmax, varmin
+
+    integer :: i, j, k, nx, ny, nz
+    nx = size(var, 1)
+    ny = size(var, 2)
+    nz = size(var, 3)
+
+    varmax = MINN
+    varmin = MAXP
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if( var(i, j, k)  > varmax) varmax = abs_wp( var(i, j, k) )
+          if( var(i, j, k)  < varmin) varmin = abs_wp( var(i, j, k) )
+        end do
+      end do
+    end do
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, fmt) 'maximum '//str, varmax_work, ' minimum '//str, varmin_work
+    end if
+#ifdef DEBUG_FFT
+    if(varmax_work >   MAXVELO) stop
+    if(varmin_work < - MAXVELO) stop
+#endif
+
+    return
+  end subroutine
 !==========================================================================================================
 !> \brief Calculate the conservative variables from primary variable.     
 !> This subroutine is called to update $\rho u_i$ from $u_i$.
