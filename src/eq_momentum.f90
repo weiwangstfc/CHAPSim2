@@ -53,14 +53,11 @@ contains
           rhs_total = ( dm%tGamma(isub) * rhs_explicit_current + &
                         dm%tZeta (isub) * rhs_explicit_last ) * dm%dt
           rhs0(i, j, k) = rhs_explicit_current
-if(k==1 .and. j==1 .and. i ==1) write(*,*) 'test1', dm%tGamma(isub), dm%tZeta (isub), rhs_explicit_current , rhs_explicit_last, dm%dt, rhs_total
       ! add pressure gradient
           rhs_total = rhs_total + &
                       dm%tAlpha(isub) * rhs1_pfc(i, j, k) * dm%dt
-
       ! times the time step 
           rhs1(i, j, k) = rhs_total
-          if(k==1 .and. j==1 .and. i ==1) write(*,*) 'test2', rhs1_pfc(i, j, k), rhs_total
         end do
       end do
     end do
@@ -87,6 +84,7 @@ if(k==1 .and. j==1 .and. i ==1) write(*,*) 'test1', dm%tGamma(isub), dm%tZeta (i
     use operations
     use solver_tools_mod
     use typeconvert_mod
+    use boundary_conditions_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -232,13 +230,15 @@ if(k==1 .and. j==1 .and. i ==1) write(*,*) 'test1', dm%tGamma(isub), dm%tZeta (i
     if(nrank == 0) &
     call Print_debug_start_msg("Compute_momentum_rhs at isub = "//trim(int2str(isub)))
     iconvection = .true.
-    ipressure = .false.
-    iviscous = .false.
+    ipressure = .true.
+    iviscous = .true.
 !#endif
 
     one_third_rre = ONE_THIRD * fl%rre
     two_third_rre = TWO_THIRD * fl%rre
           two_rre = TWO * fl%rre
+
+    
 !==========================================================================================================
 ! variable preparation
 ! In the comments: 
@@ -657,7 +657,6 @@ if(iconvection) then
       call Get_x_1st_derivative_P2C_3D( -gx_ppc * qy_ppc, acpc, dm, dm%ibcx(:, i), dm%fbcx_var(:, :, :, i) * dm%fbcx_var(:, :, :, 1 + NBC) )
     end if
     fl%my_rhs = fl%my_rhs + acpc
-    write(*,*) 'convy1', acpc(4,1:4,4)
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom convection term (y-c2/3), d(gy * qy)/dy at (i, j', k)
 !----------------------------------------------------------------------------------------------------------
@@ -666,10 +665,14 @@ if(iconvection) then
     else
       call Get_y_1st_derivative_C2P_3D(-gy_ccc_ypencil * qy_ccc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), -dm%fbcy_var(:, :, :, i) * dm%fbcy_var(:, :, :, 2 + NBC) )
     end if
+    ! write(*,*) 'qycqc', fl%qy(4,1:4,4)
+    ! write(*,*) 'qyccc', qy_ccc_ypencil(4,1:4,4)
+    ! write(*,*) 'qyccc2', -qy_ccc_ypencil(4,1:4,4)*qy_ccc_ypencil(4,1:4,4)
+    ! write(*,*) 'dqy2dy', acpc_ypencil(4,1:4,4)
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 
-    call transpose_y_to_x(acpc_ypencil, acpc, dm%dcpc)
-    write(*,*) 'convy2', acpc(4,1:4,4)
+    ! call transpose_y_to_x(acpc_ypencil, acpc, dm%dcpc)
+    ! write(*,*) 'convy2', acpc(4,1:4,4)
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Y-mom convection term (y-c3/3), d(<gz>^y * <qy>^z)/dz at (i, j', k)
 !----------------------------------------------------------------------------------------------------------
@@ -680,9 +683,9 @@ if(iconvection) then
     end if
     my_rhs_zpencil = my_rhs_zpencil + acpc_zpencil
     
-    call transpose_z_to_y(acpc_zpencil, acpc_ypencil)
-    call transpose_y_to_x(acpc_ypencil, acpc, dm%dcpc)
-    write(*,*) 'convy3', acpc(4,1:4,4)
+    ! call transpose_z_to_y(acpc_zpencil, acpc_ypencil)
+    ! call transpose_y_to_x(acpc_ypencil, acpc, dm%dcpc)
+    ! write(*,*) 'convy3', acpc(4,1:4,4)
 end if
 if(ipressure)then
 !----------------------------------------------------------------------------------------------------------
@@ -819,7 +822,6 @@ end if
     call transpose_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
     call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
     fl%my_rhs =  fl%my_rhs + acpc
-write(*,*) 'conyt', fl%my_rhs(1,2,1)
     call transpose_y_to_x (my_rhs_pfc_ypencil,  my_rhs_pfc,  dm%dcpc)
 !write(*,*) nrank,  'test-6'
 !==========================================================================================================
@@ -1329,6 +1331,7 @@ end if
 !----------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !----------------------------------------------------------------------------------------------------------
+    call apply_bc_const(dm, fl)
     call Compute_momentum_rhs(fl, dm, isub)
 !----------------------------------------------------------------------------------------------------------
 ! to update intermediate (\hat{q}) or (\hat{g})

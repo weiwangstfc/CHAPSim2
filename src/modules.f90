@@ -10,15 +10,15 @@ module precision_mod
   integer, parameter :: S6P = selected_real_kind( p = 6, r = 37 )
   integer, parameter :: D15P = selected_real_kind( p = 15, r = 307 )
   integer, parameter :: Q33P = selected_real_kind( p = 33, r = 4931 )
-#ifdef DOUBLE_PREC
+!#ifdef DOUBLE_PREC
   integer, parameter :: WP = D15P
   integer, parameter :: MPI_REAL_WP = MPI_DOUBLE_PRECISION
   integer, parameter :: MPI_CPLX_WP = MPI_DOUBLE_COMPLEX
-#else
-  integer, parameter :: WP = S6P !D15P
-  integer, parameter :: MPI_REAL_WP = MPI_REAL
-  integer, parameter :: MPI_CPLX_WP = MPI_COMPLEX
-#endif
+! #else
+!   integer, parameter :: WP = S6P !D15P
+!   integer, parameter :: MPI_REAL_WP = MPI_REAL
+!   integer, parameter :: MPI_CPLX_WP = MPI_COMPLEX
+! #endif
 
 end module precision_mod
 !==========================================================================================================

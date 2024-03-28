@@ -266,9 +266,9 @@ module operations
   private :: Get_x_1st_derivative_C2C_1D
   private :: Get_y_1st_derivative_C2C_1D
   private :: Get_z_1st_derivative_C2C_1D
-  public  :: Get_x_1st_derivative_C2C_3D
-  public  :: Get_y_1st_derivative_C2C_3D
-  public  :: Get_z_1st_derivative_C2C_3D
+  public  :: Get_x_1st_derivative_C2C_3D ! only used for thermal flow, careflul about the Dirichlet BC
+  public  :: Get_y_1st_derivative_C2C_3D ! only used for thermal flow, careflul about the Dirichlet BC
+  public  :: Get_z_1st_derivative_C2C_3D ! only used for thermal flow, careflul about the Dirichlet BC
 
   private :: Prepare_TDMA_1deri_P2P_RHS_array ! need fbc for Neumann, INTERIOR
   private :: Get_x_1st_derivative_P2P_1D
@@ -282,9 +282,9 @@ module operations
   private :: Get_x_1st_derivative_C2P_1D
   private :: Get_y_1st_derivative_C2P_1D
   private :: Get_z_1st_derivative_C2P_1D
-  public  :: Get_x_1st_derivative_C2P_3D
-  public  :: Get_y_1st_derivative_C2P_3D
-  public  :: Get_z_1st_derivative_C2P_3D
+  public  :: Get_x_1st_derivative_C2P_3D ! careful about Dirichlet BC w/wo using the bc value to estimate derivatives 
+  public  :: Get_y_1st_derivative_C2P_3D ! careful about Dirichlet BC w/wo using the bc value to estimate derivatives 
+  public  :: Get_z_1st_derivative_C2P_3D ! careful about Dirichlet BC w/wo using the bc value to estimate derivatives 
 
   private :: Prepare_TDMA_1deri_P2C_RHS_array ! need fbc for interior
   private :: Get_x_1st_derivative_P2C_1D
@@ -545,7 +545,15 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! degrade to 1st CD (1st cell), 2nd CD (2nd cell)
+      alpha1 = ZERO
+          a1 = - ONE
+          b1 = ONE 
+          c1 = ZERO
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO
+    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD (1st cell), 2nd CD (2nd cell)
       alpha1 = ZERO
           a1 = -ONEPFIVE
           b1 = TWO
@@ -553,7 +561,15 @@ alpha_itf = ZERO
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
-    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4) then ! degrade to 2nd CP (1st cell), 4th CP (2nd cell)
+      alpha1 = ONE
+          a1 = - TWO
+          b1 = TWO
+          c1 = ZERO
+      alpha2 = QUARTER
+          a2 = ONEPFIVE
+          b2 = ZERO
+    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP (1st cell), 4th CP (2nd cell)
       alpha1 = TWO
           a1 = -TWOPFIVE
           b1 = TWO
@@ -563,9 +579,9 @@ alpha_itf = ZERO
           b2 = ZERO
     else ! default 2nd CD
       alpha1 = ZERO
-          a1 = -ONEPFIVE
-          b1 = TWO
-          c1 = -HALF
+          a1 = - ONE
+          b1 = ONE 
+          c1 = ZERO
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
@@ -668,7 +684,8 @@ alpha_itf = ZERO
     d1fP2P(3, 1:3, IBC_NEUMANN) = d1fP2P(3, 1:3, IBC_PERIODIC)
     d1rP2P(3, 1:3, IBC_NEUMANN) = d1rP2P(3, 1:3, IBC_PERIODIC)
 !==========================================================================================================
-! Set 3: Dirichlet for C2C (unique)
+! Set 3: Dirichlet for C2C (unique), check is involved bc value necessary? !!!
+!       influence all 1st_deri_C2C with Dirichlet BC.
 ! 1st derivative on collocated grids, C2C/P2P coefficients : Dirichlet B.C.
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
@@ -682,16 +699,16 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2) then ! degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! degrade to 2nd CD (1st cell), 2nd CD (2nd cell)
       alpha1 = ZERO
-          a1 = -FOUR * ONE_THIRD
-          b1 = ONE
-          c1 = ONE_THIRD
+          a1 = ZERO
+          b1 = -ONE
+          c1 = ONE
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
-    else if (iaccu == IACCU_CD4) then ! degrade to 3rd CD
+    else if (iaccu == IACCU_CD4) then ! degrade to 3rd CD (1st cell), 2nd CD (2nd cell), chech stencil
       alpha1 = ZERO
           a1 = - SIXTEEN / FIFTEEN
           b1 = ONE / TWO
@@ -700,7 +717,7 @@ alpha_itf = ZERO
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
-    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP (1st cell), 4th CP (2nd cell)
       alpha1 = ONE_THIRD
           a1 = - EIGHT / NINE
           b1 = ZERO
@@ -709,7 +726,7 @@ alpha_itf = ZERO
       alpha2 = QUARTER
           a2 = ONEPFIVE
           b2 = ZERO
-    else if (iaccu == IACCU_CP6) then ! degrade to 4th CP
+    else if (iaccu == IACCU_CP6) then ! degrade to 4th CP (1st cell), 4th CP (2nd cell)
       alpha1 = TWO_THIRD
           a1 = - THIRTYTWO / FOURTYFIVE
           b1 = - ONE / TWO
@@ -947,8 +964,17 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! degrade to 1st CD (1st cell)
+      alpha1 = ZERO
+          a1 = -ONE
+          b1 = ONE
+          c1 = ZERO
 
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD (1st cell)
       alpha1 = ZERO
           a1 = -TWO
           b1 = THREE
@@ -1071,31 +1097,62 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
-
+    if (iaccu == IACCU_CD2) then ! degrade to 1st CD
+      ! method 1 to use the Dirichlet B.C. value, check is this necessary? !!!
+      ! alpha1 = ZERO
+      !     a1 = - EIGHT * ONE_THIRD
+      !     b1 = THREE
+      !     c1 = - ONE_THIRD
+      !     d1 = ZERO
+      ! method 2 not to use the Dirichlet B.C. value
       alpha1 = ZERO
-          a1 = - EIGHT * ONE_THIRD
-          b1 = THREE
-          c1 = - ONE_THIRD
+          a1 = ZERO
+          b1 = - ONE
+          c1 = ONE
           d1 = ZERO
+
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO ! not used
           c2 = ZERO ! not used
+    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD
+     ! method 1 to use the Dirichlet B.C. value, check is this necessary? !!!
+      ! alpha1 = ZERO
+      !     a1 = - EIGHT * ONE_THIRD
+      !     b1 = THREE
+      !     c1 = - ONE_THIRD
+      !     d1 = ZERO
+      ! method 2 not to use the Dirichlet B.C. value
+      alpha1 = ZERO
+          a1 = ZERO
+          b1 = - TWO
+          c1 = THREE
+          d1 = - ONE
 
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
     else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP
+      ! method 1 to use the Dirichlet B.C. value, check is this necessary? !!!
+      ! alpha1 = THREE
+      !     a1 = - EIGHT * ONE_THIRD
+      !     b1 = ZERO
+      !     c1 = EIGHT * ONE_THIRD
+      !     d1 = ZERO
+      ! method 2 not to use the Dirichlet B.C. value
+      alpha1 = TWENTYTHREE
+          a1 = ZERO
+          b1 = - TWENTYFIVE
+          c1 = TWENTYSIX
+          d1 = -ONE
 
-      alpha1 = THREE
-          a1 = - EIGHT * ONE_THIRD
-          b1 = ZERO
-          c1 = EIGHT * ONE_THIRD
-          d1 = ZERO
       alpha2 = ONE / TWENTYTWO
           a2 = TWELVE / ELEVEN
           b2 = ZERO ! not used
           c2 = ZERO ! not used
     else if (iaccu == IACCU_CP6) then ! degrade to 4th CP
-
+     ! method 1 to use the Dirichlet B.C. value, check is this necessary? !!!
       alpha1 = FIFTEEN
           a1 = - SIXTEEN / FIFTEEN
           b1 = - FIFTEEN
@@ -1109,9 +1166,10 @@ alpha_itf = ZERO
       
     else  ! default 2nd CD
      alpha1 = ZERO
-          a1 = -TWO
-          b1 = THREE
-          c1 = -ONE
+          a1 = ZERO
+          b1 = - ONE
+          c1 = ONE
+          d1 = ZERO
 
       alpha2 = ZERO
           a2 = ONE
@@ -1377,7 +1435,18 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! 2-cell stencil, degrade to 2nd CD
+
+      alpha1 = ZERO
+          a1 = HALF
+          b1 = HALF
+          c1 = ZERO
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+    else if (iaccu == IACCU_CD4) then ! 3-cell stencil, degrade to 3rd CD
 
       alpha1 = ZERO
           a1 = THREE * EIGHTH
@@ -1389,7 +1458,19 @@ alpha_itf = ZERO
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4) then ! 2-cell stencil, degrade to 3rd CP
+
+      alpha1 = ONE_THIRD
+          a1 = ONE_THIRD
+          b1 = ONE
+          c1 = ZERO
+
+      alpha2 = ONE / SIX
+          a2 = FOUR * ONE_THIRD
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+
+    else if (iaccu == IACCU_CP6) then ! 3-cell stencil, degrade to 4th CP
 
       alpha1 = ONE
           a1 = QUARTER
@@ -1403,9 +1484,9 @@ alpha_itf = ZERO
 
     else  ! default 2nd CD
       alpha1 = ZERO
-          a1 = THREE * EIGHTH
-          b1 = THREE * QUARTER
-          c1 = -ONE * EIGHTH
+          a1 = HALF
+          b1 = HALF
+          c1 = ONE
 
       alpha2 = ZERO
           a2 = ONE
@@ -1455,7 +1536,19 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then ! degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! 2-cell stencil, degrade to 2nd CD
+
+      alpha1 = ZERO
+          a1 = ONEPFIVE
+          b1 = -HALF
+          c1 = ZERO
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+
+      else if (iaccu == IACCU_CD4) then ! 3-cell stencil, degrade to 3rd CD
 
       alpha1 = ZERO
           a1 = FIFTEEN * EIGHTH
@@ -1466,8 +1559,18 @@ alpha_itf = ZERO
           a2 = ONE
           b2 = ZERO ! not used
           c2 = ZERO ! not used
+    else if (iaccu == IACCU_CP4) then ! 2-cell stencil,  degrade to 3rd CP
 
-    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+      alpha1 = THREE
+          a1 = THREE
+          b1 = ONE
+          c1 = ZERO
+
+      alpha2 = ONE / SIX 
+          a2 = FOUR * ONE_THIRD
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+    else if (iaccu == IACCU_CP6) then ! 3-cell stencil, degrade to 4th CP
 
       alpha1 = FIVE
           a1 = FIFTEEN * QUARTER
@@ -1482,9 +1585,9 @@ alpha_itf = ZERO
     else  ! default 2nd CD
 
       alpha1 = ZERO
-          a1 = FIFTEEN * EIGHTH
-          b1 = - FIVE * QUARTER
-          c1 = THREE * EIGHTH
+          a1 = ONEPFIVE
+          b1 = -HALF
+          c1 = ZERO
 
       alpha2 = ZERO
           a2 = ONE
