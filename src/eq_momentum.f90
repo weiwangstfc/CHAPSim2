@@ -1411,7 +1411,7 @@ end if
     !call solve_poisson_x2z(fl, dm, isub) !
     call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
 #ifdef DEBUG_STEPS
-    call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+    !call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
@@ -1451,10 +1451,10 @@ end if
   call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, '', 'uz@updated') ! debug_ww
 #endif    
 #ifdef DEBUG_STEPS
-    call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, "at isub = "//trim(int2str(isub))//" maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, "at isub = "//trim(int2str(isub))//" maximum uz:", wrtfmt1e)
-    call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub))) 
+    ! call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
+    ! call Find_maximum_absvar3d(fl%qy, "at isub = "//trim(int2str(isub))//" maximum uy:", wrtfmt1e)
+    ! call Find_maximum_absvar3d(fl%qz, "at isub = "//trim(int2str(isub))//" maximum uz:", wrtfmt1e)
+    ! call Check_mass_conservation(fl, dm, "isub"//trim(int2str(isub))) 
 #endif
 
     return

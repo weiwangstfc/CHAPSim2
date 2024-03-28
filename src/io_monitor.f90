@@ -150,6 +150,19 @@ contains
         write(myunit, *) "# energy" ! to add more instantanous or statistics
         close(myunit)
       end if
+
+      keyword = "monitor_mass_conservation_flow"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+      inquire(file = trim(flname), exist = exist)
+      if (exist) then
+        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
+      else
+        open(newunit = myunit, file = trim(flname), status="new", action="write")
+        write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
+        write(myunit, *) "# t, umax, vmax, wmax, mass-conservation" ! to add more instantanous or statistics
+        close(myunit)
+      end if
+
     end if
 
     if(nrank == 0) call Print_debug_end_msg
@@ -227,8 +240,26 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   write data out
 !----------------------------------------------------------------------------------------------------------
-    if(nrank == 0) write(myunit, *) fl%time, bulk_energy
-    close(myunit)
+    if(nrank == 0) then
+      write(myunit, *) fl%time, bulk_energy
+      close(myunit)
+    end if
+
+
+    if(nrank == 0) then
+      keyword = "monitor_mass_conservation_flow"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+
+      open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
+          iostat = ioerr, iomsg = iotxt)
+      if(ioerr /= 0) then
+        write (*, *) 'Problem openning probing file'
+        write (*, *) 'Message: ', trim (iotxt)
+        stop
+      end if 
+      write(myunit, *) fl%time, fl%umax(1:3), fl%mcon
+      close(myunit)
+    end if     
 
     return
   end subroutine

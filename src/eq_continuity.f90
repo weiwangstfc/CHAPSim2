@@ -227,7 +227,7 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Check_mass_conservation(fl, dm, str0)
+  subroutine Check_mass_conservation(fl, dm, iter, str0)
     use precision_mod
     use udf_type_mod
     use input_general_mod    
@@ -242,6 +242,7 @@ contains
 
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl  
+    integer, intent(in) :: inter
     character(*), intent(in), optional :: str0                
 
     character(32) :: str
@@ -272,11 +273,12 @@ contains
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
 
-#ifdef DEBUG_STEPS
+!#ifdef DEBUG_STEPS !test, check
+    if(MOD(iter, dm%visu_nfre) == 0) &
     call write_snapshot_any3darray(div, 'divU', trim(str), dm%dccc, dm, fl%iteration)
-#endif
+!#endif
 
-    call Find_maximum_absvar3d(div, trim(str)//" Check Mass Conservation:", wrtfmt1e)
+    call Find_maximum_absvar3d(div, fl%mcon, trim(str)//" Check Mass Conservation:", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax

@@ -434,6 +434,8 @@ module udf_type_mod
     real(WP) :: fgravity(NDIM)
 
     real(wp) :: noiselevel
+    real(wp) :: umax(1:3)
+    real(wp) :: mcon
   
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)

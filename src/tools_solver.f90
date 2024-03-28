@@ -297,6 +297,7 @@ contains
                              dm%dccp%zsz(2), &
                              dm%dccp%zsz(3))
     !real(WP)   :: cfl_convection, cfl_convection_work
+    real(wp) :: dummy
 !----------------------------------------------------------------------------------------------------------
 ! Initialisation
 !----------------------------------------------------------------------------------------------------------
@@ -329,7 +330,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(var_zpencil, "CFL (convection) :", wrtfmt1r)
+    call Find_maximum_absvar3d(var_zpencil, dummy, "CFL (convection) :", wrtfmt1r)
 
     ! if(nrank == 0) then
     !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
@@ -515,7 +516,7 @@ contains
   end subroutine Get_volumetric_average_3d
 
 !==========================================================================================================
-  subroutine Find_maximum_absvar3d(var,  str, fmt)
+  subroutine Find_maximum_absvar3d(var,  varmax_work, str, fmt)
     use precision_mod
     use math_mod
     use mpi_mod
@@ -525,8 +526,8 @@ contains
     real(WP), intent(in)  :: var(:, :, :)
     character(len = *), intent(in) :: str
     character(len = *), intent(in) :: fmt
-    
-    real(WP):: varmax_work
+    real(WP), intent(out) :: varmax_work
+
     real(WP)   :: varmax
 
     integer :: i, j, k, nx, ny, nz

@@ -616,7 +616,7 @@ contains
     !==========================================================================================================
     !  validation for each time step
     !==========================================================================================================
-    call Check_mass_conservation(fl, dm, 'initialization') 
+    call Check_mass_conservation(fl, dm, 0, 'initialization') 
 
     call write_snapshot_flow(fl, dm)
     
