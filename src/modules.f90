@@ -711,6 +711,22 @@ contains
     real2str = adjustl(real2str)
   end function real2str
 end module typeconvert_mod
+
+module EvenOdd_mod
+  implicit none
+contains
+  logical function is_even(number)  
+    implicit none
+    integer, intent(in) :: number  
+    ! Check if the number is even or odd
+    if (mod(number, 2) == 0) then
+        is_even = .true.
+    else
+        is_even = .false.
+    end if
+  end function
+end module
+
 !==========================================================================================================
 module flatten_index_mod
  implicit none 

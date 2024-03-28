@@ -659,11 +659,13 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
 
  ! based on x pencil
 
-  a = (/8, 16, 32, 40, 8, 16, 32, 40, 8, 16, 32, 40/)
+  a = (/1, 1, 2, 8, &
+        1, 2, 1, 8, &
+        1, 1, 2, 8/)
   nid = reshape(a, (/4, 3/))
   do n = 1, npt
       write(pntim,'(i1.1)') n
-      flnm = 'chapsim2_p'//pntim//'_'//trim(str)//'.dat'   
+      flnm = 'chapsim2_p'//pntim//trim(str)//'.dat'   
       do k =1, dtmp%xsz(3)
           kk = dtmp%xst(3) + k - 1
           if(kk == nid(n, 3)) then
@@ -680,7 +682,8 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
                             open(nfil+n,file=trim(adjustl(flnm)) )
                             !write(nfil+n,*) '# iter = ', iter
                           end if
-                          write(nfil+n, *) trim(str), trim(loc), iter, irk, i, jj, kk, var(i, j, k)
+                          write(nfil+n, '(A2, A15, 2I2.1, 3I4.1, 1ES23.15)') &
+                          trim(str), trim(loc), iter, irk, i, jj, kk, var(i, j, k)
                           close(nfil+n)
                         end if
                       end do

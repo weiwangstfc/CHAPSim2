@@ -9,7 +9,7 @@ module boundary_conditions_mod
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
 
-  !public  :: apply_bc_const
+  public  :: apply_bc_const
   !public  :: apply_convective_outlet
   
 contains
@@ -613,109 +613,97 @@ contains
     return
   end subroutine
 
-! !==========================================================================================================
-! !> \brief Apply b.c. conditions 
-! !---------------------------------------------------------------------------------------------------------- 
-! !> Scope:  mpi    called-freq    xdomain     module
-! !>         all    once           specified   public
-! !----------------------------------------------------------------------------------------------------------
-! ! Arguments
-! !----------------------------------------------------------------------------------------------------------
-! !  mode           name          role                                           
-! !----------------------------------------------------------------------------------------------------------
-! !> \param[in]     d             domain
-! !> \param[out]    f             flow
-! !==========================================================================================================
-!   subroutine apply_bc_const (dm, fl) ! check, necessary?
-!     use parameters_constant_mod
-!     use udf_type_mod
-!     implicit none
-!     type(t_domain), intent( in    )   :: dm
-!     type(t_flow),   intent( inout )   :: fl
+!==========================================================================================================
+!> \brief Apply b.c. conditions 
+!---------------------------------------------------------------------------------------------------------- 
+!> Scope:  mpi    called-freq    xdomain     module
+!>         all    once           specified   public
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!----------------------------------------------------------------------------------------------------------
+!  mode           name          role                                           
+!----------------------------------------------------------------------------------------------------------
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!==========================================================================================================
+  subroutine apply_bc_const (dm, fl) ! check, necessary?
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent( in    )   :: dm
+    type(t_flow),   intent( inout )   :: fl
 
-!     integer :: m, s
-!     type(DECOMP_INFO) :: dtmp
+    integer :: m, s
+    type(DECOMP_INFO) :: dtmp
 
 
-!      if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
-!         dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
-!         dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
-!         dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
-!         dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
-!         dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
-! !----------------------------------------------------------------------------------------------------------
-! !   all in x-pencil
-! !----------------------------------------------------------------------------------------------------------
+     if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
+        dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
+        dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
+        dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
+        dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
+        dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
+!----------------------------------------------------------------------------------------------------------
+!   all in x-pencil
+!----------------------------------------------------------------------------------------------------------
 
-! !----------------------------------------------------------------------------------------------------------
-! !   ux at x-direction. BC of others at x-direction are given in oeprations directly.
-! !----------------------------------------------------------------------------------------------------------
-!     m = 1
-!     dtmp = dm%dpcc
-!     ! constant value bc.
-!     do s = 1, 2
-!       if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
-!         if(dtmp%xst(m) == 1) then
-!           fl%qx(1, :, :) = dm%fbcx_var(s, m)
-!           if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
-!         end if
-!         if(dtmp%xen(m) == dm%np(m)) then
-!           fl%qx(dtmp%xsz(m), :, :) = dm%fbcx_var(s, m)
-!           if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
-!         end if
-!       end if
-!     end do
+!----------------------------------------------------------------------------------------------------------
+!   ux at x-direction. BC of others at x-direction are given in oeprations directly.
+!----------------------------------------------------------------------------------------------------------
+    m = 1
+    dtmp = dm%dpcc
+    ! constant value bc.
+    do s = 1, 2
+      if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
+        if(dtmp%xst(m) == 1) then
+          fl%qx(1, :, :) = dm%fbcx_var(1,:,:,s)
+          !if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
+        end if
+        if(dtmp%xen(m) == dm%np(m)) then
+          fl%qx(dtmp%xsz(m), :, :) = dm%fbcx_var(2,:,:,s)
+          !if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
+        end if
+      end if
+    end do
 
-!     ! variation value bc
-!     if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D .and. dtmp%xst(1) == 1) then
-!       do j = 1, dtmp%xsz(2)
-!         jj = dtmp%xst(2) + j - 1
-!         do k = 1, dtmp%xsz(3)
-!           kk = dtmp%xsz(3) + k - 1
-!           fl%qx(1, j, k) = dm%fbcxinlet(jj, kk, 1)
-!           if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(1, 1)
-!         end do
-!       end do
-!     end if
+!----------------------------------------------------------------------------------------------------------
+!   uy at y-direction. BC of others at y-direction are given in oeprations directly.
+!----------------------------------------------------------------------------------------------------------
+    m = 2
+    dtmp = dm%dcpc
+    do s = 1, 2
+      if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
+        if(dtmp%xst(m) == 1) then
+          fl%qy(:, 1, :) = dm%fbcy_var(:,1,:,s)
+          !if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
+        end if
+        if(dtmp%xen(m) == dm%np(m)) then
+          fl%qy(:, dtmp%xsz(m), :) = dm%fbcy_var(:,2,:,s)
+          !if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
+        end if
+      end if
+    end do
 
-! !----------------------------------------------------------------------------------------------------------
-! !   uy at y-direction. BC of others at y-direction are given in oeprations directly.
-! !----------------------------------------------------------------------------------------------------------
-!     m = 2
-!     dtmp = dm%dcpc
-!     do s = 1, 2
-!       if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
-!         if(dtmp%xst(m) == 1) then
-!           fl%qy(:, 1, :) = dm%fbcy_var(s, m)
-!           if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
-!         end if
-!         if(dtmp%xen(m) == dm%np(m)) then
-!           fl%qy(:, dtmp%xsz(m), :) = dm%fbcy_var(s, m)
-!           if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
-!         end if
-!       end if
-!     end do
+!----------------------------------------------------------------------------------------------------------
+!   uz at z-direction. BC of others at z-direction are given in oeprations directly.
+!----------------------------------------------------------------------------------------------------------
+    m = 3
+    dtmp = dm%dccp
+    do s = 1, 2
+      if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
+        if(dtmp%xst(m) == 1) then
+          fl%qz(:, :, 1) = dm%fbcz_var(:,:, 1,s)
+          !if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
+        end if
+        if(dtmp%xen(m) == dm%np(m)) then
+          fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz_var(:,:,2,s)
+          !if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
+        end if
+      end if
+    end do
 
-! !----------------------------------------------------------------------------------------------------------
-! !   uz at z-direction. BC of others at z-direction are given in oeprations directly.
-! !----------------------------------------------------------------------------------------------------------
-!     m = 3
-!     dtmp = dm%dccp
-!     do s = 1, 2
-!       if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
-!         if(dtmp%xst(m) == 1) then
-!           fl%qz(:, :, 1) = dm%fbcz_var(s, m)
-!           if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
-!         end if
-!         if(dtmp%xen(m) == dm%np(m)) then
-!           fl%qz(:, :, dtmp%xsz(m)) = dm%fbcz_var(s, m)
-!           if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
-!         end if
-!       end if
-!     end do
-
-!     return
-!   end subroutine
+    return
+  end subroutine
 
 
 !==========================================================================================================

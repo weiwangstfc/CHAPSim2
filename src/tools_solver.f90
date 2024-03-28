@@ -402,7 +402,7 @@ contains
       do k = 1, dtmp%xsz(3)
         do j = 1, dtmp%xsz(2)
           do i = 1, dtmp%xsz(1)
-            fo = fo + var(i, j, k) * dm%h(1) * dm%h(3) * dm%h(2)
+            fo = fo + var(i, j, k)
             vol = vol + ONE
           end do
         end do
@@ -482,11 +482,14 @@ contains
               !----------------------------------------------------------------------------------------------------------
               jp = j + 1
               if( dm%is_periodic(2) .and. jp > noy) jp = 1
-              fo = fo + &
-                  ( vcp_ypencil(i, jp, k) + var_ypencil(i, j, k) ) * &
-                  ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
-                  ( var_ypencil(i, j,     k) + var_ypencil(i, j, k) ) * &
-                  ( dm%yc(j    ) - dm%yp(j) ) * HALF
+              ! method 1: 2nd order
+              ! fo = fo + &
+              !     ( vcp_ypencil(i, jp, k) + var_ypencil(i, j, k) ) * &
+              !     ( dm%yp(j + 1) - dm%yc(j) ) * HALF + &
+              !     ( var_ypencil(i, j,     k) + var_ypencil(i, j, k) ) * &
+              !     ( dm%yc(j    ) - dm%yp(j) ) * HALF
+              ! method 2: 1st order, same as CHAPSim1
+              fo = fo + vcp_ypencil(i, j, k)*(dm%yp(j + 1) - dm%yp(j))
               vol = vol + ( dm%yp(j + 1) - dm%yp(j) )
             end do
           end do
@@ -502,13 +505,11 @@ contains
     call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
     fo_work = fo_work / vol_work
 
- !#ifdef DEBUG_STEPS  
-
-    ! if(nrank == 0 .and. present(str)) then
-    !   write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
-    ! end if
-
- !#endif
+#ifdef DEBUG_STEPS  
+    if(nrank == 0 .and. present(str)) then
+      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+    end if
+#endif
 
     return 
   end subroutine Get_volumetric_average_3d
