@@ -1097,19 +1097,18 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2) then ! degrade to 1st CD
-      ! method 1 to use the Dirichlet B.C. value, check is this necessary? !!!
-      ! alpha1 = ZERO
-      !     a1 = - EIGHT * ONE_THIRD
-      !     b1 = THREE
-      !     c1 = - ONE_THIRD
-      !     d1 = ZERO
-      ! method 2 not to use the Dirichlet B.C. value
+    if (iaccu == IACCU_CD2) then ! degrade to 1st CD, check other accuracy in this set. Check!!!
       alpha1 = ZERO
-          a1 = ZERO
-          b1 = - ONE
-          c1 = ONE
+          a1 = -TWO! not used. 
+          b1 = TWO ! CHAPSim using 1, should be 2.
+          c1 = ZERO
           d1 = ZERO
+      ! method 2 not to use the Dirichlet B.C. value, tested it and it is wrong. 
+      ! alpha1 = ZERO
+      !     a1 = ZERO
+      !     b1 = - ONE
+      !     c1 = ONE
+      !     d1 = ZERO
 
       alpha2 = ZERO
           a2 = ONE

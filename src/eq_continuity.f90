@@ -98,7 +98,7 @@ contains
     div0 = ZERO
     call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    write(*,*) 'div, x', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
+    !write(*,*) 'div, x', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !----------------------------------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ contains
     call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    write(*,*) 'div, y', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
+    !write(*,*) 'div, y', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
@@ -124,8 +124,8 @@ contains
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    write(*,*) 'div, z', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
-    write(*,*) 'divall', div(8, 8, 8)
+    !write(*,*) 'div, z', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
+    !write(*,*) 'divall', div(8, 8, 8)
     return
   end subroutine
 

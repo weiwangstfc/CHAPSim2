@@ -114,8 +114,8 @@ contains
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: mz_rhs_pfc_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: mz_rhs_pfc_zpencil
 
-    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc
-    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp ! 
+    real(WP), dimension( dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3) ) :: acpc, acpc_test
+    real(WP), dimension( dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3) ) :: accp, accp_test ! 
 
     real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: apcc_ypencil
     real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc_zpencil
@@ -154,7 +154,7 @@ contains
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc, apcc_test
     real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: apcp
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: appc
     real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: apcp_zpencil
@@ -227,8 +227,8 @@ contains
     real(WP) :: rhsx_bulk, rhsz_bulk
 !#ifdef DEBUG_STEPS
     logical :: iconvection, ipressure, iviscous
-    if(nrank == 0) &
-    call Print_debug_start_msg("Compute_momentum_rhs at isub = "//trim(int2str(isub)))
+    !if(nrank == 0) &
+    !call Print_debug_start_msg("Compute_momentum_rhs at isub = "//trim(int2str(isub)))
     iconvection = .true.
     ipressure = .true.
     iviscous = .true.
@@ -478,6 +478,15 @@ if(iconvection) then
       call Get_z_1st_derivative_P2C_3D(-gz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), dm%fbcz_var(:, :, :, i) * dm%fbcz_var(:, :, :, 3 + NBC) )
     end if
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
+#ifdef DEBUG_STEPS
+    apcc_test = fl%mx_rhs
+    call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
+    apcc_test =  apcc_test + apcc
+    call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
+    call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
+    apcc_test =  apcc_test + apcc 
+    call wrt_3d_pt_debug(apcc_test,  dm%dpcc, fl%iteration, isub, '', 'ConX@bf st') ! debug_ww
+#endif
 end if
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : X-mom pressure gradient in x direction, d(sigma_1 p)
@@ -518,6 +527,7 @@ if(iviscous) then
     else
       fl%mx_rhs = fl%mx_rhs + m_pcc * fl%rre * apcc
     end if
+    !write(*,*) 'visx-11', fl%rre * apcc(4, 1:4, 4)
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * LL2(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
@@ -548,6 +558,7 @@ if(iviscous) then
     else
       mx_rhs_ypencil = mx_rhs_ypencil + m_pcc_ypencil * fl%rre * apcc_ypencil
     end if
+    !write(*,*) 'visx-22', fl%rre * apcc_ypencil(4,  1:4,  4)
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * LL3(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
@@ -578,6 +589,7 @@ if(iviscous) then
     else
       mx_rhs_zpencil = mx_rhs_zpencil + m_pcc_zpencil * fl%rre * apcc_zpencil
     end if
+    !write(*,*) 'visx-33', fl%rre * apcc_zpencil(4, 1:4, 4)
 
     if ( dm%is_thermo) then
 !----------------------------------------------------------------------------------------------------------
@@ -686,6 +698,15 @@ if(iconvection) then
     ! call transpose_z_to_y(acpc_zpencil, acpc_ypencil)
     ! call transpose_y_to_x(acpc_ypencil, acpc, dm%dcpc)
     ! write(*,*) 'convy3', acpc(4,1:4,4)
+#ifdef DEBUG_STEPS
+    acpc_test = fl%my_rhs
+    call transpose_y_to_x (my_rhs_ypencil, acpc, dm%dcpc)
+    acpc_test =  acpc_test + acpc
+    call transpose_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
+    call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
+    acpc_test =  acpc_test + acpc 
+    call wrt_3d_pt_debug(acpc_test,  dm%dcpc, fl%iteration, isub, '', 'ConY@bf st') ! debug_ww
+#endif
 end if
 if(ipressure)then
 !----------------------------------------------------------------------------------------------------------
@@ -721,6 +742,7 @@ if(iviscous)then
     else
       fl%my_rhs = fl%my_rhs + m_cpc * fl%rre * acpc
     end if
+    !write(*,*) 'visy-11', fl%rre * acpc(4, 1:4, 4)
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : Y-mom diffusion term (y-v1-2/7), \mu * LL2(uy) at (i, j', k)
 !----------------------------------------------------------------------------------------------------------
@@ -747,6 +769,7 @@ if(iviscous)then
     else
       my_rhs_ypencil = my_rhs_ypencil + m_cpc_ypencil * fl%rre * acpc_ypencil
     end if
+    !write(*,*) 'visy-22', fl%rre * acpc_ypencil(4, 1:4, 4)
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Y-mom diffusion term (y-v1-3/7), \mu * LL3(uy) at (i, j', k)
 !----------------------------------------------------------------------------------------------------------
@@ -769,6 +792,7 @@ if(iviscous)then
     call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2), fbcz)
     if ( .not. dm%is_thermo ) my_rhs_zpencil = my_rhs_zpencil +                  fl%rre * acpc_zpencil
     if ( dm%is_thermo) my_rhs_zpencil = my_rhs_zpencil + m_cpc_zpencil * fl%rre * acpc_zpencil
+    !write(*,*) 'visy-33', fl%rre * acpc_zpencil(4, 1:4, 4)
 
     if ( dm%is_thermo) then
 !----------------------------------------------------------------------------------------------------------
@@ -867,6 +891,16 @@ if(iconvection)then
       call Get_z_1st_derivative_C2P_3D(-gz_ccc_zpencil * qz_ccc_zpencil, accp_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, i) * dm%fbcz_var(:, :, :, 3 + NBC) )
     end if
     mz_rhs_zpencil = mz_rhs_zpencil + accp_zpencil
+#ifdef DEBUG_STEPS
+    accp_test = fl%mz_rhs
+    call transpose_y_to_x (mz_rhs_ypencil, accp, dm%dccp)
+    accp_test =  accp_test + accp
+    call transpose_z_to_y (mz_rhs_zpencil, accp_ypencil, dm%dccp)
+    call transpose_y_to_x (accp_ypencil, accp, dm%dccp)
+    accp_test =  accp_test + accp 
+    call wrt_3d_pt_debug(accp_test,  dm%dccp, fl%iteration, isub, '', 'ConZ@bf st') ! debug_ww
+#endif
+
 end if 
 if(ipressure)then
 !----------------------------------------------------------------------------------------------------------
@@ -900,6 +934,7 @@ if(iviscous)then
     else
       fl%mz_rhs = fl%mz_rhs + m_ccp * fl%rre * accp
     end if
+    !write(*,*) 'visz-11', fl%rre * accp(4, 1:4, 4)
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : Z-mom diffusion term (z-v1-2/1), \mu * L22(uz) at (i, j, k')
 !----------------------------------------------------------------------------------------------------------
@@ -925,6 +960,7 @@ if(iviscous)then
     else 
       mz_rhs_ypencil = mz_rhs_ypencil + m_ccp_ypencil * fl%rre * accp_ypencil
     end if
+    !write(*,*) 'visz-22', fl%rre * accp_ypencil(4, 1:4, 4)
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Z-mom diffusion term (z-v1-3/7), \mu * L33(uz) at (i, j, k')
 !----------------------------------------------------------------------------------------------------------
@@ -950,6 +986,7 @@ if(iviscous)then
     else
       mz_rhs_zpencil = mz_rhs_zpencil + m_ccp_zpencil * fl%rre * accp_zpencil
     end if
+    !write(*,*) 'visz-33', fl%rre * accp_zpencil(4, 1:4, 4)
 
     if ( dm%is_thermo) then
 !----------------------------------------------------------------------------------------------------------
@@ -1019,13 +1056,13 @@ end if
 #endif
     call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_pfc, dm%dpcc, dm, isub)  
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, '', 'ConVisX@af st') ! debug_ww
+    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, '', 'ConVisPX@af st') ! debug_ww
 #endif
 !   x-pencil : flow drive terms (source terms) in periodic Streamwise flow
     if (fl%idriven == IDRVF_X_MASSFLUX) then
       call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
-      if(nrank==0) write(*,*) 'compensition', rhsx_bulk
-      write(*,*) 'rhsx:', fl%mx_rhs(:, 1, 1), fl%mx_rhs(:, 4, 4)
+      !if(nrank==0) write(*,*) 'compensition', rhsx_bulk
+      !write(*,*) 'rhsx:', fl%mx_rhs(:, 1, 1), fl%mx_rhs(:, 4, 4)
       fl%mx_rhs(:, :, :) = fl%mx_rhs(:, :, :) - rhsx_bulk
     else if (fl%idriven == IDRVF_X_Cf) then
       rhsx_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
@@ -1033,7 +1070,7 @@ end if
     else
     end if
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, '', 'ConVisX@total') ! debug_ww
+  call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, '', 'RHSX@total') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : y-momentum
@@ -1043,8 +1080,8 @@ end if
 #endif
     call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_pfc, dm%dcpc, dm, isub)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, '', 'ConVisY@af st') ! debug_ww
-    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, '', 'ConVisY@total') ! debug_ww
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, '', 'ConVisPY@af st') ! debug_ww
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, '', 'RHSY@total') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : z-momentum
@@ -1054,7 +1091,7 @@ end if
 #endif
     call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_pfc, dm%dccp, dm, isub)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, '', 'ConVisZ@af st') ! debug_ww
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, '', 'ConVisPZ@af st') ! debug_ww
     
 #endif
 !   x-pencil : flow drive terms (source terms) in periodic Streamwise flow
@@ -1067,7 +1104,7 @@ end if
     else
     end if
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, '', 'ConVisZ@total') ! debug_ww
+  call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, '', 'RHSZ@total') ! debug_ww
 #endif
 
     return
@@ -1186,14 +1223,14 @@ end if
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
     coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
-    write(*,*) 'div,add',fl%pcor(8,8,8) , coeff
+    !write(*,*) 'div,add',fl%pcor(8,8,8) , coeff
 
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor * coeff
     
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@bf divg') ! debug_ww
-    !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@RHS phi') ! debug_ww
+    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@RHS phi') ! debug_ww
     !write(*,*) 'fft-1', fl%pcor(:, 1, 1)
 #endif
 !==========================================================================================================
@@ -1208,11 +1245,11 @@ end if
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
     call Print_debug_mid_msg("Solving the Poisson Equation ...")
-    write(*,*) 'fft0', rhs_zpencil_ggg(:, 1, 1)
+    !write(*,*) 'fft0-input', rhs_zpencil_ggg(:, 1, 1)
 #endif
     call poisson(rhs_zpencil_ggg)
 #ifdef DEBUG_STEPS  
-    write(*,*) 'fft1', rhs_zpencil_ggg(:, 1, 1)
+    !write(*,*) 'fft1-otput', rhs_zpencil_ggg(:, 1, 1)
 #endif
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
@@ -1223,7 +1260,7 @@ end if
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af solv') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af solv') ! debug_ww
-    write(*,*) 'fft2', fl%pcor(:, 1, 1)
+    !write(*,*) 'fft2-phi', fl%pcor(:, 1, 1)
 #endif
     !if(nrank == 0) write(*,*) fl%pcor(:, 1, 1)
 
@@ -1352,9 +1389,9 @@ end if
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, '', 'ux@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, '', 'uy@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, '', 'uz@bf divg') ! debug_ww
-    write(*,*) 'qx', fl%qx(:, 1, 1), fl%qx(:, 8, 8)
-    write(*,*) 'qy', fl%qy(:, 1, 1), fl%qy(:, 8, 8)
-    write(*,*) 'qz', fl%qz(:, 1, 1), fl%qz(:, 8, 8)
+    !write(*,*) 'qx', fl%qx(:, 1, 1), fl%qx(:, 8, 8)
+    !write(*,*) 'qy', fl%qy(:, 1, 1), fl%qy(:, 8, 8)
+    !write(*,*) 'qz', fl%qz(:, 1, 1), fl%qz(:, 8, 8)
 #endif
     !in order for a high order spacial accuracy
     ! to use Alternating direction implicit method
