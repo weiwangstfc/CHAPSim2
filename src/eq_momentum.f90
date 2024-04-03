@@ -124,6 +124,8 @@ contains
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: div_ccc_zpencil
 
     real(WP), dimension(              4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: div_4cc_xpencil ! for dirichlet bc.
+    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: div_c4c_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2),              4 ) :: div_cc4_zpencil
     
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qxix_ccc_xpencil ! qx^x, x-c1, common
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qxiy_ppc_xpencil ! qx^y, y-c1, no-thermal
@@ -131,12 +133,14 @@ contains
     real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qxiz_pcp_xpencil ! qx^z, z-c1, no-thermal
     real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qxiz_pcp_zpencil ! qx^z, x-c3, common
     
-    real(WP), dimension(             4,  dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: qxdx_4cc_xpencil ! for dirichlet bc
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qxdx_ccc_xpencil ! d(qx)/dx, x-v1, common
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qxdy_ppc_xpencil ! d(qx)/dy, y-v1, common
     real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qxdy_ppc_ypencil ! d(qx)/dy, x-v2, common
     real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qxdz_pcp_xpencil ! d(qx)/dz, z-v1, common
     real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qxdz_pcp_zpencil ! d(qx)/dz, x-v3, common
+    real(WP), dimension(              4, dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qxdx_4cc_xpencil !
+    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: qxdx_c4c_ypencil ! 
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2),              4 ) :: qxdx_cc4_zpencil ! 
     
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qyix_ppc_xpencil ! qy^x, y-c1, common
     real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qyix_ppc_ypencil ! qy^x, x-c2, no-thermal
@@ -147,9 +151,11 @@ contains
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: qydx_ppc_xpencil ! d(qy)/dx, y-v1, common
     real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: qydx_ppc_ypencil ! d(qy)/dx, x-v2, common
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: qydy_ccc_ypencil ! d(qy)/dy, y-v2, no-cly
-    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: qydy_c4c_ypencil ! d(qy)/dy, y-v2, no-cly
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qydz_cpp_ypencil ! d(qy)/dz, z-v2, z-v4, no-cly
     real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: qydz_cpp_zpencil ! d(qy)/dz, y-v3, no-cly
+    real(WP), dimension(              4, dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qydy_4cc_xpencil !
+    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: qydy_c4c_ypencil ! 
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2),              4 ) :: qydy_cc4_zpencil ! 
 
     real(WP), dimension( dm%dpcp%xsz(1), dm%dpcp%xsz(2), dm%dpcp%xsz(3) ) :: qzix_pcp_xpencil ! qz^x, z-c1, common
     real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: qzix_pcp_zpencil ! qz^x, x-c3, no-thermal
@@ -162,9 +168,10 @@ contains
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qzdy_cpp_ypencil ! d(qz)/dy, z-v2, no-cly
     real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: qzdy_cpp_zpencil ! d(qz)/dy, y-v3, no-cly
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: qzdz_ccc_ypencil ! d(qz)/dz, y-v4, cly-only
-    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: qzdz_c4c_ypencil ! 
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: qzdz_ccc_zpencil ! d(qz)/dz, z-v3, common
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2),              4 ) :: qzdz_cc4_zpencil ! d(qz)/dz, z-v3, common
+    real(WP), dimension(              4, dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: qzdz_4cc_xpencil !
+    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: qzdz_c4c_ypencil ! 
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2),              4 ) :: qzdz_cc4_zpencil ! 
 !----------------------------------------------------------------------------------------------------------
 !   intermediate variables : if dm%is_thermo = true
 !----------------------------------------------------------------------------------------------------------
@@ -178,11 +185,8 @@ contains
     real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: gziy_cpp_zpencil  ! gz^y, y-c3, thermal-only, and no-cly
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: gziz_ccc_zpencil  ! gz^z, z-c3, thermal-only
     
-    
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: mu_ccc_xpencil ! x-v1, thermal only
-    real(WP), dimension(              4, dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: mu_4cc_xpencil !
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: mu_ccc_ypencil ! y-v2, thermal only
-    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: mu_c4c_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: mu_ccc_zpencil ! z-v3, thermal only
     real(WP), dimension( dm%dppc%xsz(1), dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: muixy_ppc_xpencil ! y-v1, thermal only
     real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: muixy_ppc_ypencil ! x-v2, thermal only
@@ -190,6 +194,9 @@ contains
     real(WP), dimension( dm%dpcp%zsz(1), dm%dpcp%zsz(2), dm%dpcp%zsz(3) ) :: muixz_pcp_zpencil ! x-v3, thermal only
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: muiyz_cpp_ypencil ! z-v2, z-v4, thermal only
     real(WP), dimension( dm%dcpp%zsz(1), dm%dcpp%zsz(2), dm%dcpp%zsz(3) ) :: muiyz_cpp_zpencil ! y-v3, thermal only
+    real(WP), dimension(              4, dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: mu_4cc_xpencil !
+    real(WP), dimension( dm%dccc%ysz(1),              4, dm%dccc%ysz(3) ) :: mu_c4c_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2),              4 ) :: mu_cc4_zpencil
 !----------------------------------------------------------------------------------------------------------
 !   intermediate variables : if fl%igravity == i
 !----------------------------------------------------------------------------------------------------------
@@ -233,6 +240,7 @@ contains
     real(WP), dimension( dm%dppc%ysz(1), dm%dppc%ysz(2), dm%dppc%ysz(3) ) :: appc_ypencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil1
+    real(WP), dimension( dm%dccc%ysz(1),             4,  dm%dccc%ysz(3) ) :: ac4c_ypencil
     real(WP), dimension( dm%dccc%ysz(1),             4,  dm%dccc%ysz(3) ) :: ac4c_ypencil1
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: acpp_ypencil
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: acpp_ypencil1
@@ -308,35 +316,62 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !    qx 
 !    | -[ipx]-> qxix_ccc_xpencil(common)
-!    | -[1dx]-> qxdx_ccc_xpencil(common) <need BCx>
-!BCx:| -[1dx]-> qxdx_pcc_xpencil (temp) -> qxdx_4cc_xpencil(for dirichlet bc)
+!    | -[1dx]-> qxdx_ccc_xpencil(common)
+!BCx:| -[1dx]-> qxdx_pcc_xpencil (temp) -> qxdx_4cc_xpencil
 !    | -[x2y]-> qx_ypencil(temp) 
 !               | -[ipy]-> qxiy_ppc_ypencil(common) -[y2x]-> qxiy_ppc_xpencil(no thermal)
+!                                                         BCy:|-[1dx]->qxdx_cpc_xpencil-[x2y]->qxdx_cpc_ypencil->qxdx_c4c_ypencil 
 !               | -[1dy]-> qxdy_ppc_ypencil(common) -[y2x]-> qxdy_ppc_xpencil(common)
 !               | -[y2z]-> qx_zpencil(temp) 
 !                          | -[ipz]-> qxiz_pcp_zpencil(common) -[z2y]-> qxiz_pcp_ypencil(temp) -[y2x]-> qxiz_pcp_xpencil(no-thermal)
+!                                                                                                   BCz:|-[1dx]->qxdx_ccp_xpencil-[x2y2z]->qxdx_ccp_zpencil->qxdx_cc4_zpencil 
 !                          | -[1dz]-> qxdz_pcp_zpencil(common) -[z2y]-> qxdz_pcp_ypencil(temp) -[y2x]-> qxdz_pcp_xpencil(common)
 !----------------------------------------------------------------------------------------------------------
     call Get_x_midp_P2C_3D(fl%qx, qxix_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
     call Get_x_1st_derivative_P2C_3D(fl%qx, qxdx_ccc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
-    if( any(dm%ibcx(:, 1) == IBC_DIRICHLET) ) then
+    
+    if( any(dm%ibcx(:, 1) == IBC_DIRICHLET) ) then ! for Dirchilet x-bc of qxdx_4cc_xpencil
       call Get_x_1st_derivative_P2P_3D(fl%qx, apcc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
       call get_dirichlet_geo_bcx(dm%ibcx(:, 1), apcc_xpencil, qxdx_4cc_xpencil)
     end if
 
-    call transpose_x_to_y (fl%qx, apcc_ypencil, dm%dpcc) !qx_ypencil
+    call transpose_x_to_y (fl%qx, apcc_ypencil, dm%dpcc) !apcc_ypencil = qx_ypencil
     call Get_y_1st_derivative_C2P_3D(apcc_ypencil, qxdy_ppc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qx(:, :, :))
     call transpose_y_to_z(qxdy_ppc_ypencil, qxdy_ppc_xpencil, dm%dppc)
-    call Get_y_midp_C2P_3D(apcc_ypencil, qxiy_ppc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qx(:, :, :))
+    call Get_y_midp_C2P_3D(apcc_ypencil, qxiy_ppc_ypencil, dm, dm%ibcy(:, 1), fl%fbcy_qx(:, :, :)) 
     if(.not. dm%is_thermo) then
       call transpose_y_to_x (qxiy_ppc_ypencil, qxiy_ppc_xpencil, dm%dppc)
     end if
 
-    call transpose_y_to_z (apcc_ypencil, apcc_zpencil, dm%dpcc)!qx_zpencil
+    if( any(dm%ibcy(:, 1) == IBC_DIRICHLET) ) then  ! for Dirchilet y-bc of qxdx_c4c_ypencil
+      if(.not. dm%is_thermo) then
+        appc_xpencil = qxiy_ppc_xpencil
+      else
+        call transpose_y_to_x (qxiy_ppc_ypencil, appc_xpencil, dm%dppc) ! appc_xpencil = qxiy_ppc_xpencil
+      end if
+      call Get_x_1st_derivative_P2C_3D(appc_xpencil, acpc_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+      call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%dcpc)
+      call get_dirichlet_geo_bcy(dm%ibcy(:, 1), acpc_ypencil, qxdx_c4c_ypencil)
+    end if
+
+    call transpose_y_to_z (apcc_ypencil, apcc_zpencil, dm%dpcc)!apcc_zpencil = qx_zpencil
     call Get_z_midp_C2P_3D(apcc_zpencil, qxiz_pcp_zpencil, dm, dm%ibcz(:, 1), fl%fbcz_qx(:, :, :))
-    call transpose_z_to_y (qxiz_pcp_zpencil, apcp_ypencil, dm%dpcc)!qxiz_pcp_ypencil
     if(.not. dm%is_thermo) then
+      call transpose_z_to_y (qxiz_pcp_zpencil, apcp_ypencil, dm%dpcc)! apcp_ypencil = qxiz_pcp_ypencil
       call transpose_y_to_x (apcp_ypencil, qxiz_pcp_xpencil, dm%dpcp)
+    end if
+    
+    if(any(dm%ibcz(:, 1) == IBC_DIRICHLET)) then  ! for Dirchilet z-bc of qxdx_cc4_zpencil
+      if(.not. dm%is_thermo) then
+        apcp_xpencil = qxiz_pcp_xpencil
+      else
+        call transpose_z_to_y (qxiz_pcp_zpencil, apcp_ypencil, dm%dpcc)! apcp_ypencil = qxiz_pcp_ypencil
+        call transpose_y_to_x (apcp_ypencil, apcp_xpencil, dm%dpcp) ! apcp_ypencil = qxiz_pcp_ypencil
+      end if
+      call Get_x_1st_derivative_P2C_3D(apcp_xpencil, accp_xpencil, dm, dm%ibcx(:, 1), fl%fbcx_qx(:, :, :))
+      call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%dccp)
+      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
+      call get_dirichlet_geo_bcz(dm%ibcz(:, 1), accp_zpencil, qxdx_cc4_zpencil)
     end if
 
     call Get_z_1st_derivative_C2P_3D(apcc_zpencil, qxdz_pcp_zpencil, dm, dm%ibcz(:, 1), fl%fbcz_qx(:, :, :))
@@ -345,13 +380,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !    qy
 !    | -[ipx]-> qyix_ppc_xpencil(common) -[x2y]-> qyix_ppc_ypencil(no thermal) 
+!           BCx:|-[x2y]->qyix_ppc_ypencil-[1dy]-> qydy_pcc_ypencil -[y2x]-> qydy_pcc_xpencil -> qydy_4cc_xpencil(BCx)
 !    | -[1dx]-> qydx_ppc_xpencil(common) -[x2y]-> qydx_ppc_ypencil(common)
 !    | -[x2y]-> qy_ypencil(temp) 
 !               | -[ipy]-> qyiy_ccc_ypencil(no thermal or no cyl)
-!               | -[1dy]-> qydy_ccc_ypencil(no-cly) <need BCy>
+!               | -[1dy]-> qydy_ccc_ypencil(no-cly) <need BCy> 
+!                      
 !           BCy:| -[1dy]-> qydy_cpc_ypencil(no-cly, temp) -> qydy_c4c_ypencil(no-cly, BC)
 !               | -[y2z]-> qy_zpencil(temp) 
-!                          | -[ipz]-> qyiz_cpp_zpencil(no-cly) -[z2y]-> qyiz_cpp_ypencil(no-thermal)           
+!                          | -[ipz]-> qyiz_cpp_zpencil(no-cly) -[z2y]-> qyiz_cpp_ypencil(no-thermal)    
+!                                 BCz:| -[z2y]-> qy_cpp_ypencil-[1dy]-> qydy_ccp_ypencil-[y2z]-> qydy_ccp_zpencil -> qydy_cc4_zpencil    
 !                          | -[1dz]-> qydz_cpp_zpencil(no-cly) -[z2y]-> qydz_cpp_ypencil(no-cly)
 !----------------------------------------------------------------------------------------------------------
     call Get_x_1st_derivative_C2P_3D(fl%qy, qydx_ppc_xpencil, dm, dm%ibcx(:, 2), fl%fbcx_qy(:, :, :))
@@ -361,37 +399,58 @@ contains
       call transpose_x_to_y (qyix_ppc_xpencil, qyix_ppc_ypencil, dm%dppc)
     end if
 
+    if( any(dm%ibcx(:, 2) == IBC_DIRICHLET) ) then ! for Dirchilet x-bc of qydy_4cc_xpencil
+      if(.not. dm%is_thermo) then
+        appc_ypencil = qyix_ppc_ypencil
+      else
+        call transpose_x_to_y (qyix_ppc_xpencil, appc_ypencil, dm%dppc)
+      end if
+      call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
+      call transpose_y_to_x(apcc_ypencil, apcc_xpencil, dm%dpcc)
+      call get_dirichlet_geo_bcx(dm%ibcx(:, 2), apcc_xpencil, qydy_4cc_xpencil)
+    end if
+
     call transpose_x_to_y (fl%qy, acpc_ypencil, dm%dcpc) !qy_ypencil
     if(dm%icoordinate == ICARTESIAN) then
       call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qydy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
-      if( any(dm%ibcy(:, 2) == IBC_DIRICHLET) )
+    end if
+
+    if( any(dm%ibcy(:, 2) == IBC_DIRICHLET) ) then ! for Dirchilet y-bc of qydy_c4c_ypencil
         call Get_y_1st_derivative_P2P_3D(acpc_ypencil, acpc_ypencil1, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
         call get_dirichlet_geo_bcy(dm%ibcy(:, 2), acpc_ypencil1, qydy_c4c_ypencil)
       end if
-    end if
+
     if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
       call Get_y_midp_P2C_3D(acpc_ypencil, qyiy_ccc_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :) )
     end if
 
-    call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)!qy_zpencil
-    if(dm%icoordinate == ICARTESIAN)then
-      call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qydz_cpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_qy(:, :, :))
-      call transpose_z_to_y(qydz_cpp_zpencil, qydz_cpp_ypencil, dm%dcpp)
-    end if
-    if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
+    call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)!acpc_zpencil = qy_zpencil
+    call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qydz_cpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_qy(:, :, :))
+    call transpose_z_to_y(qydz_cpp_zpencil, qydz_cpp_ypencil, dm%dcpp)
+
+    if(dm%icoordinate == ICARTESIAN) then
       call Get_z_midp_C2P_3D(acpc_zpencil, qyiz_cpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_qy(:, :, :) )
       if(.not. dm%is_thermo) then
         call transpose_z_to_y(qyiz_cpp_zpencil, qyiz_cpp_ypencil, dm%dcpp)
       end if
     end if
+
+    if( any(dm%ibcz(:, 2) == IBC_DIRICHLET) ) then ! for Dirchilet z-bc of qydy_cc4_zpencil
+      call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:, 2), fl%fbcz_qy(:, :, :) )
+      call transpose_z_to_y(acpp_zpencil, acpp_ypencil, dm%dcpp)
+      call Get_y_1st_derivative_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, 2), fl%fbcy_qy(:, :, :))
+      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
+      call get_dirichlet_geo_bcz(dm%ibcz(:, 2), accp_zpencil, qydy_cc4_zpencil)
+    end if
 !----------------------------------------------------------------------------------------------------------
 !    qz 
 !    | -[1dx]-> qzdx_pcp_xpencil(common) -[x2y]-> qzdx_pcp_ypencil(temp) -[y2z]-> qzdx_pcp_zpencil(common)
 !    | -[ipx]-> qzix_pcp_xpencil(common) -[x2y]-> qzix_pcp_ypencil(temp) -[y2z]-> qzix_pcp_zpencil(no-thermal)
+!               BCx:|-[x2y2z]->qzix_pcp_zpencil-[1dz]-> qzdz_pcc_zpencil -[z2y2x]-> qzdz_pcc_xpencil -> qzdz_4cc_xpencil(BCx)
 !    | -[x2y]-> qz_ypencil(temp) 
 !               | -[1dy]-> qzdy_cpp_ypencil(no-cly)   -[y2z]-> qzdy_cpp_zpencil(no-cly)
 !               | -[ipy]-> qziy_cpp_ypencil(no-cly)   -[y2z]-> qziy_cpp_zpencil(no cly, no thermal)
-!           BCy:| -[ipy]-> qziy_cpp_ypencil(cly-only) -[y2z]-> qziy_cpp_zpencil(cly-only) -[1dz]-> d(qziy)dz_cpc_zpencil -[z2y]-> qzdz_cpc_ypencil(cly-only)-> qzdz_c4c_ypencil(cly-only)
+!           BCy:| -[ipy]-> qziy_cpp_ypencil -[y2z]-> qziy_cpp_zpencil -[1dz]-> qzdz_cpc_zpencil -[z2y]-> qzdz_cpc_ypencil-> qzdz_c4c_ypencil
 !               | -[y2z]-> qz_zpencil(temp) 
 !                          | -[ipz]-> qziz_ccc_zpencil(common)
 !                          | -[1dz]-> qzdz_ccc_zpencil(common) <need BCz> -[y2z]-> qzdz_ccc_ypencil(cly-only) <need BCy>
@@ -407,6 +466,19 @@ contains
       call transpose_y_to_z(apcp_ypencil, qzix_pcp_zpencil, dm%dpcp)
     end if
 
+    if( any(dm%ibcx(:, 3) == IBC_DIRICHLET) ) then ! for Dirchilet x-bc of qzdz_4cc_xpencil
+      if(.not. dm%is_thermo) then
+        apcp_zpencil = qzix_pcp_zpencil
+      else 
+        call transpose_x_to_y(qzix_pcp_xpencil, apcp_ypencil, dm%dpcp) !qzix_pcp_ypencil
+        call transpose_y_to_z(apcp_ypencil, apcp_zpencil, dm%dpcp)
+      end if
+      call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
+      call transpose_z_to_y(apcc_zpencil, apcc_ypencil, dm%dpcc)
+      call transpose_y_to_x(apcc_ypencil, apcc_xpencil, dm%dpcc)
+      call get_dirichlet_geo_bcx(dm%ibcx(:, 3), apcc_xpencil, qzdz_4cc_xpencil)
+    end if
+
     call transpose_x_to_y(fl%qz, accp_ypencil, dm%dccp) ! qz_ypencil
     if(dm%icoordinate == ICARTESIAN)then
       call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzdy_cpp_ypencil, dm, dm%ibcy(:, 3), fl%fbcy_qz(:, :, :))
@@ -420,22 +492,25 @@ contains
       end if
     end if
 
+    if( any(dm%ibcy(:, 3) == IBC_DIRICHLET) ) then ! for Dirchilet y-bc of qzdz_c4c_ypencil
+      call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%ibcy(:, 3), fl%fbcy_qz(:, :, :) )
+      call transpose_y_to_z(acpp_ypencil, acpp_zpencil, dm%dcpp)
+      call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
+      call transpose_z_to_y(acpc_zpencil, acpc_ypencil, dm%dcpc)
+      call get_dirichlet_geo_bcy(dm%ibcx(:, 3), acpc_ypencil, qzdz_c4c_ypencil)
+    end if
+
     call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp) ! qz_zpencil
     call Get_z_midp_P2C_3D(accp_zpencil, qziz_ccc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
     call Get_z_1st_derivative_P2C_3D(accp_zpencil, qzdz_ccc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
-    if( any(dm%ibcy(:, 3) == IBC_DIRICHLET) ) then
+
+    if( any(dm%ibcz(:, 3) == IBC_DIRICHLET) ) then ! for Dirchilet z-bc of qzdz_cc4_zpencil
       call Get_z_1st_derivative_P2P_3D(accp_zpencil, accp_zpencil1, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :))
       call get_dirichlet_geo_bcz(dm%ibcz(:, 3), accp_zpencil1, qzdz_cc4_zpencil)
     end if
+
     if(dm%icoordinate == ICYLINDRICAL) then
       call transpose_z_to_y(qzdz_ccc_zpencil, qzdz_ccc_ypencil, dm%dccc)
-      if( any(dm%ibcy(:, 3) == IBC_DIRICHLET) ) then
-        call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%ibcy(:, 3), fl%fbcy_qz(:, :, :) )
-        call transpose_y_to_z(acpp_ypencil, acpp_zpencil, dm%dcpp) 
-        call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 3), fl%fbcz_qz(:, :, :)) ! dqzdz
-        call transpose_z_to_y(acpc_zpencil, acpc_ypencil, dm%dcpc)
-        call get_dirichlet_geo_bcy(dm%ibcy(:, 3), acpc_ypencil, qzdz_c4c_ypencil)
-      end if
     end if
 !==========================================================================================================
 ! preparation of div
@@ -462,12 +537,13 @@ contains
     call transpose_x_to_y (div_ccc_xpencil, div_ccc_ypencil, dm%dccc)
     call transpose_y_to_z (div_ccc_ypencil, div_ccc_zpencil, dm%dccc)
 
+    if( any(dm%ibcx(:, 1) == IBC_DIRICHLET) ) &
     div_4cc_xpencil = qxdx_4cc_xpencil + qydy_4cc_xpencil + qzdz_4cc_xpencil
+    if( any(dm%ibcy(:, 2) == IBC_DIRICHLET) ) &
     div_c4c_ypencil = qxdx_c4c_ypencil + qydy_c4c_ypencil + qzdz_c4c_ypencil
+    if( any(dm%ibcz(:, 3) == IBC_DIRICHLET) ) &
     div_cc4_zpencil = qxdx_cc4_zpencil + qydy_cc4_zpencil + qzdz_cc4_zpencil 
-#ifdef DEBUG_STEPS
-    write(*,*) 'div_in_momen', div_ccc_xpencil(:, 1, 1), div_ccc_xpencil(:, 8, 8)
-#endif
+
 !==========================================================================================================
 ! preparation of intermediate variables to be used - thermal only
 !==========================================================================================================
@@ -926,7 +1002,7 @@ contains
       if( any(dm%ibcy(:, i) == IBC_DIRICHLET) ) &
       call multiple_cylindrical_rn_x4x(ac4c_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     end if
-    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  acpc_ypencil, dm, ac4c_ypencil) 
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  acpc_ypencil, dm, dm%ibcy(:, 2), ac4c_ypencil) 
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term (y-v-3/4), Z-pencil, d_z [mu^{y,z} * (dy(qz/r) + 1/r dz(qr/r) - 1/r * (qz/r)^r)] at (i, j', k)
@@ -1109,14 +1185,14 @@ contains
       call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 2, IPENCIL(3))
       if( any(dm%ibcz(:, i) == IBC_DIRICHLET) ) then
         acc4_zpencil = qzdz_cc4_zpencil
-        call multiple_cylindrical_rn_cc4(acc4_zpencil, dm%dccp, dm%rci, 2, IPENCIL(3))
+        call multiple_cylindrical_rn_xx4(acc4_zpencil, dm%dccp, dm%rci, 2, IPENCIL(3))
       end if
 
       accc_zpencil1 = qyriy_ccc_zpencil
       call multiple_cylindrical_rn(accc_zpencil1, dm%dccc, dm%rci, 1, IPENCIL(3))
       if( any(dm%ibcz(:, i) == IBC_DIRICHLET) ) then
         acc4_zpencil1 = fl%fbcz_qyr(:, :, :)
-        call multiple_cylindrical_rn_cc4(acc4_zpencil1, dm%dccp, dm%rci, 1, IPENCIL(3))
+        call multiple_cylindrical_rn_xx4(acc4_zpencil1, dm%dccp, dm%rci, 1, IPENCIL(3))
       end if
     else
       accc_zpencil  = qzdz_ccc_zpencil
