@@ -138,7 +138,8 @@ contains
           call map_bc_1d_uprofile( filename(m), ny, dm%yp, var1y(1:ny) )
         end if
         do k = 1, size(dm%fbcx_var, 3) 
-          dm%fbcx_var(1, 1:ny, k, m) = var1y(1:ny)
+          do j = 1,
+          dm%fbcx_var(1, 1:ny, k, m) = var1y(1:ny) ! wrong
         end do
       end if
     end do
@@ -247,18 +248,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
 
-      allocate( dm%fbcx_var(4,        dm%np(2), dm%np(3), NBC + NDIM) )
-      allocate( dm%fbcy_var(dm%np(1), 4,        dm%np(3), NBC + NDIM) )
-      allocate( dm%fbcz_var(dm%np(1), dm%np(2), 4,        NBC + NDIM) )
+      allocate( dm%fbcx_var(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3), NBC + NDIM) )
+      allocate( dm%fbcy_var(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(2), NBC + NDIM) )
+      allocate( dm%fbcz_var(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4, NBC + NDIM) )
 
-      allocate( dm%ftpbcx_var(4,        dm%np(2), dm%np(3)) )
-      allocate( dm%ftpbcy_var(dm%np(1), 4,        dm%np(3)) )
-      allocate( dm%ftpbcz_var(dm%np(1), dm%np(2), 4       ) )
+      allocate( dm%ftpbcx_var(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3))
+      allocate( dm%ftpbcy_var(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(2))
+      allocate( dm%ftpbcz_var(dm%dpcc%zsz(1), dm%dpcc%zsz(2),             4))
 
     else
-      allocate( dm%fbcx_var(4,        dm%np(2), dm%np(3), NBC) )
-      allocate( dm%fbcy_var(dm%np(1), 4,        dm%np(3), NBC) )
-      allocate( dm%fbcz_var(dm%np(1), dm%np(2), 4,        NBC) )
+      allocate( dm%fbcx_var(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3), NBC + NDIM) )
+      allocate( dm%fbcy_var(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(2), NBC + NDIM) )
+      allocate( dm%fbcz_var(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4, NBC + NDIM) )
     end if
 
     call apply_bc_constant_flow(dm)

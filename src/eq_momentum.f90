@@ -61,7 +61,7 @@ contains
         end do
       end do
     end do
-
+!write(*,*) 'rkcoeff', nrank, isub, dm%tGamma(isub), dm%tZeta(isub), dm%tAlpha(isub), correct.
     return
   end subroutine
 !==========================================================================================================
@@ -1180,7 +1180,9 @@ end if
     use decomp_2d_poisson
     use decomp_extended_mod
     use continuity_eq_mod
+    use typeconvert_mod
     use mpi_mod
+    use io_visulisation_mod
     implicit none
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl                  
@@ -1232,6 +1234,7 @@ end if
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@bf divg') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@RHS phi') ! debug_ww
     !write(*,*) 'fft-1', fl%pcor(:, 1, 1)
+    call write_snapshot_any3darray(fl%pcor, 'rhs'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
@@ -1251,6 +1254,7 @@ end if
 #ifdef DEBUG_STEPS  
     !write(*,*) 'fft1-otput', rhs_zpencil_ggg(:, 1, 1)
 #endif
+
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
 !==========================================================================================================
@@ -1261,8 +1265,9 @@ end if
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af solv') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af solv') ! debug_ww
     !write(*,*) 'fft2-phi', fl%pcor(:, 1, 1)
+    call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
-    !if(nrank == 0) write(*,*) fl%pcor(:, 1, 1)
+    
 
     return
   end subroutine
@@ -1410,9 +1415,9 @@ end if
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
     !call solve_poisson_x2z(fl, dm, isub) !
     call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
-#ifdef DEBUG_STEPS
+!#ifdef DEBUG_STEPS
     !call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
-#endif
+!#endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !----------------------------------------------------------------------------------------------------------

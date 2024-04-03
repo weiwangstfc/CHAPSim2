@@ -242,7 +242,7 @@ contains
 
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl  
-    integer, intent(in) :: inter
+    integer, intent(in) :: iter
     character(*), intent(in), optional :: str0                
 
     character(32) :: str
@@ -273,10 +273,10 @@ contains
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
 
-!#ifdef DEBUG_STEPS !test, check
+#ifdef DEBUG_STEPS !test, check
     if(MOD(iter, dm%visu_nfre) == 0) &
-    call write_snapshot_any3darray(div, 'divU', trim(str), dm%dccc, dm, fl%iteration)
-!#endif
+    call write_snapshot_any3darray(div, 'divU'//trim(int2str(isub)), 'debug'//trim(str), dm%dccc, dm, fl%iteration)
+#endif
 
     call Find_maximum_absvar3d(div, fl%mcon, trim(str)//" Check Mass Conservation:", wrtfmt1e)
 
