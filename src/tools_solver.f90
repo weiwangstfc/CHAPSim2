@@ -310,14 +310,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :))
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :))
     var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : \overline{w}^z/dz at cell centre
@@ -325,7 +325,7 @@ contains
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qz(:, :, :))
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
@@ -824,11 +824,19 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   get bc gx, gy, gz (at bc not cell centre)
 !----------------------------------------------------------------------------------------------------------
-    do m = NBC + 1, NBC + NDIM
-      dm%fbcx_var(:, :, :, m) = dm%fbcx_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcy_var(:, :, :, m) = dm%fbcy_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcz_var(:, :, :, m) = dm%fbcz_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-    end do
+
+    dm%fbcx_gx(:, :, :) = dm%fbcx_qx(:, :, :) * dm%ftpbcx_var(:, :, :)%d
+    dm%fbcy_gx(:, :, :) = dm%fbcy_qx(:, :, :) * dm%ftpbcy_var(:, :, :)%d
+    dm%fbcz_gx(:, :, :) = dm%fbcz_qx(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+
+    dm%fbcx_gy(:, :, :) = dm%fbcx_qy(:, :, :) * dm%ftpbcx_var(:, :, :)%d
+    dm%fbcy_gy(:, :, :) = dm%fbcy_qy(:, :, :) * dm%ftpbcy_var(:, :, :)%d
+    dm%fbcz_gy(:, :, :) = dm%fbcz_qy(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+
+    dm%fbcx_gz(:, :, :) = dm%fbcx_qz(:, :, :) * dm%ftpbcx_var(:, :, :)%d
+    dm%fbcy_gz(:, :, :) = dm%fbcy_qz(:, :, :) * dm%ftpbcy_var(:, :, :)%d
+    dm%fbcz_gz(:, :, :) = dm%fbcz_qz(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+
 
     return
   end subroutine

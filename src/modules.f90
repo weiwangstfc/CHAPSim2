@@ -402,9 +402,27 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
-    real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
-    real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
-    real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_qx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_gx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_gx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_pr(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_pr(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_pr(:, :, :) ! variable bc
     type(t_fluidThermoProperty), allocatable :: ftpbcx_var(:, :, :)  ! undim, xbc state
     type(t_fluidThermoProperty), allocatable :: ftpbcy_var(:, :, :)  ! undim, ybc state
     type(t_fluidThermoProperty), allocatable :: ftpbcz_var(:, :, :)  ! undim, zbc state

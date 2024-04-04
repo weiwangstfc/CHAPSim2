@@ -5905,19 +5905,19 @@ alpha_itf = ZERO
       else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
-        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ZERO
+        if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
 
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_pr(2, :, :) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
-        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ZERO
+        if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -5934,18 +5934,18 @@ alpha_itf = ZERO
       else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
+        if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_pr(:, 2, :) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
+        if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -5962,18 +5962,18 @@ alpha_itf = ZERO
       else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
+        if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_pr(:, :, 2) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
+        if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -5985,33 +5985,33 @@ alpha_itf = ZERO
         scale = THREE
         shift = ZERO
         if(i==1) then
-          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(1, :, :) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(3, :, :) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(2, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
       if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
-          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 1, :) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 3, :) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 2, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
       if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
-          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 1) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 3) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 2) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 4) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
     end do
@@ -6022,7 +6022,7 @@ alpha_itf = ZERO
       fxc(i) = sin_wp ( xc / scale + shift)
     end do
 ! x: c2p
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     ! do i = 1, 4 
     !   write(wrt_unit,'(A,1I5.1,4ES13.5)') 'x-intpbc-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
     ! end do
@@ -6057,7 +6057,7 @@ alpha_itf = ZERO
       fyc(j) = sin_wp ( yc / scale + shift)
     end do
 ! y: c2p
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6090,7 +6090,7 @@ alpha_itf = ZERO
       fzc(k) = sin_wp ( zc / scale + shift)
     end do
 ! z: c2p
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6123,33 +6123,33 @@ alpha_itf = ZERO
         scale = THREE
         shift = ZERO
         if(i == 1) then
-          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
-          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+          dm%fbcx_pr(1, :, :) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_pr(3, :, :) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
-          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+          dm%fbcx_pr(2, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
       if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
-          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
-          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 1, :) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 3, :) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
-          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 2, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
         end if
       end if
       if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
-          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
-          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 1) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :,3) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
-          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 2) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 4) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
         end if
       end if
     end do
@@ -6159,7 +6159,7 @@ alpha_itf = ZERO
       fxp(i) = sin_wp ( xp / scale + shift)
     end do
 ! x: p2c
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6192,7 +6192,7 @@ alpha_itf = ZERO
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
 ! y: p2c
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6228,7 +6228,7 @@ alpha_itf = ZERO
       fzp(k) = sin_wp ( zp / scale + shift)
     end do
 ! z: p2c
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6269,7 +6269,7 @@ alpha_itf = ZERO
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
     ! intp p2c + 1st deri c2p
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_midp_P2C_1D          (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
     call Get_y_1st_derivative_C2P_1D(fgyc,fgyp, dm, dm%ibcy(:, 5), fbc)
 
@@ -6309,7 +6309,7 @@ alpha_itf = ZERO
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
     ! intp p2c + 1st deri c2p
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_midp_P2C_1D          (fyp,      fgyc, dm, dm%ibcy(:, 5), fbc)
     call Get_y_1st_derivative_C2P_1D(fgyc*fgyc,fgyp, dm, dm%ibcy(:, 5), fbc*fbc)
 
@@ -6417,19 +6417,19 @@ alpha_itf = ZERO
       else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
-        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ZERO
+        if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
 
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_pr(2, :, :) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
-        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ZERO
+        if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -6446,18 +6446,18 @@ alpha_itf = ZERO
       else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
+        if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_pr(:, 2, :) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
+        if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -6474,18 +6474,18 @@ alpha_itf = ZERO
       else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
+        if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_pr(:, :, 2) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
+        if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -6506,33 +6506,33 @@ alpha_itf = ZERO
         scale = THREE
         shift = ZERO
         if(i==1) then
-          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(1, :, :) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(3, :, :) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(2, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
       if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
-          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 1, :) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 3, :) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 2, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
       if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
-          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 1) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :,3) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 2) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 4) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
     end do
@@ -6543,7 +6543,7 @@ alpha_itf = ZERO
       fxc(i) = sin_wp ( xc / scale + shift)
     end do
 ! x: c2c
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6575,7 +6575,7 @@ alpha_itf = ZERO
       fyc(j) = sin_wp ( yc / scale + shift)
     end do
 ! y: c2c
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6608,7 +6608,7 @@ alpha_itf = ZERO
       fzc(k) = sin_wp ( zc / scale + shift)
     end do
 ! z: c2c
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6644,7 +6644,7 @@ alpha_itf = ZERO
     ! end do
     ! end if
 
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6672,7 +6672,7 @@ alpha_itf = ZERO
     
 
 ! y: c2p
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6700,7 +6700,7 @@ alpha_itf = ZERO
     
 
 ! z: c2p
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6737,33 +6737,33 @@ alpha_itf = ZERO
         scale = THREE
         shift = ZERO
         if(i == 1) then
-          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
-          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+          dm%fbcx_pr(1, :, :) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_pr(3, :, :) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
-          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+          dm%fbcx_pr(2, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
       if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
-          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
-          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 1, :) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 3, :) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
-          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 2, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
         end if
       end if
       if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
-          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
-          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 1) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :,3) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
-          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 2) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 4) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
         end if
       end if
     end do
@@ -6774,7 +6774,7 @@ alpha_itf = ZERO
       fxp(i) = sin_wp ( xp / scale + shift)
     end do
 ! x: p2p
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6807,7 +6807,7 @@ alpha_itf = ZERO
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
 ! y: p2p
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6839,7 +6839,7 @@ alpha_itf = ZERO
       fzp(k) = sin_wp ( zp / scale + shift)
     end do
 ! z: p2p
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6871,7 +6871,7 @@ alpha_itf = ZERO
 ! p2c
 !----------------------------------------------------------------------------------------------------------
 ! x: p2c
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6900,7 +6900,7 @@ alpha_itf = ZERO
     end if
 
 ! y: p2c
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6928,7 +6928,7 @@ alpha_itf = ZERO
     
 
 ! z: p2c
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -7037,19 +7037,19 @@ alpha_itf = ZERO
       else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
-        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ZERO
+        if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
 
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcx_var(2, :, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcx_pr(2, :, :) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcx_var(1, :, :, 5) = ZERO
-        if(i==2) dm%fbcx_var(2, :, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcx_pr(1, :, :) = ZERO
+        if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -7066,18 +7066,18 @@ alpha_itf = ZERO
       else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
+        if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcy_pr(:, 2, :) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcy_var(:, 1, :, 5) = ZERO
-        if(i==2) dm%fbcy_var(:, 2, :, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
+        if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -7094,18 +7094,18 @@ alpha_itf = ZERO
       else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
+        if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
+        if(i==2) dm%fbcz_pr(:, :, 2) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
       else 
         scale = THREE
         shift = ZERO
-        if(i==1) dm%fbcz_var(:, :, 1, 5) = ZERO
-        if(i==2) dm%fbcz_var(:, :, 2, 5) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
+        if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
       end if
     end do
 
@@ -7126,33 +7126,33 @@ alpha_itf = ZERO
         scale = THREE
         shift = ZERO
         if(i==1) then
-          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(1, :, :) = sin_wp ( dm%h(1) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(3, :, :) = sin_wp ( dm%h(1) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(2, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
       if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
-          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 1, :) = sin_wp ( dm%h(2) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 3, :) = sin_wp ( dm%h(2) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 2, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
       if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
-          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
-          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 1) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :,3) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) + HALF) / scale + shift)
         else if(i ==2) then
-          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
-          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 2) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1 - 1, WP) + HALF) / scale + shift)
+          dm%fbcz_pr(:, :, 4) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
     end do
@@ -7163,7 +7163,7 @@ alpha_itf = ZERO
       fxc(i) = sin_wp ( xc / scale + shift)
     end do
 ! x: c2c
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -7194,7 +7194,7 @@ alpha_itf = ZERO
       fyc(j) = sin_wp ( yc / scale + shift)
     end do
 ! y: c2c
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -7225,7 +7225,7 @@ alpha_itf = ZERO
       fzc(k) = sin_wp ( zc / scale + shift)
     end do
 ! z: c2c
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -7258,33 +7258,33 @@ alpha_itf = ZERO
         scale = THREE
         shift = ZERO
         if(i == 1) then
-          dm%fbcx_var(1, :, :, 5) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
-          dm%fbcx_var(3, :, :, 5) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
+          dm%fbcx_pr(1, :, :) = sin_wp ( dm%h(1) * (real( -1, WP) ) / scale + shift)
+          dm%fbcx_pr(3, :, :) = sin_wp ( dm%h(1) * (real( -2, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcx_var(2, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
-          dm%fbcx_var(4, :, :, 5) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
+          dm%fbcx_pr(2, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 1, WP) ) / scale + shift)
+          dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
       if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
-          dm%fbcy_var(:, 1, :, 5) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
-          dm%fbcy_var(:, 3, :, 5) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 1, :) = sin_wp ( dm%h(2) * (real(-1, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 3, :) = sin_wp ( dm%h(2) * (real(-2, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcy_var(:, 2, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
-          dm%fbcy_var(:, 4, :, 5) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 2, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 1, WP) ) / scale + shift)
+          dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
         end if
       end if
       if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
-          dm%fbcz_var(:, :, 1, 5) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
-          dm%fbcz_var(:, :, 3, 5) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 1) = sin_wp ( dm%h(3) * (real( 0 - 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :,3) = sin_wp ( dm%h(3) * (real(-1 - 1, WP) ) / scale + shift)
         else if(i == 2) then
-          dm%fbcz_var(:, :, 2, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
-          dm%fbcz_var(:, :, 4, 5) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 2) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 1, WP) ) / scale + shift)
+          dm%fbcz_pr(:, :, 4) = sin_wp ( dm%h(3) * (real( dm%nc(3) + 2, WP) ) / scale + shift)
         end if
       end if
     end do
@@ -7294,7 +7294,7 @@ alpha_itf = ZERO
       fxp(i) = sin_wp ( xp / scale + shift)
     end do
 ! x: p2p
-    fbc(1:4) = dm%fbcx_var(1:4, 1, 1, 5)
+    fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
     call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -7325,7 +7325,7 @@ alpha_itf = ZERO
       fyp(j) = sin_wp ( yp / scale + shift)
     end do
 ! y: p2p
-    fbc(1:4) = dm%fbcy_var(1, 1:4, 1, 5)
+    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
     call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
@@ -7357,7 +7357,7 @@ alpha_itf = ZERO
       fzp(k) = sin_wp ( zp / scale + shift)
     end do
 ! z: p2p
-    fbc(1:4) = dm%fbcz_var(1, 1, 1:4, 5)
+    fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
     call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
     err_Linf = ZERO
     err_L2   = ZERO

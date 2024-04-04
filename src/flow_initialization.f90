@@ -383,7 +383,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("     The initial bulk velocity (original) is:")
       write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -395,7 +395,7 @@ contains
     ! write(*,*) 'uy, scaled', uy(:, 8, 8), uy(:, 1, 8) !debug_test
     ! write(*,*) 'uz, scaled', uz(:, 8, 8), uz(:, 1, 8) !debug_test
 
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       call Print_debug_mid_msg("     The initial bulk velocity (corrected) is:")
       write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -510,7 +510,7 @@ contains
         jj = dm%dpcc%xst(2) + j - 1
         do i = 1, dm%dpcc%xsz(1)
           ii = dm%dpcc%xst(1) + i - 1
-          ux(i, j, k) = ux(i, j, k) + dm%fbcx_var(1, j, k, 1)
+          ux(i, j, k) = ux(i, j, k) + dm%fbcx_qx(1, j, k)
         end do
       end do
     end do
@@ -521,7 +521,7 @@ contains
         jj = dm%dcpc%xst(2) + j - 1
         do i = 1, dm%dcpc%xsz(1)
           ii = dm%dcpc%xst(1) + i - 1
-          uy(i, j, k) = uy(i, j, k) + dm%fbcx_var(1, j, k, 2)
+          uy(i, j, k) = uy(i, j, k) + dm%fbcx_qy(1, j, k)
         end do
       end do
     end do
@@ -532,7 +532,7 @@ contains
         jj = dm%dccp%xst(2) + j - 1
         do i = 1, dm%dccp%xsz(1)
           ii = dm%dccp%xst(1) + i - 1
-          uz(i, j, k) = uz(i, j, k) + dm%fbcx_var(1, j, k, 3)
+          uz(i, j, k) = uz(i, j, k) + dm%fbcx_qz(1, j, k)
         end do
       end do
     end do

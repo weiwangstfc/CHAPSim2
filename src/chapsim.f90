@@ -71,7 +71,6 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain
     call configure_bc_type(domain(i)) 
     call Buildup_geometry_mesh_info(domain(i))
-    call configure_bc_vars(domain(i)) 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains
@@ -85,6 +84,9 @@ subroutine Initialize_chapsim
 ! build up domain decomposition
 !----------------------------------------------------------------------------------------------------------
   call Buildup_mpi_domain_decomposition
+  do i = 1, nxdomain
+    call configure_bc_vars(domain(i)) 
+  end do
 !----------------------------------------------------------------------------------------------------------
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------
@@ -244,7 +246,7 @@ subroutine Solve_eqs_iteration
         if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
 #ifdef DEBUG_STEPS
-      stop
+      !stop
 #endif
     end do
     
