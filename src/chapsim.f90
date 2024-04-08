@@ -120,8 +120,11 @@ subroutine Initialize_chapsim
     if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
   end do
 
-  !call test_poisson(domain(1)) ! debug_ww
-  
+#ifdef DEBUG_STEPS  
+  call test_poisson(domain(1)) ! debug_ww
+  stop
+#endif
+
   return
 end subroutine Initialize_chapsim
 
@@ -246,7 +249,7 @@ subroutine Solve_eqs_iteration
         if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
 #ifdef DEBUG_STEPS
-      !stop
+      stop
 #endif
     end do
     

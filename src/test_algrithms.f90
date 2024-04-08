@@ -608,15 +608,18 @@ subroutine test_poisson(dm)
   use decomp_extended_mod
   use decomp_2d_poisson
   use math_mod
+  use operations
 ! based on TGV3D mesh
-  type(t_domain), intent(in) :: dm
+  type(t_domain), intent(inout) :: dm
 
-  real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: rhs
+  real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: rhs, rhs0, phi, phi0
   real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
   real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
   real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
                        dm%dccc%zst(2) : dm%dccc%zen(2), &
                        dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
+
+  real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: rhs_pcc
 
   integer :: i, j, k, ii, jj, kk
   real(WP) :: xc, yc, zc
@@ -633,36 +636,59 @@ subroutine test_poisson(dm)
         zc = dm%h(3) * (real(kk - 1, WP) + HALF)
         
         ! test x or y or z direction
-        rhs(i, j, k) = -FOUR * sin_wp(xc) * cos_wp(xc)
-
+        !rhs(i, j, k)  = -cos_wp(xc)! * cos_wp(xc)
+        !phi0(i, j, k) = cos_wp(xc)
+        !rhs0(i, j, k) = -cos_wp(xc)
+        ! test 2
+        rhs(i, j, k)  = TWO
+        phi0(i, j, k) = xc * xc - TWOPI * xc
+        rhs0(i, j, k) = rhs(i, j, k)
 
       end do
     end do
   end do
 
-  if(nrank == 0) then
-    do i = 1, dm%dccc%xsz(1)
-      write(*, *) 'innput', i, rhs(i, 8, 8)
-    end do
-  end if
+  ! if(nrank == 0) then
+  !   do i = 1, dm%dccc%xsz(1)
+  !     write(*, *) 'innput0', i, rhs(i, 8, 8)
+  !   end do
+  ! end if
 
   call transpose_x_to_y (rhs        , rhs_ypencil, dm%dccc)
   call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
   call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
 !==========================================================================================================
-!   solve Poisson
+!   solve Poisson - fft method -to get phi
 !==========================================================================================================
   call poisson(rhs_zpencil_ggg)
+
 !==========================================================================================================
 !   convert back RHS from zpencil ggg to xpencil gll
 !==========================================================================================================
   call zpencil_index_ggg2llg(rhs_zpencil_ggg, rhs_zpencil, dm%dccc)
   call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
-  call transpose_y_to_x (rhs_ypencil, rhs,         dm%dccc)
+  call transpose_y_to_x (rhs_ypencil, phi,         dm%dccc)
 
+!==========================================================================================================
+!   compact scheme from phi to rhs
+!==========================================================================================================
+  dm%fbcx_pr(1:, :, :) = -TWOPI
+  dm%fbcx_pr(2:, :, :) =  TWOPI
+  dm%fbcx_pr(3:, :, :) = dm%fbcx_pr(1:, :, :)
+  dm%fbcx_pr(4:, :, :) = dm%fbcx_pr(2:, :, :)
+  call Get_x_1st_derivative_C2P_3D(phi, rhs_pcc, dm, dm%ibcx(:, 4), dm%fbcx_pr)
+  call Get_x_1st_derivative_P2C_3D(rhs_pcc, rhs, dm, dm%ibcx(:, 4))
   if(nrank == 0) then
     do i = 1, dm%dccc%xsz(1)
-      write(*, *) 'output', i, rhs(i, 8, 8)
+      ii = dm%dccc%xst(1) + i - 1
+      xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+      write(*, *) 'output_dphidx', i, rhs_pcc(i, 8, 8), TWO*xc-TWOPI
+    end do
+
+    do i = 1, dm%dccc%xsz(1)
+      ii = dm%dccc%xst(1) + i - 1
+      xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+      write(*, *) 'output_rhs_phi_diff', i, rhs0(i, 8, 8), phi0(i, 8, 8), rhs(i, 8, 8), phi(i, 8, 8)
     end do
   end if
 

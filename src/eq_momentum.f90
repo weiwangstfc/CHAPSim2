@@ -1231,9 +1231,8 @@ end if
     fl%pcor = fl%pcor * coeff
     
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@bf divg') ! debug_ww
-    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@RHS phi') ! debug_ww
-    !write(*,*) 'fft-1', fl%pcor(:, 1, 1)
+    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@bf fft') ! debug_ww
+    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'bf_fft_all', 'PhiRHS@bf fft') ! debug_ww
     call write_snapshot_any3darray(fl%pcor, 'rhs'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
 !==========================================================================================================
@@ -1262,9 +1261,8 @@ end if
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af solv') ! debug_ww
-    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af solv') ! debug_ww
-    !write(*,*) 'fft2-phi', fl%pcor(:, 1, 1)
+    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af fft') ! debug_ww
+    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'af_fft_all', 'phi@af fft') ! debug_ww
     call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
     

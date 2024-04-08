@@ -95,12 +95,24 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if (bcx==0 .and. bcy==0 .and. bcz==0) then
        poisson => poisson_000
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_000 is used.'
+#endif
     else if (bcx==1 .and. bcy==0 .and. bcz==0) then
        poisson => poisson_100
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_100 is used.'
+#endif
     else if (bcx==0 .and. bcy==1 .and. bcz==0) then
        poisson => poisson_010
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_010 is used.'
+#endif
     else if (bcx==1 .and. bcy==1) then   ! 110 & 111
        poisson => poisson_11x
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_11x is used.'
+#endif
     else
        stop 'boundary condition not supported'
     end if
@@ -113,6 +125,10 @@ contains
     if (bcx==1) nx=nx-1
     if (bcy==1) ny=ny-1
     if (bcz==1) nz=nz-1
+
+#ifdef DEBUG_STEPS
+   write(*,*) 'in fft, nx, ny, nz = ', nx, ny, nz
+#endif
 
 #ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init start'
