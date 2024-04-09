@@ -730,7 +730,7 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
     do k =1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
       do i = 1, dtmp%xsz(1)
-        write(nfil, *) jj, kk, i, var(i, j, k)  
+        write(nfil, '(3I4.1, 1ES23.15)') jj, kk, i, var(i, j, k)  
       end do
     end do
   end do

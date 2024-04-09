@@ -161,6 +161,8 @@ contains
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
 
+    ! here is not only a repeat of those in io_visulisation
+    ! because they have different written freqence and to be used for restart as well.
     call write_statistics_array(fl%pr_mean,                     'mean_pr', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%u_vector_mean  (:, :, :, 1), 'mean_ux', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%u_vector_mean  (:, :, :, 2), 'mean_uy', dm%idom, fl%iteration, dm%dccc)
@@ -171,6 +173,7 @@ contains
     call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 4), 'mean_uv', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 5), 'mean_uw', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 6), 'mean_vw', dm%idom, fl%iteration, dm%dccc)
+
 
     return
   end subroutine
@@ -259,8 +262,6 @@ contains
 
     return
   end subroutine
-!==========================================================================================================
-!==========================================================================================================
 
 
 end module

@@ -64,6 +64,8 @@ contains
 
     call decomp_info_init(dm%np(1), dm%np(2), dm%np(3), dm%dppp) ! this is only used in test.
 
+
+
 #ifdef DEBUG_STEPS
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     do i = 1, 7

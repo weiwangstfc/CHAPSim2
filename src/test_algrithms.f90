@@ -672,10 +672,10 @@ subroutine test_poisson(dm)
 !==========================================================================================================
 !   compact scheme from phi to rhs
 !==========================================================================================================
-  dm%fbcx_pr(1:, :, :) = -TWOPI
-  dm%fbcx_pr(2:, :, :) =  TWOPI
-  dm%fbcx_pr(3:, :, :) = dm%fbcx_pr(1:, :, :)
-  dm%fbcx_pr(4:, :, :) = dm%fbcx_pr(2:, :, :)
+  dm%fbcx_pr(1, :, :) = -TWOPI
+  dm%fbcx_pr(2, :, :) =  TWOPI
+  dm%fbcx_pr(3, :, :) = dm%fbcx_pr(1, :, :)
+  dm%fbcx_pr(4, :, :) = dm%fbcx_pr(2, :, :)
   call Get_x_1st_derivative_C2P_3D(phi, rhs_pcc, dm, dm%ibcx(:, 4), dm%fbcx_pr)
   call Get_x_1st_derivative_P2C_3D(rhs_pcc, rhs, dm, dm%ibcx(:, 4))
   if(nrank == 0) then

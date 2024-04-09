@@ -121,8 +121,9 @@ subroutine Initialize_chapsim
   end do
 
 #ifdef DEBUG_STEPS  
-  call test_poisson(domain(1)) ! debug_ww
-  stop
+  !call test_poisson(domain(1)) ! debug_ww
+  !call Print_warning_msg(" === The solver will stop as per the user's request. === ")
+  !stop
 #endif
 
   return
@@ -249,6 +250,7 @@ subroutine Solve_eqs_iteration
         if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
 #ifdef DEBUG_STEPS
+      call Print_warning_msg(" === The solver will stop as per the user's request. === ")
       stop
 #endif
     end do
@@ -312,9 +314,9 @@ subroutine Solve_eqs_iteration
           call write_snapshot_thermo(thermo(i), domain(i))
         end if
         if(iter > domain(i)%stat_istart ) then
-          if(is_flow(i)) call write_snapshot_flow_stat(flow(i), domain(i))
+          if(is_flow(i)) call write_stats_flow(flow(i), domain(i))
           if(domain(i)%is_thermo .and. is_thermo(i)) then
-            call write_snapshot_thermo_stat(thermo(i), domain(i))
+            call write_stats_thermo(thermo(i), domain(i))
           end if
         end if
       end if

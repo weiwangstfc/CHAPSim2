@@ -28,11 +28,13 @@ module io_visulisation_mod
   public  :: write_snapshot_ini
   public  :: write_snapshot_flow
   public  :: write_snapshot_thermo
-  public  :: write_snapshot_flow_stat
-  public  :: write_snapshot_thermo_stat
   public  :: write_snapshot_any3darray
 
-
+  public  :: write_stats_flow
+  public  :: write_stats_thermo
+  
+  public  :: average_periodic_flow
+  
 contains
 !==========================================================================================================
 ! xszV means:
@@ -320,7 +322,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! xmdf file name
 !----------------------------------------------------------------------------------------------------------
-    keyword = "snapshot_"//trim(svisudim)//"_"//trim(visuname)
+    keyword = trim(svisudim)//"_"//trim(visuname)
     call generate_pathfile_name(visu_flname_path, dm%idom, keyword, dir_visu, 'xdmf', iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data into binary file
@@ -456,7 +458,7 @@ contains
   end subroutine
 
 !==========================================================================================================
-  subroutine write_snapshot_flow_stat(fl, dm)
+  subroutine write_stats_flow(fl, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -466,9 +468,13 @@ contains
 
     integer :: iter 
     character(120) :: visuname
-    
+
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)) :: a_xpencil
+!==========================================================================================================
+! write time averaged 3d data
+!==========================================================================================================
     iter = fl%iteration
-    visuname = 'flow_mean'
+    visuname = 'flow_time_averaged'
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -490,12 +496,59 @@ contains
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
     call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+!==========================================================================================================
+! write time averaged and space averaged 3d data (stored 2d or 1d data)
+!==========================================================================================================
+    iter = fl%iteration
+    visuname = 'flow_time_space_averaged'
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, 
+!----------------------------------------------------------------------------------------------------------
+    call average_periodic_flow(fl%pr_mean, a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%u_vector_mean(:, :, :, 1), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%u_vector_mean(:, :, :, 2), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%u_vector_mean (:, :, :, 3), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil(:, :, :, 3), dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 1), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "uu", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 2), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "vv", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 3), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "ww", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 4), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "uv", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 5), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil), dm%dccc, "uw", trim(visuname), SCALAR, CELL, iter)
+
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 6), a_xpencil, dm%dccc, dm)
+    call write_field(dm, a_xpencil, dm%dccc, "vw", trim(visuname), SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    
+
     
     return
   end subroutine
 
   !==========================================================================================================
-  subroutine write_snapshot_thermo_stat(tm, dm)
+  subroutine write_stats_thermo(tm, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -507,7 +560,7 @@ contains
     character(120) :: visuname
     
     iter = tm%iteration
-    visuname = 'thermo_mean'
+    visuname = 'thermo_time_averaged'
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -588,6 +641,104 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call write_snapshot_headerfooter(dm, trim(keyword), XDMF_FOOTER, iter)
     
+    return
+  end subroutine
+
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine average_periodic_flow(data_in, data_out, dtmp, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    type(t_domain), intent(in) :: dm
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(in)  :: data_in
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(out) :: data_out
+
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)) :: a_xpencil
+    real(WP), dimension(dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3)) :: a_ypencil
+    real(WP), dimension(dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3)) :: a_zpencil
+    real(WP), dimension(dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3)) :: b_zpencil
+
+    integer :: i, j, k
+    real(WP) :: sum
+
+    if(dm%is_periodic(1) .and. &
+       dm%is_periodic(3) .and. &
+       dm%is_periodic(2)) then
+
+    ! do nothing here, but bulk value output
+
+    else if(dm%is_periodic(1) .and. &
+            dm%is_periodic(3) ) then
+
+      do j = 1, dtmp%xsz(2)
+        do k = 1, dtmp%xsz(3)
+          sum =  ZERO
+          do i = 1, dtmp%xsz(1)
+            sum = sum + data_in(i, j, k) 
+          end do
+          sum =  sum/real(dtmp%xsz(1), WP)
+          a_xpencil(:, j, k) = sum
+        end do
+      end do
+
+      call transpose_x_to_y(a_xpencil, a_ypencil, dtmp)
+      call transpose_y_to_z(a_ypencil, a_zpencil, dtmp)
+      do i = 1, dtmp%zsz(1)
+        do j = 1, dtmp%zsz(2)
+          sum =  ZERO
+          do k = 1, dtmp%zsz(3)
+            sum = sum + a_zpencil(i, j, k) 
+          end do
+          b_zpencil(i, j, :) =  sum/real(dtmp%zsz(3), WP)
+        end do
+      end do
+      call transpose_z_to_y(b_zpencil, a_ypencil, dtmp)
+      call transpose_y_to_x(a_ypencil, a_xpencil, dtmp)
+
+      data_out = a_xpencil
+  
+    else if(dm%is_periodic(1) ) then
+
+      do j = 1, dtmp%xsz(2)
+        do k = 1, dtmp%xsz(3)
+          sum =  ZERO
+          do i = 1, dtmp%xsz(1)
+            sum = sum + data_in(i, j, k) 
+          end do
+          sum =  sum/real(dtmp%xsz(1), WP)
+          data_out(:, j, k) = sum
+        end do
+      end do
+
+    else if(dm%is_periodic(3)) then
+
+      call transpose_x_to_y(data_in,   a_ypencil, dtmp)
+      call transpose_y_to_z(a_ypencil, a_zpencil, dtmp)
+      do j = 1, dtmp%zsz(2)
+        do i = 1, dtmp%zsz(1)
+          sum =  ZERO
+          do k = 1, dtmp%zsz(3)
+            sum = sum + a_zpencil(i, j, k) 
+          end do
+          sum =  sum /real(dtmp%zsz(3), WP)
+          b_zpencil(i, j, :) = sum
+        end do
+      end do
+
+      call transpose_z_to_y(b_zpencil, a_ypencil, dtmp)
+      call transpose_y_to_x(a_ypencil, a_xpencil, dtmp)
+      data_out = a_xpencil
+
+    else
+
+      ! do nothing here
+
+    end if
+
+
     return
   end subroutine
 
