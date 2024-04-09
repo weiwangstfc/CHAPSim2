@@ -24,23 +24,32 @@ contains
 
     character(120):: data_flname_path
     character(120):: keyword
+    logical :: file_exists
 
-    if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data ...")
+    if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data (not replace old one if exsits)...")
 
     keyword = 'ux'
     call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
+    INQUIRE(FILE = data_flname_path, exist = file_exists)
+    if(.not.file_exists) &
     call decomp_2d_write_one(X_PENCIL, fl%qx, trim(data_flname_path), dm%dpcc)
 
     keyword = 'uy'
     call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
+    INQUIRE(FILE = data_flname_path, exist = file_exists)
+    if(.not.file_exists) &
     call decomp_2d_write_one(X_PENCIL, fl%qy,   trim(data_flname_path), dm%dcpc)
 
     keyword = 'uz'
     call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
+    INQUIRE(FILE = data_flname_path, exist = file_exists)
+    if(.not.file_exists) &
     call decomp_2d_write_one(X_PENCIL, fl%qz,   trim(data_flname_path), dm%dccp)
 
     keyword = 'pr'
     call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
+    INQUIRE(FILE = data_flname_path, exist = file_exists)
+    if(.not.file_exists) &
     call decomp_2d_write_one(X_PENCIL, fl%pres, trim(data_flname_path), dm%dccc)
 
 

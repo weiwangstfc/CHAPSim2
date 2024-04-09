@@ -20,10 +20,12 @@ module io_visulisation_mod
 
   real(WP), allocatable :: xp(:), yp(:), zp(:)
 
-  character(6)  :: svisudim
+  !character(6)  :: svisudim
 
   private :: write_snapshot_headerfooter
   private :: write_field
+  private :: average_periodic_flow
+  private :: write_profile
 
   public  :: write_snapshot_ini
   public  :: write_snapshot_flow
@@ -33,7 +35,7 @@ module io_visulisation_mod
   public  :: write_stats_flow
   public  :: write_stats_thermo
   
-  public  :: average_periodic_flow
+  
   
 contains
 !==========================================================================================================
@@ -67,9 +69,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! global size
 !----------------------------------------------------------------------------------------------------------
-    svisudim = ''
-    if(dm%visu_idim == Ivisudim_3D) then
-      svisudim = "3d"
+    !svisudim = ''
+    !if(dm%visu_idim == Ivisudim_3D) then
+      !svisudim = "3d"
       nnd_visu(1, dm%idom) = xszV(1)
       nnd_visu(2, dm%idom) = yszV(2)
       nnd_visu(3, dm%idom) = zszV(3)
@@ -81,72 +83,72 @@ contains
           ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
         end if
       end do
-    else if(dm%visu_idim == Ivisudim_2D_Xa) then
-      svisudim = "2d_xa"
-      nnd_visu(1, dm%idom) = 1
-      nnd_visu(2, dm%idom) = yszV(2)
-      nnd_visu(3, dm%idom) = zszV(3)
-      do i = 1, 3
-        if(dm%is_periodic(i)) then 
-          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-        else 
-          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-        end if
-      end do
-    else if(dm%visu_idim == Ivisudim_2D_Ya) then
-      svisudim = "2d_ya"
-      nnd_visu(1, dm%idom) = xszV(1)
-      nnd_visu(2, dm%idom) = 1
-      nnd_visu(3, dm%idom) = zszV(3)
-      do i = 1, 3
-        if(dm%is_periodic(i)) then 
-          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-        else 
-          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-        end if
-      end do
-    else if(dm%visu_idim == Ivisudim_2D_Za) then
-      svisudim = "2d_za"
-      nnd_visu(1, dm%idom) = xszV(1)
-      nnd_visu(2, dm%idom) = yszV(2)
-      nnd_visu(3, dm%idom) = 1
-      do i = 1, 3
-        if(dm%is_periodic(i)) then 
-          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-        else 
-          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-        end if
-      end do
-    else if(dm%visu_idim == Ivisudim_1D_XZa) then
-      svisudim = "2d_xza"
-      nnd_visu(1, dm%idom) = 1
-      nnd_visu(2, dm%idom) = yszV(2)
-      nnd_visu(3, dm%idom) = 1
-      do i = 1, 3
-        if(dm%is_periodic(i)) then 
-          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-        else 
-          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-        end if
-      end do
-    else
-      svisudim = "3d"
-      nnd_visu(1, dm%idom) = xszV(1)
-      nnd_visu(2, dm%idom) = yszV(2)
-      nnd_visu(3, dm%idom) = zszV(3)
-      do i = 1, 3
-        if(dm%is_periodic(i)) then 
-          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-        else 
-          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-        end if
-      end do
-    end if
+    ! !else if(dm%visu_idim == Ivisudim_2D_Xa) then
+    !   svisudim = "2d_xa"
+    !   nnd_visu(1, dm%idom) = 1
+    !   nnd_visu(2, dm%idom) = yszV(2)
+    !   nnd_visu(3, dm%idom) = zszV(3)
+    !   do i = 1, 3
+    !     if(dm%is_periodic(i)) then 
+    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+    !     else 
+    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+    !     end if
+    !   end do
+    ! else if(dm%visu_idim == Ivisudim_2D_Ya) then
+    !   svisudim = "2d_ya"
+    !   nnd_visu(1, dm%idom) = xszV(1)
+    !   nnd_visu(2, dm%idom) = 1
+    !   nnd_visu(3, dm%idom) = zszV(3)
+    !   do i = 1, 3
+    !     if(dm%is_periodic(i)) then 
+    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+    !     else 
+    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+    !     end if
+    !   end do
+    ! else if(dm%visu_idim == Ivisudim_2D_Za) then
+    !   svisudim = "2d_za"
+    !   nnd_visu(1, dm%idom) = xszV(1)
+    !   nnd_visu(2, dm%idom) = yszV(2)
+    !   nnd_visu(3, dm%idom) = 1
+    !   do i = 1, 3
+    !     if(dm%is_periodic(i)) then 
+    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+    !     else 
+    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+    !     end if
+    !   end do
+    ! else if(dm%visu_idim == Ivisudim_1D_XZa) then
+    !   svisudim = "2d_xza"
+    !   nnd_visu(1, dm%idom) = 1
+    !   nnd_visu(2, dm%idom) = yszV(2)
+    !   nnd_visu(3, dm%idom) = 1
+    !   do i = 1, 3
+    !     if(dm%is_periodic(i)) then 
+    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+    !     else 
+    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+    !     end if
+    !   end do
+    ! else
+    !   svisudim = "3d"
+    !   nnd_visu(1, dm%idom) = xszV(1)
+    !   nnd_visu(2, dm%idom) = yszV(2)
+    !   nnd_visu(3, dm%idom) = zszV(3)
+    !   do i = 1, 3
+    !     if(dm%is_periodic(i)) then 
+    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+    !     else 
+    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+    !     end if
+    !   end do
+    ! end if
 !----------------------------------------------------------------------------------------------------------
 ! write grids
 !----------------------------------------------------------------------------------------------------------    
@@ -175,19 +177,19 @@ contains
       enddo
 
 
-      keyword = trim(svisudim)//"_grid_x"
+      keyword = "grid_x"
       call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
       open(newunit = iogrid, file = trim(grid_flname), action = "write", status="replace")
       write(iogrid, *) xp
       close(iogrid)
 
-      keyword = trim(svisudim)//"_grid_y"
+      keyword = "grid_y"
       call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
       open(newunit = iogrid, file = trim(grid_flname), action = "write", status="replace")
       write(iogrid, *) yp
       close(iogrid)
 
-      keyword = trim(svisudim)//"_grid_z"
+      keyword = "grid_z"
       call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
       open(newunit = iogrid, file = trim(grid_flname), action = "write", status="replace")
       write(iogrid, *) zp
@@ -226,7 +228,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! visu file name
 !----------------------------------------------------------------------------------------------------------
-    keyword = "snapshot_"//trim(svisudim)//"_"//trim(visuname)
+    keyword = trim(visuname)
     call generate_pathfile_name(visu_flname, dm%idom, keyword, dir_visu, 'xdmf', iter)
     open(newunit = ioxdmf, file = trim(visu_flname), action = "write", position="append")
 !----------------------------------------------------------------------------------------------------------
@@ -322,13 +324,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! xmdf file name
 !----------------------------------------------------------------------------------------------------------
-    keyword = trim(svisudim)//"_"//trim(visuname)
+    keyword = trim(visuname)
     call generate_pathfile_name(visu_flname_path, dm%idom, keyword, dir_visu, 'xdmf', iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data into binary file
 !----------------------------------------------------------------------------------------------------------
     if(dm%visu_idim == Ivisudim_3D) then
-      keyword = trim(svisudim)//"_"//trim(varname)
+      keyword = trim(varname)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
       INQUIRE(FILE = data_flname_path, exist = file_exists)
       if(.not.file_exists) then
@@ -338,7 +340,7 @@ contains
     else if(dm%visu_idim == Ivisudim_1D_XZa) then
       !to add 1D profile
     else 
-      keyword = trim(svisudim)//"_"//trim(varname)
+      keyword = trim(varname)
       call generate_file_name(data_flname, dm%idom, keyword, 'bin', iter)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
       call decomp_2d_write_plane(X_PENCIL, var, dm%visu_idim, PLANE_AVERAGE, trim(dir_data), trim(data_flname), io_name, dtmp)
@@ -365,6 +367,56 @@ contains
       write(ioxdmf, *)'           </DataItem>'
       write(ioxdmf, *)'        </Attribute>'
       close(ioxdmf)
+    end if
+
+    return
+  end subroutine 
+  !==========================================================================================================
+! ref: https://www.xdmf.org/index.php/XDMF_Model_and_Format
+!==========================================================================================================
+  subroutine write_profile(dm, var, dtmp, varname, visuname, attributetype, centring, idim, iter)
+    use precision_mod
+    use decomp_2d
+    use decomp_2d_io
+    use udf_type_mod, only: t_domain
+    use files_io_mod
+    use decomp_operation_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    real(WP), intent(in) :: var(:)
+    character(len=*), intent(in) :: varname
+    character(len=*), intent(in) :: visuname
+    character(*), intent(in) :: attributetype
+    character(*), intent(in) :: centring
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer, intent(in) :: idim
+    integer, intent(in), optional :: iter
+
+    character(120):: data_flname
+    character(120):: data_flname_path
+    character(120):: visu_flname_path
+    character(120):: keyword
+    integer :: nsz(3)
+    integer :: ioxdmf, iofl
+    logical :: file_exists
+
+    integer :: j
+
+    if((.not. is_decomp_same(dtmp, dm%dccc))) then
+      if(nrank == 0) call Print_error_msg("Data is not stored at cell centre. varname = " // trim(varname))
+    end if
+!----------------------------------------------------------------------------------------------------------
+! write data 
+!----------------------------------------------------------------------------------------------------------
+    keyword = trim(varname)
+    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'dat', iter)
+    INQUIRE(FILE = data_flname_path, exist = file_exists)
+    if(.not.file_exists) then
+      open(newunit = iofl, file = data_flname_path, action = "write", status = "new")
+      if(idim /= 2) call Print_error_msg('Error in direction')
+      do j = 1, dtmp%ysz(2)
+        write(iofl, *) j, dm%yc(j), var(j) 
+      end do
     end if
 
     return
@@ -469,7 +521,7 @@ contains
     integer :: iter 
     character(120) :: visuname
 
-    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)) :: a_xpencil
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: a_xpencil
 !==========================================================================================================
 ! write time averaged 3d data
 !==========================================================================================================
@@ -482,16 +534,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call write_field(dm, fl%pr_mean,                     dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%u_vector_mean  (:, :, :, 1), dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%u_vector_mean  (:, :, :, 2), dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%u_vector_mean  (:, :, :, 3), dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, "uu", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, "vv", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, "ww", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, "uv", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, "uw", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, "vw", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%pr_mean,                     dm%dccc, "time_averaged_pr", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%u_vector_mean  (:, :, :, 1), dm%dccc, "time_averaged_ux", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%u_vector_mean  (:, :, :, 2), dm%dccc, "time_averaged_uy", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%u_vector_mean  (:, :, :, 3), dm%dccc, "time_averaged_uz", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, "time_averaged_uu", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, "time_averaged_vv", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, "time_averaged_ww", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, "time_averaged_uv", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, "time_averaged_uw", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, "time_averaged_vw", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
@@ -504,45 +556,26 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
+    if(.not. (dm%is_periodic(1) .and. dm%is_periodic(3))) &
     call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call average_periodic_flow(fl%pr_mean, a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%u_vector_mean(:, :, :, 1), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%u_vector_mean(:, :, :, 2), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%u_vector_mean (:, :, :, 3), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil(:, :, :, 3), dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 1), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "uu", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 2), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "vv", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 3), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "ww", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 4), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "uv", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 5), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil), dm%dccc, "uw", trim(visuname), SCALAR, CELL, iter)
-
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 6), a_xpencil, dm%dccc, dm)
-    call write_field(dm, a_xpencil, dm%dccc, "vw", trim(visuname), SCALAR, CELL, iter)
+    call average_periodic_flow(                    fl%pr_mean, dm%dccc, dm, "time_space_averaged_pr", trim(visuname), iter)
+    call average_periodic_flow(  fl%u_vector_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_ux", trim(visuname), iter)
+    call average_periodic_flow(  fl%u_vector_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_uy", trim(visuname), iter)
+    call average_periodic_flow(  fl%u_vector_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_uz", trim(visuname), iter)
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_uu", trim(visuname), iter)
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_vv", trim(visuname), iter)
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_ww", trim(visuname), iter)
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, dm, "time_space_averaged_uv", trim(visuname), iter)
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, dm, "time_space_averaged_uw", trim(visuname), iter)
+    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, dm, "time_space_averaged_vw", trim(visuname), iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
+    if(.not. (dm%is_periodic(1) .and. dm%is_periodic(3))) &
     call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
-    
-
     
     return
   end subroutine
@@ -647,19 +680,24 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine average_periodic_flow(data_in, data_out, dtmp, dm)
+  subroutine average_periodic_flow(data_in, dtmp, dm, str1, str2, iter)
     use udf_type_mod
     use parameters_constant_mod
     implicit none
     type(DECOMP_INFO), intent(in) :: dtmp
     type(t_domain), intent(in) :: dm
     real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(in)  :: data_in
-    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(out) :: data_out
+    character(*), intent(in) :: str1
+    character(*), intent(in) :: str2
+    integer, intent(in) :: iter
+    
 
     real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)) :: a_xpencil
     real(WP), dimension(dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3)) :: a_ypencil
     real(WP), dimension(dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3)) :: a_zpencil
     real(WP), dimension(dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3)) :: b_zpencil
+
+    real(WP), dimension( dtmp%ysz(2)) :: var
 
     integer :: i, j, k
     real(WP) :: sum
@@ -671,7 +709,8 @@ contains
     ! do nothing here, but bulk value output
 
     else if(dm%is_periodic(1) .and. &
-            dm%is_periodic(3) ) then
+            dm%is_periodic(3) .and. &
+      .not. dm%is_periodic(2)) then
 
       do j = 1, dtmp%xsz(2)
         do k = 1, dtmp%xsz(3)
@@ -696,11 +735,12 @@ contains
         end do
       end do
       call transpose_z_to_y(b_zpencil, a_ypencil, dtmp)
-      call transpose_y_to_x(a_ypencil, a_xpencil, dtmp)
-
-      data_out = a_xpencil
+      var = a_ypencil(1,:,1)
+      call write_profile(dm, var, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, 2, iter)
   
-    else if(dm%is_periodic(1) ) then
+    else if(dm%is_periodic(1) .and. &
+      .not. dm%is_periodic(3) .and. &
+      .not. dm%is_periodic(2)) then
 
       do j = 1, dtmp%xsz(2)
         do k = 1, dtmp%xsz(3)
@@ -709,11 +749,16 @@ contains
             sum = sum + data_in(i, j, k) 
           end do
           sum =  sum/real(dtmp%xsz(1), WP)
-          data_out(:, j, k) = sum
+          a_xpencil(:, j, k) = sum
         end do
       end do
 
-    else if(dm%is_periodic(3)) then
+      call write_field(dm, a_xpencil, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, iter)
+
+    else if( &
+      .not. dm%is_periodic(1) .and. &
+            dm%is_periodic(3) .and. &
+      .not. dm%is_periodic(2)) then
 
       call transpose_x_to_y(data_in,   a_ypencil, dtmp)
       call transpose_y_to_z(a_ypencil, a_zpencil, dtmp)
@@ -730,12 +775,12 @@ contains
 
       call transpose_z_to_y(b_zpencil, a_ypencil, dtmp)
       call transpose_y_to_x(a_ypencil, a_xpencil, dtmp)
-      data_out = a_xpencil
+
+      call write_field(dm, a_xpencil, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, iter)
 
     else
-
       ! do nothing here
-
+      !data_out = data_in
     end if
 
 

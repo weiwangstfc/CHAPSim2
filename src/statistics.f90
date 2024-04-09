@@ -163,16 +163,16 @@ contains
 
     ! here is not only a repeat of those in io_visulisation
     ! because they have different written freqence and to be used for restart as well.
-    call write_statistics_array(fl%pr_mean,                     'mean_pr', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%u_vector_mean  (:, :, :, 1), 'mean_ux', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%u_vector_mean  (:, :, :, 2), 'mean_uy', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%u_vector_mean  (:, :, :, 3), 'mean_uz', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 1), 'mean_uu', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 2), 'mean_vv', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 3), 'mean_ww', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 4), 'mean_uv', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 5), 'mean_uw', dm%idom, fl%iteration, dm%dccc)
-    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 6), 'mean_vw', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%pr_mean,                     'time_averaged_pr', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%u_vector_mean  (:, :, :, 1), 'time_averaged_ux', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%u_vector_mean  (:, :, :, 2), 'time_averaged_uy', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%u_vector_mean  (:, :, :, 3), 'time_averaged_uz', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 1), 'time_averaged_uu', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 2), 'time_averaged_vv', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 3), 'time_averaged_ww', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 4), 'time_averaged_uv', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 5), 'time_averaged_uw', dm%idom, fl%iteration, dm%dccc)
+    call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 6), 'time_averaged_vw', dm%idom, fl%iteration, dm%dccc)
 
 
     return
@@ -231,11 +231,16 @@ contains
     character(*), intent(in) :: keyword
     integer, intent(in) :: idm
     integer, intent(in) :: iter
-
+    
     character(120):: data_flname_path
+    logical :: file_exists
 
     call generate_pathfile_name(data_flname_path, idm, trim(keyword), dir_data, 'bin', iter)
-    call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
+    INQUIRE(FILE = data_flname_path, exist = file_exists)
+    if(.not.file_exists) then
+      call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
+    end if
+
 
     return
   end subroutine
