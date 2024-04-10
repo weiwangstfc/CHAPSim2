@@ -732,11 +732,13 @@ contains
     do s = 1, 2
       if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
         if(dtmp%xst(m) == 1) then
-          fl%qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = dm%fbcx_qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
+               fl%qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+          dm%fbcx_qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
           !if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
         end if
         if(dtmp%xen(m) == dm%np(m)) then
-          fl%qx(dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = dm%fbcx_qx(2, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
+               fl%qx(dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+          dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
           !if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
         end if
       end if
@@ -751,11 +753,13 @@ contains
       if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
         call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
         if(dtmp%yst(m) == 1) then
-          acpc_ypencil(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3)) = dm%fbcy_qy(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3))
+          acpc_ypencil(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3)) = &
+            dm%fbcy_qy(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3))
           !if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
         end if
         if(dtmp%yen(m) == dm%np(m)) then
-          acpc_ypencil(1:dtmp%ysz(1), dtmp%ysz(m), 1:dtmp%ysz(3)) = dm%fbcy_qy(1:dtmp%ysz(1), 2, 1:dtmp%ysz(3))
+          acpc_ypencil(1:dtmp%ysz(1), dtmp%ysz(m), 1:dtmp%ysz(3)) = &
+            dm%fbcy_qy(1:dtmp%ysz(1), 2,           1:dtmp%ysz(3))
           !if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
         end if
         call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
@@ -772,11 +776,13 @@ contains
         call transpose_x_to_y(fl%qz,        accp_ypencil, dm%dccp)
         call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
         if(dtmp%zst(m) == 1) then
-          accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1) = dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1)
+          accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1) = &
+            dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1)
           !if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
         end if
         if(dtmp%zen(m) == dm%np(m)) then
-          accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), dtmp%zsz(m)) = dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 2)
+          accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), dtmp%zsz(m)) = &
+            dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 2)
           !if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
         end if
         call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp )

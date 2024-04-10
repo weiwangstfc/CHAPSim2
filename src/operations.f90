@@ -755,7 +755,7 @@ alpha_itf = ZERO
       !     b1 = - ONE / TWO
       !     c1 = TEN / NINE
       !     d1 = ONE * ZPONE
-      ! method 2 = without bc value, a=0
+      ! method 2 = without bc value, a=0, same as INTPL
       alpha1 = TWO
           a1 = ZERO
           b1 = - FIVE / TWO

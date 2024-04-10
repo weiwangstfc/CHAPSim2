@@ -503,23 +503,24 @@ if(iviscous) then
     accc = ZERO
     apcc = ZERO
     ! to get du/dx at (i, j, k)
-    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, i), dm%fbcx_qx(:, :, :))
-    if(any(dm%ibcx(:, i) == IBC_DIRICHLET)) then
-      ! to get bc of du/dx at (i', j, k)
-      call Get_x_1st_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, i), dm%fbcx_qx(:, :, :))
-      fbcx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = apcc(             1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-      fbcx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = apcc(dm%dpcc%xsz(1), 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-      fbcx(3, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = fbcx(             1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-      fbcx(4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = fbcx(             2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-    else if(any(dm%ibcx(:, i) == IBC_NEUMANN)) then
-      fbcx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = dm%fbcz_qx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-      fbcx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = dm%fbcz_qx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-      fbcx(3, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) =        fbcx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-      fbcx(4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) =        fbcx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
-    else
-      fbcx = ZERO ! not used.
-    end if
+    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, i))
+    ! if(any(dm%ibcx(:, i) == IBC_DIRICHLET)) then
+    !   ! to get bc of du/dx at (i', j, k)
+    !   call Get_x_1st_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, i))
+    !   fbcx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = apcc(             1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    !   fbcx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = apcc(dm%dpcc%xsz(1), 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    !   fbcx(3, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = fbcx(             1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    !   fbcx(4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = fbcx(             2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    ! else if(any(dm%ibcx(:, i) == IBC_NEUMANN)) then
+    !   fbcx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = dm%fbcz_qx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    !   fbcx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = dm%fbcz_qx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    !   fbcx(3, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) =        fbcx(1, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    !   fbcx(4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) =        fbcx(2, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))
+    ! else
+    !   fbcx = ZERO ! not used.
+    ! end if
     ! to get d(du/dx)/dx at (i', j, k)
+    fbcx = ZERO ! not used.
     call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, i), fbcx)
 
     if ( .not. dm%is_thermo) then
@@ -536,20 +537,21 @@ if(iviscous) then
     apcc_ypencil = ZERO
     ! to get du/dy at (i', j', k)
     call Get_y_1st_derivative_C2P_3D(qx_ypencil,   appc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_qx(:, :, :))
-    if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
-      ! to get BC of du/dy at (i', j', k)
-      fbcy(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3)) = appc_ypencil(1:dm%dppc%ysz(1),              1, 1:dm%dppc%ysz(3))
-      fbcy(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3)) = appc_ypencil(1:dm%dppc%ysz(1), dm%dppc%ysz(2), 1:dm%dppc%ysz(3))
-      fbcy(1:dm%dppc%ysz(1), 3, 1:dm%dppc%ysz(3)) =         fbcy(1:dm%dppc%ysz(1),              1, 1:dm%dppc%ysz(3))
-      fbcy(1:dm%dppc%ysz(1), 4, 1:dm%dppc%ysz(3)) =         fbcy(1:dm%dppc%ysz(1),              2, 1:dm%dppc%ysz(3))
-    else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
-      fbcy(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3)) = dm%fbcy_qx(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3))
-      fbcy(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3)) = dm%fbcy_qx(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3))
-      fbcy(1:dm%dppc%ysz(1), 3, 1:dm%dppc%ysz(3)) =        fbcy(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3))
-      fbcy(1:dm%dppc%ysz(1), 4, 1:dm%dppc%ysz(3)) =        fbcy(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3))
-    else
-      fbcy = ZERO
-    end if
+    ! if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
+    !   ! to get BC of du/dy at (i', j', k)
+    !   fbcy(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3)) = appc_ypencil(1:dm%dppc%ysz(1),              1, 1:dm%dppc%ysz(3))
+    !   fbcy(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3)) = appc_ypencil(1:dm%dppc%ysz(1), dm%dppc%ysz(2), 1:dm%dppc%ysz(3))
+    !   fbcy(1:dm%dppc%ysz(1), 3, 1:dm%dppc%ysz(3)) =         fbcy(1:dm%dppc%ysz(1),              1, 1:dm%dppc%ysz(3))
+    !   fbcy(1:dm%dppc%ysz(1), 4, 1:dm%dppc%ysz(3)) =         fbcy(1:dm%dppc%ysz(1),              2, 1:dm%dppc%ysz(3))
+    ! else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
+    !   fbcy(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3)) = dm%fbcy_qx(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3))
+    !   fbcy(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3)) = dm%fbcy_qx(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3))
+    !   fbcy(1:dm%dppc%ysz(1), 3, 1:dm%dppc%ysz(3)) =        fbcy(1:dm%dppc%ysz(1), 1, 1:dm%dppc%ysz(3))
+    !   fbcy(1:dm%dppc%ysz(1), 4, 1:dm%dppc%ysz(3)) =        fbcy(1:dm%dppc%ysz(1), 2, 1:dm%dppc%ysz(3))
+    ! else
+    !   fbcy = ZERO
+    ! end if
+    fbcy = ZERO ! not used.
     ! to get du(du/dy)/dy at (i', j, k)
     call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i), fbcy)
 
@@ -567,21 +569,22 @@ if(iviscous) then
     apcc_zpencil = ZERO
     ! to get du/dz at (i', j, k')
     call Get_z_1st_derivative_C2P_3D(qx_zpencil,   apcp_zpencil, dm, dm%ibcz(:, i), dm%fbcz_qx(:, :, :))
-    if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) then
-    ! to get BC of du/dz at (i', j, k')
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1) = apcp_zpencil(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2),              1)
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2) = apcp_zpencil(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), dm%dpcp%zsz(3))
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 3) =         fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2),              1)
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 4) =         fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2),              2)
-    else if(any(dm%ibcz(:, i) == IBC_NEUMANN)) then
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1) = dm%fbcz_qx(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1)
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2) = dm%fbcz_qx(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2)
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 3) =        fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1)
-      fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 4) =        fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2)
-    else
-      fbcz = ZERO
-    end if
+    ! if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) then
+    ! ! to get BC of du/dz at (i', j, k')
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1) = apcp_zpencil(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2),              1)
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2) = apcp_zpencil(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), dm%dpcp%zsz(3))
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 3) =         fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2),              1)
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 4) =         fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2),              2)
+    ! else if(any(dm%ibcz(:, i) == IBC_NEUMANN)) then
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1) = dm%fbcz_qx(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1)
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2) = dm%fbcz_qx(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2)
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 3) =        fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 1)
+    !   fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 4) =        fbcz(1:dm%dpcp%zsz(1), 1:dm%dpcp%zsz(2), 2)
+    ! else
+    !   fbcz = ZERO
+    ! end if
     ! to get du(du/dy)/dy at (i', j, k)
+    fbcz = ZERO ! not used.
     call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), fbcz)
 
     if ( .not. dm%is_thermo) then
@@ -723,19 +726,20 @@ if(iviscous)then
     appc = ZERO
     acpc = ZERO
     call Get_x_1st_derivative_C2P_3D(fl%qy, appc, dm, dm%ibcx(:, 2), dm%fbcx_qy(:, :, :) )
-    if(any(dm%ibcx(:, i) == IBC_DIRICHLET)) then
-      fbcx(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = appc(             1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-      fbcx(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = appc(dm%dppc%xsz(1), 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-      fbcx(3, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = fbcx(             1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-      fbcx(4, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = fbcx(             2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-    else if(any(dm%ibcx(:, i) == IBC_NEUMANN)) then
-      fbcx(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = dm%fbcx_qy(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-      fbcx(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = dm%fbcx_qy(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-      fbcx(3, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) =        fbcx(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-      fbcx(4, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) =        fbcx(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
-    else
-      fbcx = ZERO ! not used.
-    end if
+    ! if(any(dm%ibcx(:, i) == IBC_DIRICHLET)) then
+    !   fbcx(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = appc(             1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    !   fbcx(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = appc(dm%dppc%xsz(1), 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    !   fbcx(3, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = fbcx(             1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    !   fbcx(4, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = fbcx(             2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    ! else if(any(dm%ibcx(:, i) == IBC_NEUMANN)) then
+    !   fbcx(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = dm%fbcx_qy(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    !   fbcx(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) = dm%fbcx_qy(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    !   fbcx(3, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) =        fbcx(1, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    !   fbcx(4, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3)) =        fbcx(2, 1:dm%dppc%xsz(2), 1:dm%dppc%xsz(3))
+    ! else
+    !   fbcx = ZERO ! not used.
+    ! end if
+    fbcx = ZERO ! not used. 
     call Get_x_1st_derivative_P2C_3D(appc, acpc, dm, dm%ibcx(:, 2), fbcx )
     if (.not. dm%is_thermo) then
       fl%my_rhs = fl%my_rhs +         fl%rre * acpc
@@ -748,21 +752,22 @@ if(iviscous)then
 !----------------------------------------------------------------------------------------------------------
     !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
     call Get_y_1st_derivative_P2C_3D(qy_ypencil,   accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :))
-    if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
-      ! to get bc of du/dx at (i', j, k)
-      call Get_y_1st_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_qy(:, :, :))
-      fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = acpc_ypencil(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = acpc_ypencil(1:dm%dcpc%ysz(1), dm%dcpc%ysz(2), 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 3, 1:dm%dcpc%ysz(3)) =         fbcy(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 4, 1:dm%dcpc%ysz(3)) =         fbcy(1:dm%dcpc%ysz(1),              2, 1:dm%dcpc%ysz(3))
-    else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
-      fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = dm%fbcy_qy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = dm%fbcy_qy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 3, 1:dm%dcpc%ysz(3)) =        fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3))
-      fbcy(1:dm%dcpc%ysz(1), 4, 1:dm%dcpc%ysz(3)) =        fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3))
-    else
-      fbcy = ZERO ! not used.
-    end if
+    ! if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
+    !   ! to get bc of du/dx at (i', j, k)
+    !   call Get_y_1st_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_qy(:, :, :))
+    !   fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = acpc_ypencil(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
+    !   fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = acpc_ypencil(1:dm%dcpc%ysz(1), dm%dcpc%ysz(2), 1:dm%dcpc%ysz(3))
+    !   fbcy(1:dm%dcpc%ysz(1), 3, 1:dm%dcpc%ysz(3)) =         fbcy(1:dm%dcpc%ysz(1),              1, 1:dm%dcpc%ysz(3))
+    !   fbcy(1:dm%dcpc%ysz(1), 4, 1:dm%dcpc%ysz(3)) =         fbcy(1:dm%dcpc%ysz(1),              2, 1:dm%dcpc%ysz(3))
+    ! else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
+    !   fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3)) = dm%fbcy_qy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3))
+    !   fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3)) = dm%fbcy_qy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3))
+    !   fbcy(1:dm%dcpc%ysz(1), 3, 1:dm%dcpc%ysz(3)) =        fbcy(1:dm%dcpc%ysz(1), 1, 1:dm%dcpc%ysz(3))
+    !   fbcy(1:dm%dcpc%ysz(1), 4, 1:dm%dcpc%ysz(3)) =        fbcy(1:dm%dcpc%ysz(1), 2, 1:dm%dcpc%ysz(3))
+    ! else
+    !   fbcy = ZERO ! not used.
+    ! end if
+    fbcy = ZERO ! not used.
     call Get_y_1st_derivative_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2), fbcy)
     if ( .not. dm%is_thermo ) then
       my_rhs_ypencil = my_rhs_ypencil +                 fl%rre * acpc_ypencil
@@ -775,20 +780,21 @@ if(iviscous)then
 !----------------------------------------------------------------------------------------------------------
     !call Get_z_2nd_derivative_C2C_3D(qy_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2))
     call Get_z_1st_derivative_C2P_3D(qy_zpencil,   acpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz_qy(:, :, :))
-    if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) then
-    ! to get BC of du/dz at (i', j, k')
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1) = acpp_zpencil(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2),              1)
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2) = acpp_zpencil(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), dm%dcpp%zsz(3))
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 3) =         fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2),              1)
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 4) =         fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2),              2)
-    else if(any(dm%ibcz(:, i) == IBC_NEUMANN)) then
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1) = dm%fbcz_qy(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1)
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2) = dm%fbcz_qy(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2)
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 3) =        fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1)
-      fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 4) =        fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2)
-    else
-      fbcz = ZERO
-    end if
+    ! if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) then
+    ! ! to get BC of du/dz at (i', j, k')
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1) = acpp_zpencil(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2),              1)
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2) = acpp_zpencil(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), dm%dcpp%zsz(3))
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 3) =         fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2),              1)
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 4) =         fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2),              2)
+    ! else if(any(dm%ibcz(:, i) == IBC_NEUMANN)) then
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1) = dm%fbcz_qy(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1)
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2) = dm%fbcz_qy(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2)
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 3) =        fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 1)
+    !   fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 4) =        fbcz(1:dm%dcpp%zsz(1), 1:dm%dcpp%zsz(2), 2)
+    ! else
+    !   fbcz = ZERO
+    ! end if
+    fbcz = ZERO ! not used.
     call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, 2), fbcz)
     if ( .not. dm%is_thermo ) my_rhs_zpencil = my_rhs_zpencil +                  fl%rre * acpc_zpencil
     if ( dm%is_thermo) my_rhs_zpencil = my_rhs_zpencil + m_cpc_zpencil * fl%rre * acpc_zpencil
@@ -915,19 +921,20 @@ if(iviscous)then
 !----------------------------------------------------------------------------------------------------------
     !call Get_x_2nd_derivative_C2C_3D(fl%qz, accp, dm, dm%ibcx(:, 3) )
     call Get_x_1st_derivative_C2P_3D(fl%qz, apcp, dm, dm%ibcx(:, i),  dm%fbcx_qz(:, :, :))
-    if(any(dm%ibcx(:, i) == IBC_DIRICHLET)) then
-      fbcx(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = apcp(             1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-      fbcx(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = apcp(dm%dpcp%xsz(1), 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-      fbcx(3, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = fbcx(             1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-      fbcx(4, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = fbcx(             2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-    else if(any(dm%ibcx(:, i) == IBC_NEUMANN)) then
-      fbcx(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = dm%fbcx_qz(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-      fbcx(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = dm%fbcx_qz(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-      fbcx(3, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) =        fbcx(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-      fbcx(4, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) =        fbcx(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
-    else
-      fbcx = ZERO ! not used.
-    end if
+    ! if(any(dm%ibcx(:, i) == IBC_DIRICHLET)) then
+    !   fbcx(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = apcp(             1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    !   fbcx(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = apcp(dm%dpcp%xsz(1), 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    !   fbcx(3, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = fbcx(             1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    !   fbcx(4, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = fbcx(             2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    ! else if(any(dm%ibcx(:, i) == IBC_NEUMANN)) then
+    !   fbcx(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = dm%fbcx_qz(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    !   fbcx(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) = dm%fbcx_qz(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    !   fbcx(3, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) =        fbcx(1, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    !   fbcx(4, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3)) =        fbcx(2, 1:dm%dpcp%xsz(2), 1:dm%dpcp%xsz(3))
+    ! else
+    !   fbcx = ZERO ! not used.
+    ! end if
+    fbcx = ZERO ! not used. 
     call Get_x_1st_derivative_P2C_3D(apcp,  accp, dm, dm%ibcx(:, i),  fbcx)
     if ( .not. dm%is_thermo) then
       fl%mz_rhs = fl%mz_rhs +         fl%rre * accp
@@ -940,20 +947,21 @@ if(iviscous)then
 !----------------------------------------------------------------------------------------------------------
     !call Get_y_2nd_derivative_C2C_3D( qz_ypencil, accp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_qz(:, :, :))
     call Get_y_1st_derivative_C2P_3D( qz_ypencil,   acpp_ypencil, dm, dm%ibcy(:, i), dm%fbcy_qz(:, :, :))
-    if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
-      ! to get BC of du/dy at (i', j', k)
-      fbcy(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3)) = acpp_ypencil(1:dm%dcpp%ysz(1),              1, 1:dm%dcpp%ysz(3))
-      fbcy(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3)) = acpp_ypencil(1:dm%dcpp%ysz(1), dm%dcpp%ysz(2), 1:dm%dcpp%ysz(3))
-      fbcy(1:dm%dcpp%ysz(1), 3, 1:dm%dcpp%ysz(3)) =         fbcy(1:dm%dcpp%ysz(1),              1, 1:dm%dcpp%ysz(3))
-      fbcy(1:dm%dcpp%ysz(1), 4, 1:dm%dcpp%ysz(3)) =         fbcy(1:dm%dcpp%ysz(1),              2, 1:dm%dcpp%ysz(3))
-    else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
-      fbcy(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3)) = dm%fbcy_qz(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3))
-      fbcy(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3)) = dm%fbcy_qz(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3))
-      fbcy(1:dm%dcpp%ysz(1), 3, 1:dm%dcpp%ysz(3)) =        fbcy(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3))
-      fbcy(1:dm%dcpp%ysz(1), 4, 1:dm%dcpp%ysz(3)) =        fbcy(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3))
-    else
-      fbcy = ZERO
-    end if
+    ! if(any(dm%ibcy(:, i) == IBC_DIRICHLET)) then
+    !   ! to get BC of du/dy at (i', j', k)
+    !   fbcy(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3)) = acpp_ypencil(1:dm%dcpp%ysz(1),              1, 1:dm%dcpp%ysz(3))
+    !   fbcy(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3)) = acpp_ypencil(1:dm%dcpp%ysz(1), dm%dcpp%ysz(2), 1:dm%dcpp%ysz(3))
+    !   fbcy(1:dm%dcpp%ysz(1), 3, 1:dm%dcpp%ysz(3)) =         fbcy(1:dm%dcpp%ysz(1),              1, 1:dm%dcpp%ysz(3))
+    !   fbcy(1:dm%dcpp%ysz(1), 4, 1:dm%dcpp%ysz(3)) =         fbcy(1:dm%dcpp%ysz(1),              2, 1:dm%dcpp%ysz(3))
+    ! else if(any(dm%ibcy(:, i) == IBC_NEUMANN)) then
+    !   fbcy(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3)) = dm%fbcy_qz(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3))
+    !   fbcy(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3)) = dm%fbcy_qz(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3))
+    !   fbcy(1:dm%dcpp%ysz(1), 3, 1:dm%dcpp%ysz(3)) =        fbcy(1:dm%dcpp%ysz(1), 1, 1:dm%dcpp%ysz(3))
+    !   fbcy(1:dm%dcpp%ysz(1), 4, 1:dm%dcpp%ysz(3)) =        fbcy(1:dm%dcpp%ysz(1), 2, 1:dm%dcpp%ysz(3))
+    ! else
+    !   fbcy = ZERO
+    ! end if
+    fbcy = ZERO ! not used.
     call Get_y_1st_derivative_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy)
     if ( .not. dm%is_thermo) then
       mz_rhs_ypencil = mz_rhs_ypencil +                 fl%rre * accp_ypencil
@@ -966,20 +974,21 @@ if(iviscous)then
 !----------------------------------------------------------------------------------------------------------
     !call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
     call Get_z_1st_derivative_P2C_3D(qz_zpencil,   accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qz(:, :, :))
-    if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) then
-      call Get_z_1st_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qz(:, :, :))
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1) = accp_zpencil(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2),              1)
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2) = accp_zpencil(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), dm%dccp%zsz(3))
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 3) =         fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2),              1)
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 4) =         fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2),              2)
-    else if(any(dm%ibcz(:, i) == IBC_NEUMANN)) then
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1) = dm%fbcz_qz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1)
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2) = dm%fbcz_qz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2)
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 3) =        fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1)
-      fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 4) =        fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2)
-    else
-      fbcz = ZERO
-    end if
+    ! if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) then
+    !   call Get_z_1st_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qz(:, :, :))
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1) = accp_zpencil(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2),              1)
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2) = accp_zpencil(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), dm%dccp%zsz(3))
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 3) =         fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2),              1)
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 4) =         fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2),              2)
+    ! else if(any(dm%ibcz(:, i) == IBC_NEUMANN)) then
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1) = dm%fbcz_qz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1)
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2) = dm%fbcz_qz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2)
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 3) =        fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1)
+    !   fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 4) =        fbcz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 2)
+    ! else
+    !   fbcz = ZERO
+    ! end if
+    fbcz = ZERO ! not used.
     call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, 3), fbcz)
     if ( .not. dm%is_thermo) then
       mz_rhs_zpencil = mz_rhs_zpencil +                 fl%rre * accp_zpencil
