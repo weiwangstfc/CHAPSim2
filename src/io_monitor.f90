@@ -28,7 +28,40 @@ contains
     integer :: nplc
     logical :: is_y, is_z
     integer, allocatable :: probeid(:, :)
+
 !----------------------------------------------------------------------------------------------------------
+! create history file for total variables
+!----------------------------------------------------------------------------------------------------------
+    if(nrank == 0) then
+      keyword = "monitor_bulk"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+      inquire(file = trim(flname), exist = exist)
+      if (exist) then
+        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
+      else
+        open(newunit = myunit, file = trim(flname), status="new", action="write")
+        write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
+        write(myunit, *) "# energy" ! to add more instantanous or statistics
+        close(myunit)
+      end if
+
+      keyword = "monitor_mass_conservation_flow"
+      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
+      inquire(file = trim(flname), exist = exist)
+      if (exist) then
+        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
+      else
+        open(newunit = myunit, file = trim(flname), status="new", action="write")
+        write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
+        write(myunit, *) "# t, umax, vmax, wmax, mass-conservation" ! to add more instantanous or statistics
+        close(myunit)
+      end if
+
+    end if
+
+!----------------------------------------------------------------------------------------------------------
+    if(dm%proben <= 0) return
+
     if(nrank == 0) then
       Call Print_debug_start_msg("  Probed points for monitoring ...")
     end if
@@ -135,35 +168,7 @@ contains
       end do
     end if
 
-!----------------------------------------------------------------------------------------------------------
-! create history file for total variables
-!----------------------------------------------------------------------------------------------------------
-    if(nrank == 0) then
-      keyword = "monitor_bulk"
-      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
-      inquire(file = trim(flname), exist = exist)
-      if (exist) then
-        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
-      else
-        open(newunit = myunit, file = trim(flname), status="new", action="write")
-        write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
-        write(myunit, *) "# energy" ! to add more instantanous or statistics
-        close(myunit)
-      end if
 
-      keyword = "monitor_mass_conservation_flow"
-      call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
-      inquire(file = trim(flname), exist = exist)
-      if (exist) then
-        !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
-      else
-        open(newunit = myunit, file = trim(flname), status="new", action="write")
-        write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
-        write(myunit, *) "# t, umax, vmax, wmax, mass-conservation" ! to add more instantanous or statistics
-        close(myunit)
-      end if
-
-    end if
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -198,7 +203,6 @@ contains
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
-
 !----------------------------------------------------------------------------------------------------------
 ! open file
 !----------------------------------------------------------------------------------------------------------
@@ -283,6 +287,8 @@ contains
     integer :: ioerr, myunit
     integer :: ix, iy, iz
     integer :: i, nplc
+
+    if(dm%proben <= 0) return
 !----------------------------------------------------------------------------------------------------------
 ! based on x-pencil
 !----------------------------------------------------------------------------------------------------------
@@ -336,6 +342,8 @@ contains
     integer :: ioerr, myunit
     integer :: ix, iy, iz
     integer :: i, j
+
+    if(dm%proben <= 0) return
 !----------------------------------------------------------------------------------------------------------
 ! based on x-pencil
 !----------------------------------------------------------------------------------------------------------

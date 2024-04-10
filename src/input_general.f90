@@ -557,13 +557,15 @@ contains
         do i = 1, nxdomain
           read(inputUnit, *, iostat = ioerr) varname, itmp
           domain(i)%proben = itmp
-          allocate( domain(i)%probexyz(3, itmp))
-          if( nrank == 0) write (*, wrtfmt1i) 'For the domain-x  = ', i
-          do j = 1, domain(i)%proben
-            read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
-            
-            if( nrank == 0) write (*, wrtfmt3r) '  probed points x, y, z: ', domain(i)%probexyz(1:3, j) 
-          end do 
+          if(domain(i)%proben > 0) then
+            allocate( domain(i)%probexyz(3, itmp))
+            if( nrank == 0) write (*, wrtfmt1i) 'For the domain-x  = ', i
+            do j = 1, domain(i)%proben
+              read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
+              
+              if( nrank == 0) write (*, wrtfmt3r) '  probed points x, y, z: ', domain(i)%probexyz(1:3, j) 
+            end do 
+          end if
         end do
       else
         exit
