@@ -421,7 +421,7 @@ alpha_itf = ZERO
     d1fC2C(1:5, 2, IBC_PERIODIC) = ONE
     d1fC2C(1:5, 3, IBC_PERIODIC) = alpha
 
-    d1rC2C(1:5, 1, IBC_PERIODIC) = a * HALF  ! a/2
+    d1rC2C(1:5, 1, IBC_PERIODIC) = a * HALF    ! a/2
     d1rC2C(1:5, 2, IBC_PERIODIC) = b * QUARTER ! b/4
     d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
 !----------------------------------------------------------------------------------------------------------
@@ -689,6 +689,13 @@ alpha_itf = ZERO
 ! 1st derivative on collocated grids, C2C/P2P coefficients : Dirichlet B.C.
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+! f'{1} + alpha f'{2} = 1/h (a * f{1'} + b * f{1} + c * f{2} + d * f{3})
+! up to 4th order, to solve below equations:
+!    a   + b + c   +  d   = 0
+!   -a/2     + c   + 2d   = alpha + 1
+!    a/8     + c/2 + 2d   = alpha
+!   -a/24    + c/3 + 8d/3 = alpha
+!    a/64    + c/4 + 4d   = alpha
 !==========================================================================================================
     alpha1 = ZERO
         a1 = ZERO
@@ -709,29 +716,52 @@ alpha_itf = ZERO
           a2 = ONE
           b2 = ZERO
     else if (iaccu == IACCU_CD4) then ! degrade to 3rd CD (1st cell), 2nd CD (2nd cell), chech stencil
+     ! method 1 = with bc value, a/=0
+      ! alpha1 = ZERO
+      !     a1 = - SIXTEEN / FIFTEEN
+      !     b1 = ONE / TWO
+      !     c1 = TWO_THIRD
+      !     d1 = - ONE / TEN
+      ! method 2 = without bc value, a=0
       alpha1 = ZERO
-          a1 = - SIXTEEN / FIFTEEN
-          b1 = ONE / TWO
-          c1 = TWO_THIRD
-          d1 = - ONE / TEN
+          a1 = ZERO
+          b1 = -THREE / TWO
+          c1 = TWO
+          d1 = -HALF
+
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
     else if (iaccu == IACCU_CP4) then ! degrade to 3rd CP (1st cell), 4th CP (2nd cell)
-      alpha1 = ONE_THIRD
-          a1 = - EIGHT / NINE
-          b1 = ZERO
-          c1 = EIGHT / NINE
-          d1 = ZERO
+      ! method 1 = with bc value, a/=0
+      ! alpha1 = TWO_THIRD
+      !     a1 = - THIRTYTWO / FOURTYFIVE
+      !     b1 = - ONE / TWO
+      !     c1 = TEN / NINE
+      !     d1 = ONE * ZPONE
+      ! method 2 = without bc value, a=0
+      alpha1 = TWO
+          a1 = ZERO
+          b1 = - FIVE / TWO
+          c1 = TWO
+          d1 = HALF
       alpha2 = QUARTER
           a2 = ONEPFIVE
           b2 = ZERO
     else if (iaccu == IACCU_CP6) then ! degrade to 4th CP (1st cell), 4th CP (2nd cell)
-      alpha1 = TWO_THIRD
-          a1 = - THIRTYTWO / FOURTYFIVE
-          b1 = - ONE / TWO
-          c1 = TEN / NINE
-          d1 = ONE * ZPONE
+      ! method 1 = with bc value, a/=0
+      ! alpha1 = TWO_THIRD
+      !     a1 = - THIRTYTWO / FOURTYFIVE
+      !     b1 = - ONE / TWO
+      !     c1 = TEN / NINE
+      !     d1 = ONE * ZPONE
+      ! method 2 = without bc value, a=0
+      alpha1 = TWO
+          a1 = ZERO
+          b1 = - FIVE / TWO
+          c1 = TWO
+          d1 = HALF
+
       alpha2 = QUARTER
           a2 = ONEPFIVE
           b2 = ZERO
@@ -1152,11 +1182,17 @@ alpha_itf = ZERO
           c2 = ZERO ! not used
     else if (iaccu == IACCU_CP6) then ! degrade to 4th CP
      ! method 1 to use the Dirichlet B.C. value, check is this necessary? !!!
-      alpha1 = FIFTEEN
-          a1 = - SIXTEEN / FIFTEEN
-          b1 = - FIFTEEN
-          c1 = FIFTY * ONE_THIRD
-          d1 = - THREE * ZPTWO
+      ! alpha1 = FIFTEEN
+      !     a1 = - SIXTEEN / FIFTEEN
+      !     b1 = - FIFTEEN
+      !     c1 = FIFTY * ONE_THIRD
+      !     d1 = - THREE * ZPTWO
+
+      alpha1 = TWENTYTHREE
+          a1 = ZERO
+          b1 = - TWENTYFIVE
+          c1 = TWENTYSIX
+          d1 = -ONE
 
       alpha2 = ONE / TWENTYTWO
           a2 = TWELVE / ELEVEN
