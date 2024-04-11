@@ -384,7 +384,7 @@ contains
       call Get_x_1st_derivative_C2P_3D(fl%mVisc, dmdx_pcc, dm, dm%ibcx(:,i), dm%ftpbcx_var(:, :, :)%m )  ! x-pencil : x-mom, w thermal
       call Get_x_midp_C2P_3D          (fl%mVisc, m_pcc,    dm, dm%ibcx(:,i), dm%ftpbcx_var(:, :, :)%m )  ! x-pencil : x-mom, w thermal
       call transpose_x_to_y (m_pcc, m_pcc_ypencil, dm%dpcc)                            ! y-pencil : x-mom, w thermal
-      
+
       call Get_y_1st_derivative_C2C_3D(m_pcc_ypencil, dmdy_pcc_ypencil, dm, dm%ibcy(:,i))  ! y-pencil : x-mom, w thermal
       call transpose_y_to_x (dmdy_pcc_ypencil, dmdy_pcc,         dm%dpcc)                            ! x-pencil : x-mom, w thermal
       
@@ -455,9 +455,9 @@ if(iconvection) then
 ! X-pencil : X-mom convection term (x-c1/3): -d(gx * qx)/dx at (i', j, k)
 !----------------------------------------------------------------------------------------------------------  
     if ( .not. dm%is_thermo) then
-      call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, i), dm%fbcx_qx(:, :, :) * dm%fbcx_qx(:, :, :) )
+      call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, i))
     else
-      call Get_x_1st_derivative_C2P_3D(-gx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, i), dm%fbcx_qx(:, :, :) * dm%fbcx_gx(:, :, : ) )
+      call Get_x_1st_derivative_C2P_3D(-gx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, i))
     end if
     fl%mx_rhs = fl%mx_rhs + apcc
 !----------------------------------------------------------------------------------------------------------
@@ -478,6 +478,7 @@ if(iconvection) then
       call Get_z_1st_derivative_P2C_3D(-gz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i) )
     end if
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
+
 #ifdef DEBUG_STEPS
     apcc_test = fl%mx_rhs
     call transpose_y_to_x (mx_rhs_ypencil, apcc, dm%dpcc)
@@ -500,11 +501,8 @@ end if
 !----------------------------------------------------------------------------------------------------------
 if(iviscous) then
     !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1)) ! check
-    accc = ZERO
-    apcc = ZERO
-    ! to get du/dx at (i, j, k)
-    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, i))
-    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, i))
+    call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, i)) ! accc = du/dx, at (i, j, k)
+    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, dm%ibcx(:, i)) ! accc = d(du/dx)/dx, at (i', j, k)
 
     if ( .not. dm%is_thermo) then
       fl%mx_rhs = fl%mx_rhs +         fl%rre * apcc
@@ -516,11 +514,8 @@ if(iviscous) then
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * LL2(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
     !call Get_y_2nd_derivative_C2C_3D(qx_ypencil, apcc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_qx(:, :, :))
-    appc_ypencil = ZERO
-    apcc_ypencil = ZERO
-    ! to get du/dy at (i', j', k)
-    call Get_y_1st_derivative_C2P_3D(qx_ypencil,   appc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_qx(:, :, :))
-    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i))
+    call Get_y_1st_derivative_C2P_3D(qx_ypencil,   appc_ypencil, dm, dm%ibcy(:, i), dm%fbcy_qx(:, :, :)) ! du/dy, at (i', j', k)
+    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy(:, i)) ! d(du/dy)/dy, at (i', j, k)
 
     if ( .not. dm%is_thermo ) then
       mx_rhs_ypencil = mx_rhs_ypencil +                 fl%rre * apcc_ypencil
@@ -532,11 +527,8 @@ if(iviscous) then
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * LL3(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
     !call Get_z_2nd_derivative_C2C_3D(qx_zpencil, apcc_zpencil, dm, dm%ibcz(:, 1), dm%fbcz_var(:, 1))
-    apcp_zpencil = ZERO 
-    apcc_zpencil = ZERO
-    ! to get du/dz at (i', j, k')
-    call Get_z_1st_derivative_C2P_3D(qx_zpencil,   apcp_zpencil, dm, dm%ibcz(:, i), dm%fbcz_qx(:, :, :))
-    call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i))
+    call Get_z_1st_derivative_C2P_3D(qx_zpencil,   apcp_zpencil, dm, dm%ibcz(:, i), dm%fbcz_qx(:, :, :)) ! du/dz at (i', j, k')
+    call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i)) ! d(du/dz)/dz at (i', j, k)
 
     if ( .not. dm%is_thermo) then
       mx_rhs_zpencil = mx_rhs_zpencil +                 fl%rre * apcc_zpencil
@@ -556,16 +548,15 @@ if(iviscous) then
 !----------------------------------------------------------------------------------------------------------
 !   X-pencil : X-mom diffusion term (x-v2/7), \mu^x * 1/3 * d (div)/dx at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_1st_derivative_C2P_3D(div, apcc, dm, dm%ibcx(:, i)) ! apcc = d(div)/dx_xpencil
+      call Get_x_1st_derivative_C2P_3D(div, apcc, dm, dm%ibcx(:, i)) ! apcc = d(div)/dx at (i', j, k)
       fl%mx_rhs = fl%mx_rhs + one_third_rre * m_pcc * apcc
 !----------------------------------------------------------------------------------------------------------
 !   X-pencil : X-mom diffusion term (x-v3/7), -2/3 * d\mu/dx * (div(u)^x) +  
 !                                                2 * d\mu/dx * du/dx
 !----------------------------------------------------------------------------------------------------------
-      !if(any(dm%ibcz(:, i) == IBC_DIRICHLET)) fbcx = ZERO ! check
-      call Get_x_midp_C2P_3D (div, apcc, dm, dm%ibcx(:, i)) ! to check if it needs bc of div
+      call Get_x_midp_C2P_3D (div, apcc, dm, dm%ibcx(:, i)) ! div at (i', j, k), (to add, check: bc is required only if Neumann BC of velocity.)
       fl%mx_rhs = fl%mx_rhs - two_third_rre * dmdx_pcc * apcc
-      call Get_x_1st_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) ) ! apcc = d(qx)/dx_pcc
+      call Get_x_1st_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) ) ! apcc = d(qx)/dx at (i', j, k)
       fl%mx_rhs = fl%mx_rhs + two_rre       * dmdx_pcc * apcc
 !----------------------------------------------------------------------------------------------------------
 !   X-pencil : X-mom diffusion term (x-v4/7), d(mu^x)/dy * d(qy^y)/dx at (i', j, k)
