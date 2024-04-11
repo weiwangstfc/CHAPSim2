@@ -262,13 +262,13 @@ module operations
   public  :: Get_y_midp_C2P_3D
   public  :: Get_z_midp_C2P_3D
 
-  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc for Dirichlet for reconstruction, INTERIOR
+  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc for INTERIOR
   private :: Get_x_1st_derivative_C2C_1D
   private :: Get_y_1st_derivative_C2C_1D
   private :: Get_z_1st_derivative_C2C_1D
-  public  :: Get_x_1st_derivative_C2C_3D ! only used for thermal flow, careflul about the Dirichlet BC
-  public  :: Get_y_1st_derivative_C2C_3D ! only used for thermal flow, careflul about the Dirichlet BC
-  public  :: Get_z_1st_derivative_C2C_3D ! only used for thermal flow, careflul about the Dirichlet BC
+  public  :: Get_x_1st_derivative_C2C_3D ! only used for thermal flow
+  public  :: Get_y_1st_derivative_C2C_3D ! only used for thermal flow
+  public  :: Get_z_1st_derivative_C2C_3D ! only used for thermal flow
 
   private :: Prepare_TDMA_1deri_P2P_RHS_array ! need fbc for Neumann, INTERIOR
   private :: Get_x_1st_derivative_P2P_1D
@@ -278,7 +278,7 @@ module operations
   public  :: Get_y_1st_derivative_P2P_3D
   public  :: Get_z_1st_derivative_P2P_3D
 
-  private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc for Neumann, Dirichlet, interior
+  private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc for Neumann, INTERIOR
   private :: Get_x_1st_derivative_C2P_1D
   private :: Get_y_1st_derivative_C2P_1D
   private :: Get_z_1st_derivative_C2P_1D
@@ -286,7 +286,7 @@ module operations
   public  :: Get_y_1st_derivative_C2P_3D ! careful about Dirichlet BC w/wo using the bc value to estimate derivatives 
   public  :: Get_z_1st_derivative_C2P_3D ! careful about Dirichlet BC w/wo using the bc value to estimate derivatives 
 
-  private :: Prepare_TDMA_1deri_P2C_RHS_array ! need fbc for interior
+  private :: Prepare_TDMA_1deri_P2C_RHS_array ! need fbc for INTERIOR
   private :: Get_x_1st_derivative_P2C_1D
   private :: Get_y_1st_derivative_P2C_1D
   private :: Get_z_1st_derivative_P2C_1D
@@ -294,7 +294,7 @@ module operations
   public  :: Get_y_1st_derivative_P2C_3D
   public  :: Get_z_1st_derivative_P2C_3D
 
-  private :: Prepare_TDMA_2deri_C2C_RHS_array ! need fbc to Dirichlet, interior
+  private :: Prepare_TDMA_2deri_C2C_RHS_array ! need fbc to INTERIOR
   private :: Get_x_2nd_derivative_C2C_1D
   private :: Get_y_2nd_derivative_C2C_1D
   private :: Get_z_2nd_derivative_C2C_1D
@@ -2899,11 +2899,16 @@ alpha_itf = ZERO
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) + fi(1   ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(2   ) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
+      if(present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
               coeff( l, 2, ibc(m) ) * fi(i  )  + &
               coeff( l, 3, ibc(m) ) * fi(i+1)  + &
               coeff( l, 4, ibc(m) ) * fi(i+2) 
+      else
+      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
+              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
+      end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -2995,11 +3000,16 @@ alpha_itf = ZERO
       fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * (-fi(nc -1) - fi(i - 2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
+      if(present(fbc)) then!call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
               coeff( l, 2, ibc(m) ) * fi(i    ) + &
               coeff( l, 3, ibc(m) ) * fi(i - 1) + &
               coeff( l, 4, ibc(m) ) * fi(i - 2) 
+      else
+      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
+              coeff( l, 3, IBC_INTRPL) * fi(i - 2) 
+      end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
@@ -3329,11 +3339,16 @@ alpha_itf = ZERO
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
+      if( present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
               coeff( l, 2, ibc(m) ) * fi(i    ) + &
               coeff( l, 3, ibc(m) ) * fi(i + 1) + &
               coeff( l, 4, ibc(m) ) * fi(i + 2) 
+      else
+      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
+              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
+      end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -3417,11 +3432,16 @@ alpha_itf = ZERO
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
+      if(present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = coeff( l, 1, ibc(m)) * fbc(m)    + &
               coeff( l, 2, ibc(m)) * fi(i - 1) + &
               coeff( l, 3, ibc(m)) * fi(i - 2) + &
               coeff( l, 4, ibc(m)) * fi(i - 3) 
+      else
+      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &
+              coeff( l, 2, IBC_INTRPL) * fi(i - 2) + &
+              coeff( l, 3, IBC_INTRPL) * fi(i - 3) 
+      end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &
               coeff( l, 2, IBC_INTRPL) * fi(i - 2) + &
@@ -3676,11 +3696,17 @@ alpha_itf = ZERO
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) - TWO * fi(i) - fi(1    ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) - TWO * fi(i) - fi(2    ) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_2deri_C2C_RHS_array')
+      if(present(fbc)) then!call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_2deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
               coeff( l, 2, ibc(m) ) * fi(i  )  + &
               coeff( l, 3, ibc(m) ) * fi(i+1)  + &
               coeff( l, 4, ibc(m) ) * fi(i+2) 
+      else
+      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
+              coeff( l, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( l, 4, IBC_INTRPL) * fi(i + 3) 
+      end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -3766,11 +3792,17 @@ alpha_itf = ZERO
       fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - TWO * fi(i) + fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * (-fi(nc- 1) - TWO * fi(i) + fi(i - 2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_2deri_C2C_RHS_array')
+      if(present(fbc)) then!call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_2deri_C2C_RHS_array')
       fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
               coeff( l, 2, ibc(m) ) * fi(i    ) + &
               coeff( l, 3, ibc(m) ) * fi(i - 1) + &
               coeff( l, 4, ibc(m) ) * fi(i - 2) 
+      else
+      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
+              coeff( l, 3, IBC_INTRPL) * fi(i - 2) + &
+              coeff( l, 4, IBC_INTRPL) * fi(i - 3)  
+      end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &

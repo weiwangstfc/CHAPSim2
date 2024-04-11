@@ -106,7 +106,7 @@ contains
 ! x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
     tm%ene_rhs = ZERO
-    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%dh * dm%fbcx_gx(:, :, :) ) ! accc = -d(gx * h)/dx
+    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 5)) ! accc = -d(gx * h)/dx
     tm%ene_rhs = tm%ene_rhs + accc
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d (T) / dx 
@@ -116,17 +116,10 @@ contains
 ! x-pencil : k_pcc * d (T) / dx 
 !----------------------------------------------------------------------------------------------------------
     apcc = apcc * kCond_pcc
-    do n = 1, 2
-      if (dm%ibcx(n, 5) == IBC_NEUMANN) then
-        !fbcx(:, :, :) = dm%fbcx_var(:, :, :, 5) ! to check
-      else if (dm%ibcx(n, 5) == IBC_DIRICHLET) then
-        fbcx(:, :, :) = dm%ftpbcx_var(:, :, :)%t * dm%ftpbcx_var(:, :, :)%k
-      end if
-    end do
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, dm%ibcx(:, 5), fbcx )
+    call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, dm%ibcx(:, 5))
 
     tm%ene_rhs = tm%ene_rhs + accc
 !==========================================================================================================
@@ -137,7 +130,7 @@ contains
 ! y-pencil : d (gy * h_cpc) / dy 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_ypencil = ZERO
-    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%ftpbcy_var(:, :, :)%dh * dm%fbcy_gy(:, :, :) )
+    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2))
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d (T) / dy
@@ -147,17 +140,10 @@ contains
 ! y-pencil : k_cpc * d (T) / dy 
 !----------------------------------------------------------------------------------------------------------
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
-    do n = 1, 2
-      if (dm%ibcy(1, 5) == IBC_NEUMANN) then
-        !fbcy(:, :, :) = dm%fbcy_var(:, :, :, 5)
-      else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
-        fbcy(:, :, :) = dm%ftpbcy_var(:, :, :)%t * dm%ftpbcy_var(:, :, :)%k
-      end if
-    end do
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d ( k_cpc * d (T) / dy ) dy
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 5), fbcy )
+    call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 5))
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 
     call transpose_y_to_x(ene_rhs_ypencil, accc, dm%dccc)
@@ -170,7 +156,7 @@ contains
 ! z-pencil : d (gz * h_ccp) / dz 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_zpencil = ZERO
-    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%ftpbcz_var(:, :, :)%dh * dm%fbcz_gz(:, :, :) )
+    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3))
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d (T) / dz
@@ -180,17 +166,10 @@ contains
 ! z-pencil : k_ccp * d (T) / dz 
 !----------------------------------------------------------------------------------------------------------
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
-    do n = 1, 2
-      if (dm%ibcz(1, 5) == IBC_NEUMANN) then
-        !fbcz(:, :, :) = dm%fbcz_var(:, :, :, 5)
-      else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
-        fbcz(:, :, :) = dm%ftpbcz_var(:, :, :)%t * dm%ftpbcz_var(:, :, :)%k
-      end if
-    end do
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d ( k_ccp * d (T) / dz ) / dz
 !----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 5), fbcz )
+    call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 5))
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 
     call transpose_z_to_y(ene_rhs_zpencil, ene_rhs_ypencil, dm%dccc)

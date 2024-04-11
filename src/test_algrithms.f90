@@ -162,13 +162,13 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
         call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) * dm%fbcx_qx(:, :, :) * HALF)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
         call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :)* nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
@@ -177,13 +177,13 @@ contains
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
         !call Get_x_2nd_derivative_P2P_3D( fl%qx, mx_rhs, dm, dm%ibcx(:, 1) )
-        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) )
-        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) )
+        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
+        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%ibcx(:, 1))
         fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%ibcx(:, 1))
         call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) * nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
@@ -210,7 +210,7 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_qy(:, :, :))
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 1))
         call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :) * dm%fbcy_qy(:, :, :) * HALF)
 
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
@@ -225,7 +225,7 @@ contains
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :))
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%ibcy(:, 2))
         call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :) * nu)
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
