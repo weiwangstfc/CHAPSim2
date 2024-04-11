@@ -22,18 +22,18 @@ module io_visulisation_mod
 
   !character(6)  :: svisudim
 
-  private :: write_snapshot_headerfooter
-  private :: write_field
-  private :: average_periodic_flow
-  private :: write_profile
+  private :: write_visu_headerfooter
+  private :: write_visu_field
+  private :: visu_average_periodic_flow
+  private :: write_visu_profile
 
-  public  :: write_snapshot_ini
-  public  :: write_snapshot_flow
-  public  :: write_snapshot_thermo
-  public  :: write_snapshot_any3darray
+  public  :: write_visu_ini
+  public  :: write_visu_flow
+  public  :: write_visu_thermo
+  public  :: write_visu_any3darray
 
-  public  :: write_stats_flow
-  public  :: write_stats_thermo
+  public  :: write_visu_stats_flow
+  public  :: write_visu_stats_thermo
   
   
   
@@ -45,7 +45,7 @@ contains
 ! V - visulisation
 ! xszV is the same as dppp%xsz/nskip, based on nodes, considering the skip nodes
 !==========================================================================================================
-  subroutine write_snapshot_ini(dm)
+  subroutine write_visu_ini(dm)
     use udf_type_mod
     use parameters_constant_mod, only: MAXP
     use decomp_2d, only: xszV, yszV, zszV
@@ -203,7 +203,7 @@ contains
 !==========================================================================================================
 ! ref: https://www.xdmf.org/index.php/XDMF_Model_and_Format
 !==========================================================================================================
-  subroutine write_snapshot_headerfooter(dm, visuname, iheadfoot, iter)
+  subroutine write_visu_headerfooter(dm, visuname, iheadfoot, iter)
     use precision_mod
     use parameters_constant_mod, only: MAXP
     use udf_type_mod, only: t_domain
@@ -293,7 +293,7 @@ contains
 !==========================================================================================================
 ! ref: https://www.xdmf.org/index.php/XDMF_Model_and_Format
 !==========================================================================================================
-  subroutine write_field(dm, var, dtmp, varname, visuname, attributetype, centring, iter)
+  subroutine write_visu_field(dm, var, dtmp, varname, visuname, attributetype, centring, iter)
     use precision_mod
     use decomp_2d
     use decomp_2d_io
@@ -333,9 +333,8 @@ contains
       keyword = trim(varname)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
       INQUIRE(FILE = data_flname_path, exist = file_exists)
-      if(.not.file_exists) then
-        call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
-      end if
+      if(.not.file_exists) &
+      call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
 
     else if(dm%visu_idim == Ivisudim_1D_XZa) then
       !to add 1D profile
@@ -374,7 +373,7 @@ contains
   !==========================================================================================================
 ! ref: https://www.xdmf.org/index.php/XDMF_Model_and_Format
 !==========================================================================================================
-  subroutine write_profile(dm, var, dtmp, varname, visuname, attributetype, centring, idim, iter)
+  subroutine write_visu_profile(dm, var, dtmp, varname, visuname, attributetype, centring, idim, iter)
     use precision_mod
     use decomp_2d
     use decomp_2d_io
@@ -410,19 +409,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
     keyword = trim(varname)
     call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'dat', iter)
-    INQUIRE(FILE = data_flname_path, exist = file_exists)
-    if(.not.file_exists) then
-      open(newunit = iofl, file = data_flname_path, action = "write", status = "new")
-      if(idim /= 2) call Print_error_msg('Error in direction')
-      do j = 1, dtmp%ysz(2)
-        write(iofl, *) j, dm%yc(j), var(j) 
-      end do
-    end if
+    open(newunit = iofl, file = data_flname_path, action = "write", status="replace")
+    if(idim /= 2) call Print_error_msg('Error in direction')
+    do j = 1, dtmp%ysz(2)
+      write(iofl, *) j, dm%yc(j), var(j) 
+    end do
 
     return
   end subroutine 
 !==========================================================================================================
-  subroutine write_snapshot_flow(fl, dm)
+  subroutine write_visu_flow(fl, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -445,23 +441,23 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data, pressure, to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call write_field(dm, fl%pres, dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%pres, dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, 1), dm%fbcx_qx(:, :, :) )
-    call write_field(dm, accc, dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
     call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy(:, :, :))
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_field(dm, accc, dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qz, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
@@ -470,17 +466,17 @@ contains
     call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3))
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_field(dm, accc, dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
     
     return
   end subroutine
 
   !==========================================================================================================
-  subroutine write_snapshot_thermo(tm, dm)
+  subroutine write_visu_thermo(tm, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -496,21 +492,21 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call write_field(dm, tm%tTemp, dm%dccc, "temp", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%tTemp, dm%dccc, "temp", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
     
     return
   end subroutine
 
 !==========================================================================================================
-  subroutine write_stats_flow(fl, dm)
+  subroutine write_visu_stats_flow(fl, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -530,58 +526,62 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call write_field(dm, fl%pr_mean,                     dm%dccc, "time_averaged_pr", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%u_vector_mean  (:, :, :, 1), dm%dccc, "time_averaged_ux", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%u_vector_mean  (:, :, :, 2), dm%dccc, "time_averaged_uy", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%u_vector_mean  (:, :, :, 3), dm%dccc, "time_averaged_uz", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, "time_averaged_uu", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, "time_averaged_vv", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, "time_averaged_ww", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, "time_averaged_uv", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, "time_averaged_uw", trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, "time_averaged_vw", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%pr_mean,                     dm%dccc, "time_averaged_pr", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%u_vector_mean  (:, :, :, 1), dm%dccc, "time_averaged_ux", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%u_vector_mean  (:, :, :, 2), dm%dccc, "time_averaged_uy", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%u_vector_mean  (:, :, :, 3), dm%dccc, "time_averaged_uz", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, "time_averaged_uu", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, "time_averaged_vv", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, "time_averaged_ww", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, "time_averaged_uv", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, "time_averaged_uw", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, "time_averaged_vw", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
 !==========================================================================================================
 ! write time averaged and space averaged 3d data (stored 2d or 1d data)
 !==========================================================================================================
+    if( ANY(dm%is_periodic(:))) then
+
     iter = fl%iteration
     visuname = 'flow_time_space_averaged'
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
     if(.not. (dm%is_periodic(1) .and. dm%is_periodic(3))) &
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call average_periodic_flow(                    fl%pr_mean, dm%dccc, dm, "time_space_averaged_pr", trim(visuname), iter)
-    call average_periodic_flow(  fl%u_vector_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_ux", trim(visuname), iter)
-    call average_periodic_flow(  fl%u_vector_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_uy", trim(visuname), iter)
-    call average_periodic_flow(  fl%u_vector_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_uz", trim(visuname), iter)
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_uu", trim(visuname), iter)
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_vv", trim(visuname), iter)
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_ww", trim(visuname), iter)
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, dm, "time_space_averaged_uv", trim(visuname), iter)
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, dm, "time_space_averaged_uw", trim(visuname), iter)
-    call average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, dm, "time_space_averaged_vw", trim(visuname), iter)
+    call visu_average_periodic_flow(                    fl%pr_mean, dm%dccc, dm, "time_space_averaged_pr", trim(visuname), iter)
+    call visu_average_periodic_flow(  fl%u_vector_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_ux", trim(visuname), iter)
+    call visu_average_periodic_flow(  fl%u_vector_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_uy", trim(visuname), iter)
+    call visu_average_periodic_flow(  fl%u_vector_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_uz", trim(visuname), iter)
+    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_uu", trim(visuname), iter)
+    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_vv", trim(visuname), iter)
+    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_ww", trim(visuname), iter)
+    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, dm, "time_space_averaged_uv", trim(visuname), iter)
+    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, dm, "time_space_averaged_uw", trim(visuname), iter)
+    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, dm, "time_space_averaged_vw", trim(visuname), iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
     if(.not. (dm%is_periodic(1) .and. dm%is_periodic(3))) &
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
-    
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+
+    end if
+
     return
   end subroutine
 
   !==========================================================================================================
-  subroutine write_stats_thermo(tm, dm)
+  subroutine write_visu_stats_thermo(tm, dm)
     use udf_type_mod
     use precision_mod
     use operations
@@ -597,23 +597,23 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call write_field(dm, tm%t_mean,  dm%dccc, "t",  trim(visuname), SCALAR, CELL, iter)
-    call write_field(dm, tm%tt_mean, dm%dccc, "tt", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%t_mean,  dm%dccc, "t",  trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%tt_mean, dm%dccc, "tt", trim(visuname), SCALAR, CELL, iter)
 
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
     
     return
   end subroutine
   
   !==========================================================================================================
-  subroutine write_snapshot_any3darray(var, varname, visuname, dtmp, dm, iter)
+  subroutine write_visu_any3darray(var, varname, visuname, dtmp, dm, iter)
     use udf_type_mod
     use precision_mod
     use operations
@@ -640,23 +640,23 @@ contains
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
     keyword = trim(visuname)//"_"//trim(varname)
-    call write_snapshot_headerfooter(dm, trim(keyword), XDMF_HEADER, iter)
+    call write_visu_headerfooter(dm, trim(keyword), XDMF_HEADER, iter)
     !if(nrank==0) write(*,*) keyword, iter
 !----------------------------------------------------------------------------------------------------------
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
     if (is_decomp_same(dtmp, dm%dccc)) then
-      call write_field(dm, var, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
+      call write_visu_field(dm, var, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else if (is_decomp_same(dtmp, dm%dpcc)) then
       call Get_x_midp_P2C_3D(var, accc, dm, dm%ibcx(:, 1))
-      call write_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
+      call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else if (is_decomp_same(dtmp, dm%dcpc)) then
       call transpose_x_to_y(var, acpc_ypencil, dm%dcpc)
       call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2))
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
+      call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else if (is_decomp_same(dtmp, dm%dccp)) then
       call transpose_x_to_y(var, accp_ypencil, dm%dccp)
@@ -664,7 +664,7 @@ contains
       call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3))
       call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
+      call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else
       call Print_error_msg ("Given decomp_into is not supported "//trim(varname))
@@ -672,7 +672,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
-    call write_snapshot_headerfooter(dm, trim(keyword), XDMF_FOOTER, iter)
+    call write_visu_headerfooter(dm, trim(keyword), XDMF_FOOTER, iter)
     
     return
   end subroutine
@@ -680,7 +680,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine average_periodic_flow(data_in, dtmp, dm, str1, str2, iter)
+  subroutine visu_average_periodic_flow(data_in, dtmp, dm, str1, str2, iter)
     use udf_type_mod
     use parameters_constant_mod
     implicit none
@@ -736,7 +736,7 @@ contains
       end do
       call transpose_z_to_y(b_zpencil, a_ypencil, dtmp)
       var = a_ypencil(1,:,1)
-      call write_profile(dm, var, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, 2, iter)
+      call write_visu_profile(dm, var, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, 2, iter)
   
     else if(dm%is_periodic(1) .and. &
       .not. dm%is_periodic(3) .and. &
@@ -753,7 +753,7 @@ contains
         end do
       end do
 
-      call write_field(dm, a_xpencil, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, iter)
+      call write_visu_field(dm, a_xpencil, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, iter)
 
     else if( &
       .not. dm%is_periodic(1) .and. &
@@ -776,7 +776,7 @@ contains
       call transpose_z_to_y(b_zpencil, a_ypencil, dtmp)
       call transpose_y_to_x(a_ypencil, a_xpencil, dtmp)
 
-      call write_field(dm, a_xpencil, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, iter)
+      call write_visu_field(dm, a_xpencil, dm%dccc, trim(str1), trim(str2), SCALAR, CELL, iter)
 
     else
       ! do nothing here

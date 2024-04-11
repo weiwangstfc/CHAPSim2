@@ -275,7 +275,7 @@ contains
 
 #ifdef DEBUG_STEPS !test, check
     if(MOD(iter, dm%visu_nfre) == 0) &
-    call write_snapshot_any3darray(div, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
+    call write_visu_any3darray(div, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif
 
     call Find_maximum_absvar3d(div, fl%mcon, trim(str)//" Check Mass Conservation:", wrtfmt1e)

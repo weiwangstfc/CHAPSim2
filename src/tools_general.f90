@@ -173,7 +173,7 @@ module code_performance_mod
       t_iter_start = ZERO
       call cpu_time(t_iter_start)
       if(nrank == 0) call Print_debug_start_msg ("Time Step = "//trim(int2str(iter))// &
-          '/'//trim(int2str(niter-iterfrom)))
+          '/'//trim(int2str(niter))) !trim(int2str(niter-iterfrom)))
 !----------------------------------------------------------------------------------------------------------
     else if (itype == CPU_TIME_ITER_END) then
       if(.not.present(iter)) call Print_error_msg("Error in calculating CPU Time.")

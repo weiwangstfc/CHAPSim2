@@ -1242,7 +1242,7 @@ end if
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@bf fft') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'bf_fft_all', 'PhiRHS@bf fft') ! debug_ww
-    call write_snapshot_any3darray(fl%pcor, 'rhs'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+    call write_visu_any3darray(fl%pcor, 'rhs'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
 !==========================================================================================================
 !   convert RHS from xpencil gll to zpencil ggg
@@ -1272,7 +1272,7 @@ end if
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af fft') ! debug_ww
     call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'af_fft_all', 'phi@af fft') ! debug_ww
-    call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+    call write_visu_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
     
 
@@ -1412,9 +1412,9 @@ end if
     ! time fractional equation
 
 ! #ifdef DEBUG_STEPS
-!   call write_snapshot_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
-!   call write_snapshot_any3darray(fl%qy, 'qys_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
-!   call write_snapshot_any3darray(fl%qz, 'qzs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
+!   call write_visu_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+!   call write_visu_any3darray(fl%qy, 'qys_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+!   call write_visu_any3darray(fl%qz, 'qzs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
 ! #endif
 !----------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
@@ -1423,7 +1423,7 @@ end if
     !call solve_poisson_x2z(fl, dm, isub) !
     call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
 !#ifdef DEBUG_STEPS
-    !call write_snapshot_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+    !call write_visu_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 !#endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction

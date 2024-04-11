@@ -136,21 +136,18 @@ contains
     real(WP), allocatable :: id(:, :, :)
 #endif
 
-    !----------------------------------------------------------------------------------------------------------
-    ! default, used for fft only
-    !----------------------------------------------------------------------------------------------------------
     do i = 1, nxdomain
       call decomp_2d_init(domain(i)%np(1), domain(i)%np(2), domain(i)%np(3), p_row, p_col)
       call Initialize_domain_decomposition(domain(i))
       call initialize_decomp_io(domain(i))
       call write_monitor_ini(domain(i))
-      call write_snapshot_ini(domain(i))
+      call write_visu_ini(domain(i))
       call init_statistics_flow(flow(i), domain(i))
       if(domain(i)%is_thermo) call init_statistics_thermo(thermo(i), domain(i))
 #ifdef DEBUG_STEPS
       allocate( id ( domain(i)%dccc%xsz(1), domain(i)%dccc%xsz(2), domain(i)%dccc%xsz(3)) )
       id(:, :, :) = real(nrank, WP)
-      call write_snapshot_any3darray(id, 'rank', 'mesh', domain(i)%dpcc, domain(i), 0)
+      call write_visu_any3darray(id, 'rank', 'mesh', domain(i)%dpcc, domain(i), 0)
       deallocate(id)
 #endif
     end do

@@ -297,11 +297,11 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if (mod(iter, domain(i)%ckpt_nfre) == 0) then
         if(is_flow(i)) then
-          call write_instantanous_flow_raw_data(flow(i), domain(i))
+          call write_instantanous_flow(flow(i), domain(i))
           if(iter > domain(i)%stat_istart) call write_statistics_flow(flow(i), domain(i))
         end if
         if(domain(i)%is_thermo .and. is_thermo(i)) then
-          call write_instantanous_thermo_raw_data(thermo(i), domain(i))
+          call write_instantanous_thermo(thermo(i), domain(i))
           if(iter > domain(i)%stat_istart) call write_statistics_thermo(thermo(i), domain(i))
         end if
       end if
@@ -309,14 +309,14 @@ subroutine Solve_eqs_iteration
       ! write data for visualisation
       !----------------------------------------------------------------------------------------------------------
       if(MOD(iter, domain(i)%visu_nfre) == 0) then
-        if(is_flow(i)) call write_snapshot_flow(flow(i), domain(i))
+        if(is_flow(i)) call write_visu_flow(flow(i), domain(i))
         if(domain(i)%is_thermo .and. is_thermo(i)) then
-          call write_snapshot_thermo(thermo(i), domain(i))
+          call write_visu_thermo(thermo(i), domain(i))
         end if
         if(iter > domain(i)%stat_istart ) then
-          if(is_flow(i)) call write_stats_flow(flow(i), domain(i))
+          if(is_flow(i)) call write_visu_stats_flow(flow(i), domain(i))
           if(domain(i)%is_thermo .and. is_thermo(i)) then
-            call write_stats_thermo(thermo(i), domain(i))
+            call write_visu_stats_thermo(thermo(i), domain(i))
           end if
         end if
       end if

@@ -3,17 +3,65 @@ module io_restart_mod
 
   character(len=10), parameter :: io_name = "restart-io"
 
-  public :: write_instantanous_flow_raw_data
-  public :: write_instantanous_thermo_raw_data
-  public :: read_instantanous_flow_raw_data
-  public :: read_instantanous_thermo_raw_data
+  private :: read_instantanous_array
+  private :: write_instantanous_array
+  public :: write_instantanous_flow
+  public :: write_instantanous_thermo
+  public :: read_instantanous_flow
+  public :: read_instantanous_thermo
   public :: restore_flow_variables_from_restart
   public :: restore_thermo_variables_from_restart
 
 contains 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine write_instantanous_flow_raw_data(fl, dm)
+  subroutine read_instantanous_array(var, keyword, idom, iter, dtmp)
+    use precision_mod
+    use files_io_mod
+    use io_tools_mod
+    use decomp_2d_io
+    implicit none 
+    integer, intent(in) :: idom
+    character(*), intent(in) :: keyword
+    integer, intent(in) :: iter
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(:, :, :), intent(out) :: var( dtmp%xsz(1), &
+                                                      dtmp%xsz(2), &
+                                                      dtmp%xsz(3))
+    character(120):: data_flname
+
+    call generate_file_name(data_flname, idom, trim(keyword), 'bin', iter)
+    if(nrank == 0) call Print_debug_mid_msg("Reading "//trim(dir_data)//"/"//trim(data_flname))
+
+    call decomp_2d_read_one(X_PENCIL, var, trim(dir_data), trim(data_flname), io_name, dtmp, reduce_prec=.false.)
+
+    return
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine write_instantanous_array(var, keyword, idom, iter, dtmp)
+    use udf_type_mod
+    use files_io_mod
+    use io_tools_mod
+    use decomp_2d_io
+    implicit none 
+    real(WP), intent(in) :: var( :, :, :)
+    type(DECOMP_INFO), intent(in) :: dtmp
+    character(*), intent(in) :: keyword
+    integer, intent(in) :: idom
+    integer, intent(in) :: iter
+    
+    character(120):: data_flname_path
+    logical :: file_exists
+
+    call generate_pathfile_name(data_flname_path, idom, trim(keyword), dir_data, 'bin', iter)
+    call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
+
+    return
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine write_instantanous_flow(fl, dm)
     use udf_type_mod
     use decomp_2d_io
     use io_tools_mod
@@ -26,39 +74,19 @@ contains
     character(120):: keyword
     logical :: file_exists
 
-    if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data (not replace old one if exsits)...")
+    if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data ...")
 
-    keyword = 'ux'
-    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
-    INQUIRE(FILE = data_flname_path, exist = file_exists)
-    if(.not.file_exists) &
-    call decomp_2d_write_one(X_PENCIL, fl%qx, trim(data_flname_path), dm%dpcc)
-
-    keyword = 'uy'
-    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
-    INQUIRE(FILE = data_flname_path, exist = file_exists)
-    if(.not.file_exists) &
-    call decomp_2d_write_one(X_PENCIL, fl%qy,   trim(data_flname_path), dm%dcpc)
-
-    keyword = 'uz'
-    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
-    INQUIRE(FILE = data_flname_path, exist = file_exists)
-    if(.not.file_exists) &
-    call decomp_2d_write_one(X_PENCIL, fl%qz,   trim(data_flname_path), dm%dccp)
-
-    keyword = 'pr'
-    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', fl%iteration)
-    INQUIRE(FILE = data_flname_path, exist = file_exists)
-    if(.not.file_exists) &
-    call decomp_2d_write_one(X_PENCIL, fl%pres, trim(data_flname_path), dm%dccc)
-
+    call write_instantanous_array(fl%qx, 'ux', dm%idom, fl%iteration, dm%dpcc)
+    call write_instantanous_array(fl%qy, 'qy', dm%idom, fl%iteration, dm%dcpc)
+    call write_instantanous_array(fl%qz, 'qz', dm%idom, fl%iteration, dm%dccp)
+    call write_instantanous_array(fl%pres, 'pr', dm%idom, fl%iteration, dm%dccc)
 
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine write_instantanous_thermo_raw_data(tm, dm)
+  subroutine write_instantanous_thermo(tm, dm)
     use udf_type_mod
     use thermo_info_mod
     use decomp_2d_io
@@ -74,20 +102,15 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d thermo data ...")
 
-    keyword = 'rhoh'
-    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', tm%iteration)
-    call decomp_2d_write_one(X_PENCIL, tm%dh, trim(data_flname_path), dm%dccc)
-
-    keyword = 'temp'
-    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', tm%iteration)
-    call decomp_2d_write_one(X_PENCIL, tm%tTemp, trim(data_flname_path), dm%dccc)
+    call write_instantanous_array(tm%dh,    'rhoh', dm%idom, tm%iteration, dm%dccc)
+    call write_instantanous_array(tm%tTemp, 'temp', dm%idom, tm%iteration, dm%dccc)
 
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine read_instantanous_flow_raw_data(fl, dm)
+  subroutine read_instantanous_flow(fl, dm)
     use udf_type_mod
     use decomp_2d_io
     use io_tools_mod
@@ -103,29 +126,15 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("read instantanous flow data ... ...")
 
-    fl%iteration = fl%iterfrom
-
-    keyword = 'ux'
-    call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
-    call decomp_2d_read_one(X_PENCIL, fl%qx, trim(dir_data), trim(data_flname), io_name, dm%dpcc, reduce_prec=.false.)
-
-    keyword = 'uy'
-    call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
-    call decomp_2d_read_one(X_PENCIL, fl%qy, trim(dir_data), trim(data_flname), io_name, dm%dcpc, reduce_prec=.false.)
-
-    keyword = 'uz'
-    call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
-    call decomp_2d_read_one(X_PENCIL, fl%qz, trim(dir_data), trim(data_flname), io_name, dm%dccp, reduce_prec=.false.)
-
-    keyword = 'pr'
-    call generate_file_name(data_flname, dm%idom, keyword, 'bin', fl%iteration)
-    call decomp_2d_read_one(X_PENCIL, fl%pres, trim(dir_data), trim(data_flname), io_name, dm%dccc, reduce_prec=.false.)
+    call read_instantanous_array(fl%qx, 'ux', dm%idom, fl%iterfrom, dm%dpcc)
+    call read_instantanous_array(fl%qy, 'uy', dm%idom, fl%iterfrom, dm%dcpc)
+    call read_instantanous_array(fl%qz, 'uz', dm%idom, fl%iterfrom, dm%dccp)
+    call read_instantanous_array(fl%pres, 'pr', dm%idom, fl%iterfrom, dm%dccc)
     
-    fl%time = real(fl%iterfrom, WP) * dm%dt 
-
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
+
 !==========================================================================================================
 !==========================================================================================================
   subroutine restore_flow_variables_from_restart(fl, dm)
@@ -168,7 +177,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine read_instantanous_thermo_raw_data(tm, dm)
+  subroutine read_instantanous_thermo(tm, dm)
     use udf_type_mod
     use thermo_info_mod
     use decomp_2d_io

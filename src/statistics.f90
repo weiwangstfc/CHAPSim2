@@ -8,11 +8,13 @@ module statistics_mod
 
   public  :: init_statistics_flow
   public  :: update_statistics_flow
+  public  :: read_statistics_flow
   public  :: write_statistics_flow
 
   public  :: init_statistics_thermo
   public  :: update_statistics_thermo
   public  :: write_statistics_thermo
+  public  :: read_statistics_thermo
 
 contains
 !==========================================================================================================
@@ -24,6 +26,8 @@ contains
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
     !integer :: i
+
+    if(nrank == 0) call Print_debug_start_msg("Initialise flow statistics ...")
 
     allocate (ncl_stat(3, nxdomain))
     ncl_stat = 0
@@ -47,22 +51,40 @@ contains
     fl%pr_mean         = ZERO
     fl%uu_tensor6_mean = ZERO
 
+    if(nrank == 0) call Print_debug_end_msg
+    return
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine read_statistics_flow(fl, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    use io_visulisation_mod
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(t_flow),   intent(inout) :: fl
+    !integer :: i
+
+    if(nrank == 0) call Print_debug_mid_msg("Reading flow statistics ...")
+
     if(fl%inittype == INIT_RESTART .and. fl%iteration > dm%stat_istart) then
-      call read_statistics_array(fl%pr_mean,                     'mean_pr', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%u_vector_mean  (:, :, :, 1), 'mean_ux', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%u_vector_mean  (:, :, :, 2), 'mean_uy', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%u_vector_mean  (:, :, :, 3), 'mean_uz', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 1), 'mean_uu', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 2), 'mean_vv', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 3), 'mean_ww', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 4), 'mean_uv', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 5), 'mean_uw', dm%idom, fl%iterfrom, dm%dccc)
-      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 6), 'mean_vw', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%pr_mean,                     'time_averaged_pr', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%u_vector_mean  (:, :, :, 1), 'time_averaged_ux', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%u_vector_mean  (:, :, :, 2), 'time_averaged_uy', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%u_vector_mean  (:, :, :, 3), 'time_averaged_uz', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 1), 'time_averaged_uu', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 2), 'time_averaged_vv', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 3), 'time_averaged_ww', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 4), 'time_averaged_uv', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 5), 'time_averaged_uw', dm%idom, fl%iterfrom, dm%dccc)
+      call read_statistics_array(fl%uu_tensor6_mean(:, :, :, 6), 'time_averaged_vw', dm%idom, fl%iterfrom, dm%dccc)
+
+      call write_visu_stats_flow(fl, dm)
     end if
 
     return
   end subroutine
-  !==========================================================================================================
+!==========================================================================================================
 !==========================================================================================================
   subroutine init_statistics_thermo(tm, dm)
     use udf_type_mod
@@ -73,14 +95,36 @@ contains
 
     if(.not. dm%is_thermo) return
 
+    if(nrank == 0) call Print_debug_mid_msg("Initialise thermo statistics ...")
+
     allocate ( tm%t_mean  (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)) )
     allocate ( tm%tt_mean (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)) )
     
     tm%t_mean  = ZERO
     tm%tt_mean = ZERO
     if(tm%inittype == INIT_RESTART .and. tm%iteration > dm%stat_istart) then
-      call read_statistics_array(tm%t_mean,  'mean_t',  dm%idom, tm%iterfrom, dm%dccc)
-      call read_statistics_array(tm%tt_mean, 'mean_tt', dm%idom, tm%iterfrom, dm%dccc)
+      call read_statistics_array(tm%t_mean,  'time_averaged_t',  dm%idom, tm%iterfrom, dm%dccc)
+      call read_statistics_array(tm%tt_mean, 'time_averaged_tt', dm%idom, tm%iterfrom, dm%dccc)
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine read_statistics_thermo(tm, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(t_thermo), intent(inout) :: tm
+
+    if(.not. dm%is_thermo) return
+
+    if(nrank == 0) call Print_debug_mid_msg("Reading thermo statistics ...")
+
+    if(tm%inittype == INIT_RESTART .and. tm%iteration > dm%stat_istart) then
+      call read_statistics_array(tm%t_mean,  'time_averaged_t',  dm%idom, tm%iterfrom, dm%dccc)
+      call read_statistics_array(tm%tt_mean, 'time_averaged_tt', dm%idom, tm%iterfrom, dm%dccc)
     end if
 
     return
@@ -116,6 +160,7 @@ contains
     nstat = fl%iteration - dm%stat_istart + 1
     ac = ONE / real(nstat, WP)
     am = real(nstat - 1, WP) / real(nstat, WP)
+    !if(nrank==0) write(*,*) 'averaging..', fl%iteration,  dm%stat_istart, nstat, ac, am
 !----------------------------------------------------------------------------------------------------------
 !   pressure, stored in cell centre
 !----------------------------------------------------------------------------------------------------------
@@ -163,6 +208,7 @@ contains
 
     ! here is not only a repeat of those in io_visulisation
     ! because they have different written freqence and to be used for restart as well.
+    if(nrank == 0) call Print_debug_mid_msg("Writing flow statistics ...")
     call write_statistics_array(fl%pr_mean,                     'time_averaged_pr', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%u_vector_mean  (:, :, :, 1), 'time_averaged_ux', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%u_vector_mean  (:, :, :, 2), 'time_averaged_uy', dm%idom, fl%iteration, dm%dccc)
@@ -173,7 +219,6 @@ contains
     call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 4), 'time_averaged_uv', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 5), 'time_averaged_uw', dm%idom, fl%iteration, dm%dccc)
     call write_statistics_array(fl%uu_tensor6_mean(:, :, :, 6), 'time_averaged_vw', dm%idom, fl%iteration, dm%dccc)
-
 
     return
   end subroutine
@@ -212,8 +257,9 @@ contains
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(in) :: tm
 
-    call write_statistics_array(tm%t_mean,  'mean_t', dm%idom, tm%iteration, dm%dccc)
-    call write_statistics_array(tm%tt_mean, 'mean_tt', dm%idom, tm%iteration, dm%dccc)
+    if(nrank == 0) call Print_debug_mid_msg("Writing thermo statistics ...")
+    call write_statistics_array(tm%t_mean,  'time_averaged_t', dm%idom, tm%iteration, dm%dccc)
+    call write_statistics_array(tm%tt_mean, 'time_averaged_tt', dm%idom, tm%iteration, dm%dccc)
 
 
     return
@@ -236,34 +282,37 @@ contains
     logical :: file_exists
 
     call generate_pathfile_name(data_flname_path, idm, trim(keyword), dir_data, 'bin', iter)
-    INQUIRE(FILE = data_flname_path, exist = file_exists)
-    if(.not.file_exists) then
-      call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
-    end if
+    !INQUIRE(FILE = data_flname_path, exist = file_exists)
+    !if(.not.file_exists) &
+    call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
 
 
     return
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine read_statistics_array(var, keyword, idm, iter, dtmp)
+  subroutine read_statistics_array(var, keyword, idom, iter, dtmp)
     use precision_mod
-    !use files_io_mod, only: dir_data
+    use files_io_mod
     use io_tools_mod
     use decomp_2d_io
     implicit none 
-    
-    real(WP), dimension(:, :, :), intent(in) :: var
+    integer, intent(in) :: idom
     character(*), intent(in) :: keyword
-    integer, intent(in) :: idm
     integer, intent(in) :: iter
     type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), dimension(:, :, :), intent(out) :: var( ncl_stat(1, idom), &
+                                                      ncl_stat(2, idom), &
+                                                      ncl_stat(3, idom))
+    
 
     character(120):: data_flname
 
-    call generate_file_name(data_flname, idm, trim(keyword), 'bin', iter)
-    !call decomp_2d_read_one(X_PENCIL, var, trim(dir_data), trim(data_flname), io_name, dtmp, reduce_prec=.false.)
-    !to do, check why the above line does not work.
+
+    call generate_file_name(data_flname, idom, trim(keyword), 'bin', iter)
+    if(nrank == 0) call Print_debug_mid_msg("Reading "//trim(dir_data)//"/"//trim(data_flname))
+
+    call decomp_2d_read_one(X_PENCIL, var, trim(dir_data), trim(data_flname), io_name, dtmp, reduce_prec=.false.)
 
     return
   end subroutine

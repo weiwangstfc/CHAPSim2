@@ -236,9 +236,9 @@ contains
     ! write(*,*) 'random ux', ux(:, 8, 8)
     ! write(*,*) 'random uy', uy(:, 8, 8)
     ! write(*,*) 'random uz', uz(:, 8, 8)
-    !call write_snapshot_any3darray(ux, 'ux_random_init', 'debug', dm%dpcc, dm, 0)
-    !call write_snapshot_any3darray(uy, 'uy_random_init', 'debug', dm%dcpc, dm, 0)
-    !call write_snapshot_any3darray(uz, 'uz_random_init', 'debug', dm%dccp, dm, 0)
+    !call write_visu_any3darray(ux, 'ux_random_init', 'debug', dm%dpcc, dm, 0)
+    !call write_visu_any3darray(uy, 'uy_random_init', 'debug', dm%dcpc, dm, 0)
+    !call write_visu_any3darray(uz, 'uz_random_init', 'debug', dm%dccp, dm, 0)
 #endif
 
 
@@ -555,6 +555,7 @@ contains
     use solver_tools_mod
     use continuity_eq_mod
     use boundary_conditions_mod
+    use statistics_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -579,9 +580,12 @@ contains
     fl%iteration = 0
 
     if(fl%inittype == INIT_RESTART) then
-      call read_instantanous_flow_raw_data(fl, dm)
+      fl%iteration = fl%iterfrom
+      fl%time = real(fl%iterfrom, WP) * dm%dt 
+      call read_instantanous_flow(fl, dm)
       call restore_flow_variables_from_restart(fl, dm)
-
+      call read_statistics_flow(fl, dm)
+      
     else if (fl%inittype == INIT_INTERPL) then
 
     else if (fl%inittype == INIT_RANDOM) then
@@ -618,7 +622,7 @@ contains
     !==========================================================================================================
     call Check_mass_conservation(fl, dm, 0, 'initialization') 
 
-    call write_snapshot_flow(fl, dm)
+    call write_visu_flow(fl, dm)
     
 #ifdef DEBUG_STEPS
     ! write(*,*) 'init ux', fl%qx(:, 8, 8)!, fl%qx(:, 1, 8) !debug_test
@@ -641,6 +645,7 @@ contains
     use eq_energy_mod
     use thermo_info_mod
     use io_restart_mod
+    use statistics_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -665,9 +670,11 @@ contains
 ! initialize primary variables
 !----------------------------------------------------------------------------------------------------------
     if(tm%inittype == INIT_RESTART) then
-      call read_instantanous_thermo_raw_data  (tm, dm)
+      tm%iteration = tm%iterfrom
+      tm%time = real(tm%iterfrom, WP) * dm%dt 
+      call read_instantanous_thermo  (tm, dm)
       call restore_thermo_variables_from_restart(fl, tm, dm)
-
+      call read_statistics_thermo(tm, dm)
     else if (tm%inittype == INIT_INTERPL) then
     else
       call Initialize_thermal_properties (fl, tm)
