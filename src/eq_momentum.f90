@@ -341,7 +341,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
       i = 2
       call transpose_x_to_y (fl%gy, gy_ypencil, dm%dcpc)                    ! y-pencil : y-mom, w   thermal
-      call Get_y_midp_C2P_3D(gy_ypencil, gy_ccc_ypencil, dm, dm%ibcy(:,i), dm%fbcy_gy(:, :, :) )     ! 
+      call Get_y_midp_P2C_3D(gy_ypencil, gy_ccc_ypencil, dm, dm%ibcy(:,i), dm%fbcy_gy(:, :, :) )     ! 
       call Get_x_midp_C2P_3D(fl%gy,      appc,           dm, dm%ibcx(:,i), dm%fbcx_gy(:, :, :) )     ! 
       call transpose_x_to_y (appc,       gy_ppc_ypencil, dm%dppc)                    ! 
 

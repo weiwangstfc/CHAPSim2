@@ -31,7 +31,7 @@ lib: includes lib2decomp_fft.a
 includes: lib2decomp_fft.a
 	-mv *.mod ../include
 
-lib2decomp_fft.a: $(MKL_MOD) $(FFTLIB) $(OBJS)
+lib2decomp_fft.a: $(MKL_MOD) $(OBJS)
 	ar qc $@ $(OBJS)
 
 alloc_shm.o: alloc_shm.c
@@ -60,4 +60,4 @@ realclean: clean
 	rm -f *~ \#*\#
 
 %.o : %.f90
-	$(FC) $(OPTIONS) $(INC) $(FCFLAGS) -c $<
+	$(FC) $(OPTIONS) $(FCFLAGS) -c $<

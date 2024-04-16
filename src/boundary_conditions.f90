@@ -281,11 +281,9 @@ contains
 ! DIM = gx, gy, gz; 
 ! warning: this bc treatment is not proper for a inlet plane with field data.... to check and to update
 !----------------------------------------------------------------------------------------------------------
-    if(dm%is_thermo) then
-
-      allocate( dm%fbcx_qx(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) ) ! default x pencil
-      allocate( dm%fbcy_qx(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) ) ! default y pencil
-      allocate( dm%fbcz_qx(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) ) ! default z pencil
+      allocate( dm%fbcx_qx(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_qx(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_qx(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
 
       allocate( dm%fbcx_qy(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
       allocate( dm%fbcy_qy(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
@@ -295,6 +293,11 @@ contains
       allocate( dm%fbcy_qz(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
       allocate( dm%fbcz_qz(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
 
+      allocate( dm%fbcx_pr(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_pr(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_pr(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+
+    if(dm%is_thermo) then
       allocate( dm%fbcx_gx(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
       allocate( dm%fbcy_gx(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
       allocate( dm%fbcz_gx(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
@@ -314,23 +317,6 @@ contains
       allocate( dm%ftpbcx_var(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
       allocate( dm%ftpbcy_var(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
       allocate( dm%ftpbcz_var(dm%dppp%zsz(1), dm%dppp%zsz(2),             4)  )! default z pencil
-
-    else
-      allocate( dm%fbcx_qx(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qx(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qx(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_qy(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qy(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qy(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_qz(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qz(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qz(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_pr(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_pr(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_pr(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
     end if
 
     call apply_bc_constant_flow(dm)
@@ -713,39 +699,44 @@ contains
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil !
 
 
-     if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
-        dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
-        dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
-        dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
-        dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
-        dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
+    !  if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
+    !     dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
+    !     dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
+    !     dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
+    !     dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
+    !     dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
 !----------------------------------------------------------------------------------------------------------
 !   all in x-pencil
 !----------------------------------------------------------------------------------------------------------
 
 !----------------------------------------------------------------------------------------------------------
-!   ux at x-direction. BC of others at x-direction are given in oeprations directly.
+!   x-pencil, ux stored at nodes, bc is nodes.
 !----------------------------------------------------------------------------------------------------------
-    m = 1
     dtmp = dm%dpcc
-    ! constant value bc.
-    do s = 1, 2
-      if(dm%ibcx_nominal(s, m) == IBC_DIRICHLET) then
-        if(dtmp%xst(m) == 1) then
-               fl%qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
-          dm%fbcx_qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
-          !if(dm%is_thermo) fl%gx(1, :, :) = fl%qx(1, :, :) * dm%fbc_dend(s, m)
-        end if
-        if(dtmp%xen(m) == dm%np(m)) then
-               fl%qx(dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
-          dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
-          !if(dm%is_thermo) fl%gx(dtmp%xsz(m), :, :) = fl%qx(dtmp%xsz(m), :, :) * dm%fbc_dend(s, m)
-        end if
-      end if
-    end do
+    if(dm%ibcx(1, 1) == IBC_DIRICHLET .and. dtmp%xst(1) == 1) then ! ux at x-begin-xpencil
+      fl%qx     (1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+      dm%fbcx_qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
+    end if
+    if(dm%ibcx(2, 1) == IBC_DIRICHLET .and. dtmp%xen(1) == dm%np(1)) then ! ux at x-end-xpencil
+      fl%qx     (dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+      dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
+    end if
+!----------------------------------------------------------------------------------------------------------
+!   x-pencil, uy stored at cells, bc is nodes. symmetric to get bc.
+!----------------------------------------------------------------------------------------------------------
+    dtmp = dm%dcpc
+    if(dm%ibcx_nominal(1, 2) == IBC_DIRICHLET .and. dtmp%xst(1) == 1) then ! ux at x-begin-xpencil
+      dm%ibcx(1, 2) = IBC_INTERIOR
+      dm%fbcx_qy(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = two * dm%fbcx_const(1, 2) - 
+      fl%qy     (1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) 
+    end if
+    if(dm%ibcx(2, 1) == IBC_DIRICHLET .and. dtmp%xen(1) == dm%np(1)) then ! ux at x-end-xpencil
+      fl%qx     (dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+      dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
+    end if
 
 !----------------------------------------------------------------------------------------------------------
-!   uy at y-direction. BC of others at y-direction are given in oeprations directly.
+!   uy at y-direction. BC of others at y-direction are given in operations directly.
 !----------------------------------------------------------------------------------------------------------
     m = 2
     dtmp = dm%dcpc

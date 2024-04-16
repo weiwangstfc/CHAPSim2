@@ -22,7 +22,7 @@ OPTIONS= -DDOUBLE_PREC
 #   fftw3_f03  - FFTW 3.3-beta1 or later (with Fortran 2003 interface)
 #   generic    - A general FFT algorithm (no 3rd-party library needed)
 #   mkl        - Intel Math Kernel Library
-FFT=generic#fftw3#generic
+FFT=fftw3#generic
 $(info FFT is $(FFT))
 # Platform-dependent information - compiler, external library etc
 #================================================================

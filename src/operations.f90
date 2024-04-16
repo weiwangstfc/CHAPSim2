@@ -1129,7 +1129,7 @@ alpha_itf = ZERO
         c2 = ZERO
     if (iaccu == IACCU_CD2) then ! degrade to 1st CD, check other accuracy in this set. Check!!!
       alpha1 = ZERO
-          a1 = -TWO! not used. 
+          a1 = ZERO! not used. 
           b1 = TWO ! CHAPSim using 1, should be 2.
           c1 = ZERO
           d1 = ZERO
@@ -3339,16 +3339,16 @@ alpha_itf = ZERO
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if( present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
-              coeff( l, 2, ibc(m) ) * fi(i    ) + &
-              coeff( l, 3, ibc(m) ) * fi(i + 1) + &
-              coeff( l, 4, ibc(m) ) * fi(i + 2) 
-      else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
-      end if
+      !if( present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
+      !fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
+      !        coeff( l, 2, ibc(m) ) * fi(i    ) + &
+      !        coeff( l, 3, ibc(m) ) * fi(i + 1) + &
+      !        coeff( l, 4, ibc(m) ) * fi(i + 2) 
+      !else
+      fo(i) = coeff( l, 1, ibc(m)) * fi(i    ) + &
+              coeff( l, 2, ibc(m)) * fi(i + 1) + &
+              coeff( l, 3, ibc(m)) * fi(i + 2) 
+      !end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
