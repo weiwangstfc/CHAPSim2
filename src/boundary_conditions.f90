@@ -8,12 +8,95 @@ module boundary_conditions_mod
   public  :: configure_bc_vars
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
+  public  :: update_flow_bc_1dm_halo
 
   public  :: apply_bc_const
   !public  :: apply_convective_outlet
   
 contains
 
+  subroutine refresh_bc_type(bc_nominal, bc_real)
+    implicit none 
+    integer, intent(in) :: bc_nominal(2, NBC)
+    integer, intent(inout) :: bc_real(2, NBC)
+    integer :: n, m
+
+    do n = 1, 2
+      do m = 1, NBC
+        if (bc_nominal(n, m) == IBC_PROFILE1D)   then
+          bc_real(n, m) = IBC_DIRICHLET
+        else if (bc_nominal(n, m) == IBC_TURBGEN  .or. &
+                 bc_nominal(n, m) == IBC_DATABASE )   then
+          if(m /=5) then
+            bc_real(n, m) = IBC_INTERIOR  ! for u, v, w, p
+          else 
+            bc_real(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, check
+          end if
+        else if (bc_nominal(n, m) == IBC_CONVECTIVE)   then
+          bc_real(n, m) = IBC_INTRPL
+        else
+          bc_real(n, m) = bc_nominal(n, m)   
+        end if
+      end do
+    end do
+
+    return
+  end subroutine 
+!==========================================================================================================
+!==========================================================================================================
+  subroutine configure_bc_type(dm)
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    integer :: m, n
+!----------------------------------------------------------------------------------------------------------
+! to set up real bc for calculation from given nominal b.c.
+!----------------------------------------------------------------------------------------------------------
+    ! x-pencil, ux-special
+    call refresh_bc_type(dm%ibcx_nominal, dm%ibcx)
+    do n = 1, 2
+      if(dm%ibcx(n, 1) == IBC_DIRICHLET) dm%ibcx(n, 1) = IBC_DIRICHLET ! ux at x-start
+      do m = 2, NBC
+          if(dm%ibcx(n, m) == IBC_DIRICHLET) dm%ibcx(n, m) = IBC_INTERIOR ! uy at x-start, -y2, -y1, /0/, y1, y2
+      end do
+    end do
+    ! y-pencil, uy-special
+    call refresh_bc_type(dm%ibcy_nominal, dm%ibcy)
+    do n = 1, 2
+      if(dm%ibcy(n, 2) == IBC_DIRICHLET) dm%ibcy(n, 2) = IBC_DIRICHLET ! uy at y-start
+      do m = 1, NBC
+          if (m /= 2) then
+            if(dm%ibcy(n, m) == IBC_DIRICHLET) dm%ibcy(n, m) = IBC_INTERIOR ! uy at x-start, -y2, -y1, /0/, y1, y2
+          end if
+      end do
+    end do
+    ! z-pencil, uz-special
+    call refresh_bc_type(dm%ibcz_nominal, dm%ibcz)
+    do n = 1, 2
+      if(dm%ibcz(n, 3) == IBC_DIRICHLET) dm%ibcz(n, 3) = IBC_DIRICHLET ! uz at z-start
+      do m = 1, NBC
+          if (m /= 3) then
+            if(dm%ibcz(n, m) == IBC_DIRICHLET) dm%ibcz(n, m) = IBC_INTERIOR ! uz at z-start, -y2, -y1, /0/, y1, y2
+          end if
+      end do
+    end do
+!----------------------------------------------------------------------------------------------------------
+! to exclude non-resonable input
+!----------------------------------------------------------------------------------------------------------
+    do m = 1, NBC
+      if(dm%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
+      do n = 1, 2
+        if(dm%ibcx(n, m)         >  IBC_OTHERS   ) dm%ibcx(n, m) = IBC_INTRPL
+        if(dm%ibcy(n, m)         >  IBC_OTHERS   ) dm%ibcy(n, m) = IBC_INTRPL
+        if(dm%ibcz(n, m)         >  IBC_OTHERS   ) dm%ibcz(n, m) = IBC_INTRPL
+        if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
+        if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
+      end do
+    end do
+
+
+    return
+  end subroutine 
 !==========================================================================================================
 !==========================================================================================================
   subroutine  map_bc_1d_uprofile(filename, n, y, u)
@@ -281,38 +364,34 @@ contains
 ! DIM = gx, gy, gz; 
 ! warning: this bc treatment is not proper for a inlet plane with field data.... to check and to update
 !----------------------------------------------------------------------------------------------------------
-      allocate( dm%fbcx_qx(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qx(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qx(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_qx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_qx(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_qx(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4) )! default z pencil
 
-      allocate( dm%fbcx_qy(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qy(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qy(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_qy(             4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_qy(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_qy(dm%dcpc%zsz(1), dm%dcpc%zsz(2),              4) )! default z pencil
 
-      allocate( dm%fbcx_qz(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qz(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qz(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_qz(             4, dm%dccp%xsz(2), dm%dccp%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_qz(dm%dccp%ysz(1),              4, dm%dccp%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_qz(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) )! default z pencil
 
-      allocate( dm%fbcx_pr(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_pr(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_pr(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_pr(             4, dm%dccc%xsz(2), dm%dccc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_pr(dm%dccc%ysz(1),              4, dm%dccc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_pr(dm%dccc%zsz(1), dm%dccc%zsz(2),              4) )! default z pencil
 
     if(dm%is_thermo) then
-      allocate( dm%fbcx_gx(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_gx(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_gx(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_gx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_gx(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_gx(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4) )! default z pencil
 
-      allocate( dm%fbcx_gy(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_gy(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_gy(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_gy(             4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_gy(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_gy(dm%dcpc%zsz(1), dm%dcpc%zsz(2),              4) )! default z pencil
 
-      allocate( dm%fbcx_gz(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_gz(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_gz(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_pr(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_pr(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_pr(dm%dppp%zsz(1), dm%dppp%zsz(2),              4) )! default z pencil
+      allocate( dm%fbcx_gz(             4, dm%dccp%xsz(2), dm%dccp%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_gz(dm%dccp%ysz(1),              4, dm%dccp%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_gz(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) )! default z pencil
 
       allocate( dm%ftpbcx_var(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
       allocate( dm%ftpbcy_var(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
@@ -323,7 +402,99 @@ contains
 
     return
   end subroutine 
+!==========================================================================================================
+!==========================================================================================================
+  subroutine update_flow_bc_1dm_halo(dm, fl) ! 
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(inout) :: dm
+    type(t_flow), intent(inout)    :: fl
 
+    real(WP), dimension( dm%dpcc%ysz(1), dm%dpcc%ysz(2), dm%dpcc%ysz(3) ) :: apcc_ypencil
+    real(WP), dimension( dm%dpcc%zsz(1), dm%dpcc%zsz(2), dm%dpcc%zsz(3) ) :: apcc_zpencil
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil !
+    real(WP), dimension( dm%dcpc%zsz(1), dm%dcpc%zsz(2), dm%dcpc%zsz(3) ) :: acpc_zpencil !
+    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
+
+    ! default zero velocity at wall, check! not work for slip wall.
+    ! ux at y-bc
+    if(dm%ibcy(1, 1) == IBC_INTERIOR .or. &
+       dm%ibcy(2, 1) == IBC_INTERIOR) then
+      call transpose_x_to_y(fl%qx, apcc_ypencil, dm%dpcc)
+    end if
+    if(dm%ibcy(1, 1) == IBC_INTERIOR) then
+      if( dm%dpcc%yst(2)    == 1) dm%fbcy_qx(:, 1, :) = - apcc_ypencil(:, 1, :) 
+      if((dm%dpcc%yst(2)+1) == 2) dm%fbcy_qx(:, 3, :) = - apcc_ypencil(:, 2, :)
+    end if
+    if(dm%ibcy(2, 1) == IBC_INTERIOR) then
+      if( dm%dpcc%yen(2)    ==  dm%nc(2)   ) dm%fbcy_qx(:, 2, :) = - apcc_ypencil(:, dm%nc(2),     :)
+      if((dm%dpcc%yen(2)-1) == (dm%nc(2)-1)) dm%fbcy_qx(:, 4, :) = - apcc_ypencil(:, dm%nc(2) - 1, :)
+    end if
+    ! ux at z-bc
+    if(dm%ibcz(1, 1) == IBC_INTERIOR .or. &
+       dm%ibcz(2, 1) == IBC_INTERIOR) then
+      call transpose_x_to_y(fl%qx,         apcc_ypencil, dm%dpcc)
+      call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc)
+    end if
+    if(dm%ibcz(1, 1) == IBC_INTERIOR) then
+      if( dm%dpcc%zst(3)    == 1) fl%fbcz_qx(:, :, 1) = - apcc_zpencil(:, :, 1) 
+      if((dm%dpcc%zst(3)+1) == 2) fl%fbcz_qx(:, :, 3) = - apcc_zpencil(:, :, 2)
+    end if
+    if(dm%ibcz(2, 1) == IBC_INTERIOR) then
+      if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) fl%fbcz_qx(:, :, 2) = - apcc_zpencil(:, :, dm%nc(3)    )
+      if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) fl%fbcz_qx(:, :, 4) = - apcc_zpencil(:, :, dm%nc(3) - 1)
+    end if
+
+    ! uy at x-bc
+    if(dm%ibcx(1, 2) == IBC_INTERIOR) then
+      if( dm%dcpc%xst(1)    == 1) fl%fbcx_qy(1, :, :) = - fl%qy(1, :, :) 
+      if((dm%dcpc%xst(1)+1) == 2) fl%fbcx_qy(3, :, :) = - fl%qy(2, :, :)
+    end if
+    if(dm%ibcx(2, 2) == IBC_INTERIOR) then
+      if( dm%dcpc%xen(1)    ==  dm%nc(1)   ) fl%fbcx_qy(2, :, :) = - fl%qy(dm%nc(1),     :, :)
+      if((dm%dcpc%xen(1)-1) == (dm%nc(1)-1)) fl%fbcx_qy(4, :, :) = - fl%qy(dm%nc(1) - 1, :, :)
+    end if
+    ! uy at z-bc
+    if(dm%ibcz(1, 2) == IBC_INTERIOR .or. &
+       dm%ibcz(2, 2) == IBC_INTERIOR) then
+      call transpose_x_to_y(fl%qy,         acpc_ypencil, dm%dcpc)
+      call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)
+    end if
+    if(dm%ibcz(1, 2) == IBC_INTERIOR) then
+      if( dm%dcpc%zst(3)    == 1) fl%fbcz_qy(:, :, 1) = - acpc_zpencil(:, :, 1) 
+      if((dm%dcpc%zst(3)+1) == 2) fl%fbcz_qy(:, :, 3) = - acpc_zpencil(:, :, 2)
+    end if
+    if(dm%ibcz(2, 2) == IBC_INTERIOR) then
+      if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) fl%fbcz_qy(:, :, 2) = - acpc_zpencil(:, :, dm%nc(3)    )
+      if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) fl%fbcz_qy(:, :, 4) = - acpc_zpencil(:, :, dm%nc(3) - 1)
+    end if
+
+    ! uz at x-bc
+    if(dm%ibcx(1, 3) == IBC_INTERIOR) then
+      if( dm%dccp%xst(1)    == 1) fl%fbcx_qz(1, :, :) = - fl%qz(1, :, :) 
+      if((dm%dccp%xst(1)+1) == 2) fl%fbcx_qz(3, :, :) = - fl%qz(2, :, :)
+    end if
+    if(dm%ibcx(2, 3) == IBC_INTERIOR) then
+      if( dm%dccp%xen(1)    ==  dm%nc(1)   ) fl%fbcx_qz(2, :, :) = - fl%qz(dm%nc(1),     :, :)
+      if((dm%dccp%xen(1)-1) == (dm%nc(1)-1)) fl%fbcx_qz(4, :, :) = - fl%qz(dm%nc(1) - 1, :, :)
+    end if
+    ! uz at y-bc
+    if(dm%ibcy(1, 3) == IBC_INTERIOR .or. &
+       dm%ibcy(2, 3) == IBC_INTERIOR) then
+      call transpose_x_to_y(fl%qz, accp_ypencil, dm%dpcc)
+    end if
+    if(dm%ibcy(1, 3) == IBC_INTERIOR) then
+      if( dm%dccp%yst(2)    == 1) dm%fbcy_qz(:, 1, :) = - accp_ypencil(:, 1, :) 
+      if((dm%dccp%yst(2)+1) == 2) dm%fbcy_qz(:, 3, :) = - accp_ypencil(:, 2, :)
+    end if
+    if(dm%ibcy(2, 3) == IBC_INTERIOR) then
+      if( dm%dccp%yen(2)    ==  dm%nc(2)   ) dm%fbcy_qz(:, 2, :) = - accp_ypencil(:, dm%nc(2),     :)
+      if((dm%dccp%yen(2)-1) == (dm%nc(2)-1)) dm%fbcy_qz(:, 4, :) = - accp_ypencil(:, dm%nc(2) - 1, :)
+    end if
+
+    return
+  end subroutine
 !==========================================================================================================
 !==========================================================================================================
   subroutine update_bc_interface_flow(dm0, fl0, dm1, fl1)

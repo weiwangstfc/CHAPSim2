@@ -265,7 +265,7 @@ contains
             domain(i)%ibcy_nominal(:, :) = IBC_INTERIOR
             domain(i)%is_periodic(2) = .false.
           end if
-
+          call configure_bc_type(domain(i)) 
         end do
         
         if(nrank == 0) then

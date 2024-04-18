@@ -69,7 +69,6 @@ subroutine Initialize_chapsim
   ! build up geometry information
   !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call configure_bc_type(domain(i)) 
     call Buildup_geometry_mesh_info(domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
