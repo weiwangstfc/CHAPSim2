@@ -2144,7 +2144,11 @@ contains
        xa0 = alpha / pi + half / beta / pi
        if (istret == 1) xa1 = +one / four / beta / pi
        if (istret == 2) xa1 = -one / four / beta / pi
-!
+
+       ! below 2 lines added by WW
+      xa0 = xa0 /yly
+      xa1 = xa1 /yly
+
        xa0_2 = xa0**2
        xa1_2 = xa1**2
        xa01 = xa0 * xa1
