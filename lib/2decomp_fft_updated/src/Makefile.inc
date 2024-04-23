@@ -64,7 +64,7 @@ CPPFLAGS=-cpp
 # CRAYPTR=-fcray-pointer
 # optimisation or debugging flags
 # OPTIM=-g -fcheck=all
- OPTIM=-O3
+ OPTIM=-O3 -fallow-argument-mismatch
 
 FCFLAGS=$(OPTIM) $(CRAYPTR) $(CPPFLAGS) $(INC)
 LDFLAGS=$(OPTIM)
