@@ -140,28 +140,30 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if (nclx) then
       nx = dm%np_geo(1) - 1
-      nxm = nx
+      nxm = dm%np_geo(1) - 1
     else
-      nx = dm%np_geo(1)
-      nxm = nx - 1
+      nx = dm%np_geo(1) - 1
+      nxm = dm%np_geo(1) - 1
     end if
 
     if (ncly) then
       ny = dm%np_geo(2) - 1
-      nym = ny
+      nym = dm%np_geo(2) - 1
     else
-      ny = dm%np_geo(2)
-      nym = ny - 1
+      ny = dm%np_geo(2) - 1
+      nym = dm%np_geo(2) - 1
     end if
 
     if (nclz) then
       nz = dm%np_geo(3) - 1
-      nzm = nz
+      nzm = dm%np_geo(3) - 1
     else
-      nz = dm%np_geo(3)
-      nzm = nz - 1
+      nz = dm%np_geo(3) - 1
+      nzm = dm%np_geo(3) - 1
     end if
 !----------------------------------------------------------------------------------------------------------
+    !write(*,*) 'nx, ny, nz, nxm, nym, nzm:(var)', nx, ny, nz, nxm, nym, nzm
+
     dx = dm%h(1)
     dy = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) !dm%h(2) ! check, computational or physical grid spacing (yes))?
     dz = dm%h(3)

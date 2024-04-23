@@ -127,7 +127,7 @@ contains
     if (bcz==1) nz=nz-1
 
 #ifdef DEBUG_STEPS
-   write(*,*) 'in fft, nx, ny, nz = ', nx, ny, nz
+   write(*,*) 'nx, ny, nz, nxm, nym, nzm:(fft)', nx, ny, nz, nxm, nym, nzm
 #endif
 
 #ifdef DEBUG_FFT 
@@ -371,6 +371,11 @@ contains
     call avg3d (abs_prec(cw1), avg_param)
     if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk) ', avg_param
 #endif
+!   WWcoments: cw1 is at node points (x_np = 0, x_1, x_2), it needs to shif to cell centre for further calculation.
+!   hat_f_{i+1/2} * e^(-I k_x x_{i+1/2} ) = [ hat_f_{i} * e^(-I k_x x_{i} ) ] * e^(-I k_x dx/2)
+!   = (rl + I iy)(cos(-k_x*dx/2) + i sin(-k_x * dx/2))
+!   = (rl + I iy)(b - i a) 
+!   = (rl * b + iy * a, iy * b - rl * a )
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
@@ -418,26 +423,37 @@ contains
 !                 write(*,*) 'AFTER',i,j,k,cw1(i,j,k),xyzk
 !               end if
 ! #endif
+!   WWcoments: calculation is at mid points, it needs to shif back to node points.
+!   hat_f_i * e^(-I k_x x_{i} ) = [hat_f_{i+1/2} * e^(-I k_x x_{i+1/2} )] * e^(+I k_x dx/2)
+!   = (rl + I iy)(cos(k_x*dx/2) + i sin(k_x * dx/2))
+!   = (rl + I iy)(b + i a) 
+!   = (rl * b - iy * a, iy * b + rl * a )
              ! post-processing backward
 
              ! POST PROCESSING IN Z
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
+             !cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
+             !               -tmp2 * bz(k) - tmp1 * az(k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
-                            -tmp2 * bz(k) - tmp1 * az(k))
+                             tmp2 * bz(k) + tmp1 * az(k))
 
              ! POST PROCESSING IN Y
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
-             cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
-                             tmp2 * by(j) - tmp1 * ay(j))
+             !cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
+             !                tmp2 * by(j) - tmp1 * ay(j))
+             cw1(i,j,k) = cx(tmp1 * by(j) - tmp2 * ay(j), &
+                             tmp2 * by(j) + tmp1 * ay(j))
              if (j > (ny/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
 
              ! POST PROCESSING IN X
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
-             cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
-                            -tmp2 * bx(i) + tmp1 * ax(i))
+             !cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
+             !               -tmp2 * bx(i) + tmp1 * ax(i))
+             cw1(i,j,k) = cx(tmp1 * bx(i) - tmp2 * ax(i), &
+                             tmp2 * bx(i) + tmp1 * ax(i))
              if (i > (nx/2+1)) cw1(i,j,k) = -cw1(i,j,k)
 
              
@@ -982,14 +998,14 @@ contains
 
     endif
 
-    !we are in Y pencil
-    do k = sp%yst(3), sp%yen(3)  
-       do i = sp%yst(1), sp%yen(1)
-          if ((i == nx/2+1).and.(k == nz/2+1)) then
-             cw2b(i,:,k) = zero
-          endif
-       enddo
-    enddo
+   !we are in Y pencil, !check below necessary? , commented by WW
+   !  do k = sp%yst(3), sp%yen(3)  
+   !     do i = sp%yst(1), sp%yen(1)
+   !        if ((i == nx/2+1).and.(k == nz/2+1)) then
+   !           cw2b(i,:,k) = zero
+   !        endif
+   !     enddo
+   !  enddo
 #ifdef DEBUG_FFT
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)

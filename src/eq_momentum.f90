@@ -1116,7 +1116,6 @@ end if
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
     coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
-    write(*,*) 'phi-rhs-coeff', coeff
 
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor * coeff
