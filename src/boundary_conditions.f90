@@ -1,5 +1,5 @@
 module boundary_conditions_mod
-
+  use parameters_constant_mod
   character(12) :: filename(5)
   
   private :: map_bc_1d_uprofile
@@ -10,7 +10,7 @@ module boundary_conditions_mod
   public  :: update_bc_interface_thermo
   public  :: update_flow_bc_1dm_halo
 
-  public  :: apply_bc_const
+  !public  :: apply_bc_const
   !public  :: apply_convective_outlet
   
 contains
@@ -49,37 +49,7 @@ contains
     implicit none
     type(t_domain), intent(inout) :: dm
     integer :: m, n
-!----------------------------------------------------------------------------------------------------------
-! to set up real bc for calculation from given nominal b.c.
-!----------------------------------------------------------------------------------------------------------
-    ! x-pencil, ux-special
-    call refresh_bc_type(dm%ibcx_nominal, dm%ibcx)
-    do n = 1, 2
-      if(dm%ibcx(n, 1) == IBC_DIRICHLET) dm%ibcx(n, 1) = IBC_DIRICHLET ! ux at x-start
-      do m = 2, NBC
-          if(dm%ibcx(n, m) == IBC_DIRICHLET) dm%ibcx(n, m) = IBC_INTERIOR ! uy at x-start, -y2, -y1, /0/, y1, y2
-      end do
-    end do
-    ! y-pencil, uy-special
-    call refresh_bc_type(dm%ibcy_nominal, dm%ibcy)
-    do n = 1, 2
-      if(dm%ibcy(n, 2) == IBC_DIRICHLET) dm%ibcy(n, 2) = IBC_DIRICHLET ! uy at y-start
-      do m = 1, NBC
-          if (m /= 2) then
-            if(dm%ibcy(n, m) == IBC_DIRICHLET) dm%ibcy(n, m) = IBC_INTERIOR ! uy at x-start, -y2, -y1, /0/, y1, y2
-          end if
-      end do
-    end do
-    ! z-pencil, uz-special
-    call refresh_bc_type(dm%ibcz_nominal, dm%ibcz)
-    do n = 1, 2
-      if(dm%ibcz(n, 3) == IBC_DIRICHLET) dm%ibcz(n, 3) = IBC_DIRICHLET ! uz at z-start
-      do m = 1, NBC
-          if (m /= 3) then
-            if(dm%ibcz(n, m) == IBC_DIRICHLET) dm%ibcz(n, m) = IBC_INTERIOR ! uz at z-start, -y2, -y1, /0/, y1, y2
-          end if
-      end do
-    end do
+
 !----------------------------------------------------------------------------------------------------------
 ! to exclude non-resonable input
 !----------------------------------------------------------------------------------------------------------
@@ -93,7 +63,39 @@ contains
         if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
       end do
     end do
-
+!----------------------------------------------------------------------------------------------------------
+! to set up real bc for calculation from given nominal b.c.
+!----------------------------------------------------------------------------------------------------------
+    ! x-pencil, ux-special
+    call refresh_bc_type(dm%ibcx_nominal, dm%ibcx)
+    do n = 1, 2
+      if(dm%ibcx(n, 1) == IBC_DIRICHLET) dm%ibcx(n, 1) = IBC_DIRICHLET ! ux at x-start
+      do m = 1, NBC-2
+        if (m /= 1) then
+          if(dm%ibcx(n, m) == IBC_DIRICHLET) dm%ibcx(n, m) = IBC_ASYMMETRIC ! uy at x-start, -y2, -y1, /0/, y1, y2, check, not working for slip wall
+        end if
+      end do
+    end do
+    ! y-pencil, uy-special
+    call refresh_bc_type(dm%ibcy_nominal, dm%ibcy)
+    do n = 1, 2
+      if(dm%ibcy(n, 2) == IBC_DIRICHLET) dm%ibcy(n, 2) = IBC_DIRICHLET ! uy at y-start
+      do m = 1, NBC-2
+          if (m /= 2) then
+            if(dm%ibcy(n, m) == IBC_DIRICHLET) dm%ibcy(n, m) = IBC_ASYMMETRIC ! uy at x-start, -y2, -y1, /0/, y1, y2
+          end if
+      end do
+    end do
+    ! z-pencil, uz-special
+    call refresh_bc_type(dm%ibcz_nominal, dm%ibcz)
+    do n = 1, 2
+      if(dm%ibcz(n, 3) == IBC_DIRICHLET) dm%ibcz(n, 3) = IBC_DIRICHLET ! uz at z-start
+      do m = 1, NBC-2
+          if (m /= 3) then
+            if(dm%ibcz(n, m) == IBC_DIRICHLET) dm%ibcz(n, m) = IBC_ASYMMETRIC ! uz at z-start, -y2, -y1, /0/, y1, y2
+          end if
+      end do
+    end do
 
     return
   end subroutine 
@@ -266,91 +268,6 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine configure_bc_type(dm)
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent(inout) :: dm
-
-
-    integer :: m, n
-
-!----------------------------------------------------------------------------------------------------------
-! to set up real bc for calculation from given nominal b.c.
-!----------------------------------------------------------------------------------------------------------
-    do n = 1, 2
-      do m = 1, NBC
-!----------------------------------------------------------------------------------------------------------
-! x-direction
-!----------------------------------------------------------------------------------------------------------
-        if (dm%ibcx_nominal(n, m) == IBC_PROFILE1D)   then
-          dm%ibcx(n, m) = IBC_DIRICHLET
-        else if (dm%ibcx_nominal(n, m) == IBC_TURBGEN  .or. &
-                 dm%ibcx_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            dm%ibcx(n, m) = IBC_INTERIOR ! for temperature, default is no incoming thermal flow, check
-          else 
-            dm%ibcx(n, m) = IBC_DIRICHLET
-          end if
-        else if (dm%ibcx_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcx(n, m) = IBC_INTRPL
-        else
-          dm%ibcx(n, m) = dm%ibcx_nominal(n, m)   
-        end if
-!----------------------------------------------------------------------------------------------------------
-! y-direction
-!----------------------------------------------------------------------------------------------------------
-        if (dm%ibcy_nominal(n, m) == IBC_PROFILE1D)   then
-          dm%ibcy(n, m) = IBC_DIRICHLET
-        else if (dm%ibcy_nominal(n, m) == IBC_TURBGEN  .or. &
-                 dm%ibcy_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            dm%ibcy(n, m) = IBC_INTERIOR
-          else 
-            dm%ibcy(n, m) = IBC_DIRICHLET
-          end if
-        else if (dm%ibcy_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcy(n, m) = IBC_INTRPL
-        else
-          dm%ibcy(n, m) = dm%ibcy_nominal(n, m)   
-        end if
-!----------------------------------------------------------------------------------------------------------
-! z-direction
-!----------------------------------------------------------------------------------------------------------
-        if (dm%ibcz_nominal(n, m) == IBC_PROFILE1D)   then
-          dm%ibcz(n, m) = IBC_DIRICHLET
-        else if (dm%ibcz_nominal(n, m) == IBC_TURBGEN  .or. &
-                 dm%ibcz_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            dm%ibcz(n, m) = IBC_INTERIOR
-          else 
-            dm%ibcz(n, m) = IBC_DIRICHLET
-          end if
-        else if (dm%ibcz_nominal(n, m) == IBC_CONVECTIVE)   then
-          dm%ibcz(n, m) = IBC_INTRPL
-        else
-          dm%ibcz(n, m) = dm%ibcz_nominal(n, m)   
-        end if
-
-      end do
-    end do
-!----------------------------------------------------------------------------------------------------------
-! to exclude non-resonable input
-!----------------------------------------------------------------------------------------------------------
-    do m = 1, NBC
-      if(dm%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
-      do n = 1, 2
-        if(dm%ibcx(n, m)         >  IBC_OTHERS   ) dm%ibcx(n, m) = IBC_INTRPL
-        if(dm%ibcy(n, m)         >  IBC_OTHERS   ) dm%ibcy(n, m) = IBC_INTRPL
-        if(dm%ibcz(n, m)         >  IBC_OTHERS   ) dm%ibcz(n, m) = IBC_INTRPL
-        if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
-        if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
-      end do
-    end do
-
-    return
-  end subroutine 
-
   subroutine configure_bc_vars(dm)
     use parameters_constant_mod
     use udf_type_mod
@@ -404,7 +321,7 @@ contains
   end subroutine 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_flow_bc_1dm_halo(dm, fl) ! 
+  subroutine update_flow_bc_1dm_halo(dm, fl) ! similar to asymmetric
     use parameters_constant_mod
     use udf_type_mod
     implicit none
@@ -418,68 +335,106 @@ contains
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
 
     ! default zero velocity at wall, check! not work for slip wall.
-    ! ux at y-bc
+    !------------ux at x-bc-----------
+    if(dm%ibcx(1, 1) == IBC_DIRICHLET ) then
+      dm%fbcx_qx(1, :, :) = dm%fbcx_const(1, 1)
+      dm%fbcx_qx(3, :, :) = dm%fbcx_const(1, 1)
+      fl%qx(1, :, :) = dm%fbcx_const(1, 1)
+    end if
+    if(dm%ibcx(2, 1) == IBC_DIRICHLET ) then
+      dm%fbcx_qx(2, :, :) = dm%fbcx_const(2, 1)
+      dm%fbcx_qx(4, :, :) = dm%fbcx_const(2, 1)
+      fl%qx(dm%dpcc%xsz(1), :, :) = dm%fbcx_const(2, 1)
+    end if
+    !------------ux at y-bc-----------
     if(dm%ibcy(1, 1) == IBC_INTERIOR .or. &
        dm%ibcy(2, 1) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qx, apcc_ypencil, dm%dpcc)
     end if
+    ! ux at y-bc-y1
     if(dm%ibcy(1, 1) == IBC_INTERIOR) then
       if( dm%dpcc%yst(2)    == 1) dm%fbcy_qx(:, 1, :) = - apcc_ypencil(:, 1, :) 
       if((dm%dpcc%yst(2)+1) == 2) dm%fbcy_qx(:, 3, :) = - apcc_ypencil(:, 2, :)
     end if
+    ! ux at y-bc-yn
     if(dm%ibcy(2, 1) == IBC_INTERIOR) then
       if( dm%dpcc%yen(2)    ==  dm%nc(2)   ) dm%fbcy_qx(:, 2, :) = - apcc_ypencil(:, dm%nc(2),     :)
       if((dm%dpcc%yen(2)-1) == (dm%nc(2)-1)) dm%fbcy_qx(:, 4, :) = - apcc_ypencil(:, dm%nc(2) - 1, :)
     end if
-    ! ux at z-bc
+    !-----------ux at z-bc-----------
     if(dm%ibcz(1, 1) == IBC_INTERIOR .or. &
        dm%ibcz(2, 1) == IBC_INTERIOR) then
-      call transpose_x_to_y(fl%qx,         apcc_ypencil, dm%dpcc)
+      call transpose_x_to_y(fl%qx,        apcc_ypencil, dm%dpcc)
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc)
     end if
+    ! ux at z-bc
     if(dm%ibcz(1, 1) == IBC_INTERIOR) then
-      if( dm%dpcc%zst(3)    == 1) fl%fbcz_qx(:, :, 1) = - apcc_zpencil(:, :, 1) 
-      if((dm%dpcc%zst(3)+1) == 2) fl%fbcz_qx(:, :, 3) = - apcc_zpencil(:, :, 2)
+      if( dm%dpcc%zst(3)    == 1) dm%fbcz_qx(:, :, 1) = - apcc_zpencil(:, :, 1) 
+      if((dm%dpcc%zst(3)+1) == 2) dm%fbcz_qx(:, :, 3) = - apcc_zpencil(:, :, 2)
     end if
     if(dm%ibcz(2, 1) == IBC_INTERIOR) then
-      if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) fl%fbcz_qx(:, :, 2) = - apcc_zpencil(:, :, dm%nc(3)    )
-      if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) fl%fbcz_qx(:, :, 4) = - apcc_zpencil(:, :, dm%nc(3) - 1)
+      if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) dm%fbcz_qx(:, :, 2) = - apcc_zpencil(:, :, dm%nc(3)    )
+      if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) dm%fbcz_qx(:, :, 4) = - apcc_zpencil(:, :, dm%nc(3) - 1)
     end if
 
-    ! uy at x-bc
+    !------------uy at y-bc-----------
+    if(dm%ibcy(1, 2) == IBC_DIRICHLET ) then
+      dm%fbcy_qy(:, 1, :) = dm%fbcy_const(1, 2)
+      dm%fbcy_qy(:, 3, :) = dm%fbcy_const(1, 2)
+      call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
+      acpc_ypencil(:, 1, :) = dm%fbcy_const(1, 2)
+      call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
+    end if
+    if(dm%ibcy(2, 2) == IBC_DIRICHLET ) then
+      dm%fbcy_qy(:, 2, :) = dm%fbcy_const(2, 2)
+      dm%fbcy_qy(:, 4, :) = dm%fbcy_const(2, 2)
+      call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
+      acpc_ypencil(:, dm%dcpc%ysz(2), :) = dm%fbcy_const(2, 2)
+      call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
+    end if
+    !-----------uy at x-bc-----------
     if(dm%ibcx(1, 2) == IBC_INTERIOR) then
-      if( dm%dcpc%xst(1)    == 1) fl%fbcx_qy(1, :, :) = - fl%qy(1, :, :) 
-      if((dm%dcpc%xst(1)+1) == 2) fl%fbcx_qy(3, :, :) = - fl%qy(2, :, :)
+      if( dm%dcpc%xst(1)    == 1) dm%fbcx_qy(1, :, :) = - fl%qy(1, :, :) 
+      if((dm%dcpc%xst(1)+1) == 2) dm%fbcx_qy(3, :, :) = - fl%qy(2, :, :)
     end if
     if(dm%ibcx(2, 2) == IBC_INTERIOR) then
-      if( dm%dcpc%xen(1)    ==  dm%nc(1)   ) fl%fbcx_qy(2, :, :) = - fl%qy(dm%nc(1),     :, :)
-      if((dm%dcpc%xen(1)-1) == (dm%nc(1)-1)) fl%fbcx_qy(4, :, :) = - fl%qy(dm%nc(1) - 1, :, :)
+      if( dm%dcpc%xen(1)    ==  dm%nc(1)   ) dm%fbcx_qy(2, :, :) = - fl%qy(dm%nc(1),     :, :)
+      if((dm%dcpc%xen(1)-1) == (dm%nc(1)-1)) dm%fbcx_qy(4, :, :) = - fl%qy(dm%nc(1) - 1, :, :)
     end if
-    ! uy at z-bc
+    !-----------uy at z-bc-----------
     if(dm%ibcz(1, 2) == IBC_INTERIOR .or. &
        dm%ibcz(2, 2) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qy,         acpc_ypencil, dm%dcpc)
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)
     end if
     if(dm%ibcz(1, 2) == IBC_INTERIOR) then
-      if( dm%dcpc%zst(3)    == 1) fl%fbcz_qy(:, :, 1) = - acpc_zpencil(:, :, 1) 
-      if((dm%dcpc%zst(3)+1) == 2) fl%fbcz_qy(:, :, 3) = - acpc_zpencil(:, :, 2)
+      if( dm%dcpc%zst(3)    == 1) dm%fbcz_qy(:, :, 1) = - acpc_zpencil(:, :, 1) 
+      if((dm%dcpc%zst(3)+1) == 2) dm%fbcz_qy(:, :, 3) = - acpc_zpencil(:, :, 2)
     end if
     if(dm%ibcz(2, 2) == IBC_INTERIOR) then
-      if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) fl%fbcz_qy(:, :, 2) = - acpc_zpencil(:, :, dm%nc(3)    )
-      if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) fl%fbcz_qy(:, :, 4) = - acpc_zpencil(:, :, dm%nc(3) - 1)
+      if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) dm%fbcz_qy(:, :, 2) = - acpc_zpencil(:, :, dm%nc(3)    )
+      if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) dm%fbcz_qy(:, :, 4) = - acpc_zpencil(:, :, dm%nc(3) - 1)
     end if
 
-    ! uz at x-bc
+    !------------uz at z-bc-----------
+    if(dm%ibcz(1, 3) == IBC_DIRICHLET ) then
+      dm%fbcz_qz(:, 1, :) = dm%fbcz_const(1, 3)
+      dm%fbcz_qz(:, 3, :) = dm%fbcz_const(1, 3)
+    end if
+    if(dm%ibcz(2, 3) == IBC_DIRICHLET ) then
+      dm%fbcz_qz(:, 2, :) = dm%fbcz_const(2, 3)
+      dm%fbcz_qz(:, 4, :) = dm%fbcz_const(2, 3)
+    end if
+    !-----------uz at x-bc-----------
     if(dm%ibcx(1, 3) == IBC_INTERIOR) then
-      if( dm%dccp%xst(1)    == 1) fl%fbcx_qz(1, :, :) = - fl%qz(1, :, :) 
-      if((dm%dccp%xst(1)+1) == 2) fl%fbcx_qz(3, :, :) = - fl%qz(2, :, :)
+      if( dm%dccp%xst(1)    == 1) dm%fbcx_qz(1, :, :) = - fl%qz(1, :, :) 
+      if((dm%dccp%xst(1)+1) == 2) dm%fbcx_qz(3, :, :) = - fl%qz(2, :, :)
     end if
     if(dm%ibcx(2, 3) == IBC_INTERIOR) then
-      if( dm%dccp%xen(1)    ==  dm%nc(1)   ) fl%fbcx_qz(2, :, :) = - fl%qz(dm%nc(1),     :, :)
-      if((dm%dccp%xen(1)-1) == (dm%nc(1)-1)) fl%fbcx_qz(4, :, :) = - fl%qz(dm%nc(1) - 1, :, :)
+      if( dm%dccp%xen(1)    ==  dm%nc(1)   ) dm%fbcx_qz(2, :, :) = - fl%qz(dm%nc(1),     :, :)
+      if((dm%dccp%xen(1)-1) == (dm%nc(1)-1)) dm%fbcx_qz(4, :, :) = - fl%qz(dm%nc(1) - 1, :, :)
     end if
-    ! uz at y-bc
+    !-----------uz at y-bc-----------
     if(dm%ibcy(1, 3) == IBC_INTERIOR .or. &
        dm%ibcy(2, 3) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qz, accp_ypencil, dm%dpcc)
@@ -855,105 +810,105 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !==========================================================================================================
-  subroutine apply_bc_const (dm, fl) ! check, necessary?
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent( in    )   :: dm
-    type(t_flow),   intent( inout )   :: fl
+!   subroutine apply_bc_const (dm, fl) ! check, necessary?
+!     use parameters_constant_mod
+!     use udf_type_mod
+!     implicit none
+!     type(t_domain), intent( in    )   :: dm
+!     type(t_flow),   intent( inout )   :: fl
 
-    integer :: m, s
-    type(DECOMP_INFO) :: dtmp
+!     integer :: m, s
+!     type(DECOMP_INFO) :: dtmp
 
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil !
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil ! 
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil !
+!     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil !
+!     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil ! 
+!     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil !
 
 
-    !  if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
-    !     dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
-    !     dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
-    !     dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
-    !     dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
-    !     dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
-!----------------------------------------------------------------------------------------------------------
-!   all in x-pencil
-!----------------------------------------------------------------------------------------------------------
+!     !  if(dm%ibcx(1, 1) /= IBC_DIRICHLET .and. &
+!     !     dm%ibcx(2, 1) /= IBC_DIRICHLET .and. &
+!     !     dm%ibcy(1, 2) /= IBC_DIRICHLET .and. &
+!     !     dm%ibcy(2, 2) /= IBC_DIRICHLET .and. &
+!     !     dm%ibcz(1, 3) /= IBC_DIRICHLET .and. &
+!     !     dm%ibcz(2, 3) /= IBC_DIRICHLET ) return
+! !----------------------------------------------------------------------------------------------------------
+! !   all in x-pencil
+! !----------------------------------------------------------------------------------------------------------
 
-!----------------------------------------------------------------------------------------------------------
-!   x-pencil, ux stored at nodes, bc is nodes.
-!----------------------------------------------------------------------------------------------------------
-    dtmp = dm%dpcc
-    if(dm%ibcx(1, 1) == IBC_DIRICHLET .and. dtmp%xst(1) == 1) then ! ux at x-begin-xpencil
-      fl%qx     (1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
-      dm%fbcx_qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
-    end if
-    if(dm%ibcx(2, 1) == IBC_DIRICHLET .and. dtmp%xen(1) == dm%np(1)) then ! ux at x-end-xpencil
-      fl%qx     (dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
-      dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
-    end if
-!----------------------------------------------------------------------------------------------------------
-!   x-pencil, uy stored at cells, bc is nodes. symmetric to get bc.
-!----------------------------------------------------------------------------------------------------------
-    dtmp = dm%dcpc
-    if(dm%ibcx_nominal(1, 2) == IBC_DIRICHLET .and. dtmp%xst(1) == 1) then ! ux at x-begin-xpencil
-      dm%ibcx(1, 2) = IBC_INTERIOR
-      dm%fbcx_qy(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = two * dm%fbcx_const(1, 2) - 
-      fl%qy     (1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) 
-    end if
-    if(dm%ibcx(2, 1) == IBC_DIRICHLET .and. dtmp%xen(1) == dm%np(1)) then ! ux at x-end-xpencil
-      fl%qx     (dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
-      dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
-    end if
+! !----------------------------------------------------------------------------------------------------------
+! !   x-pencil, ux stored at nodes, bc is nodes.
+! !----------------------------------------------------------------------------------------------------------
+!     dtmp = dm%dpcc
+!     if(dm%ibcx(1, 1) == IBC_DIRICHLET .and. dtmp%xst(1) == 1) then ! ux at x-begin-xpencil
+!       fl%qx     (1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+!       dm%fbcx_qx(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3))
+!     end if
+!     if(dm%ibcx(2, 1) == IBC_DIRICHLET .and. dtmp%xen(1) == dm%np(1)) then ! ux at x-end-xpencil
+!       fl%qx     (dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+!       dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
+!     end if
+! !----------------------------------------------------------------------------------------------------------
+! !   x-pencil, uy stored at cells, bc is nodes. symmetric to get bc.
+! !----------------------------------------------------------------------------------------------------------
+!     dtmp = dm%dcpc
+!     if(dm%ibcx_nominal(1, 2) == IBC_DIRICHLET .and. dtmp%xst(1) == 1) then ! ux at x-begin-xpencil
+!       dm%ibcx(1, 2) = IBC_INTERIOR
+!       dm%fbcx_qy(1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = two * dm%fbcx_const(1, 2) - 
+!       fl%qy     (1, 1:dtmp%xsz(2), 1:dtmp%xsz(3)) 
+!     end if
+!     if(dm%ibcx(2, 1) == IBC_DIRICHLET .and. dtmp%xen(1) == dm%np(1)) then ! ux at x-end-xpencil
+!       fl%qx     (dtmp%xsz(m), 1:dtmp%xsz(2), 1:dtmp%xsz(3)) = &
+!       dm%fbcx_qx(2,           1:dtmp%xsz(2), 1:dtmp%xsz(3))
+!     end if
 
-!----------------------------------------------------------------------------------------------------------
-!   uy at y-direction. BC of others at y-direction are given in operations directly.
-!----------------------------------------------------------------------------------------------------------
-    m = 2
-    dtmp = dm%dcpc
-    do s = 1, 2
-      if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
-        call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
-        if(dtmp%yst(m) == 1) then
-          acpc_ypencil(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3)) = &
-            dm%fbcy_qy(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3))
-          !if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
-        end if
-        if(dtmp%yen(m) == dm%np(m)) then
-          acpc_ypencil(1:dtmp%ysz(1), dtmp%ysz(m), 1:dtmp%ysz(3)) = &
-            dm%fbcy_qy(1:dtmp%ysz(1), 2,           1:dtmp%ysz(3))
-          !if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
-        end if
-        call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
-      end if
-    end do
+! !----------------------------------------------------------------------------------------------------------
+! !   uy at y-direction. BC of others at y-direction are given in operations directly.
+! !----------------------------------------------------------------------------------------------------------
+!     m = 2
+!     dtmp = dm%dcpc
+!     do s = 1, 2
+!       if(dm%ibcy_nominal(s, m) == IBC_DIRICHLET) then
+!         call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
+!         if(dtmp%yst(m) == 1) then
+!           acpc_ypencil(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3)) = &
+!             dm%fbcy_qy(1:dtmp%ysz(1), 1, 1:dtmp%ysz(3))
+!           !if(dm%is_thermo) fl%gy(:, 1, :) = fl%qy(:, 1, :) * dm%fbc_dend(s, m)
+!         end if
+!         if(dtmp%yen(m) == dm%np(m)) then
+!           acpc_ypencil(1:dtmp%ysz(1), dtmp%ysz(m), 1:dtmp%ysz(3)) = &
+!             dm%fbcy_qy(1:dtmp%ysz(1), 2,           1:dtmp%ysz(3))
+!           !if(dm%is_thermo) fl%gy(:, dtmp%xsz(m), :) = fl%qy(:, dtmp%xsz(m), :)  * dm%fbc_dend(s, m)
+!         end if
+!         call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
+!       end if
+!     end do
 
-!----------------------------------------------------------------------------------------------------------
-!   uz at z-direction. BC of others at z-direction are given in oeprations directly.
-!----------------------------------------------------------------------------------------------------------
-    m = 3
-    dtmp = dm%dccp
-    do s = 1, 2
-      if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
-        call transpose_x_to_y(fl%qz,        accp_ypencil, dm%dccp)
-        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-        if(dtmp%zst(m) == 1) then
-          accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1) = &
-            dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1)
-          !if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
-        end if
-        if(dtmp%zen(m) == dm%np(m)) then
-          accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), dtmp%zsz(m)) = &
-            dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 2)
-          !if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
-        end if
-        call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp )
-        call transpose_y_to_x(accp_ypencil, fl%qz, dm%dccp)
-      end if
-    end do
+! !----------------------------------------------------------------------------------------------------------
+! !   uz at z-direction. BC of others at z-direction are given in oeprations directly.
+! !----------------------------------------------------------------------------------------------------------
+!     m = 3
+!     dtmp = dm%dccp
+!     do s = 1, 2
+!       if(dm%ibcz_nominal(s, m) == IBC_DIRICHLET) then
+!         call transpose_x_to_y(fl%qz,        accp_ypencil, dm%dccp)
+!         call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
+!         if(dtmp%zst(m) == 1) then
+!           accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1) = &
+!             dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 1)
+!           !if(dm%is_thermo) fl%gz(:, :, 1) = fl%qz(:, :, 1) * dm%fbc_dend(s, m)
+!         end if
+!         if(dtmp%zen(m) == dm%np(m)) then
+!           accp_zpencil(1:dtmp%zsz(1), 1:dtmp%zsz(2), dtmp%zsz(m)) = &
+!             dm%fbcz_qz(1:dtmp%zsz(1), 1:dtmp%zsz(2), 2)
+!           !if(dm%is_thermo)  fl%gz(:, :, dtmp%xsz(m)) = fl%qz(:, :, dtmp%xsz(m)) *  dm%fbc_dend(s, m)
+!         end if
+!         call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp )
+!         call transpose_y_to_x(accp_ypencil, fl%qz, dm%dccp)
+!       end if
+!     end do
 
-    return
-  end subroutine
+!     return
+!   end subroutine
 
 
 !==========================================================================================================

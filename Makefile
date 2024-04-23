@@ -22,7 +22,7 @@ ifeq ($(cfg), gnu)
   FOPTS= -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
    -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
    -Wno-unused -fallow-argument-mismatch		   
-  FFLGS= -DDOUBLE_PREC
+  FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
   FDEBG= -DDEBUG_STEPS# -DDEBUG_TEST# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \

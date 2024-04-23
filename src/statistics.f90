@@ -168,13 +168,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   ux
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, accc1, dm, dm%ibcx(:, 1))
+    call Get_x_midp_P2C_3D(fl%qx, accc1, dm, dm%ibcx(:, 1), dm%fbcx_qx)
     fl%u_vector_mean(:, :, :, 1) = am * fl%u_vector_mean(:, :, :, 1) + ac * accc1(:, :, :)
 !----------------------------------------------------------------------------------------------------------
 !   uy
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2))
+    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy)
     call transpose_y_to_x(accc_ypencil, accc2, dm%dccc)
     fl%u_vector_mean(:, :, :, 2) = am * fl%u_vector_mean(:, :, :, 2) + ac * accc2(:, :, :)
 !----------------------------------------------------------------------------------------------------------

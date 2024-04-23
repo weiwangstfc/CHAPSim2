@@ -17,7 +17,7 @@ module decomp_2d_poisson
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-20_mytype
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 #else
   real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
@@ -405,7 +405,7 @@ contains
              tmp1 = rl(kxyz(i,j,k))
              tmp2 = iy(kxyz(i,j,k))
              ! CANNOT DO A DIVISION BY ZERO
-             if ((abs_prec(tmp1) < epsilon).or.(abs_prec(tmp2) < epsilon)) then
+             if ((tmp1 < epsilon).or.(tmp2 < epsilon)) then
                 cw1(i,j,k) = zero
              else
                 cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (-tmp1), &
@@ -421,8 +421,8 @@ contains
              ! post-processing backward
 
              ! POST PROCESSING IN Z
-              tmp1 = rl(cw1(i,j,k))
-              tmp2 = iy(cw1(i,j,k))
+             tmp1 = rl(cw1(i,j,k))
+             tmp2 = iy(cw1(i,j,k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
                             -tmp2 * bz(k) - tmp1 * az(k))
 
@@ -903,7 +903,7 @@ contains
        end do
 
     else
-       !call matrice_refinement()
+       call matrice_refinement()
        !write(*,*) 'PO_010 ii1 A rl ', rl(a(1,1,1,1)),rl(a(1,1,1,2)),rl(a(1,1,1,3)),&
        !                              rl(a(1,1,1,4)),rl(a(1,1,1,5))
        !write(*,*) 'PO_010 ii1 A iy ', iy(a(1,1,1,1)),iy(a(1,1,1,2)),iy(a(1,1,1,3)),&
@@ -1131,8 +1131,6 @@ contains
     if (bcz == 1) then
        nz = nz_global - 1
     else if (bcz == 0) then
-       nz = nz_global
-    else
        nz = nz_global
     end if
 
@@ -1765,7 +1763,6 @@ contains
        do j = 1, ny/2 + 1
           w = twopi *  real(j-1, mytype)/real(ny, mytype)
           wp = aciy6 * two * dy * sin_prec(w * half) + bciy6 * two * dy * sin_prec(three * half * w)
-
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
           if (istret == 0) yky(j) = cx_one_one * (real(ny,mytype) * wp / yly)

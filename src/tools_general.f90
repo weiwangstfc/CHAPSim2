@@ -648,9 +648,9 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
   
   integer, intent(in) :: iter, irk
 
-  integer, parameter :: npt = 4
+  integer, parameter :: npt = 8
   integer, parameter :: nfil = 20
-  integer  :: nid(4, 3), a(12)
+  integer  :: nid(8, 3), a(24)
 
   character(1) :: pntim
   character(128) :: flnm
@@ -659,10 +659,10 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
 
  ! based on x pencil
 
-  a = (/1, 1, 2, 8, &
-        1, 2, 1, 8, &
-        1, 1, 2, 8/)
-  nid = reshape(a, (/4, 3/))
+  a = (/1, 1, 1, 1, 8, 8, 8, 8, &
+        1, 2, 3, 4, 1, 2, 3, 4, &
+        1, 1, 1, 1, 8, 8, 8, 8/)
+  nid = reshape(a, (/8, 3/))
   do n = 1, npt
       write(pntim,'(i1.1)') n
       flnm = 'chapsim2_p'//pntim//trim(str)//'.dat'   
@@ -682,7 +682,7 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
                             open(nfil+n,file=trim(adjustl(flnm)) )
                             !write(nfil+n,*) '# iter = ', iter
                           end if
-                          write(nfil+n, '(A2, A15, 2I2.1, 3I4.1, 1ES23.15)') &
+                          write(nfil+n, '(A2, A15, 2I2.1, 3I4.1, 1ES27.19)') &
                           trim(str), trim(loc), iter, irk, i, jj, kk, var(i, j, k)
                           close(nfil+n)
                         end if
@@ -713,9 +713,10 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
   character(128) :: flnm
   logical :: file_exists
   integer :: n, i, j, k, jj, kk
+  character(1) :: pntim
 
-
-  flnm = 'chapsim2_'//trim(str)//'.dat'   
+  write(pntim,'(i1.1)') nrank
+  flnm = 'chapsim2_'//trim(str)//'_myid'//pntim//'.dat'  
   inquire(file=trim(adjustl(flnm)), exist=file_exists) 
   if(file_exists) then
     open(nfil,file=trim(adjustl(flnm)), position='append')
@@ -730,7 +731,7 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
     do k =1, dtmp%xsz(3)
       kk = dtmp%xst(3) + k - 1
       do i = 1, dtmp%xsz(1)
-        write(nfil, '(3I4.1, 1ES23.15)') jj, kk, i, var(i, j, k)  
+        write(nfil, '(3I4.1, 1ES27.19)') i, jj, kk, var(i, j, k)  
       end do
     end do
   end do
