@@ -54,12 +54,14 @@ extensions = [
 # Add any paths that contain templates here, relative to this directory.
 source_suffix = [".rst", ".md"]
 templates_path = ['_templates']
-
+intersphinx_mapping = {
+    "toolbox": ("https://chapsim2.readthedocs.io/en/stable/", None,),
+}
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------

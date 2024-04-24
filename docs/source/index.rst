@@ -6,27 +6,23 @@
 Welcome to CHAPSim's documentation!
 ============================================
 
-A CHannel And Pipe flow simulation solver, CHAPSim, is an incompressible Direct Numerical Simulation (DNS) 
+A CHannel And Pipe flow simulation solver, `CHAPSim`, is an incompressible Direct Numerical Simulation (DNS) 
 solver for flow and heat transfer with MPI parallelization. 
 
 
 .. note::
     This website is still **under development**!
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
 
 
 Contents
 ==================
 
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-   pages/installation.rst
-   pages/benchmark_cases.rst
-   pages/user_guide.rst
-   pages/methodology.rst
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
