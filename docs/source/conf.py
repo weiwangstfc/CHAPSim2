@@ -17,10 +17,23 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'CHAPSim Guidance'
-copyright = '2024, Wei Wang'
+project = 'CHAPSim'
+copyright = '2024, CHAPSim, Wei Wang'
 author = 'Wei Wang'
+master_doc = "index"
 
+# -- Get version information and date from Git ----------------------------
+
+try:
+    from subprocess import check_output
+
+    release = check_output(["git", "describe", "--tags", "--always"])
+    release = release.decode().strip()
+    today = check_output(["git", "show", "-s", "--format=%ad", "--date=short"])
+    today = today.decode().strip()
+except Exception:
+    release = "<unknown>"
+    today = "<unknown date>"
 
 # -- General configuration ---------------------------------------------------
 
@@ -28,11 +41,20 @@ author = 'Wei Wang'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+  'sphinx.ext.todo',
+  'sphinx.ext.coverage',
+  'sphinx.ext.autodoc',
+  'sphinx.ext.viewcode',
+  'sphinx.ext.autosummary',
+  'sphinx.ext.napoleon',
+  'sphinx.ext.mathjax',
   'sphinx_rtd_theme'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
+source_suffix = [".rst", ".md"]
 templates_path = ['_templates']
+
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
