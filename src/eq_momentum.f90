@@ -460,6 +460,7 @@ if(iconvection) then
       call Get_x_1st_derivative_C2P_3D(-gx_ccc * qx_ccc, apcc, dm, dm%ibcx(:, 1), dm%fbcx_gx * dm%fbcx_qx)
     end if
     fl%mx_rhs = fl%mx_rhs + apcc
+
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : X-mom convection term (x-c2/3): -d(<gy>^x * <qx>^y)/dy at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
@@ -619,7 +620,7 @@ if(iconvection) then
 ! Y-pencil : Y-mom convection term (y-c2/3), d(gy * qy)/dy at (i, j', k)
 !----------------------------------------------------------------------------------------------------------
     if ( .not. dm%is_thermo) then
-      call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy * dm%fbcy_qy)
+      call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 1), dm%fbcy_qy * dm%fbcy_qy)
     else
       call Get_y_1st_derivative_C2P_3D(-gy_ccc_ypencil * qy_ccc_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qy * dm%fbcy_qy)
     end if

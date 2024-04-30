@@ -571,13 +571,8 @@ subroutine Test_algorithms()
   logical :: is_burgers = .false.
   integer :: n
 
-#ifndef DEBUG_TEST
-  return
-#endif
 
-  if( (.not. is_TDMA) .and. (.not. is_operations) .and. (.not. is_burgers)) return 
-
-  
+  !if( (.not. is_TDMA) .and. (.not. is_operations) .and. (.not. is_burgers)) return 
 
   if(is_operations) then
       call Test_interpolation (domain(1))

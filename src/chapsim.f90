@@ -75,10 +75,6 @@ subroutine Initialize_chapsim
 ! build up operation coefficients for all x-subdomains
 !----------------------------------------------------------------------------------------------------------
   call Prepare_LHS_coeffs_for_operations
-
-#ifdef DEBUG_TEST
-  call Test_algorithms()
-#endif
 !----------------------------------------------------------------------------------------------------------
 ! build up domain decomposition
 !----------------------------------------------------------------------------------------------------------
@@ -86,6 +82,12 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain
     call configure_bc_vars(domain(i)) 
   end do
+  
+#ifdef DEBUG_ALGO
+  call Test_algorithms()
+  call Print_warning_msg(" === The solver will stop as per the user's request in <Test_algorithms> === ")
+  stop
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------

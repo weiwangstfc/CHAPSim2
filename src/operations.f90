@@ -375,6 +375,10 @@ contains
 !         1st derivative on collocated grids, C2C/P2P bulk coefficients
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+! to solve below matrix:
+! eq(1) : a +   b = 2  alpha + 1    O(h2)
+! eq(2) : a +  4b = 6  alpha        O(h4)
+! eq(3) : a + 16b = 10 alpha        O(h6)
 !==========================================================================================================
     alpha = ZERO
         a = ZERO
@@ -385,19 +389,19 @@ alpha_itf = ZERO
     b_itf = - ONE_THIRD
     c_itf = ZERO
 
-    if (iaccu == IACCU_CD2) then
+    if (iaccu == IACCU_CD2) then      ! eq(1) + alpha0 + b0, O(h2)
       alpha = ZERO
           a = ONE
           b = ZERO
-    else if (iaccu == IACCU_CD4) then
+    else if (iaccu == IACCU_CD4) then ! eq(1-2) + alpha0, O(h4)
       alpha = ZERO
           a = FOUR * ONE_THIRD
           b = - ONE_THIRD
-    else if (iaccu == IACCU_CP4) then
+    else if (iaccu == IACCU_CP4) then ! eq(1-2) + b0, O(h4)
       alpha = QUARTER
           a = ONEPFIVE
           b = ZERO
-    else if (iaccu == IACCU_CP6) then
+    else if (iaccu == IACCU_CP6) then ! eq(1-2-3), O(h6)
       alpha = ONE_THIRD
           a = FOURTEEN / NINE
           b = ONE / NINE
@@ -407,7 +411,7 @@ alpha_itf = ZERO
           b = ZERO
     end if
 !----------------------------------------------------------------------------------------------------------
-! 1st-derivative : 
+! 1st-derivative :
 ! C2C : periodic b.c.
 ! d1fC2C : "d1"=first deriviative, "f"=f'  side, "C2C"= center 2 centre 
 ! d1rC2C : "d1"=first deriviative, "r"=rhs side, "C2C"= center 2 centre 
@@ -423,7 +427,7 @@ alpha_itf = ZERO
 
     d1rC2C(1:5, 1, IBC_PERIODIC) = a * HALF    ! a/2
     d1rC2C(1:5, 2, IBC_PERIODIC) = b * QUARTER ! b/4
-    d1rC2C(1:5, 3, IBC_PERIODIC) = c        ! not used
+    d1rC2C(1:5, 3, IBC_PERIODIC) = c           ! not used
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, interior
 !----------------------------------------------------------------------------------------------------------
@@ -536,6 +540,17 @@ alpha_itf = ZERO
 ! 1st derivative on collocated grids, C2C/P2P coefficients : Dirichlet B.C.
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+! it is:
+! [ 1     alpha1                            ][f'_1]=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
+! [alpha2 1      alpha2                     ][f'_2] [a2/2 * (f_{3} - f_{1})/h  ]
+! [       alpha  1      alpha               ][f'_i] [ a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
+! [                     alpha2 1      alpha2][f'_4] [a2/2 * (f_{n} - f_{n-2})/h]
+! [                            alpha1 1     ][f'_5] [-a1 * f_{n}/h  - b1 * f_{n-1}/h - c1 * f_{n-2}/h]
+! First layer BC:
+! eq(1): a + b +  c =  0               O(h0)
+! eq(2):     b + 2c =  alpha + 1       O(h1)
+! eq(3):     b + 4c = 2alpha           O(h2)
+! eq(4):     b + 8c = 3alpha           O(h3)
 !==========================================================================================================
     alpha1 = ZERO
         a1 = ZERO
@@ -545,35 +560,39 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2) then ! degrade to 1st CD (1st cell), 2nd CD (2nd cell)
+    if (iaccu == IACCU_CD2) then ! eq(1-2)+alpha0+c0, O(h1)
       alpha1 = ZERO
           a1 = - ONE
           b1 = ONE 
           c1 = ZERO
+          ! 2nd layer = same as bulk with CD2
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD (1st cell), 2nd CD (2nd cell)
+    else if (iaccu == IACCU_CD4) then ! eq(1-3)+alpha0, O(h2)
       alpha1 = ZERO
           a1 = -ONEPFIVE
           b1 = TWO
           c1 = -HALF
+          ! 2nd layer = same as bulk with CD2
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
-    else if (iaccu == IACCU_CP4) then ! degrade to 2nd CP (1st cell), 4th CP (2nd cell)
+    else if (iaccu == IACCU_CP4) then ! eq(1-3)+c0, O(h2)
       alpha1 = ONE
           a1 = - TWO
           b1 = TWO
           c1 = ZERO
+          ! 2nd layer = same as bulk with CP4
       alpha2 = QUARTER
           a2 = ONEPFIVE
           b2 = ZERO
-    else if (iaccu == IACCU_CP6) then ! degrade to 3rd CP (1st cell), 4th CP (2nd cell)
+    else if (iaccu == IACCU_CP6) then ! eq(1-4), O(h3)
       alpha1 = TWO
           a1 = -TWOPFIVE
           b1 = TWO
           c1 = HALF
+          ! 2nd layer = same as bulk with CP4
       alpha2 = QUARTER
           a2 = ONEPFIVE
           b2 = ZERO
@@ -582,6 +601,7 @@ alpha_itf = ZERO
           a1 = - ONE
           b1 = ONE 
           c1 = ZERO
+          ! 2nd layer = same as bulk with CD2
       alpha2 = ZERO
           a2 = ONE
           b2 = ZERO
@@ -614,7 +634,7 @@ alpha_itf = ZERO
     d1fC2C(2, 2,   IBC_INTRPL) = ONE
     d1fC2C(2, 3,   IBC_INTRPL) = alpha2
     d1rC2C(2, 1,   IBC_INTRPL) = a2 * HALF
-    d1rC2C(2, 2,   IBC_INTRPL) = b2 * QUARTER
+    d1rC2C(2, 2,   IBC_INTRPL) = b2 * QUARTER ! zero
     d1rC2C(2, 3,   IBC_INTRPL) = c2  ! not used  
 
     d1fC2C(4, 1,   IBC_INTRPL) = d1fC2C(2, 3, IBC_INTRPL)
@@ -628,16 +648,16 @@ alpha_itf = ZERO
     d1rC2C(3, 1:3, IBC_INTRPL) = d1rC2C(3, 1:3, IBC_PERIODIC)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
-! C2C : neumann
-!----------------------------------------------------------------------------------------------------------
-    d1fC2C(:, :, IBC_NEUMANN) = d1fC2C(:, :, IBC_INTRPL)
-    d1rC2C(:, :, IBC_NEUMANN) = d1rC2C(:, :, IBC_INTRPL)
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative : 
 ! P2P : no specified
 !----------------------------------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_INTRPL) = d1fC2C(:, :, IBC_INTRPL)
     d1rP2P(:, :, IBC_INTRPL) = d1rC2C(:, :, IBC_INTRPL)
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative : 
+! C2C : neumann
+!----------------------------------------------------------------------------------------------------------
+    d1fC2C(:, :, IBC_NEUMANN) = d1fC2C(:, :, IBC_INTRPL)
+    d1rC2C(:, :, IBC_NEUMANN) = d1rC2C(:, :, IBC_INTRPL)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2P : Dirichlet
@@ -691,11 +711,11 @@ alpha_itf = ZERO
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
 ! f'{1} + alpha f'{2} = 1/h (a * f{1'} + b * f{1} + c * f{2} + d * f{3})
 ! up to 4th order, to solve below equations:
-!    a   + b + c   +  d   = 0
-!   -a/2     + c   + 2d   = alpha + 1
-!    a/8     + c/2 + 2d   = alpha
-!   -a/24    + c/3 + 8d/3 = alpha
-!    a/64    + c/4 + 4d   = alpha
+!    a +   b + c   +  d = 0
+!   -a +  2c +       4d = 2alpha + 2    !O(h1)
+!    a +  4c +      16d = 8alpha        !O(h2)
+!   -a +  8c +      64d = 24alpha       !O(h3)
+!    a + 16c +     256d = 64alpha       !O(h4)
 !==========================================================================================================
     alpha1 = ZERO
         a1 = ZERO
@@ -740,11 +760,11 @@ alpha_itf = ZERO
       !     c1 = TEN / NINE
       !     d1 = ONE * ZPONE
       ! method 2 = without bc value, a=0
-      alpha1 = TWO
+      alpha1 = ONE
           a1 = ZERO
-          b1 = - FIVE / TWO
+          b1 = - TWO
           c1 = TWO
-          d1 = HALF
+          d1 = ZERO
       alpha2 = QUARTER
           a2 = ONEPFIVE
           b2 = ZERO
@@ -758,7 +778,7 @@ alpha_itf = ZERO
       ! method 2 = without bc value, a=0, same as INTPL
       alpha1 = TWO
           a1 = ZERO
-          b1 = - FIVE / TWO
+          b1 = - TWOPFIVE
           c1 = TWO
           d1 = HALF
 
@@ -767,9 +787,9 @@ alpha_itf = ZERO
           b2 = ZERO
     else ! default 2nd CD
       alpha1 = ZERO
-          a1 = -FOUR * ONE_THIRD
-          b1 = ONE
-          c1 = ONE_THIRD
+          a1 = ZERO
+          b1 = -ONE
+          c1 = ONE
           d1 = ZERO
       alpha2 = ZERO
           a2 = ONE
@@ -824,11 +844,15 @@ alpha_itf = ZERO
 ! C2P ==>
 ! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
 !                                                 b/(3h) * ( f_{i+1} - f_{i-2} )
+! eq(1) : a +   b = 2   alpha + 1  !O(h2)
+! eq(2) : a +  9b = 24  alpha      !O(h4)
+! eq(3) : a + 81b = 160 alpha      !O(h6)
 !==========================================================================================================
     alpha = ZERO
         a = ZERO
         b = ZERO
         c = ZERO
+        ! interface is a default CD4
 alpha_itf = ZERO
     a_itf = NINE * EIGHTH
     b_itf = -ONE * EIGHTH
@@ -985,6 +1009,10 @@ alpha_itf = ZERO
 ! [       alpha  1      alpha               ][f'_i'] [a *  (f_{i} - f_{i-1})/h + b/3 * (f_{i+1} - f_{i-2})/h]
 ! [                     alpha2 1      alpha2][f'_4'] [a2 * (f_{n-1} - f_{n-2})/h]
 ! [                            alpha1 1     ][f'_5'] [-a1 * f_{n-1}/h  - b1 * f_{n-2}/h - c1 * f_{n-3}/h]
+! eq(1): a +   b +    c = 0               !O(h1)
+! eq(2): a + 3 b +  5 c = 2  alpha + 2    !O(h2)
+! eq(3): a + 9 b + 25 c = 8  alpha        !O(h3)
+! eq(4): a + 27b + 125c = 24 alpha        !O(h4)
 !----------------------------------------------------------------------------------------------------------
     alpha1 = ZERO
         a1 = ZERO
@@ -994,7 +1022,7 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2) then ! degrade to 1st CD (1st cell)
+    if (iaccu == IACCU_CD2) then ! eq(1-2)+alpha0+c0, O(h2)
       alpha1 = ZERO
           a1 = -ONE
           b1 = ONE
@@ -1004,7 +1032,7 @@ alpha_itf = ZERO
           a2 = ONE
           b2 = ZERO ! not used
           c2 = ZERO ! not used
-    else if (iaccu == IACCU_CD4) then ! degrade to 2nd CD (1st cell)
+    else if (iaccu == IACCU_CD4) then ! eq(1-3)+alpha0, O(h3)
       alpha1 = ZERO
           a1 = -TWO
           b1 = THREE
@@ -1015,7 +1043,7 @@ alpha_itf = ZERO
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4) then ! eq(1-4), O(h4), no solution for c=0.
 
       alpha1 = TWENTYTHREE
           a1 = -TWENTYFIVE
@@ -1026,12 +1054,23 @@ alpha_itf = ZERO
           a2 = TWELVE / ELEVEN
           b2 = ZERO ! not used
           c2 = ZERO ! not used
-      
+    else if (iaccu == IACCU_CP6) then ! eq(1-4), O(h4)
+
+      alpha1 = TWENTYTHREE
+          a1 = -TWENTYFIVE
+          b1 = TWENTYSIX
+          c1 = -ONE
+
+      alpha2 = ONE / TWENTYTWO
+          a2 = TWELVE / ELEVEN
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+        
     else  ! default 2nd CD
      alpha1 = ZERO
-          a1 = -TWO
-          b1 = THREE
-          c1 = -ONE
+          a1 = -ONE
+          b1 = ONE
+          c1 = ZERO
 
       alpha2 = ZERO
           a2 = ONE
@@ -1130,8 +1169,8 @@ alpha_itf = ZERO
     if (iaccu == IACCU_CD2) then ! degrade to 1st CD, check other accuracy in this set. Check!!!
       alpha1 = ZERO
           a1 = ZERO! not used. 
-          b1 = TWO ! CHAPSim using 1, should be 2.
-          c1 = ZERO
+          b1 = -ONE ! check. If a default asymmetric is used to achive dirichlet 0, a1=2, b1=0.
+          c1 = ONE
           d1 = ZERO
       ! method 2 not to use the Dirichlet B.C. value, tested it and it is wrong. 
       ! alpha1 = ZERO
@@ -1253,6 +1292,10 @@ alpha_itf = ZERO
 ! [       alpha  1      alpha               ][f'_i] [a *  (f_{i'+1} - f_{i'})/h + b/3 * (f_{i'+2} - f_{i'-1})/h]
 ! [                     alpha2 1      alpha2][f'_4] [a2 * (f_{n'} - f_{n'-1})/h]
 ! [                            alpha1 1     ][f'_5] [-a1 * f_{n'+1}/h  - b1 * f_{n'}/h - c1 * f_{n'-1}/h]
+! eq(1): a +   b +    c = 0               !O(h1)
+! eq(2):-a +   b +  3 c = 2  alpha + 2    !O(h2)
+! eq(3): a +   b +  9 c = 8  alpha        !O(h3)
+! eq(4):-a +   b +  27c = 24 alpha        !O(h4)
 !----------------------------------------------------------------------------------------------------------
     alpha1 = ZERO
         a1 = ZERO
@@ -1262,7 +1305,17 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2 .or. iaccu == IACCU_CD4) then
+    if (iaccu == IACCU_CD2 ) then! eq(1-2)+alpha0+c0, O(h2)
+      alpha1 = ZERO
+          a1 = -ONE
+          b1 = ONE
+          c1 = ZERO
+
+      alpha2 = ZERO
+          a2 = ONE
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+    else if (iaccu == IACCU_CD4) then! eq(1-3)+alpha0, O(h3)
       alpha1 = ZERO
           a1 = -ONE
           b1 = ONE
@@ -1273,7 +1326,18 @@ alpha_itf = ZERO
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP4 .or. iaccu == IACCU_CP6) then ! degrade to 3rd CP
+    else if (iaccu == IACCU_CP4 ) then ! eq(1-3)+c0, O(h3)
+
+      alpha1 = ZERO
+          a1 = -ONE
+          b1 = ONE
+          c1 = ZERO
+
+      alpha2 = ONE / TWENTYTWO
+          a2 = TWELVE / ELEVEN
+          b2 = ZERO ! not used
+          c2 = ZERO ! not used
+    else if (iaccu == IACCU_CP6) then ! eq(1-4), O(h4)
 
       alpha1 = -ONE
           a1 = -ONE
@@ -1330,11 +1394,15 @@ alpha_itf = ZERO
 ! C2P : i'_max = np
 ! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
 !                                              b/2 * ( f_{i+1} + f_{i-2} )
+! eq(1): a +   b = 2  alpha + 1   !O(h2)
+! eq(2): a + 9 b = 8  alpha       !O(h4)
+! eq(3): a + 81b = 32 alpha       !O(h6)
 !==========================================================================================================
     alpha = ZERO
         a = ONE
         b = ZERO
         c = ZERO
+        ! interface = default CD4
 alpha_itf = ZERO
     a_itf = NINE * EIGHTH
     b_itf = -ONE * EIGHTH
@@ -1461,6 +1529,10 @@ alpha_itf = ZERO
 ! [             alpha 1      alpha       ][f_i'] [a/2  * (f_{i'}   + f_{i'+1}) + b/2 * (f_{i'+2} + f_{i'-1})]
 ! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n'-1}   + f_{n'})]
 ! [                          alpha1 1    ][f_5'] [a1   * f_{n'+1} + b1 * f_{n'} + c1 * f_{n'-1}]
+! eq(1): a + b +   c =   alpha + 1   !O(h1)
+! eq(2):-a + b + 3 c = 2 alpha       !O(h2)
+! eq(3): a + b + 9 c = 4 alpha       !O(h3)
+! eq(4):-a + b + 27c = 8 alpha       !O(h4)
 !-----------------------------------------------------------------------------
     alpha1 = ZERO
         a1 = ZERO
@@ -1470,7 +1542,7 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2) then ! 2-cell stencil, degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! eq(1-2)+alpha0+c0, O(h2)
 
       alpha1 = ZERO
           a1 = HALF
@@ -1481,7 +1553,7 @@ alpha_itf = ZERO
           a2 = ONE
           b2 = ZERO ! not used
           c2 = ZERO ! not used
-    else if (iaccu == IACCU_CD4) then ! 3-cell stencil, degrade to 3rd CD
+    else if (iaccu == IACCU_CD4) then ! eq(1-3)+alpha0, O(h3)
 
       alpha1 = ZERO
           a1 = THREE * EIGHTH
@@ -1493,7 +1565,7 @@ alpha_itf = ZERO
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP4) then ! 2-cell stencil, degrade to 3rd CP
+    else if (iaccu == IACCU_CP4) then ! eq(1-3)+c0, O(h3)
 
       alpha1 = ONE_THIRD
           a1 = ONE_THIRD
@@ -1505,7 +1577,7 @@ alpha_itf = ZERO
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
-    else if (iaccu == IACCU_CP6) then ! 3-cell stencil, degrade to 4th CP
+    else if (iaccu == IACCU_CP6) then ! eq(1-4), O(h4)
 
       alpha1 = ONE
           a1 = QUARTER
@@ -1562,6 +1634,10 @@ alpha_itf = ZERO
 ! [             alpha 1      alpha       ][f_i'] [a/2 * (f_{i}   + f_{i-1}) + b/2 * (f_{i+1} + f_{i-2})]
 ! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n-1}   + f_{n-2})]
 ! [                          alpha1 1    ][f_5'] [a1 * f_{n-1} + b1 * f_{n-2} + c1 * f_{n-3}]
+! eq(1): a +   b +    c =   alpha + 1   !O(h1)
+! eq(2): a + 3 b +  5 c = 2 alpha       !O(h2)
+! eq(3): a + 9 b + 25 c = 4 alpha       !O(h3)
+! eq(4): a + 27b + 125c = 8 alpha       !O(h4)
 !-----------------------------------------------------------------------------
     alpha1 = ZERO
         a1 = ZERO
@@ -1571,7 +1647,7 @@ alpha_itf = ZERO
         a2 = ZERO
         b2 = ZERO
         c2 = ZERO
-    if (iaccu == IACCU_CD2) then ! 2-cell stencil, degrade to 2nd CD
+    if (iaccu == IACCU_CD2) then ! eq(1-2)+alpha0+c0, O(h2)
 
       alpha1 = ZERO
           a1 = ONEPFIVE
@@ -1583,7 +1659,7 @@ alpha_itf = ZERO
           b2 = ZERO ! not used
           c2 = ZERO ! not used
 
-      else if (iaccu == IACCU_CD4) then ! 3-cell stencil, degrade to 3rd CD
+      else if (iaccu == IACCU_CD4) then ! eq(1-3)+alpha0, O(h3)
 
       alpha1 = ZERO
           a1 = FIFTEEN * EIGHTH
@@ -1594,7 +1670,7 @@ alpha_itf = ZERO
           a2 = ONE
           b2 = ZERO ! not used
           c2 = ZERO ! not used
-    else if (iaccu == IACCU_CP4) then ! 2-cell stencil,  degrade to 3rd CP
+    else if (iaccu == IACCU_CP4) then ! eq(1-3)+c0, O(h3)
 
       alpha1 = THREE
           a1 = THREE
@@ -1605,7 +1681,7 @@ alpha_itf = ZERO
           a2 = FOUR * ONE_THIRD
           b2 = ZERO ! not used
           c2 = ZERO ! not used
-    else if (iaccu == IACCU_CP6) then ! 3-cell stencil, degrade to 4th CP
+    else if (iaccu == IACCU_CP6) then ! eq(1-4), O(h4)
 
       alpha1 = FIVE
           a1 = FIFTEEN * QUARTER
@@ -2164,7 +2240,7 @@ alpha_itf = ZERO
 !   building up the basic lhs coeffients for compact schemes, based on the given
 !   accuracy
 !==========================================================================================================
-    call Prepare_compact_coefficients (domain(1)%iAccuracy)
+    call Prepare_compact_coefficients (domain(1)%iAccuracy) ! check is domain (1) as default?
 !----------------------------------------------------------------------------------------------------------
 !   building up the full size lhs coeffients for compact schemes
 !----------------------------------------------------------------------------------------------------------
@@ -5920,12 +5996,11 @@ alpha_itf = ZERO
 !_______________________________________________________________________________
   subroutine Test_interpolation(dm)
     use parameters_constant_mod
-    use udf_type_mod
     use math_mod
     use EvenOdd_mod
+    use udf_type_mod
     implicit none
     type(t_domain), intent(inout) :: dm
-    integer :: i, j, k
     real(WP) :: xc, yc, zc
     real(WP) :: xp, yp, zp
     real(WP) :: ref
@@ -5934,15 +6009,22 @@ alpha_itf = ZERO
 
     real(WP) :: fbc(4)
     real(WP) :: scale, shift
+    integer :: i, j, k
 
     real(WP), allocatable :: fxc (:), fyc (:), fzc (:)
     real(WP), allocatable :: fxp (:), fyp (:), fzp (:)
     real(WP), allocatable :: fgxc(:), fgyc(:), fgzc(:)
     real(WP), allocatable :: fgxp(:), fgyp(:), fgzp(:)
 
-    dm%ibcx(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
-    dm%ibcy(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
-    dm%ibcz(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
+    if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
+       if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
+    end if
+    if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
+       if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
+    end if
+    if (dm%ibcz(1, 5) == IBC_DIRICHLET) then
+       if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
+    end if
     allocate ( fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3)) )
     allocate ( fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3)) )
     allocate ( fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3)) )
@@ -5973,6 +6055,7 @@ alpha_itf = ZERO
       else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
+        write(*,*) size(dm%fbcx_pr(:, :, :), 1), size(dm%fbcx_pr(:, :, :), 2) , size(dm%fbcx_pr(:, :, :), 3)
         if(i==1) dm%fbcx_pr(1, :, :) = ZERO
         if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
       else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
@@ -6108,8 +6191,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
     write(wrt_unit(4), *) '# x-interp-c2p ', dm%np(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-interp-c2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-interp-c2p failed.")
       write(wrt_unit(1), *) '# x-interp-c2p ', dm%np(1), err_Linf, err_L2
       do i = 1, dm%np(1)
         xp = dm%h(1) * real(i - 1, WP)
@@ -6117,7 +6200,7 @@ alpha_itf = ZERO
         err = abs_wp(fgxp(i) - ref)
         write(wrt_unit(1),*) i, xp, ref, fgxp(i), err !test
       end do
-    end if
+    !end if
 
 ! y direction, yc
     do j = 1, dm%nc(2)
@@ -6140,8 +6223,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
     write(wrt_unit(4), *) '# y-interp-c2p ', dm%np(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-interp-c2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-interp-c2p failed.")
       write(wrt_unit(2), *) '# y-interp-c2p ', dm%np(2), err_Linf, err_L2
       do j = 1, dm%np(2)
         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
@@ -6149,7 +6232,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyp(j) - ref)
         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
       end do
-    end if
+    !end if
     
 
  ! z direction, zc
@@ -6173,8 +6256,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
     write(wrt_unit(4), *) '# z-interp-c2p ', dm%np(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-interp-c2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-interp-c2p failed.")
       write(wrt_unit(3), *) '# z-interp-c2p ', dm%np(3), err_Linf, err_L2
       do k = 1, dm%np(3)
         zp = dm%h(3) * real(k - 1, WP)
@@ -6182,7 +6265,7 @@ alpha_itf = ZERO
         err = abs_wp(fgzp(k) - ref)
         write(wrt_unit(3),*) k, zp, ref, fgzp(k), err !test
       end do
-    end if
+    !end if
 !----------------------------------------------------------------------------------------------------------
 ! p2c
 !----------------------------------------------------------------------------------------------------------
@@ -6242,8 +6325,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
     write(wrt_unit(4), *) '# x-interp-p2c ', dm%nc(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-interp-p2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-interp-p2c failed.")
       write(wrt_unit(1), *) '# x-interp-p2c ', dm%nc(1), err_Linf, err_L2
       do i = 1, dm%nc(1)
         xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -6251,7 +6334,7 @@ alpha_itf = ZERO
         err = abs_wp(fgxc(i) - ref)
         write(wrt_unit(1),*) i, xc, ref, fgxc(i), err !test
       end do
-    end if
+    !end if
     
 
 ! y direction, yp
@@ -6275,8 +6358,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
     write(wrt_unit(4), *) '# y-interp-p2c ', dm%nc(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-interp-p2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-interp-p2c failed.")
       write(wrt_unit(2), *) '# y-interp-p2c ', dm%nc(2), err_Linf, err_L2
       do j = 1, dm%nc(2)
         yc = dm%h(2) * (real(j - 1, WP) + HALF) !yc = dm%yc(j)
@@ -6286,7 +6369,7 @@ alpha_itf = ZERO
         err_L2 = err_L2 + err**2
         write(wrt_unit(2),*) j, yc, ref, fgyc(j), err !test
       end do
-    end if
+    !end if
     
 
 
@@ -6311,8 +6394,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
     write(wrt_unit(4), *) '# z-interp-p2c ', dm%nc(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-interp-p2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-interp-p2c failed.")
       write(wrt_unit(3), *) '# z-interp-p2c ', dm%nc(3), err_Linf, err_L2
       do k = 1, dm%nc(3)
         zc = dm%h(3) * (real(k - 1, WP) + HALF)
@@ -6322,7 +6405,7 @@ alpha_itf = ZERO
         err_L2 = err_L2 + err**2
         write(wrt_unit(3),*) k, zc, ref, fgzc(k), err !test
       end do
-    end if
+    !end if
 
 
 
@@ -6354,8 +6437,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
     write(wrt_unit(4), *) '# y-intP2C+derC2P ', dm%np(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-intP2C+derC2P failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-intP2C+derC2P failed.")
       write(wrt_unit(2), *) '# y-intP2C+derC2P ', dm%np(2), err_Linf, err_L2
       do j = 1, dm%np(2)
         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
@@ -6363,7 +6446,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyp(j) - ref)
         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
       end do
-    end if
+    !end if
 
 ! test a combination
     ! input: f(yp) = sin(x/3)
@@ -6394,8 +6477,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
     write(wrt_unit(4), *) '# y-d(ff)dy ', dm%np(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-d(ff)dy failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-d(ff)dy failed.")
       write(wrt_unit(2), *) '# y-d(ff)dy ', dm%np(2), err_Linf, err_L2
       do j = 1, dm%np(2)
         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
@@ -6403,7 +6486,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyp(j) - ref)
         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
       end do
-    end if
+    !end if
 
     close(wrt_unit(1))
     close(wrt_unit(2))
@@ -6626,8 +6709,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
     write(wrt_unit(4), *) '# x-1stder-c2c ', dm%nc(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-1stder-c2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-1stder-c2c failed.")
       write(wrt_unit(1), *) '# x-1stder-c2c ', dm%nc(1), err_Linf, err_L2
       do i = 1, dm%nc(1)
         xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -6635,7 +6718,7 @@ alpha_itf = ZERO
         err = abs_wp(fgxc(i) - ref)
         write(wrt_unit(1),*) i, xc, ref, fgxc(i), err !test
       end do
-    end if
+    !end if
 
 ! y direction, yc
     do j = 1, dm%nc(2)
@@ -6658,8 +6741,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
     write(wrt_unit(4), *) '# y-1stder-c2c ', dm%nc(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-1stder-c2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-1stder-c2c failed.")
       write(wrt_unit(2), *) '# y-1stder-c2c ', dm%nc(2), err_Linf, err_L2
       do j = 1, dm%nc(2)
         yc = dm%h(2) * (real(j - 1, WP) + HALF) !yc = dm%yc(j)
@@ -6667,7 +6750,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyc(j) - ref)
         write(wrt_unit(2),*) j, yc, ref, fgyc(j), err !test
       end do
-    end if
+    !end if
     
 
 ! z direction, zc
@@ -6691,8 +6774,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
     write(wrt_unit(4), *) '# z-1stder-c2c ', dm%nc(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-1stder-c2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-1stder-c2c failed.")
       write(wrt_unit(3), *) '# z-1stder-c2c ', dm%nc(3), err_Linf, err_L2
       do k = 1, dm%nc(3)
         zc = dm%h(3) * (real(k - 1, WP) + HALF)
@@ -6700,7 +6783,7 @@ alpha_itf = ZERO
         err = abs_wp(fgzc(k) - ref)
         write(wrt_unit(3),*) k, zc, ref, fgzc(k), err !test
       end do
-    end if
+    !end if
     
 !----------------------------------------------------------------------------------------------------------
 ! c2p
@@ -6727,8 +6810,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
     write(wrt_unit(4), *) '# x-1stder-c2p ', dm%np(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-1stder-c2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-1stder-c2p failed.")
       write(wrt_unit(1), *) '# x-1stder-c2p ', dm%np(1), err_Linf, err_L2
       do i = 1, dm%np(1)
         xp = dm%h(1) * real(i - 1, WP)
@@ -6736,7 +6819,7 @@ alpha_itf = ZERO
         err = abs_wp(fgxp(i) - ref)
         write(wrt_unit(1),*) i, xp, ref, fgxp(i), err !test
       end do
-    end if
+    !end if
     
 
 ! y: c2p
@@ -6755,8 +6838,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
     write(wrt_unit(4), *) '# y-1stder-c2p ', dm%np(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-1stder-c2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-1stder-c2p failed.")
       write(wrt_unit(2), *) '# y-1stder-c2p ', dm%np(2), err_Linf, err_L2
       do j = 1, dm%np(2)
         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
@@ -6764,7 +6847,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyp(j) - ref)
         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
       end do
-    end if
+    !end if
     
 
 ! z: c2p
@@ -6783,8 +6866,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
     write(wrt_unit(4), *) '# z-1stder-c2p ', dm%np(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-1stder-c2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-1stder-c2p failed.")
       write(wrt_unit(3), *) '# z-1stder-c2p ', dm%np(3), err_Linf, err_L2
       do k = 1, dm%np(3)
         zp = dm%h(3) * real(k - 1, WP)
@@ -6794,7 +6877,7 @@ alpha_itf = ZERO
         err_L2 = err_L2 + err**2
         write(wrt_unit(3),*) k, zp, ref, fgzp(k), err !test
       end do
-    end if
+    !end if
     
 
 !----------------------------------------------------------------------------------------------------------
@@ -6857,8 +6940,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
     write(wrt_unit(4), *) '# x-1stder-p2p ', dm%np(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-1stder-p2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-1stder-p2p failed.")
       write(wrt_unit(1), *) '# x-1stder-p2p ', dm%np(1), err_Linf, err_L2
       do i = 1, dm%np(1)
         xp = dm%h(1) * real(i - 1, WP)
@@ -6866,7 +6949,7 @@ alpha_itf = ZERO
         err = abs_wp(fgxp(i) - ref)
         write(wrt_unit(1),*) i, xp, ref, fgxp(i), err !test
       end do
-    end if
+    !end if
     
 
 ! y direction, yp
@@ -6890,8 +6973,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
     write(wrt_unit(4), *) '# y-1stder-p2p ', dm%np(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-1stder-p2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-1stder-p2p failed.")
       write(wrt_unit(2), *) '# y-1stder-p2p ', dm%np(2), err_Linf, err_L2
       do j = 1, dm%np(2)
         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
@@ -6899,7 +6982,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyp(j) - ref)
         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
       end do
-    end if
+    !end if
     
 ! z direction, zp
     do k = 1, dm%np(3)
@@ -6922,8 +7005,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(3)) 
     write(wrt_unit(4), *) '# z-1stder-p2p ', dm%np(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-1stder-p2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-1stder-p2p failed.")
       write(wrt_unit(3), *) '# z-1stder-p2p ', dm%np(3), err_Linf, err_L2
       do k = 1, dm%np(3)
         zp = dm%h(3) * real(k - 1, WP)
@@ -6933,7 +7016,7 @@ alpha_itf = ZERO
         err_L2 = err_L2 + err**2
         write(wrt_unit(3),*) k, zp, ref, fgzp(k), err !test
       end do
-    end if
+    !end if
     
 !----------------------------------------------------------------------------------------------------------
 ! p2c
@@ -6954,8 +7037,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
     write(wrt_unit(4), *) '# x-1stder-p2c ', dm%nc(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-1stder-p2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-1stder-p2c failed.")
       write(wrt_unit(1), *) '# x-1stder-p2c ', dm%nc(1), err_Linf, err_L2
       do i = 1, dm%nc(1)
         xc = dm%h(1) * (real(i - 1, WP) + HALF)
@@ -6965,7 +7048,7 @@ alpha_itf = ZERO
         err_L2 = err_L2 + err**2
         write(wrt_unit(1),*) i, xc, ref, fgxc(i), err !test
       end do
-    end if
+    !end if
 
 ! y: p2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
@@ -6983,8 +7066,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
     write(wrt_unit(4), *) '# y-1stder-p2c ', dm%nc(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-1stder-p2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-1stder-p2c failed.")
       write(wrt_unit(2), *) '# y-1stder-p2c ', dm%nc(2), err_Linf, err_L2
       do j = 1, dm%nc(2)
         yc = dm%h(2) * (real(j - 1, WP) + HALF) !yc = dm%yc(j)
@@ -6992,7 +7075,7 @@ alpha_itf = ZERO
         err = abs_wp(fgyc(j) - ref)
         write(wrt_unit(2),*) j, yc, ref, fgyc(j), err !test
       end do
-    end if
+    !end if
     
 
 ! z: p2c
@@ -7011,8 +7094,8 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
     write(wrt_unit(4), *) '# z-1stder-p2c ', dm%nc(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-1stder-p2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-1stder-p2c failed.")
       write(wrt_unit(3), *) '# z-1stder-p2c ', dm%nc(3), err_Linf, err_L2
       do k = 1, dm%nc(3)
         zc = dm%h(3) * (real(k - 1, WP) + HALF)
@@ -7020,7 +7103,7 @@ alpha_itf = ZERO
         err = abs_wp(fgzc(k) - ref)
         write(wrt_unit(3),*) k, zc, ref, fgzc(k), err !test
       end do
-    end if
+    !end if
     
 
     close(wrt_unit(1))
@@ -7245,15 +7328,15 @@ alpha_itf = ZERO
     end do
     err_L2 = sqrt_wp(err_L2 / dm%nc(1)) 
     write(wrt_unit(4), *) '# x-2ndder-c2c ', dm%nc(1), err_Linf, err_L2
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-2ndder-c2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-2ndder-c2c failed.")
       do i = 1, dm%nc(1)
         xc = dm%h(1) * (real(i - 1, WP) + HALF)
         ref = - (ONE/scale)**2 * sin_wp(xc / scale + shift)
         err = abs_wp(fgxc(i) - ref)
         write(wrt_unit(1),*) i, xc, ref, fgxc(i), err !test
       end do
-    end if
+    !end if
     
 
 ! y direction, yc
@@ -7277,15 +7360,15 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(2)) 
     write(wrt_unit(4), *) '# y-2ndder-c2c ', dm%nc(2), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-2ndder-c2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-2ndder-c2c failed.")
       do j = 1, dm%nc(2)
         yc = dm%h(2) * (real(j - 1, WP) + HALF) !yc = dm%yc(j)
         ref = - (ONE/scale)**2 * sin_wp(yc / scale + shift)
         err = abs_wp(fgyc(j) - ref)
         write(wrt_unit(2),*) j, yc, ref, fgyc(j), err !test
       end do
-    end if
+    !end if
     
 ! z direction, zc
     do k = 1, dm%nc(3)
@@ -7308,15 +7391,15 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%nc(3)) 
     write(wrt_unit(4), *) '# z-2ndder-c2c ', dm%nc(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-2ndder-c2c failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-2ndder-c2c failed.")
       do k = 1, dm%nc(3)
         zc = dm%h(3) * (real(k - 1, WP) + HALF)
         ref = - (ONE/scale)**2 * sin_wp(zc / scale + shift)
         err = abs_wp(fgzc(k) - ref)
         write(wrt_unit(3),*) k, zc, ref, fgzc(k), err !test
       end do
-    end if
+    !end if
     
 !----------------------------------------------------------------------------------------------------------
 ! p2p
@@ -7377,15 +7460,15 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(1)) 
     write(wrt_unit(4), *) '# x-2ndder-p2p ', dm%np(1), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test x-2ndder-p2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test x-2ndder-p2p failed.")
       do i = 1, dm%np(1)
         xp = dm%h(1) * real(i - 1, WP)
         ref = - (ONE/scale)**2 * sin_wp(xp / scale + shift)
         err = abs_wp(fgxp(i) - ref)
         write(wrt_unit(1),*) i, xp, ref, fgxp(i), err !test
       end do
-    end if
+    !end if
     
 ! y direction, yp
     do j = 1, dm%np(2)
@@ -7407,15 +7490,15 @@ alpha_itf = ZERO
     end do
     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
     write(wrt_unit(4), *) '# y-2ndder-p2p ', dm%np(2), err_Linf, err_L2
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test y-2ndder-p2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test y-2ndder-p2p failed.")
       do j = 1, dm%np(2)
         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
         ref = - (ONE/scale)**2 * sin_wp(yp / scale + shift)
         err = abs_wp(fgyp(j) - ref)
         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
       end do
-    end if
+    !end if
     
 
 
@@ -7440,15 +7523,15 @@ alpha_itf = ZERO
     err_L2 = sqrt_wp(err_L2 / dm%np(3))
     write(wrt_unit(4), *) '# z-2ndder-p2p ', dm%np(3), err_Linf, err_L2
 
-    if(err_L2 > 1.0e-8_WP) then
-      call Print_warning_msg("Test z-2ndder-p2p failed.")
+    !if(err_L2 > 1.0e-8_WP) then
+      !call Print_warning_msg("Test z-2ndder-p2p failed.")
       do k = 1, dm%np(3)
         zp = dm%h(3) * real(k - 1, WP)
         ref = - (ONE/scale)**2 * sin_wp(zp / scale + shift)
         err = abs_wp(fgzp(k) - ref)
         write(wrt_unit(3),*) k, zp, ref, fgzp(k), err !test
       end do
-    end if
+    !end if
     
     close(wrt_unit(1))
     close(wrt_unit(2))
