@@ -176,8 +176,9 @@ module parameters_constant_mod
                         IBC_CPC = 3, &
                         IBC_PCC = 4, &
                         IBC_PPC = 5, &
-                        IBC_CPP = 6, &
-                        IBC_PPP = 7
+                        IBC_PCP = 6, &
+                        IBC_CPP = 7, &
+                        IBC_PPP = 8
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -369,21 +370,21 @@ module udf_type_mod
     ! integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
     ! integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
     ! integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcx_qx(2,7)
-    integer  :: ibcy_qx(2,7)
-    integer  :: ibcz_qx(2,7)
-    integer  :: ibcx_qy(2,7)
-    integer  :: ibcy_qy(2,7)
-    integer  :: ibcz_qy(2,7)
-    integer  :: ibcx_qz(2,7)
-    integer  :: ibcy_qz(2,7)
-    integer  :: ibcz_qz(2,7)
-    integer  :: ibcx_pr(2,7)
-    integer  :: ibcy_pr(2,7)
-    integer  :: ibcz_pr(2,7)
-    integer  :: ibcx_Th(2,7)
-    integer  :: ibcy_Th(2,7)
-    integer  :: ibcz_Th(2,7)
+    integer  :: ibcx_qx(2, 8)
+    integer  :: ibcy_qx(2, 8)
+    integer  :: ibcz_qx(2, 8)
+    integer  :: ibcx_qy(2, 8)
+    integer  :: ibcy_qy(2, 8)
+    integer  :: ibcz_qy(2, 8)
+    integer  :: ibcx_qz(2, 8)
+    integer  :: ibcy_qz(2, 8)
+    integer  :: ibcz_qz(2, 8)
+    integer  :: ibcx_pr(2, 8)
+    integer  :: ibcy_pr(2, 8)
+    integer  :: ibcz_pr(2, 8)
+    integer  :: ibcx_Th(2, 8)
+    integer  :: ibcy_Th(2, 8)
+    integer  :: ibcz_Th(2, 8)
     integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
     integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)

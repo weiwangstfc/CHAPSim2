@@ -34,6 +34,7 @@ contains
     use operations
     use udf_type_mod
     use thermo_info_mod
+    use boundary_conditions_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
@@ -63,11 +64,11 @@ contains
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: kCond_zpencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_zpencil
     
-    real(WP) :: fbcx(4, dm%np(2), dm%np(3))
-    real(WP) :: fbcy(dm%np(1), 4, dm%np(3))
-    real(WP) :: fbcz(dm%np(1), dm%np(2), 4)
+    ! real(WP) :: fbcx(4, dm%np(2), dm%np(3))
+    ! real(WP) :: fbcy(dm%np(1), 4, dm%np(3))
+    ! real(WP) :: fbcz(dm%np(1), dm%np(2), 4)
     integer  :: n
-    integer  :: nbc(1:2, 1:3)
+    integer  :: mbc(1:2, 1:3)
 !==========================================================================================================
 !   preparation
 !==========================================================================================================
@@ -107,8 +108,8 @@ contains
 ! x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
     tm%ene_rhs = ZERO
-    call get_ibc_for_calcuation(dm%ibcx_qx(:, IBC_PCC), nbc, dm%ibcx_Th(:, IBC_PCC))
-    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, nbc(:, 1)) ! accc = -d(gx * h)/dx
+    call get_ibc_for_calcuation(dm%ibcx_qx(:, IBC_PCC), mbc, dm%ibcx_Th(:, IBC_PCC))
+    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, mbc(:, 1)) ! accc = -d(gx * h)/dx
     tm%ene_rhs = tm%ene_rhs + accc
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d (T) / dx 
@@ -121,8 +122,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
-    call get_ibc_for_calcuation(dm%ibcx_Th(:, IBC_PCC), nbc)
-    call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, nbc(:, 2))
+    call get_ibc_for_calcuation(dm%ibcx_Th(:, IBC_PCC), mbc)
+    call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, mbc(:, 2))
 
     tm%ene_rhs = tm%ene_rhs + accc
 !==========================================================================================================
@@ -133,8 +134,8 @@ contains
 ! y-pencil : d (gy * h_cpc) / dy 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_ypencil = ZERO
-    call get_ibc_for_calcuation(dm%ibcy_qy(:, IBC_CPC), nbc, dm%ibcy_Th(:, IBC_CPC))
-    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, nbc(:, 1))
+    call get_ibc_for_calcuation(dm%ibcy_qy(:, IBC_CPC), mbc, dm%ibcy_Th(:, IBC_CPC))
+    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, mbc(:, 1))
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d (T) / dy
@@ -147,8 +148,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d ( k_cpc * d (T) / dy ) dy
 !----------------------------------------------------------------------------------------------------------
-    call get_ibc_for_calcuation(dm%ibcy_Th(:, IBC_CPC), nbc)
-    call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, nbc(:, 2))
+    call get_ibc_for_calcuation(dm%ibcy_Th(:, IBC_CPC), mbc)
+    call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, mbc(:, 2))
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 
     call transpose_y_to_x(ene_rhs_ypencil, accc, dm%dccc)
@@ -161,8 +162,8 @@ contains
 ! z-pencil : d (gz * h_ccp) / dz 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_zpencil = ZERO
-    call get_ibc_for_calcuation(dm%ibcz_qz(:, IBC_CCP), nbc, dm%ibcz_Th(:, IBC_CCP))
-    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, nbc(:, 1))
+    call get_ibc_for_calcuation(dm%ibcz_qz(:, IBC_CCP), mbc, dm%ibcz_Th(:, IBC_CCP))
+    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, mbc(:, 1))
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d (T) / dz
@@ -175,8 +176,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d ( k_ccp * d (T) / dz ) / dz
 !----------------------------------------------------------------------------------------------------------
-    call get_ibc_for_calcuation(dm%ibcz_Th(:, IBC_CCP), nbc)
-    call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, nbc(:, 2))
+    call get_ibc_for_calcuation(dm%ibcz_Th(:, IBC_CCP), mbc)
+    call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, mbc(:, 2))
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 
     call transpose_z_to_y(ene_rhs_zpencil, ene_rhs_ypencil, dm%dccc)

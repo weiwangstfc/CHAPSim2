@@ -422,6 +422,7 @@ contains
     use udf_type_mod
     use precision_mod
     use operations
+    use parameters_constant_mod
     implicit none 
     type(t_domain), intent(in) :: dm
     type(t_flow), intent(in) :: fl
@@ -619,6 +620,7 @@ contains
     use operations
     use decomp_operation_mod
     use files_io_mod
+    use parameters_constant_mod
     implicit none 
     type(t_domain), intent(in) :: dm
     type(DECOMP_INFO), intent(in) :: dtmp

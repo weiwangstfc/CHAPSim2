@@ -544,7 +544,6 @@ contains
     end if
 
     ! uz, dm0-dm1, nc
-    m = 3
     if(dm1%ibcx_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcx_qz(1, :, :) = fl0%qz(dm0%nc(1),     :, :)
       dm1%fbcx_qz(3, :, :) = fl0%qz(dm0%nc(1) - 1, :, :)
@@ -587,7 +586,6 @@ contains
     end if
 
     ! uz, dm0-dm1, nc
-    m = 3
     if(dm1%ibcy_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcy_qz(:, 1, :) = fl0%qz(:, dm0%nc(2),     :)
       dm1%fbcy_qz(:, 3, :) = fl0%qz(:, dm0%nc(2) - 1, :)
@@ -598,7 +596,6 @@ contains
     end if
 
     ! p, dm0-dm1, nc
-    m = 4
     if(dm1%ibcy_pr(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%fbcy_pr(:, 1, :) = fl0%pres(:, dm0%nc(2),     :)
       dm1%fbcy_pr(:, 3, :) = fl0%pres(:, dm0%nc(2) - 1, :)
@@ -611,7 +608,6 @@ contains
 !   bc in z - direction
 !----------------------------------------------------------------------------------------------------------
     ! ux, dm0-dm1, nc
-    m = 1
     if(dm1%ibcz_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcz_qx(:, :, 1) = fl0%qx(:, :, dm0%nc(2)    )
       dm1%fbcz_qx(:, :, 3) = fl0%qx(:, :, dm0%nc(2) - 1)
@@ -834,28 +830,32 @@ contains
   end subroutine
 !==========================================================================================================
 ! to calculate boundary during calculation from primary boundary
-  subroutine get_ibc_for_calcuation(ibc, nbc, jbc)
+  subroutine get_ibc_for_calcuation(ibc, mbc, jbc)
     use parameters_constant_mod
-    integer, intent(in) :: ibc(2)
-    integer, optional, intent(in) :: jbc(2)
-    integer, intent(out) :: nbc(1:2, 1:3)
-
+    integer, intent(in)  :: ibc(2)
+    integer, intent(out) :: mbc(2, 3)
+    integer, intent(in), optional :: jbc(2)
+    
     integer :: i
     
+    mbc(:, 1) = ibc(:)
+    mbc(:, 2) = ibc(:)
+    mbc(:, 3) = ibc(:)
+
     do i = 1, 2
       if(present(jbc)) then
 
         if(ibc(i)==IBC_SYMMETRIC .and. jbc(i)==IBC_SYMMETRIC) then
-          nbc(i, 1) = IBC_SYMMETRIC
+          mbc(i, 1) = IBC_SYMMETRIC
         else if (ibc(i)==IBC_SYMMETRIC .and. jbc(i)==IBC_ASYMMETRIC) then
-          nbc(i, 1) = IBC_ASYMMETRIC
+          mbc(i, 1) = IBC_ASYMMETRIC
         else if (ibc(i)==IBC_ASYMMETRIC .and. jbc(i)==IBC_SYMMETRIC) then
-          nbc(i, 1) = IBC_ASYMMETRIC
+          mbc(i, 1) = IBC_ASYMMETRIC
         else if (ibc(i)==IBC_ASYMMETRIC .and. jbc(i)==IBC_ASYMMETRIC) then
-          nbc(i, 1) = IBC_SYMMETRIC
+          mbc(i, 1) = IBC_SYMMETRIC
         else 
           if(ibc(i)==jbc(i)) then
-            nbc(i, 1) = ibc(i)
+            mbc(i, 1) = ibc(i)
           else
             call Print_warning_msg("The two operational variables have different boundary conditions.")
           end if
@@ -864,15 +864,15 @@ contains
       else
 
         if(ibc(i)==IBC_SYMMETRIC) then
-          nbc(i, 1) = ibc(i)               ! variable itself
-          nbc(i, 2) = IBC_ASYMMETRIC       ! d(var)/dn, 
-          nbc(i, 3) = ibc(i)               ! var * var
+          mbc(i, 1) = ibc(i)               ! variable itself
+          mbc(i, 2) = IBC_ASYMMETRIC       ! d(var)/dn, 
+          mbc(i, 3) = ibc(i)               ! var * var
         else if(ibc(i)==IBC_ASYMMETRIC) then
-          nbc(i, 1) = ibc(i)              ! variable itself
-          nbc(i, 2) = IBC_SYMMETRIC       ! d(var)/dn, 
-          nbc(i, 3) = IBC_SYMMETRIC       ! var * var
+          mbc(i, 1) = ibc(i)              ! variable itself
+          mbc(i, 2) = IBC_SYMMETRIC       ! d(var)/dn, 
+          mbc(i, 3) = IBC_SYMMETRIC       ! var * var
         else
-          nbc(i, :) = ibc(i)
+          mbc(i, :) = ibc(i)
         end if
 
       end if 

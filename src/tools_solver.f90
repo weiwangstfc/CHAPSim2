@@ -668,6 +668,7 @@ contains
     use udf_type_mod
     use operations
     use decomp_2d
+    use parameters_constant_mod
     implicit none
     type(t_domain), intent(in )   :: dm
     type(t_flow  ), intent(inout) :: fl
@@ -742,6 +743,7 @@ contains
     use udf_type_mod
     use operations
     use decomp_2d
+    use parameters_constant_mod
     implicit none
     type(t_domain), intent(in )   :: dm
     type(t_flow  ), intent(inout) :: fl

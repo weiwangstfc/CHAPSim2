@@ -6082,7 +6082,7 @@ alpha_itf = ZERO
       else if (dm%ibcy_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcy_Th(i, IBC_CCC)) == IBC_DIRICHLET) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
@@ -6281,7 +6281,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcy_Th(i, IBC_CCC)) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -6588,18 +6588,18 @@ alpha_itf = ZERO
       if (dm%ibcy_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_DIRICHLET) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
         if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_NEUMANN) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -6613,21 +6613,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcz_Th(:, IBC_CCC) == IBC_PERIODIC) then
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_DIRICHLET) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
         if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_NEUMANN) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -7205,21 +7205,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcy_Th(:, IBC_CCC) == IBC_PERIODIC) then
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_DIRICHLET) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
         if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_NEUMANN) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -7233,21 +7233,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcz_Th(:, IBC_CCC) == IBC_PERIODIC) then
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_DIRICHLET) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
         if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_NEUMANN) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
