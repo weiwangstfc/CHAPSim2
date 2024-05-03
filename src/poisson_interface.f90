@@ -114,25 +114,25 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   nclx1, ncly1, nclz1 are not used for poisson solver but only for debugging.
 !----------------------------------------------------------------------------------------------------------
-    if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
+    if(dm%ibcx_qx(1, IBC_PCC) == IBC_PERIODIC ) then
       nclx1 = 0
-    else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
+    else if (dm%ibcx_qx(1, IBC_PCC) == IBC_DIRICHLET ) then
       nclx1 = 2
     else
       nclx1 = 1
     end if
 
-    if(dm%ibcy(1, 1) == IBC_PERIODIC ) then
+    if(dm%ibcy_qx(1, IBC_PCC) == IBC_PERIODIC ) then
       ncly1 = 0
-    else if (dm%ibcy(1, 1) == IBC_DIRICHLET ) then
+    else if (dm%ibcy_qx(1, IBC_PCC) == IBC_DIRICHLET ) then
       ncly1 = 2
     else
       ncly1 = 1
     end if
 
-    if(dm%ibcz(1, 1) == IBC_PERIODIC ) then
+    if(dm%ibcz_qx(1, IBC_PCC)  == IBC_PERIODIC ) then
       nclz1 = 0
-    else if (dm%ibcz(1, 1) == IBC_DIRICHLET ) then
+    else if (dm%ibcz_qx(1, IBC_PCC)  == IBC_DIRICHLET ) then
       nclz1 = 2
     else
       nclz1 = 1
@@ -180,61 +180,59 @@ contains
     !   bci = SEVENTEEN / SIXTYTWO / THREE
     ! end if
     
-    ! alcaix6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
-    ! acix6   = aci / dx !d1rC2P(3, 1, IBC_PERIODIC) / dx
-    ! bcix6   = bci / dx !d1rC2P(3, 2, IBC_PERIODIC) / dx
+    alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
+    acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
+    bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
 
-    ! alcaiy6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
-    ! aciy6   = aci / dy !d1rC2P(3, 1, IBC_PERIODIC) / dy
-    ! bciy6   = bci / dy !d1rC2P(3, 2, IBC_PERIODIC) / dy
+    alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
+    aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
+    bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
 
-    ! alcaiz6 = alcai    !d1fC2P(3, 1, IBC_PERIODIC)
-    ! aciz6   = aci / dz !d1rC2P(3, 1, IBC_PERIODIC) / dz
-    ! bciz6   = bci / dz !d1rC2P(3, 2, IBC_PERIODIC) / dz
+    alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
+    aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
+    bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
 
-    ! only IBC_PERIODIC is necessary, as all non-period data are converted to periodic data.
-    if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
-        alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
-        acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
-        bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
-    else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
-        alcaix6 = d1fC2P(3, 1, IBC_DIRICHLET)
-        acix6   = d1rC2P(3, 1, IBC_DIRICHLET) / dx
-        bcix6   = d1rC2P(3, 2, IBC_DIRICHLET) / dx
-    else 
-    ! to add and check
-    end if
+    ! ! only IBC_PERIODIC is necessary, as all non-period data are converted to periodic data.
+    ! if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
+    !     alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
+    !     acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
+    !     bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
+    ! else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
+    !     alcaix6 = d1fC2P(3, 1, IBC_DIRICHLET)
+    !     acix6   = d1rC2P(3, 1, IBC_DIRICHLET) / dx
+    !     bcix6   = d1rC2P(3, 2, IBC_DIRICHLET) / dx
+    ! else 
+    ! ! to add and check
+    ! end if
 
     
 
-    if(dm%ibcy(1, 2) == IBC_PERIODIC ) then
-        alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
-        aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
-        bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
-    else if (dm%ibcy(1, 2) == IBC_DIRICHLET ) then
-        alcaiy6 = d1fC2P(3, 1, IBC_DIRICHLET)
-        aciy6   = d1rC2P(3, 1, IBC_DIRICHLET) / dy
-        bciy6   = d1rC2P(3, 2, IBC_DIRICHLET) / dy
-    else 
-    ! to add and check
-    end if
+    ! if(dm%ibcy(1, 2) == IBC_PERIODIC ) then
+    !     alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
+    !     aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
+    !     bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
+    ! else if (dm%ibcy(1, 2) == IBC_DIRICHLET ) then
+    !     alcaiy6 = d1fC2P(3, 1, IBC_DIRICHLET)
+    !     aciy6   = d1rC2P(3, 1, IBC_DIRICHLET) / dy
+    !     bciy6   = d1rC2P(3, 2, IBC_DIRICHLET) / dy
+    ! else 
+    ! ! to add and check
+    ! end if
 
-    if(dm%ibcz(1, 3) == IBC_PERIODIC ) then
-        alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
-        aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
-        bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
-    else if (dm%ibcz(1, 3) == IBC_DIRICHLET ) then
-        alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
-        aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
-        bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
-    else 
-    ! to add and check
-    end if
+    ! if(dm%ibcz(1, 3) == IBC_PERIODIC ) then
+    !     alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
+    !     aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
+    !     bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
+    ! else if (dm%ibcz(1, 3) == IBC_DIRICHLET ) then
+    !     alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
+    !     aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
+    !     bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
+    ! else 
+    ! ! to add and check
+    ! end if
 
 #ifdef DEBUG_STEPS
-  write(*,*) 'alcaix6, acix6 * dx, bcix6 * dx = ', alcaix6, acix6 * dx, bcix6 * dx
-  write(*,*) 'alcaiy6, aciy6 * dy, bciy6 * dy = ', alcaiy6, aciy6 * dy, bciy6 * dy
-  write(*,*) 'alcaiz6, aciz6 * dz, bciz6 * dz = ', alcaiz6, aciz6 * dz, bciz6 * dz
+  write(*,*) '1stder, alpha, a, b/3 = ', alcaix6, acix6 * dx, bcix6 * dx
 #endif
 !----------------------------------------------------------------------------------------------------------
 !   only classic interpolation, no optimized schemes added here. check paper S. Lele 1992
@@ -256,58 +254,74 @@ contains
     !   dicix6 = ZERO
     ! end if
 
-    if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
-        ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
-        aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
-        bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
-        cicix6   = zero
-        dicix6   = zero
-    else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
-        ailcaix6 = m1fC2P(3, 1, IBC_DIRICHLET)
-        aicix6   = m1rC2P(3, 1, IBC_DIRICHLET)
-        bicix6   = m1rC2P(3, 2, IBC_DIRICHLET) 
-        cicix6   = zero
-        dicix6   = zero
-    else 
-    ! to add and check
-    end if
+    ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
+    aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
+    bicix6   = m1rC2P(3, 2, IBC_PERIODIC)
+    cicix6   = zero
+    dicix6   = zero
 
-    if(dm%ibcy(1, 2) == IBC_PERIODIC ) then
-        ailcaiy6 = m1fC2P(3, 1, IBC_PERIODIC)
-        aiciy6   = m1rC2P(3, 1, IBC_PERIODIC)
-        biciy6   = m1rC2P(3, 2, IBC_PERIODIC) 
-        ciciy6   = zero
-        diciy6   = zero
-    else if (dm%ibcy(1, 2) == IBC_DIRICHLET ) then
-        ailcaiy6 = m1fC2P(3, 1, IBC_DIRICHLET)
-        aiciy6   = m1rC2P(3, 1, IBC_DIRICHLET)
-        biciy6   = m1rC2P(3, 2, IBC_DIRICHLET) 
-        ciciy6   = zero
-        diciy6   = zero
-    else 
-    ! to add and check
-    end if
+    ailcaiy6 = ailcaix6
+    aiciy6   = aicix6
+    biciy6   = bicix6
+    ciciy6   = cicix6
+    diciy6   = dicix6
 
-    if(dm%ibcz(1, 3) == IBC_PERIODIC ) then
-        ailcaiz6 = m1fC2P(3, 1, IBC_PERIODIC)
-        aiciz6   = m1rC2P(3, 1, IBC_PERIODIC)
-        biciz6   = m1rC2P(3, 2, IBC_PERIODIC) 
-        ciciz6   = zero
-        diciz6   = zero
-    else if (dm%ibcz(1, 3) == IBC_DIRICHLET ) then
-        ailcaiz6 = m1fC2P(3, 1, IBC_DIRICHLET)
-        aiciz6   = m1rC2P(3, 1, IBC_DIRICHLET)
-        biciz6   = m1rC2P(3, 2, IBC_DIRICHLET) 
-        ciciz6   = zero
-        diciz6   = zero
-    else 
-    ! to add and check
-    end if
+    ailcaiz6 = ailcaix6
+    aiciz6   = aicix6
+    biciz6   = bicix6
+    ciciz6   = cicix6
+    diciz6   = dicix6
+
+    ! if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
+    !     ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
+    !     aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
+    !     bicix6   = m1rC2P(3, 2, IBC_PERIODIC) 
+    !     cicix6   = zero
+    !     dicix6   = zero
+    ! else if (dm%ibcx(1, 1) == IBC_DIRICHLET ) then
+    !     ailcaix6 = m1fC2P(3, 1, IBC_DIRICHLET)
+    !     aicix6   = m1rC2P(3, 1, IBC_DIRICHLET)
+    !     bicix6   = m1rC2P(3, 2, IBC_DIRICHLET) 
+    !     cicix6   = zero
+    !     dicix6   = zero
+    ! else 
+    ! ! to add and check
+    ! end if
+
+    ! if(dm%ibcy(1, 2) == IBC_PERIODIC ) then
+    !     ailcaiy6 = m1fC2P(3, 1, IBC_PERIODIC)
+    !     aiciy6   = m1rC2P(3, 1, IBC_PERIODIC)
+    !     biciy6   = m1rC2P(3, 2, IBC_PERIODIC) 
+    !     ciciy6   = zero
+    !     diciy6   = zero
+    ! else if (dm%ibcy(1, 2) == IBC_DIRICHLET ) then
+    !     ailcaiy6 = m1fC2P(3, 1, IBC_DIRICHLET)
+    !     aiciy6   = m1rC2P(3, 1, IBC_DIRICHLET)
+    !     biciy6   = m1rC2P(3, 2, IBC_DIRICHLET) 
+    !     ciciy6   = zero
+    !     diciy6   = zero
+    ! else 
+    ! ! to add and check
+    ! end if
+
+    ! if(dm%ibcz(1, 3) == IBC_PERIODIC ) then
+    !     ailcaiz6 = m1fC2P(3, 1, IBC_PERIODIC)
+    !     aiciz6   = m1rC2P(3, 1, IBC_PERIODIC)
+    !     biciz6   = m1rC2P(3, 2, IBC_PERIODIC) 
+    !     ciciz6   = zero
+    !     diciz6   = zero
+    ! else if (dm%ibcz(1, 3) == IBC_DIRICHLET ) then
+    !     ailcaiz6 = m1fC2P(3, 1, IBC_DIRICHLET)
+    !     aiciz6   = m1rC2P(3, 1, IBC_DIRICHLET)
+    !     biciz6   = m1rC2P(3, 2, IBC_DIRICHLET) 
+    !     ciciz6   = zero
+    !     diciz6   = zero
+    ! else 
+    ! ! to add and check
+    ! end if
 
 #ifdef DEBUG_STEPS
-  write(*,*) 'ailcaix6, aicix6, bicix6 = ', ailcaix6, aicix6, bicix6
-  write(*,*) 'ailcaiy6, aiciy6, biciy6 = ', ailcaiy6, aiciy6, biciy6
-  write(*,*) 'ailcaiz6, aiciz6, biciz6 = ', ailcaiz6, aiciz6, biciz6
+  write(*,*) 'interp, alpha, a/2, b/4 = ', ailcaix6, aicix6, bicix6
 #endif
 !----------------------------------------------------------------------------------------------------------
 

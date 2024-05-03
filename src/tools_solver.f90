@@ -310,14 +310,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1))
+    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx_qx(:, IBC_PCC))
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2))
+    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC))
     var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : \overline{w}^z/dz at cell centre
@@ -325,7 +325,7 @@ contains
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3))
+    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP))
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
@@ -709,7 +709,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : u1 -> g1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, :, :)%d)
     fl%gx = fl%qx * d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
@@ -717,7 +717,7 @@ contains
     call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
     call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy_Th(:, IBC_CCC), dm%ftpbcy_var(:, :, :)%d)
     gy_ypencil = qy_ypencil * d_cpc_ypencil
     call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
@@ -727,7 +727,7 @@ contains
     call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
     call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz_Th(:, IBC_CCC), dm%ftpbcz_var(:, :, :)%d)
     gz_zpencil = qz_zpencil * d_ccp_zpencil
 
     call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
@@ -783,7 +783,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : g1 -> u1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, :, :)%d)
     fl%qx = fl%gx / d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
@@ -791,7 +791,7 @@ contains
     call transpose_x_to_y(fl%gy,    gy_ypencil, dm%dcpc)
     call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy_Th(:, IBC_CCC), dm%ftpbcy_var(:, :, :)%d)
     qy_ypencil = gy_ypencil / d_cpc_ypencil
     call transpose_y_to_x(qy_ypencil, fl%qy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
@@ -801,7 +801,7 @@ contains
     call transpose_x_to_y(fl%gz,      gz_ypencil, dm%dccp)
     call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz_Th(:, IBC_CCC), dm%ftpbcz_var(:, :, :)%d)
     qz_zpencil = gz_zpencil / d_ccp_zpencil
 
     call transpose_z_to_y(qz_zpencil, qz_ypencil, dm%dccp)

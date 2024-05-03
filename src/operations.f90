@@ -6016,13 +6016,13 @@ alpha_itf = ZERO
     real(WP), allocatable :: fgxc(:), fgyc(:), fgzc(:)
     real(WP), allocatable :: fgxp(:), fgyp(:), fgzp(:)
 
-    if (dm%ibcx(1, 5) == IBC_DIRICHLET) then
+    if (dm%ibcx_Th(1, IBC_CCC) == IBC_DIRICHLET) then
        if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
     end if
-    if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
+    if (dm%ibcy_Th(1, IBC_CCC) == IBC_DIRICHLET) then
        if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
     end if
-    if (dm%ibcz(1, 5) == IBC_DIRICHLET) then
+    if (dm%ibcz_Th(1, IBC_CCC) == IBC_DIRICHLET) then
        if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
     end if
     allocate ( fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3)) )
@@ -6034,31 +6034,31 @@ alpha_itf = ZERO
     dm%h(3) = TWOPI / dm%nc(3)
 
     open (newunit = wrt_unit(4), file = 'test_interpolation.dat', position="append")
-    write(wrt_unit(4), *) '# xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
-    write(wrt_unit(4), *) '# ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
-    write(wrt_unit(4), *) '# zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# xbc type ', dm%ibcx_Th(1:2, IBC_CCC), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# ybc type ', dm%ibcy_Th(1:2, IBC_CCC), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# zbc type ', dm%ibcz_Th(1:2, IBC_CCC), " err_inf, err_L2"
 
     open (newunit = wrt_unit(1), file = 'test_interpolation_x.dat', position="append")
     open (newunit = wrt_unit(2), file = 'test_interpolation_y.dat', position="append")
     open (newunit = wrt_unit(3), file = 'test_interpolation_z.dat', position="append")
 
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         write(*,*) size(dm%fbcx_pr(:, :, :), 1), size(dm%fbcx_pr(:, :, :), 2) , size(dm%fbcx_pr(:, :, :), 3)
         if(i==1) dm%fbcx_pr(1, :, :) = ZERO
         if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
 
@@ -6073,21 +6073,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcy_Th(i, IBC_CCC)) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
         if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcy_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -6101,21 +6101,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
         if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcz_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -6132,7 +6132,7 @@ alpha_itf = ZERO
 ! c2p
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_INTERIOR) then
         scale = THREE
         shift = ZERO
         if(i==1) then
@@ -6143,7 +6143,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
-      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
@@ -6154,7 +6154,7 @@ alpha_itf = ZERO
           dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
-      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
@@ -6177,7 +6177,7 @@ alpha_itf = ZERO
     ! do i = 1, 4 
     !   write(wrt_unit,'(A,1I5.1,4ES13.5)') 'x-intpbc-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
     ! end do
-    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6209,7 +6209,7 @@ alpha_itf = ZERO
     end do
 ! y: c2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6242,7 +6242,7 @@ alpha_itf = ZERO
     end do
 ! z: c2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -6270,7 +6270,7 @@ alpha_itf = ZERO
 ! p2c
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_INTERIOR) then
         scale = THREE
         shift = ZERO
         if(i == 1) then
@@ -6281,7 +6281,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC)) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -6292,7 +6292,7 @@ alpha_itf = ZERO
           dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -6311,7 +6311,7 @@ alpha_itf = ZERO
     end do
 ! x: p2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx_Th(:, IBC_PCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -6344,7 +6344,7 @@ alpha_itf = ZERO
     end do
 ! y: p2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -6380,7 +6380,7 @@ alpha_itf = ZERO
     end do
 ! z: p2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -6421,8 +6421,8 @@ alpha_itf = ZERO
     end do
     ! intp p2c + 1st deri c2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_P2C_1D          (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
-    call Get_y_1st_derivative_C2P_1D(fgyc,fgyp, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_midp_P2C_1D          (fyp, fgyc, dm, dm%ibcy_Th(:, IBC_PPP), fbc)
+    call Get_y_1st_derivative_C2P_1D(fgyc,fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
 
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6448,45 +6448,45 @@ alpha_itf = ZERO
       end do
     !end if
 
-! test a combination
-    ! input: f(yp) = sin(x/3)
-    ! intpp2c: f(yc) = sin(x/3)
-    ! input for deri: f(yc)= sin(x/3) * sin(x/3)
-    ! 1stderic2p: f'(yp) = 2/3 sin(x/3) * cos(x/3)
+! ! test a combination
+!     ! input: f(yp) = sin(x/3)
+!     ! intpp2c: f(yc) = sin(x/3)
+!     ! input for deri: f(yc)= sin(x/3) * sin(x/3)
+!     ! 1stderic2p: f'(yp) = 2/3 sin(x/3) * cos(x/3)
 
-    ! y direction, yp
-    do j = 1, dm%np(2)
-      yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
-      fyp(j) = sin_wp ( yp / scale + shift)
-    end do
-    ! intp p2c + 1st deri c2p
-    fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_P2C_1D          (fyp,      fgyc, dm, dm%ibcy(:, 5), fbc)
-    call Get_y_1st_derivative_C2P_1D(fgyc*fgyc,fgyp, dm, dm%ibcy(:, 5), fbc*fbc)
+!     ! y direction, yp
+!     do j = 1, dm%np(2)
+!       yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
+!       fyp(j) = sin_wp ( yp / scale + shift)
+!     end do
+!     ! intp p2c + 1st deri c2p
+!     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
+!     call Get_y_midp_P2C_1D          (fyp,      fgyc, dm, dm%ibcy_Th(:, IBC_PPP), fbc)
+!     call Get_y_1st_derivative_C2P_1D(fgyc*fgyc,fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc*fbc)
 
-    err_Linf = ZERO
-    err_L2   = ZERO
-    do j = 1, dm%np(2)
-      yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
-      ref = TWO/scale * cos_wp(yp / scale + shift)* sin_wp(yp / scale + shift)
-      err = abs_wp(fgyp(j) - ref)
-      if(err > err_Linf) err_Linf = err
-      err_L2 = err_L2 + err**2
-      !write(wrt_unit,'(A,1I5.1,4ES13.5)') 'y-interp-c2p ', j, yp, ref, fgyp(j), err !test
-    end do
-    err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
-    write(wrt_unit(4), *) '# y-d(ff)dy ', dm%np(2), err_Linf, err_L2
+!     err_Linf = ZERO
+!     err_L2   = ZERO
+!     do j = 1, dm%np(2)
+!       yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
+!       ref = TWO/scale * cos_wp(yp / scale + shift)* sin_wp(yp / scale + shift)
+!       err = abs_wp(fgyp(j) - ref)
+!       if(err > err_Linf) err_Linf = err
+!       err_L2 = err_L2 + err**2
+!       !write(wrt_unit,'(A,1I5.1,4ES13.5)') 'y-interp-c2p ', j, yp, ref, fgyp(j), err !test
+!     end do
+!     err_L2 = sqrt_wp(err_L2 / dm%np(2)) 
+!     write(wrt_unit(4), *) '# y-d(ff)dy ', dm%np(2), err_Linf, err_L2
 
-    !if(err_L2 > 1.0e-8_WP) then
-      !call Print_warning_msg("Test y-d(ff)dy failed.")
-      write(wrt_unit(2), *) '# y-d(ff)dy ', dm%np(2), err_Linf, err_L2
-      do j = 1, dm%np(2)
-        yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
-        ref = TWO/scale * cos_wp(yp / scale + shift)* sin_wp(yp / scale + shift)
-        err = abs_wp(fgyp(j) - ref)
-        write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
-      end do
-    !end if
+!     !if(err_L2 > 1.0e-8_WP) then
+!       !call Print_warning_msg("Test y-d(ff)dy failed.")
+!       write(wrt_unit(2), *) '# y-d(ff)dy ', dm%np(2), err_Linf, err_L2
+!       do j = 1, dm%np(2)
+!         yp = dm%h(2) * real(j - 1, WP) !yp = dm%yp(j)
+!         ref = TWO/scale * cos_wp(yp / scale + shift)* sin_wp(yp / scale + shift)
+!         err = abs_wp(fgyp(j) - ref)
+!         write(wrt_unit(2),*) j, yp, ref, fgyp(j), err !test
+!       end do
+!     !end if
 
     close(wrt_unit(1))
     close(wrt_unit(2))
@@ -6544,9 +6544,9 @@ alpha_itf = ZERO
     real(WP), allocatable :: fgxc(:), fgyc(:), fgzc(:)
     real(WP), allocatable :: fgxp(:), fgyp(:), fgzp(:)
 
-    dm%ibcx(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
-    dm%ibcy(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
-    dm%ibcz(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
+    dm%ibcx_Th(:, IBC_CCC) = IBC_DIRICHLET; if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
+    dm%ibcy_Th(:, IBC_CCC) = IBC_DIRICHLET; if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
+    dm%ibcz_Th(:, IBC_CCC) = IBC_DIRICHLET; if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
     allocate ( fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3)) )
     allocate ( fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3)) )
     allocate ( fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3)) )
@@ -6556,21 +6556,21 @@ alpha_itf = ZERO
     dm%h(3) = TWOPI / dm%nc(3)
 
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcx_pr(1, :, :) = ZERO
         if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
 
@@ -6585,21 +6585,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
         if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -6613,21 +6613,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcz_Th(:, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
         if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -6641,9 +6641,9 @@ alpha_itf = ZERO
     end do
 
     open (newunit = wrt_unit(4), file = 'test_1st_derivative.dat', position="append")
-    write(wrt_unit(4), *) '# xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
-    write(wrt_unit(4), *) '# ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
-    write(wrt_unit(4), *) '# zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# xbc type ', dm%ibcx_Th(1:2, IBC_CCC), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# ybc type ', dm%ibcy_Th(1:2, IBC_CCC), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# zbc type ', dm%ibcz_Th(1:2, IBC_CCC), " err_inf, err_L2"
 
     open (newunit = wrt_unit(1), file = 'test_1st_derivative_x.dat', position="append")
     open (newunit = wrt_unit(2), file = 'test_1st_derivative_y.dat', position="append")
@@ -6653,7 +6653,7 @@ alpha_itf = ZERO
 ! c2c
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_INTERIOR) then
         scale = THREE
         shift = ZERO
         if(i==1) then
@@ -6664,7 +6664,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
-      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
@@ -6675,7 +6675,7 @@ alpha_itf = ZERO
           dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
-      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
@@ -6695,7 +6695,7 @@ alpha_itf = ZERO
     end do
 ! x: c2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -6727,7 +6727,7 @@ alpha_itf = ZERO
     end do
 ! y: c2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -6760,7 +6760,7 @@ alpha_itf = ZERO
     end do
 ! z: c2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -6796,7 +6796,7 @@ alpha_itf = ZERO
     ! end if
 
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6824,7 +6824,7 @@ alpha_itf = ZERO
 
 ! y: c2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6852,7 +6852,7 @@ alpha_itf = ZERO
 
 ! z: c2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -6884,7 +6884,7 @@ alpha_itf = ZERO
 ! p2p
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_INTERIOR) then
         scale = THREE
         shift = ZERO
         if(i == 1) then
@@ -6895,7 +6895,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -6906,7 +6906,7 @@ alpha_itf = ZERO
           dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -6926,7 +6926,7 @@ alpha_itf = ZERO
     end do
 ! x: p2p
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6959,7 +6959,7 @@ alpha_itf = ZERO
     end do
 ! y: p2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6991,7 +6991,7 @@ alpha_itf = ZERO
     end do
 ! z: p2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -7023,7 +7023,7 @@ alpha_itf = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! x: p2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx_Th(:, IBC_PCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -7052,7 +7052,7 @@ alpha_itf = ZERO
 
 ! y: p2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -7080,7 +7080,7 @@ alpha_itf = ZERO
 
 ! z: p2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -7164,9 +7164,9 @@ alpha_itf = ZERO
     real(WP), allocatable :: fgxc(:), fgyc(:), fgzc(:)
     real(WP), allocatable :: fgxp(:), fgyp(:), fgzp(:)
 
-    dm%ibcx(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
-    dm%ibcy(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
-    dm%ibcz(:, 5) = IBC_DIRICHLET; if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
+    dm%ibcx_Th(:, IBC_CCC) = IBC_DIRICHLET; if(is_even(dm%np(1))) dm%np(1)=dm%np(1)+1
+    dm%ibcy_Th(:, IBC_CCC) = IBC_DIRICHLET; if(is_even(dm%np(2))) dm%np(2)=dm%np(2)+1
+    dm%ibcz_Th(:, IBC_CCC) = IBC_DIRICHLET; if(is_even(dm%np(3))) dm%np(3)=dm%np(3)+1
     allocate ( fxc (dm%nc(1)), fyc (dm%nc(2)), fzc (dm%nc(3)) )
     allocate ( fxp (dm%np(1)), fyp (dm%np(2)), fzp (dm%np(3)) )
     allocate ( fgxc(dm%nc(1)), fgyc(dm%nc(2)), fgzc(dm%nc(3)) )
@@ -7176,21 +7176,21 @@ alpha_itf = ZERO
     dm%h(3) = TWOPI / dm%nc(3)
 
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcx(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcx(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcx_Th(i, IBC_CCC)== IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcx(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcx_pr(1, :, :) = ZERO
         if(i==2) dm%fbcx_pr(2, :, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcx(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcx_Th(i, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
 
@@ -7205,21 +7205,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcy(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcy_Th(:, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcy(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcy(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcy(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ZERO
         if(i==2) dm%fbcy_pr(:, 2, :) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcy(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcy_Th(:, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcy_pr(:, 1, :) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -7233,21 +7233,21 @@ alpha_itf = ZERO
     end do
 
     do i = 1, 2
-      if (dm%ibcz(i, 5) == IBC_PERIODIC) then
+      if (dm%ibcz_Th(:, IBC_CCC) == IBC_PERIODIC) then
         scale = ONE
         shift = ZERO
-      else if (dm%ibcz(i, 5) == IBC_SYMMETRIC) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_SYMMETRIC) then
         scale = ONE
         shift = PI * HALF
-      else if (dm%ibcz(i, 5) == IBC_ASYMMETRIC) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_ASYMMETRIC) then
         scale = TWO
         shift = ZERO
-      else if (dm%ibcz(i, 5) == IBC_DIRICHLET) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_DIRICHLET) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ZERO
         if(i==2) dm%fbcz_pr(:, :, 2) = sin_wp(TWOPI * ONE_THIRD)
-      else if (dm%ibcz(i, 5) == IBC_NEUMANN) then
+      else if (dm%ibcz_Th(:, IBC_CCC) == IBC_NEUMANN) then
         scale = THREE
         shift = ZERO
         if(i==1) dm%fbcz_pr(:, :, 1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
@@ -7261,9 +7261,9 @@ alpha_itf = ZERO
     end do
 
     open (newunit = wrt_unit(4), file = 'test_2nd_derivative.dat', position="append")
-    write(wrt_unit(4), *) '# xbc type ', dm%ibcx(1:2, 5), " err_inf, err_L2"
-    write(wrt_unit(4), *) '# ybc type ', dm%ibcy(1:2, 5), " err_inf, err_L2"
-    write(wrt_unit(4), *) '# zbc type ', dm%ibcz(1:2, 5), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# xbc type ', dm%ibcx_Th(1:2, IBC_CCC), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# ybc type ', dm%ibcy_Th(1:2, IBC_CCC), " err_inf, err_L2"
+    write(wrt_unit(4), *) '# zbc type ', dm%ibcz_Th(1:2, IBC_CCC), " err_inf, err_L2"
 
     open (newunit = wrt_unit(1), file = 'test_2nd_derivative_x.dat', position="append")
     open (newunit = wrt_unit(2), file = 'test_2nd_derivative_y.dat', position="append")
@@ -7273,7 +7273,7 @@ alpha_itf = ZERO
 ! c2c
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_INTERIOR) then
         scale = THREE
         shift = ZERO
         if(i==1) then
@@ -7284,7 +7284,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
-      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
@@ -7295,7 +7295,7 @@ alpha_itf = ZERO
           dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2 - 1, WP) + HALF) / scale + shift)
         end if
       end if
-      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i==1) then
@@ -7315,7 +7315,7 @@ alpha_itf = ZERO
     end do
 ! x: c2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -7346,7 +7346,7 @@ alpha_itf = ZERO
     end do
 ! y: c2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -7377,7 +7377,7 @@ alpha_itf = ZERO
     end do
 ! z: c2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -7405,7 +7405,7 @@ alpha_itf = ZERO
 ! p2p
 !----------------------------------------------------------------------------------------------------------
     do i = 1, 2
-      if (dm%ibcx(i, 5) == IBC_INTERIOR) then
+      if (dm%ibcx_Th(i, IBC_CCC) == IBC_INTERIOR) then
         scale = THREE
         shift = ZERO
         if(i == 1) then
@@ -7416,7 +7416,7 @@ alpha_itf = ZERO
           dm%fbcx_pr(4, :, :) = sin_wp ( dm%h(1) * (real( dm%nc(1) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcy(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcy_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -7427,7 +7427,7 @@ alpha_itf = ZERO
           dm%fbcy_pr(:, 4, :) = sin_wp ( dm%h(2) * (real( dm%nc(2) + 2, WP) ) / scale + shift)
         end if
       end if
-      if (dm%ibcz(i, 5) == IBC_INTERIOR) then     
+      if (dm%ibcz_Th(i, IBC_CCC) == IBC_INTERIOR) then     
         scale = THREE
         shift = ZERO 
         if(i == 1) then
@@ -7446,7 +7446,7 @@ alpha_itf = ZERO
     end do
 ! x: p2p
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx(:, 5), fbc)
+    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -7477,7 +7477,7 @@ alpha_itf = ZERO
     end do
 ! y: p2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy(:, 5), fbc)
+    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -7509,7 +7509,7 @@ alpha_itf = ZERO
     end do
 ! z: p2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz(:, 5), fbc)
+    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)

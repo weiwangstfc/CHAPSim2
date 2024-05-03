@@ -19,7 +19,7 @@
 PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
-  FOPTS= -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
+  FOPTS= -O -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
    -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
    -Wno-unused -fallow-argument-mismatch		   
   FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8

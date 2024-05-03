@@ -277,22 +277,22 @@ contains
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, *) 'is periodic in xyz? ', domain(i)%is_periodic(1:3)
-            write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx(1:2, 1), domain(i)%fbcx_const(1:2, 1)
-            write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx(1:2, 2), domain(i)%fbcx_const(1:2, 2)
-            write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx(1:2, 3), domain(i)%fbcx_const(1:2, 3)
-            write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx(1:2, 4), domain(i)%fbcx_const(1:2, 4)
-            write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx(1:2, 5), domain(i)%fbcx_const(1:2, 5)
+            write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
+            write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2)
+            write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
+            write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
+            write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5)
           end do
-          write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy(1:2, 1), domain(1)%fbcy_const(1:2, 1)
-          write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy(1:2, 2), domain(1)%fbcy_const(1:2, 2)
-          write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy(1:2, 3), domain(1)%fbcy_const(1:2, 3)
-          write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy(1:2, 4), domain(1)%fbcy_const(1:2, 4)
-          write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy(1:2, 5), domain(1)%fbcy_const(1:2, 5)
-          write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz(1:2, 1), domain(1)%fbcz_const(1:2, 1)
-          write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz(1:2, 2), domain(1)%fbcz_const(1:2, 2)
-          write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz(1:2, 3), domain(1)%fbcz_const(1:2, 3)
-          write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz(1:2, 4), domain(1)%fbcz_const(1:2, 4)
-          write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz(1:2, 5), domain(1)%fbcz_const(1:2, 5)
+          write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
+          write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2)
+          write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
+          write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
+          write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5)
+          write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
+          write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
+          write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
+          write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
+          write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5)
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [mesh] 

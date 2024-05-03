@@ -170,6 +170,14 @@ module parameters_constant_mod
                         IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
                         IBC_OTHERS      = 11   ! exclusive
   integer, parameter :: NBC = 5! u, v, w, p, T
+  integer, parameter :: IDIM(3) = (/1, 2, 3/)
+  integer, parameter :: IBC_CCC = 1, &
+                        IBC_CCP = 2, &
+                        IBC_CPC = 3, &
+                        IBC_PCC = 4, &
+                        IBC_PPC = 5, &
+                        IBC_CPP = 6, &
+                        IBC_PPP = 7
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -358,9 +366,24 @@ module udf_type_mod
     integer :: np_geo(NDIM) ! geometric points
     integer :: np(NDIM) ! calculated points
     integer :: proben   ! global number of probed points
-    integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
+    ! integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
+    ! integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
+    ! integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
+    integer  :: ibcx_qx(2,7)
+    integer  :: ibcy_qx(2,7)
+    integer  :: ibcz_qx(2,7)
+    integer  :: ibcx_qy(2,7)
+    integer  :: ibcy_qy(2,7)
+    integer  :: ibcz_qy(2,7)
+    integer  :: ibcx_qz(2,7)
+    integer  :: ibcy_qz(2,7)
+    integer  :: ibcz_qz(2,7)
+    integer  :: ibcx_pr(2,7)
+    integer  :: ibcy_pr(2,7)
+    integer  :: ibcz_pr(2,7)
+    integer  :: ibcx_Th(2,7)
+    integer  :: ibcy_Th(2,7)
+    integer  :: ibcz_Th(2,7)
     integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
     integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)

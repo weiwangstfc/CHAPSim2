@@ -9,33 +9,33 @@ module boundary_conditions_mod
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
   public  :: update_flow_bc_1dm_halo
+  public  :: get_ibc_for_calcuation
 
   !public  :: apply_bc_const
   !public  :: apply_convective_outlet
   
 contains
 
-  subroutine refresh_bc_type(bc_nominal, bc_real)
+  subroutine refresh_bc_type(bc_nominal)
     implicit none 
-    integer, intent(in) :: bc_nominal(2, NBC)
-    integer, intent(inout) :: bc_real(2, NBC)
+    integer, intent(inout) :: bc_nominal(2, NBC)
     integer :: n, m
 
     do n = 1, 2
       do m = 1, NBC
         if (bc_nominal(n, m) == IBC_PROFILE1D)   then
-          bc_real(n, m) = IBC_DIRICHLET
+          bc_nominal(n, m) = IBC_DIRICHLET
         else if (bc_nominal(n, m) == IBC_TURBGEN  .or. &
                  bc_nominal(n, m) == IBC_DATABASE )   then
           if(m /=5) then
-            bc_real(n, m) = IBC_INTERIOR  ! for u, v, w, p
+            bc_nominal(n, m) = IBC_INTERIOR  ! for u, v, w, p
           else 
-            bc_real(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, check
+            bc_nominal(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, check
           end if
-        else if (bc_nominal(n, m) == IBC_CONVECTIVE)   then
-          bc_real(n, m) = IBC_INTRPL
+        else if (bc_nominal(n, m) == IBC_CONVECTIVE)   then ! check for convetive outlet
+          bc_nominal(n, m) = IBC_INTRPL
         else
-          bc_real(n, m) = bc_nominal(n, m)   
+          bc_nominal(n, m) = bc_nominal(n, m)   
         end if
       end do
     end do
@@ -56,9 +56,9 @@ contains
     do m = 1, NBC
       if(dm%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
       do n = 1, 2
-        if(dm%ibcx(n, m)         >  IBC_OTHERS   ) dm%ibcx(n, m) = IBC_INTRPL
-        if(dm%ibcy(n, m)         >  IBC_OTHERS   ) dm%ibcy(n, m) = IBC_INTRPL
-        if(dm%ibcz(n, m)         >  IBC_OTHERS   ) dm%ibcz(n, m) = IBC_INTRPL
+        if(dm%ibcx_nominal(n, m) >  IBC_OTHERS   ) dm%ibcx_nominal(n, m) = IBC_INTRPL
+        if(dm%ibcy_nominal(n, m) >  IBC_OTHERS   ) dm%ibcy_nominal(n, m) = IBC_INTRPL
+        if(dm%ibcz_nominal(n, m) >  IBC_OTHERS   ) dm%ibcz_nominal(n, m) = IBC_INTRPL
         if(dm%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
         if(dm%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
       end do
@@ -66,35 +66,93 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc for calculation from given nominal b.c.
 !----------------------------------------------------------------------------------------------------------
-    ! x-pencil, ux-special
-    call refresh_bc_type(dm%ibcx_nominal, dm%ibcx)
+    call refresh_bc_type(dm%ibcx_nominal)
+    call refresh_bc_type(dm%ibcy_nominal)
+    call refresh_bc_type(dm%ibcz_nominal)
+!----------------------------------------------------------------------------------------------------------
+! allocate bc to variables
+!----------------------------------------------------------------------------------------------------------
     do n = 1, 2
-      if(dm%ibcx(n, 1) == IBC_DIRICHLET) dm%ibcx(n, 1) = IBC_DIRICHLET ! ux at x-start
-      do m = 1, NBC-2
-        if (m /= 1) then
-          if(dm%ibcx(n, m) == IBC_DIRICHLET) dm%ibcx(n, m) = IBC_ASYMMETRIC ! uy at x-start, -y2, -y1, /0/, y1, y2, check, not working for slip wall
-        end if
-      end do
-    end do
-    ! y-pencil, uy-special
-    call refresh_bc_type(dm%ibcy_nominal, dm%ibcy)
+      dm%ibcx_qx(n, :) = dm%ibcx_nominal(n, 1)
+      dm%ibcx_qy(n, :) = dm%ibcx_nominal(n, 2)
+      dm%ibcx_qz(n, :) = dm%ibcx_nominal(n, 3)
+      dm%ibcx_pr(n, :) = dm%ibcx_nominal(n, 4)
+      dm%ibcx_Th(n, :) = dm%ibcx_nominal(n, 5)
+
+      dm%ibcy_qx(n, :) = dm%ibcy_nominal(n, 1)
+      dm%ibcy_qy(n, :) = dm%ibcy_nominal(n, 2)
+      dm%ibcy_qz(n, :) = dm%ibcy_nominal(n, 3)
+      dm%ibcy_pr(n, :) = dm%ibcy_nominal(n, 4)
+      dm%ibcy_Th(n, :) = dm%ibcy_nominal(n, 5)
+
+      dm%ibcz_qx(n, :) = dm%ibcz_nominal(n, 1)
+      dm%ibcz_qy(n, :) = dm%ibcz_nominal(n, 2)
+      dm%ibcz_qz(n, :) = dm%ibcz_nominal(n, 3)
+      dm%ibcz_pr(n, :) = dm%ibcz_nominal(n, 4)
+      dm%ibcz_Th(n, :) = dm%ibcz_nominal(n, 5)
+    end do 
+!----------------------------------------------------------------------------------------------------------
+! correct bc for future calculation
+!----------------------------------------------------------------------------------------------------------
     do n = 1, 2
-      if(dm%ibcy(n, 2) == IBC_DIRICHLET) dm%ibcy(n, 2) = IBC_DIRICHLET ! uy at y-start
-      do m = 1, NBC-2
-          if (m /= 2) then
-            if(dm%ibcy(n, m) == IBC_DIRICHLET) dm%ibcy(n, m) = IBC_ASYMMETRIC ! uy at x-start, -y2, -y1, /0/, y1, y2
-          end if
-      end do
-    end do
-    ! z-pencil, uz-special
-    call refresh_bc_type(dm%ibcz_nominal, dm%ibcz)
-    do n = 1, 2
-      if(dm%ibcz(n, 3) == IBC_DIRICHLET) dm%ibcz(n, 3) = IBC_DIRICHLET ! uz at z-start
-      do m = 1, NBC-2
-          if (m /= 3) then
-            if(dm%ibcz(n, m) == IBC_DIRICHLET) dm%ibcz(n, m) = IBC_ASYMMETRIC ! uz at z-start, -y2, -y1, /0/, y1, y2
-          end if
-      end do
+      ! - x - 
+      if(dm%ibcx_nominal(n, 1) == IBC_DIRICHLET) then ! ux at x-dir
+        dm%ibcx_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qx(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qx(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qx(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      if(dm%ibcx_nominal(n, 2) == IBC_DIRICHLET) then ! uy at x-dir
+        dm%ibcx_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qy(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qy(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qy(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      if(dm%ibcx_nominal(n, 3) == IBC_DIRICHLET) then ! uz at x-dir
+        dm%ibcx_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qz(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qz(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcx_qz(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      ! - y - 
+      if(dm%ibcy_nominal(n, 1) == IBC_DIRICHLET) then
+        dm%ibcy_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qx(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qx(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qx(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      if(dm%ibcy_nominal(n, 2) == IBC_DIRICHLET) then
+        dm%ibcy_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qy(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qy(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qy(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      if(dm%ibcy_nominal(n, 3) == IBC_DIRICHLET) then
+        dm%ibcy_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qz(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qz(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcy_qz(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      ! - z - 
+      if(dm%ibcz_nominal(n, 1) == IBC_DIRICHLET) then
+        dm%ibcz_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qx(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qx(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qx(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      if(dm%ibcz_nominal(n, 2) == IBC_DIRICHLET) then
+        dm%ibcz_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qy(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qy(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qy(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+      if(dm%ibcz_nominal(n, 3)== IBC_DIRICHLET) then
+        dm%ibcz_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qz(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qz(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+        dm%ibcz_qz(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+      end if 
+
     end do
 
     return
@@ -336,56 +394,56 @@ contains
 
     ! default zero velocity at wall, check! not work for slip wall.
     !------------ux at x-bc-----------
-    if(dm%ibcx(1, 1) == IBC_DIRICHLET ) then
+    if(dm%ibcx_qx(1, IBC_PCC) == IBC_DIRICHLET ) then
       dm%fbcx_qx(1, :, :) = dm%fbcx_const(1, 1)
       dm%fbcx_qx(3, :, :) = dm%fbcx_const(1, 1)
       fl%qx(1, :, :) = dm%fbcx_const(1, 1)
     end if
-    if(dm%ibcx(2, 1) == IBC_DIRICHLET ) then
+    if(dm%ibcx_qx(2, IBC_PCC) == IBC_DIRICHLET ) then
       dm%fbcx_qx(2, :, :) = dm%fbcx_const(2, 1)
       dm%fbcx_qx(4, :, :) = dm%fbcx_const(2, 1)
       fl%qx(dm%dpcc%xsz(1), :, :) = dm%fbcx_const(2, 1)
     end if
     !------------ux at y-bc-----------
-    if(dm%ibcy(1, 1) == IBC_INTERIOR .or. &
-       dm%ibcy(2, 1) == IBC_INTERIOR) then
+    if(dm%ibcy_qx(1, IBC_PCC) == IBC_INTERIOR .or. &
+       dm%ibcy_qx(2, IBC_PCC) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qx, apcc_ypencil, dm%dpcc)
     end if
     ! ux at y-bc-y1
-    if(dm%ibcy(1, 1) == IBC_INTERIOR) then
+    if(dm%ibcy_qx(1, IBC_PCC) == IBC_INTERIOR) then
       if( dm%dpcc%yst(2)    == 1) dm%fbcy_qx(:, 1, :) = - apcc_ypencil(:, 1, :) 
       if((dm%dpcc%yst(2)+1) == 2) dm%fbcy_qx(:, 3, :) = - apcc_ypencil(:, 2, :)
     end if
     ! ux at y-bc-yn
-    if(dm%ibcy(2, 1) == IBC_INTERIOR) then
+    if(dm%ibcy_qx(2, IBC_PCC) == IBC_INTERIOR) then
       if( dm%dpcc%yen(2)    ==  dm%nc(2)   ) dm%fbcy_qx(:, 2, :) = - apcc_ypencil(:, dm%nc(2),     :)
       if((dm%dpcc%yen(2)-1) == (dm%nc(2)-1)) dm%fbcy_qx(:, 4, :) = - apcc_ypencil(:, dm%nc(2) - 1, :)
     end if
     !-----------ux at z-bc-----------
-    if(dm%ibcz(1, 1) == IBC_INTERIOR .or. &
-       dm%ibcz(2, 1) == IBC_INTERIOR) then
+    if(dm%ibcz_qx(1, IBC_PCC) == IBC_INTERIOR .or. &
+       dm%ibcz_qx(2, IBC_PCC) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qx,        apcc_ypencil, dm%dpcc)
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc)
     end if
     ! ux at z-bc
-    if(dm%ibcz(1, 1) == IBC_INTERIOR) then
+    if(dm%ibcz_qx(1, IBC_PCC) == IBC_INTERIOR) then
       if( dm%dpcc%zst(3)    == 1) dm%fbcz_qx(:, :, 1) = - apcc_zpencil(:, :, 1) 
       if((dm%dpcc%zst(3)+1) == 2) dm%fbcz_qx(:, :, 3) = - apcc_zpencil(:, :, 2)
     end if
-    if(dm%ibcz(2, 1) == IBC_INTERIOR) then
+    if(dm%ibcz_qx(2, IBC_PCC) == IBC_INTERIOR) then
       if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) dm%fbcz_qx(:, :, 2) = - apcc_zpencil(:, :, dm%nc(3)    )
       if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) dm%fbcz_qx(:, :, 4) = - apcc_zpencil(:, :, dm%nc(3) - 1)
     end if
 
     !------------uy at y-bc-----------
-    if(dm%ibcy(1, 2) == IBC_DIRICHLET ) then
+    if(dm%ibcy_qy(1, IBC_CPC) == IBC_DIRICHLET ) then
       dm%fbcy_qy(:, 1, :) = dm%fbcy_const(1, 2)
       dm%fbcy_qy(:, 3, :) = dm%fbcy_const(1, 2)
       call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
       acpc_ypencil(:, 1, :) = dm%fbcy_const(1, 2)
       call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
     end if
-    if(dm%ibcy(2, 2) == IBC_DIRICHLET ) then
+    if(dm%ibcy_qy(2, IBC_CPC) == IBC_DIRICHLET ) then
       dm%fbcy_qy(:, 2, :) = dm%fbcy_const(2, 2)
       dm%fbcy_qy(:, 4, :) = dm%fbcy_const(2, 2)
       call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
@@ -393,57 +451,57 @@ contains
       call transpose_y_to_x(acpc_ypencil, fl%qy, dm%dcpc)
     end if
     !-----------uy at x-bc-----------
-    if(dm%ibcx(1, 2) == IBC_INTERIOR) then
+    if(dm%ibcx_qy(1, IBC_CPC) == IBC_INTERIOR) then
       if( dm%dcpc%xst(1)    == 1) dm%fbcx_qy(1, :, :) = - fl%qy(1, :, :) 
       if((dm%dcpc%xst(1)+1) == 2) dm%fbcx_qy(3, :, :) = - fl%qy(2, :, :)
     end if
-    if(dm%ibcx(2, 2) == IBC_INTERIOR) then
+    if(dm%ibcx_qy(2, IBC_CPC) == IBC_INTERIOR) then
       if( dm%dcpc%xen(1)    ==  dm%nc(1)   ) dm%fbcx_qy(2, :, :) = - fl%qy(dm%nc(1),     :, :)
       if((dm%dcpc%xen(1)-1) == (dm%nc(1)-1)) dm%fbcx_qy(4, :, :) = - fl%qy(dm%nc(1) - 1, :, :)
     end if
     !-----------uy at z-bc-----------
-    if(dm%ibcz(1, 2) == IBC_INTERIOR .or. &
-       dm%ibcz(2, 2) == IBC_INTERIOR) then
+    if(dm%ibcz_qy(1, IBC_CPC) == IBC_INTERIOR .or. &
+       dm%ibcz_qy(2, IBC_CPC) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qy,         acpc_ypencil, dm%dcpc)
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)
     end if
-    if(dm%ibcz(1, 2) == IBC_INTERIOR) then
+    if(dm%ibcz_qy(1, IBC_CPC) == IBC_INTERIOR) then
       if( dm%dcpc%zst(3)    == 1) dm%fbcz_qy(:, :, 1) = - acpc_zpencil(:, :, 1) 
       if((dm%dcpc%zst(3)+1) == 2) dm%fbcz_qy(:, :, 3) = - acpc_zpencil(:, :, 2)
     end if
-    if(dm%ibcz(2, 2) == IBC_INTERIOR) then
+    if(dm%ibcz_qy(2, IBC_CPC) == IBC_INTERIOR) then
       if( dm%dpcc%zen(3)    ==  dm%nc(3)   ) dm%fbcz_qy(:, :, 2) = - acpc_zpencil(:, :, dm%nc(3)    )
       if((dm%dpcc%zen(3)-1) == (dm%nc(3)-1)) dm%fbcz_qy(:, :, 4) = - acpc_zpencil(:, :, dm%nc(3) - 1)
     end if
 
     !------------uz at z-bc-----------
-    if(dm%ibcz(1, 3) == IBC_DIRICHLET ) then
+    if(dm%ibcz_qz(1, IBC_CCP) == IBC_DIRICHLET ) then
       dm%fbcz_qz(:, 1, :) = dm%fbcz_const(1, 3)
       dm%fbcz_qz(:, 3, :) = dm%fbcz_const(1, 3)
     end if
-    if(dm%ibcz(2, 3) == IBC_DIRICHLET ) then
+    if(dm%ibcz_qz(2, IBC_CCP) == IBC_DIRICHLET ) then
       dm%fbcz_qz(:, 2, :) = dm%fbcz_const(2, 3)
       dm%fbcz_qz(:, 4, :) = dm%fbcz_const(2, 3)
     end if
     !-----------uz at x-bc-----------
-    if(dm%ibcx(1, 3) == IBC_INTERIOR) then
+    if(dm%ibcx_qz(1, IBC_CCP) == IBC_INTERIOR) then
       if( dm%dccp%xst(1)    == 1) dm%fbcx_qz(1, :, :) = - fl%qz(1, :, :) 
       if((dm%dccp%xst(1)+1) == 2) dm%fbcx_qz(3, :, :) = - fl%qz(2, :, :)
     end if
-    if(dm%ibcx(2, 3) == IBC_INTERIOR) then
+    if(dm%ibcx_qz(2, IBC_CCP) == IBC_INTERIOR) then
       if( dm%dccp%xen(1)    ==  dm%nc(1)   ) dm%fbcx_qz(2, :, :) = - fl%qz(dm%nc(1),     :, :)
       if((dm%dccp%xen(1)-1) == (dm%nc(1)-1)) dm%fbcx_qz(4, :, :) = - fl%qz(dm%nc(1) - 1, :, :)
     end if
     !-----------uz at y-bc-----------
-    if(dm%ibcy(1, 3) == IBC_INTERIOR .or. &
-       dm%ibcy(2, 3) == IBC_INTERIOR) then
+    if(dm%ibcy_qz(1, IBC_CCP) == IBC_INTERIOR .or. &
+       dm%ibcy_qz(2, IBC_CCP) == IBC_INTERIOR) then
       call transpose_x_to_y(fl%qz, accp_ypencil, dm%dpcc)
     end if
-    if(dm%ibcy(1, 3) == IBC_INTERIOR) then
+    if(dm%ibcy_qz(1, IBC_CCP) == IBC_INTERIOR) then
       if( dm%dccp%yst(2)    == 1) dm%fbcy_qz(:, 1, :) = - accp_ypencil(:, 1, :) 
       if((dm%dccp%yst(2)+1) == 2) dm%fbcy_qz(:, 3, :) = - accp_ypencil(:, 2, :)
     end if
-    if(dm%ibcy(2, 3) == IBC_INTERIOR) then
+    if(dm%ibcy_qz(2, IBC_CCP) == IBC_INTERIOR) then
       if( dm%dccp%yen(2)    ==  dm%nc(2)   ) dm%fbcy_qz(:, 2, :) = - accp_ypencil(:, dm%nc(2),     :)
       if((dm%dccp%yen(2)-1) == (dm%nc(2)-1)) dm%fbcy_qz(:, 4, :) = - accp_ypencil(:, dm%nc(2) - 1, :)
     end if
@@ -458,8 +516,6 @@ contains
     implicit none
     type(t_domain), intent(inout) :: dm0, dm1
     type(t_flow), intent(in)      :: fl0, fl1
-    
-    integer :: m
 !----------------------------------------------------------------------------------------------------------
 !   all in x-pencil
 !   no overlap of values
@@ -468,45 +524,42 @@ contains
 !   bc in x - direction
 !----------------------------------------------------------------------------------------------------------
     ! ux, dm0-dm1, np
-    m = 1
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcx_qx(1, :, :) = fl0%qx(dm0%np_geo(1) - 1, :, :)
       dm1%fbcx_qx(3, :, :) = fl0%qx(dm0%np_geo(1) - 2, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_qx(2, IBC_PCC) == IBC_INTERIOR) then
       dm0%fbcx_qx(2, :, :) = fl1%qx(2, :, :)
       dm0%fbcx_qx(4, :, :) = fl1%qx(3, :, :)
     end if
 
     ! uy, dm0-dm1, nc
-    m = 2
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_qy(1, IBC_CPC) == IBC_INTERIOR) then
       dm1%fbcx_qy(1, :, :) = fl0%qy(dm0%nc(1),     :, :)
       dm1%fbcx_qy(3, :, :) = fl0%qy(dm0%nc(1) - 1, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_qy(2, IBC_CPC) == IBC_INTERIOR) then
       dm0%fbcx_qy(2, :, :) = fl1%qy(1, :, :)
       dm0%fbcx_qy(4, :, :) = fl1%qy(2, :, :)
     end if
 
     ! uz, dm0-dm1, nc
     m = 3
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcx_qz(1, :, :) = fl0%qz(dm0%nc(1),     :, :)
       dm1%fbcx_qz(3, :, :) = fl0%qz(dm0%nc(1) - 1, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_qz(2, IBC_CCP) == IBC_INTERIOR) then
       dm0%fbcx_qz(2, :, :) = fl1%qz(1, :, :)
       dm0%fbcx_qz(4, :, :) = fl1%qz(2, :, :)
     end if
 
     ! p, dm0-dm1, nc
-    m = 4
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_pr(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%fbcx_pr(1, :, :) = fl0%pres(dm0%nc(1),     :, :)
       dm1%fbcx_pr(3, :, :) = fl0%pres(dm0%nc(1) - 1, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_pr(2, IBC_CCC) == IBC_INTERIOR) then
       dm0%fbcx_pr(2, :, :) = fl1%pres(1, :, :)
       dm0%fbcx_pr(4, :, :) = fl1%pres(2, :, :)
     end if
@@ -514,45 +567,43 @@ contains
 !   bc in y - direction
 !----------------------------------------------------------------------------------------------------------
     ! ux, dm0-dm1, nc
-    m = 1
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcy_qx(:, 1, :) = fl0%qx(:, dm0%nc(2),     :)
       dm1%fbcy_qx(:, 3, :) = fl0%qx(:, dm0%nc(2) - 1, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_qx(2, IBC_PCC) == IBC_INTERIOR) then
       dm0%fbcy_qx(:, 2, :) = fl1%qx(:, 1, :)
       dm0%fbcy_qx(:, 4, :) = fl1%qx(:, 2, :)
     end if
 
     ! uy, dm0-dm1, np
-    m = 2
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_qy(1, IBC_CPC) == IBC_INTERIOR) then
       dm1%fbcy_qy(:, 1, :) = fl0%qy(:, dm0%np_geo(2) - 1, :)
       dm1%fbcy_qy(:, 3, :) = fl0%qy(:, dm0%np_geo(2) - 2, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_qy(2, IBC_CPC) == IBC_INTERIOR) then
       dm0%fbcy_qy(:, 2, :) = fl1%qy(:, 2, :)
       dm0%fbcy_qy(:, 4, :) = fl1%qy(:, 3, :)
     end if
 
     ! uz, dm0-dm1, nc
     m = 3
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcy_qz(:, 1, :) = fl0%qz(:, dm0%nc(2),     :)
       dm1%fbcy_qz(:, 3, :) = fl0%qz(:, dm0%nc(2) - 1, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_qz(2, IBC_CCP) == IBC_INTERIOR) then
       dm0%fbcy_qz(:, 2, :) = fl1%qz(:, 1, :)
       dm0%fbcy_qz(:, 4, :) = fl1%qz(:, 2, :)
     end if
 
     ! p, dm0-dm1, nc
     m = 4
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_pr(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%fbcy_pr(:, 1, :) = fl0%pres(:, dm0%nc(2),     :)
       dm1%fbcy_pr(:, 3, :) = fl0%pres(:, dm0%nc(2) - 1, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_pr(2, IBC_CCC) == IBC_INTERIOR) then
       dm0%fbcy_pr(:, 2, :) = fl1%pres(:, 1, :)
       dm0%fbcy_pr(:, 4, :) = fl1%pres(:, 2, :)
     end if
@@ -561,44 +612,41 @@ contains
 !----------------------------------------------------------------------------------------------------------
     ! ux, dm0-dm1, nc
     m = 1
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcz_qx(:, :, 1) = fl0%qx(:, :, dm0%nc(2)    )
       dm1%fbcz_qx(:, :, 3) = fl0%qx(:, :, dm0%nc(2) - 1)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_qx(2, IBC_PCC) == IBC_INTERIOR) then
       dm0%fbcz_qx(:, :, 2) = fl1%qx(:, :, 1)
       dm0%fbcz_qx(:, :, 4) = fl1%qx(:, :, 2)
     end if
 
     ! uy, dm0-dm1, nc
-    m = 2
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_qy(1, IBC_CPC) == IBC_INTERIOR) then
       dm1%fbcz_qy(:, :, 1) = fl0%qy(:, :, dm0%nc(2)    )
       dm1%fbcz_qy(:, :, 3) = fl0%qy(:, :, dm0%nc(2) - 1)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_qy(2, IBC_CPC) == IBC_INTERIOR) then
       dm0%fbcz_qy(:, :, 2) = fl1%qy(:, :, 1)
       dm0%fbcz_qy(:, :, 4) = fl1%qy(:, :, 2)
     end if
 
     ! uz, dm0-dm1, np
-    m = 3
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcz_qz(:, :, 1) = fl0%qz(:, :, dm0%np_geo(2) - 1)
       dm1%fbcz_qz(:, :, 3) = fl0%qz(:, :, dm0%np_geo(2) - 2)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_qz(2, IBC_CCP) == IBC_INTERIOR) then
       dm0%fbcz_qz(:, :, 2) = fl1%qz(:, :, 2)
       dm0%fbcz_qz(:, :, 4) = fl1%qz(:, :, 3)
     end if
 
     ! p, dm0-dm1, nc
-    m = 4
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_pr(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%fbcz_pr(:, :, 1) = fl0%pres(:, :, dm0%nc(2)    )
       dm1%fbcz_pr(:, :, 3) = fl0%pres(:, :, dm0%nc(2) - 1)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_pr(2, IBC_CCC) == IBC_INTERIOR) then
       dm0%fbcz_pr(:, :, 2) = fl1%pres(:, :, 1)
       dm0%fbcz_pr(:, :, 4) = fl1%pres(:, :, 2)
     end if
@@ -616,7 +664,7 @@ contains
     type(t_flow), intent(in)      :: fl0, fl1
     type(t_thermo), intent(in)    :: tm0, tm1
     
-    integer :: m, i, j, k
+    integer :: i, j, k
 !----------------------------------------------------------------------------------------------------------
 !   all in x-pencil
 !----------------------------------------------------------------------------------------------------------
@@ -624,41 +672,37 @@ contains
 !   bc in x - direction
 !----------------------------------------------------------------------------------------------------------
     ! gx, dm0-dm1, np
-    m = 6
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcx_gx(1, :, :) = fl0%gx(dm0%np_geo(1) - 1,     :, :)
       dm1%fbcx_gx(3, :, :) = fl0%gx(dm0%np_geo(1) - 2, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_qx(2, IBC_PCC) == IBC_INTERIOR) then
       dm0%fbcx_gx(2, :, :) = fl1%gx(2, :, :)
       dm0%fbcx_gx(4, :, :) = fl1%gx(3, :, :)
     end if
 
     ! gy, dm0-dm1, nc
-    m = 7
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_qy(1, IBC_CPC) == IBC_INTERIOR) then
       dm1%fbcx_gy(1, :, :) = fl0%gy(dm0%nc(1),     :, :)
       dm1%fbcx_gy(3, :, :) = fl0%gy(dm0%nc(1) - 1, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_qy(2, IBC_CPC) == IBC_INTERIOR) then
       dm0%fbcx_gy(2, :, :) = fl1%gy(1, :, :)
       dm0%fbcx_gy(4, :, :) = fl1%gy(2, :, :)
     end if
 
     ! gz, dm0-dm1, nc
-    m = 8
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcx_gz(1, :, :) = fl0%gz(dm0%nc(1),     :, :)
       dm1%fbcx_gz(3, :, :) = fl0%gz(dm0%nc(1) - 1, :, :)
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_qz(2, IBC_CCP) == IBC_INTERIOR) then
       dm0%fbcx_gz(2, :, :) = fl1%gz(1, :, :)
       dm0%fbcx_gz(4, :, :) = fl1%gz(2, :, :)
     end if
 
     ! thermal field, dm0-dm1
-    m = 5
-    if(dm1%ibcx(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcx_Th(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%ftpbcx_var(1, :, :)%t = tm0%tTemp(dm0%nc(1),     :, :)
       dm1%ftpbcx_var(3, :, :)%t = tm0%tTemp(dm0%nc(1) - 1, :, :)
       do k = 1, dm1%np(3)
@@ -668,7 +712,7 @@ contains
         end do
       end do
     end if
-    if(dm0%ibcx(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcx_Th(2, IBC_CCC) == IBC_INTERIOR) then
       dm0%ftpbcx_var(2, :, :)%t = tm1%tTemp(1, :, :)
       dm0%ftpbcx_var(4, :, :)%t = tm1%tTemp(2, :, :)
       do k = 1, dm0%np(3)
@@ -682,41 +726,37 @@ contains
 !   bc in y - direction
 !----------------------------------------------------------------------------------------------------------
     ! gx, dm0-dm1, nc
-    m = 6
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcy_gx(:, 1, :) = fl0%gx(:, dm0%nc(1),     :)
       dm1%fbcy_gx(:, 3, :) = fl0%gx(:, dm0%nc(1) - 1, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_qx(2, IBC_PCC) == IBC_INTERIOR) then
       dm0%fbcy_gx(:, 2, :) = fl1%gx(:, 1, :)
       dm0%fbcy_gx(:, 4, :) = fl1%gx(:, 2, :)
     end if
 
     ! gy, dm0-dm1, nc
-    m = 7
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_qy(1, IBC_CPC) == IBC_INTERIOR) then
       dm1%fbcy_gy(:, 1, :) = fl0%gy(:, dm0%np_geo(1) - 1, :)
       dm1%fbcy_gy(:, 3, :) = fl0%gy(:, dm0%np_geo(1) - 2, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_qy(2, IBC_CPC) == IBC_INTERIOR) then
       dm0%fbcy_gy(:, 2, :) = fl1%gy(:, 2, :)
       dm0%fbcy_gy(:, 4, :) = fl1%gy(:, 3, :)
     end if
 
     ! gz, dm0-dm1, nc
-    m = 8
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcy_gz(:, 1, :) = fl0%gz(:, dm0%nc(1),     :)
       dm1%fbcy_gz(:, 3, :) = fl0%gz(:, dm0%nc(1) - 1, :)
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_qz(2, IBC_CCP) == IBC_INTERIOR) then
       dm0%fbcy_gz(:, 2, :) = fl1%gz(:, 1, :)
       dm0%fbcy_gz(:, 4, :) = fl1%gz(:, 2, :)
     end if
 
     ! thermal field, dm0-dm1
-    m = 5
-    if(dm1%ibcy(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcy_Th(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%ftpbcy_var(:, 1, :)%t = tm0%tTemp(:, dm0%nc(1),     :)
       dm1%ftpbcy_var(:, 3, :)%t = tm0%tTemp(:, dm0%nc(1) - 1, :)
       do k = 1, dm1%np(3)
@@ -726,7 +766,7 @@ contains
         end do
       end do
     end if
-    if(dm0%ibcy(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcy_Th(2, IBC_CCC) == IBC_INTERIOR) then
       dm0%ftpbcy_var(:, 2, :)%t = tm1%tTemp(:, 1, :)
       dm0%ftpbcy_var(:, 4, :)%t = tm1%tTemp(:, 2, :)
       do k = 1, dm0%np(3)
@@ -740,41 +780,37 @@ contains
 !   bc in z - direction
 !----------------------------------------------------------------------------------------------------------
     ! gx, dm0-dm1, nc
-    m = 6
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_qx(1, IBC_PCC) == IBC_INTERIOR) then
       dm1%fbcz_gx(:, :, 1) = fl0%gx(:, :, dm0%nc(1)    )
       dm1%fbcz_gx(:, :, 3) = fl0%gx(:, :, dm0%nc(1) - 1)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_qx(2, IBC_PCC) == IBC_INTERIOR) then
       dm0%fbcz_gx(:, :, 2) = fl1%gx(:, :, 1)
       dm0%fbcz_gx(:, :, 4) = fl1%gx(:, :, 2)
     end if
 
     ! gy, dm0-dm1, nc
-    m = 7
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_qy(1, IBC_CPC) == IBC_INTERIOR) then
       dm1%fbcz_gy(:, :, 1) = fl0%gy(:, :, dm0%nc(1)    )
       dm1%fbcz_gy(:, :, 3) = fl0%gy(:, :, dm0%nc(1) - 1)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_qy(2, IBC_CPC) == IBC_INTERIOR) then
       dm0%fbcz_gy(:, :, 2) = fl1%gy(:, :, 1)
       dm0%fbcz_gy(:, :, 4) = fl1%gy(:, :, 2)
     end if
 
     ! gz, dm0-dm1, np
-    m = 8
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_qz(1, IBC_CCP) == IBC_INTERIOR) then
       dm1%fbcz_gz(:, :, 1) = fl0%gz(:, :, dm0%np_geo(1) - 1)
       dm1%fbcz_gz(:, :, 3) = fl0%gz(:, :, dm0%np_geo(1) - 2)
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_qz(2, IBC_CCP) == IBC_INTERIOR) then
       dm0%fbcz_gz(:, :, 2) = fl1%gz(:, :, 2)
       dm0%fbcz_gz(:, :, 4) = fl1%gz(:, :, 3)
     end if
 
     ! thermal field, dm0-dm1
-    m = 5
-    if(dm1%ibcz(1, m) == IBC_INTERIOR) then
+    if(dm1%ibcz_Th(1, IBC_CCC) == IBC_INTERIOR) then
       dm1%ftpbcz_var(:, :, 1)%t = tm0%tTemp(:, :, dm0%nc(1)    )
       dm1%ftpbcz_var(:, :, 3)%t = tm0%tTemp(:, :, dm0%nc(1) - 1)
       do j = 1, dm1%np(2)
@@ -784,7 +820,7 @@ contains
         end do
       end do
     end if
-    if(dm0%ibcz(2, m) == IBC_INTERIOR) then
+    if(dm0%ibcz_Th(2, IBC_CCC) == IBC_INTERIOR) then
       dm0%ftpbcz_var(:, :, 2)%t = tm1%tTemp(:, :, 1)
       dm0%ftpbcz_var(:, :, 4)%t = tm1%tTemp(:, :, 2)
       do j = 1, dm0%np(2)
@@ -796,6 +832,56 @@ contains
     end if
     return
   end subroutine
+!==========================================================================================================
+! to calculate boundary during calculation from primary boundary
+  subroutine get_ibc_for_calcuation(ibc, nbc, jbc)
+    use parameters_constant_mod
+    integer, intent(in) :: ibc(2)
+    integer, optional, intent(in) :: jbc(2)
+    integer, intent(out) :: nbc(1:2, 1:3)
+
+    integer :: i
+    
+    do i = 1, 2
+      if(present(jbc)) then
+
+        if(ibc(i)==IBC_SYMMETRIC .and. jbc(i)==IBC_SYMMETRIC) then
+          nbc(i, 1) = IBC_SYMMETRIC
+        else if (ibc(i)==IBC_SYMMETRIC .and. jbc(i)==IBC_ASYMMETRIC) then
+          nbc(i, 1) = IBC_ASYMMETRIC
+        else if (ibc(i)==IBC_ASYMMETRIC .and. jbc(i)==IBC_SYMMETRIC) then
+          nbc(i, 1) = IBC_ASYMMETRIC
+        else if (ibc(i)==IBC_ASYMMETRIC .and. jbc(i)==IBC_ASYMMETRIC) then
+          nbc(i, 1) = IBC_SYMMETRIC
+        else 
+          if(ibc(i)==jbc(i)) then
+            nbc(i, 1) = ibc(i)
+          else
+            call Print_warning_msg("The two operational variables have different boundary conditions.")
+          end if
+        end if
+
+      else
+
+        if(ibc(i)==IBC_SYMMETRIC) then
+          nbc(i, 1) = ibc(i)               ! variable itself
+          nbc(i, 2) = IBC_ASYMMETRIC       ! d(var)/dn, 
+          nbc(i, 3) = ibc(i)               ! var * var
+        else if(ibc(i)==IBC_ASYMMETRIC) then
+          nbc(i, 1) = ibc(i)              ! variable itself
+          nbc(i, 2) = IBC_SYMMETRIC       ! d(var)/dn, 
+          nbc(i, 3) = IBC_SYMMETRIC       ! var * var
+        else
+          nbc(i, :) = ibc(i)
+        end if
+
+      end if 
+
+    end do
+
+
+    return
+  end subroutine 
 
 !==========================================================================================================
 !> \brief Apply b.c. conditions 
