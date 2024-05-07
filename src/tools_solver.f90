@@ -710,7 +710,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : u1 -> g1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, 1:dm%dccc%xsz(2), 1:dm%dccc%xsz(3))%d)
     fl%gx = fl%qx * d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
@@ -718,7 +718,7 @@ contains
     call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
     call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy_Th(:, IBC_CCC), dm%ftpbcy_var(:, :, :)%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%ibcy_Th(:, IBC_CCC), dm%ftpbcy_var(1:dm%dccc%ysz(1), :, 1:dm%dccc%ysz(3))%d)
     gy_ypencil = qy_ypencil * d_cpc_ypencil
     call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
@@ -728,7 +728,7 @@ contains
     call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
     call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz_Th(:, IBC_CCC), dm%ftpbcz_var(:, :, :)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%ibcz_Th(:, IBC_CCC), dm%ftpbcz_var(1:dm%dccc%zsz(1), 1:dm%dccc%zsz(2),:)%d)
     gz_zpencil = qz_zpencil * d_ccp_zpencil
 
     call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
@@ -827,17 +827,32 @@ contains
 !   get bc gx, gy, gz (at bc not cell centre)
 !----------------------------------------------------------------------------------------------------------
 
-    dm%fbcx_gx(:, :, :) = dm%fbcx_qx(:, :, :) * dm%ftpbcx_var(:, :, :)%d
-    dm%fbcy_gx(:, :, :) = dm%fbcy_qx(:, :, :) * dm%ftpbcy_var(:, :, :)%d
-    dm%fbcz_gx(:, :, :) = dm%fbcz_qx(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+    dm%fbcx_gx(1:4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = &
+    dm%fbcx_qx(1:4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) * dm%ftpbcx_var(1:4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))%d
 
-    dm%fbcx_gy(:, :, :) = dm%fbcx_qy(:, :, :) * dm%ftpbcx_var(:, :, :)%d
-    dm%fbcy_gy(:, :, :) = dm%fbcy_qy(:, :, :) * dm%ftpbcy_var(:, :, :)%d
-    dm%fbcz_gy(:, :, :) = dm%fbcz_qy(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+    dm%fbcy_gx(1:dm%dpcc%ysz(1), 1:4, 1:dm%dpcc%ysz(3)) = &
+    dm%fbcy_qx(1:dm%dpcc%ysz(1), 1:4, 1:dm%dpcc%ysz(3)) * dm%ftpbcy_var(1:dm%dpcc%ysz(1), 1:4, 1:dm%dpcc%ysz(3))%d
 
-    dm%fbcx_gz(:, :, :) = dm%fbcx_qz(:, :, :) * dm%ftpbcx_var(:, :, :)%d
-    dm%fbcy_gz(:, :, :) = dm%fbcy_qz(:, :, :) * dm%ftpbcy_var(:, :, :)%d
-    dm%fbcz_gz(:, :, :) = dm%fbcz_qz(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+    dm%fbcz_gx(1:dm%dpcc%zsz(1), 1:dm%dpcc%zsz(2), 1:4) = &
+    dm%fbcz_qx(1:dm%dpcc%zsz(1), 1:dm%dpcc%zsz(2), 1:4) * dm%ftpbcz_var(1:dm%dpcc%zsz(1), 1:dm%dpcc%zsz(2), 1:4)%d
+
+    dm%fbcx_gy(1:4, 1:dm%dcpc%xsz(2), 1:dm%dcpc%xsz(3)) = &
+    dm%fbcx_qy(1:4, 1:dm%dcpc%xsz(2), 1:dm%dcpc%xsz(3)) * dm%ftpbcx_var(1:4, 1:dm%dcpc%xsz(2), 1:dm%dcpc%xsz(3))%d
+    
+    dm%fbcy_gy(1:dm%dcpc%ysz(1), 1:4, 1:dm%dcpc%ysz(3)) = &
+    dm%fbcy_qy(1:dm%dcpc%ysz(1), 1:4, 1:dm%dcpc%ysz(3)) * dm%ftpbcy_var(1:dm%dcpc%ysz(1), 1:4, 1:dm%dcpc%ysz(3))%d
+    
+    dm%fbcz_gy(1:dm%dcpc%zsz(1), 1:dm%dcpc%zsz(2), 1:4) = &
+    dm%fbcz_qy(1:dm%dcpc%zsz(1), 1:dm%dcpc%zsz(2), 1:4) * dm%ftpbcz_var(1:dm%dcpc%zsz(1), 1:dm%dcpc%zsz(2), 1:4)%d
+
+    dm%fbcx_gz(1:4, 1:dm%dccp%xsz(2), 1:dm%dccp%xsz(3)) = &
+    dm%fbcx_qz(1:4, 1:dm%dccp%xsz(2), 1:dm%dccp%xsz(3)) * dm%ftpbcx_var(1:4, 1:dm%dccp%xsz(2), 1:dm%dccp%xsz(3))%d
+
+    dm%fbcy_gz(1:dm%dccp%ysz(1), 1:4, 1:dm%dccp%ysz(3)) = &
+    dm%fbcy_qz(1:dm%dccp%ysz(1), 1:4, 1:dm%dccp%ysz(3)) * dm%ftpbcy_var(1:dm%dccp%ysz(1), 1:4, 1:dm%dccp%ysz(3))%d
+
+    dm%fbcz_gz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1:4) = &
+    dm%fbcz_qz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1:4) * dm%ftpbcz_var(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1:4)%d
 
 
     return

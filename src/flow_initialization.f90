@@ -115,6 +115,8 @@ contains
     call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
     call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
     call alloc_x(tm%tTemp, dm%dccc) ; tm%tTemp = ONE
+    call alloc_x(tm%ene_rhs, dm%dccc) ; tm%ene_rhs = ZERO
+    call alloc_x(tm%ene_rhs0, dm%dccc) ; tm%ene_rhs0 = ZERO
 
     if(nrank == 0) call Print_debug_end_msg
     return

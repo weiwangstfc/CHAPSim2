@@ -487,8 +487,8 @@ contains
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  is thermal field solved   ?', domain(i)%is_thermo
-            write (*, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
+            write (*, wrtfmt1l) '  is thermal field solved   ?', domain(i)%is_thermo
+            write (*, wrtfmt1l) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
             write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
             write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%ref_l0
