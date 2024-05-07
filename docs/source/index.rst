@@ -15,14 +15,11 @@ solver for flow and heat transfer with MPI parallelization.
 
 
 
-
 Contents
 ==================
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   installation
+   guide
