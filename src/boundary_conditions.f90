@@ -4,6 +4,7 @@ module boundary_conditions_mod
   
   private :: map_bc_1d_uprofile
   private :: apply_bc_constant_flow
+  private :: refresh_bc_type
   public  :: configure_bc_type
   public  :: configure_bc_vars
   public  :: update_bc_interface_flow
@@ -27,10 +28,10 @@ contains
           bc_nominal(n, m) = IBC_DIRICHLET
         else if (bc_nominal(n, m) == IBC_TURBGEN  .or. &
                  bc_nominal(n, m) == IBC_DATABASE )   then
-          if(m /=5) then
-            bc_nominal(n, m) = IBC_INTERIOR  ! for u, v, w, p
-          else 
+          if(m == 5) then
             bc_nominal(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, check
+          else 
+            bc_nominal(n, m) = IBC_INTERIOR  ! for u, v, w, p
           end if
         else if (bc_nominal(n, m) == IBC_CONVECTIVE)   then ! check for convetive outlet
           bc_nominal(n, m) = IBC_INTRPL

@@ -586,7 +586,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! set up constant for time step marching 
     !----------------------------------------------------------------------------------------------------------
-      do i = 1, nxdomain
+    do i = 1, nxdomain
       !option 1: to set up pressure treatment, for O(dt^2)
       !domain(i)%sigma1p = ONE
       !domain(i)%sigma2p = HALF

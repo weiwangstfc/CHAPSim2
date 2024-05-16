@@ -1174,9 +1174,9 @@ alpha_itf = ZERO
           d1 = ZERO
       ! method 2 not to use the Dirichlet B.C. value, tested it and it is wrong. 
       ! alpha1 = ZERO
-      !     a1 = ZERO
-      !     b1 = - ONE
-      !     c1 = ONE
+      !     a1 = - EIGHT * ONE_THIRD
+      !     b1 = THREE
+      !     c1 = - ONE_THIRD
       !     d1 = ZERO
 
       alpha2 = ZERO

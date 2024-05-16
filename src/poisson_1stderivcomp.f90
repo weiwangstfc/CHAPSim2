@@ -127,7 +127,10 @@ contains
     if (bcz==1) nz=nz-1
 
 #ifdef DEBUG_STEPS
-   write(*,*) 'nx, ny, nz, nxm, nym, nzm:(fft)', nx, ny, nz, nxm, nym, nzm
+   if(nrank==0) then
+      write(*,*) 'nx_global, ny_global, nz_global ', nx_global, ny_global, nz_global
+      write(*,*) 'nx, ny, nz, nxm, nym, nzm in FFT', nx, ny, nz, nxm, nym, nzm
+   end if
 #endif
 
 #ifdef DEBUG_FFT 

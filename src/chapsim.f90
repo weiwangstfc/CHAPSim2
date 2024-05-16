@@ -37,20 +37,20 @@ end program
 !> This subroutine is called at beginning of the main program
 !==========================================================================================================
 subroutine Initialize_chapsim
-  use code_performance_mod
-  use input_general_mod
-  use geometry_mod
-  use thermo_info_mod
-  use operations
-  use domain_decomposition_mod
-  use flow_thermo_initialiasation
-  use mpi_mod
-  use code_performance_mod
-  use decomp_2d_poisson
-  use poisson_interface_mod
-  use files_io_mod
   use boundary_conditions_mod
+  use code_performance_mod
+  use continuity_eq_mod
+  use decomp_2d_poisson
+  use domain_decomposition_mod
+  use files_io_mod
+  use flow_thermo_initialiasation
+  use geometry_mod
+  use input_general_mod
+  use mpi_mod
+  use operations
+  use poisson_interface_mod
   use solver_tools_mod
+  use thermo_info_mod
   implicit none
   integer :: i
 
@@ -112,6 +112,10 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain
     call Initialize_flow_fields(flow(i), domain(i))
     if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
+    !==========================================================================================================
+    !  validation for each time step
+    !==========================================================================================================
+    call Check_mass_conservation(flow(i), domain(i), 0, 'initialization') 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain
