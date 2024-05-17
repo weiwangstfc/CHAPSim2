@@ -262,7 +262,7 @@ module operations
   public  :: Get_y_midp_C2P_3D
   public  :: Get_z_midp_C2P_3D
 
-  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc(1,2,3,4) for INTERIOR
+  private :: Prepare_TDMA_1deri_C2C_RHS_array ! need fbc(1,2,3,4) for INTERIOR, DIRICHLET(?)
   private :: Get_x_1st_derivative_C2C_1D
   private :: Get_y_1st_derivative_C2C_1D
   private :: Get_z_1st_derivative_C2C_1D
@@ -278,7 +278,7 @@ module operations
   public  :: Get_y_1st_derivative_P2P_3D
   public  :: Get_z_1st_derivative_P2P_3D
 
-  private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc(1,2,3,4) for Neumann, INTERIOR
+  private :: Prepare_TDMA_1deri_C2P_RHS_array ! need fbc(1,2,3,4) for Neumann, INTERIOR, Dirichlet(?)
   private :: Get_x_1st_derivative_C2P_1D
   private :: Get_y_1st_derivative_C2P_1D
   private :: Get_z_1st_derivative_C2P_1D
@@ -371,7 +371,7 @@ contains
     m1fP2C(:, :, :) = ZERO
     m1rP2C(:, :, :) = ZERO
 !==========================================================================================================
-! Set 1 : P2P, C2P, periodic & symmetric & asymmetric
+! Set 1 : P2P, C2C, periodic & symmetric & asymmetric
 !         1st derivative on collocated grids, C2C/P2P bulk coefficients
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
@@ -415,6 +415,12 @@ alpha_itf = ZERO
 ! C2C : periodic b.c.
 ! d1fC2C : "d1"=first deriviative, "f"=f'  side, "C2C"= center 2 centre 
 ! d1rC2C : "d1"=first deriviative, "r"=rhs side, "C2C"= center 2 centre 
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+! i = 1,   f'(0) = f'(n),    f(0)   = f(n), f(-1) = f(n-1)
+! i = 2,                     f(0)   = f(n)
+! i = n-1,                   f(n+1) = f(1)
+! i = n,   f'(n+1) =  f'(1), f(n+1) = f(1), f(n+2) = f(2)
 ! [ 1    alpha                   alpha][f'_1]=[a/2 * (f_{2}   - f_{n})/h   + b/4 * (f_{3}   - f_{n-1})/h]
 ! [      alpha 1     alpha            ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{n})/h  ]
 ! [            alpha 1     alpha      ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
@@ -457,6 +463,12 @@ alpha_itf = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2C : symmetric b.c.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+! i = 1,   f'(0) = -f'(1),    f(0)   = f(1), f(-1) = f(2)
+! i = 2,                      f(0)   = f(1)
+! i = n-1,                    f(n+1) = f(n)
+! i = n,   f'(n+1) =  -f'(n), f(n+1) = f(n), f(n+2) = f(n-1)
 ! [ 1-alpha  alpha                          ][f'_1]=[a/2 * (f_{2}   - f_{1})/h   + b/4 * (f_{3}   - f_{2})/h  ]
 ! [          alpha 1     alpha              ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   - f_{1})/h  ]
 ! [                alpha 1     alpha        ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
@@ -476,6 +488,12 @@ alpha_itf = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! C2C : asymmetric b.c.
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
+! i = 1,   f'(0) = f'(1),     f(0)   = -f(1), f(-1) = -f(2)
+! i = 2,                      f(0)   = -f(1)
+! i = n-1,                    f(n+1) = -f(n)
+! i = n,   f'(n+1) =  f'(n),  f(n+1) = -f(n), f(n+2) = -f(n-1)
 ! [ 1+alpha  alpha                          ][f'_1]=[a/2 * (f_{2}   + f_{1})/h   + b/4 * (f_{3}   + f_{2})/h  ]
 ! [          alpha 1     alpha              ][f'_2] [a/2 * (f_{3}   - f_{1})/h   + b/4 * (f_{4}   + f_{1})/h  ]
 ! [                alpha 1     alpha        ][f'_i] [a/2 * (f_{i+1} - f_{i-1})/h + b/4 * (f_{i+2} - f_{i-2})/h]
@@ -1287,11 +1305,15 @@ alpha_itf = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : 
 ! P2C : no specified = Dirichlet B.C.
+! alpha * f'(i-1) + f'(i) + alpha f'(i+1) = a *   (f_{i'+1} - f_{i'}  )/h + 
+!                                           b/3 * (f_{i'+2} - f_{i'-1})/h
 ! [ 1     alpha1                            ][f'_1]=[a1 * f_{1'}/h  + b1 * f_{2'}/h + c1 * f_{3'}/h  ]
 ! [alpha2 1      alpha2                     ][f'_2] [a2 * (f_{3'} - f_{2'})/h  ]
 ! [       alpha  1      alpha               ][f'_i] [a *  (f_{i'+1} - f_{i'})/h + b/3 * (f_{i'+2} - f_{i'-1})/h]
 ! [                     alpha2 1      alpha2][f'_4] [a2 * (f_{n'} - f_{n'-1})/h]
 ! [                            alpha1 1     ][f'_5] [-a1 * f_{n'+1}/h  - b1 * f_{n'}/h - c1 * f_{n'-1}/h]
+! i = 1, f(0') unknown
+! i = n, f(n+2') unknown
 ! eq(1): a +   b +    c = 0               !O(h1)
 ! eq(2):-a +   b +  3 c = 2  alpha + 2    !O(h2)
 ! eq(3): a +   b +  9 c = 8  alpha        !O(h3)
@@ -1301,64 +1323,31 @@ alpha_itf = ZERO
         a1 = ZERO
         b1 = ZERO
         c1 = ZERO
-      alpha2 = ZERO
-        a2 = ZERO
-        b2 = ZERO
-        c2 = ZERO
     if (iaccu == IACCU_CD2 ) then! eq(1-2)+alpha0+c0, O(h2)
       alpha1 = ZERO
           a1 = -ONE
           b1 = ONE
           c1 = ZERO
-
-      alpha2 = ZERO
-          a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
     else if (iaccu == IACCU_CD4) then! eq(1-3)+alpha0, O(h3)
       alpha1 = ZERO
           a1 = -ONE
           b1 = ONE
           c1 = ZERO
-
-      alpha2 = ZERO
-          a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
-
     else if (iaccu == IACCU_CP4 ) then ! eq(1-3)+c0, O(h3)
-
       alpha1 = ZERO
           a1 = -ONE
           b1 = ONE
           c1 = ZERO
-
-      alpha2 = ONE / TWENTYTWO
-          a2 = TWELVE / ELEVEN
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
     else if (iaccu == IACCU_CP6) then ! eq(1-4), O(h4)
-
       alpha1 = -ONE
           a1 = -ONE
           b1 = TWO
           c1 = -ONE
-
-      alpha2 = ONE / TWENTYTWO
-          a2 = TWELVE / ELEVEN
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
-      
     else  ! default 2nd CD
       alpha1 = ZERO
           a1 = -ONE
           b1 = ONE
           c1 = ZERO
-
-      alpha2 = ZERO
-          a2 = ONE
-          b2 = ZERO ! not used
-          c2 = ZERO ! not used
     end if
 
     d1fP2C(1, 1, IBC_INTRPL) = alpha1 ! not used
@@ -2975,15 +2964,16 @@ alpha_itf = ZERO
       fo(i) = coeff( l, 1, ibc(m) ) * ( fi(i + 1) + fi(1   ) ) + &
               coeff( l, 2, ibc(m) ) * ( fi(i + 2) + fi(2   ) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
-              coeff( l, 2, ibc(m) ) * fi(i  )  + &
-              coeff( l, 3, ibc(m) ) * fi(i+1)  + &
-              coeff( l, 4, ibc(m) ) * fi(i+2) 
+      if(present(fbc)) then 
+        fo(i) = coeff( l, 1, ibc(m) ) * fbc(m ) + &
+                coeff( l, 2, ibc(m) ) * fi(i  )  + &
+                coeff( l, 3, ibc(m) ) * fi(i+1)  + &
+                coeff( l, 4, ibc(m) ) * fi(i+2) 
       else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
+        fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+                coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
+                coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
       end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
@@ -3076,15 +3066,16 @@ alpha_itf = ZERO
       fo(i) = coeff( l, 1, ibc(m) ) * (-fi(nc   ) - fi(i - 1) ) + &
               coeff( l, 2, ibc(m) ) * (-fi(nc -1) - fi(i - 2) )
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(present(fbc)) then!call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
-              coeff( l, 2, ibc(m) ) * fi(i    ) + &
-              coeff( l, 3, ibc(m) ) * fi(i - 1) + &
-              coeff( l, 4, ibc(m) ) * fi(i - 2) 
+      if(present(fbc)) then
+        fo(i) = coeff( l, 1, ibc(m) ) * fbc(m   ) + &
+                coeff( l, 2, ibc(m) ) * fi(i    ) + &
+                coeff( l, 3, ibc(m) ) * fi(i - 1) + &
+                coeff( l, 4, ibc(m) ) * fi(i - 2) 
       else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 2) 
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2C_RHS_array')
+        fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+                coeff( l, 2, IBC_INTRPL) * fi(i - 1) + &
+                coeff( l, 3, IBC_INTRPL) * fi(i - 2) 
       end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
@@ -3415,15 +3406,16 @@ alpha_itf = ZERO
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ Prepare_TDMA_1deri_C2P_RHS_array')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if( present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
-      fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
-              coeff( l, 2, ibc(m) ) * fi(i    ) + &
-              coeff( l, 3, ibc(m) ) * fi(i + 1) + &
-              coeff( l, 4, ibc(m) ) * fi(i + 2) 
+      if( present(fbc)) then 
+        fo(i) = coeff( l, 1, ibc(m) ) * fbc(m)    + &
+                coeff( l, 2, ibc(m) ) * fi(i    ) + &
+                coeff( l, 3, ibc(m) ) * fi(i + 1) + &
+                coeff( l, 4, ibc(m) ) * fi(i + 2) 
       else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
+        fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
+                coeff( l, 2, IBC_INTRPL) * fi(i + 1) + &
+                coeff( l, 3, IBC_INTRPL) * fi(i + 2) 
       end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i    ) + &
@@ -3508,15 +3500,16 @@ alpha_itf = ZERO
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN')
       fo(i) = fbc(m)
     else if (ibc(m) == IBC_DIRICHLET) then
-      if(present(fbc)) then !call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
-      fo(i) = coeff( l, 1, ibc(m)) * fbc(m)    + &
-              coeff( l, 2, ibc(m)) * fi(i - 1) + &
-              coeff( l, 3, ibc(m)) * fi(i - 2) + &
-              coeff( l, 4, ibc(m)) * fi(i - 3) 
+      if(present(fbc)) then 
+        fo(i) = coeff( l, 1, ibc(m)) * fbc(m)    + &
+                coeff( l, 2, ibc(m)) * fi(i - 1) + &
+                coeff( l, 3, ibc(m)) * fi(i - 2) + &
+                coeff( l, 4, ibc(m)) * fi(i - 3) 
       else
-      fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &
-              coeff( l, 2, IBC_INTRPL) * fi(i - 2) + &
-              coeff( l, 3, IBC_INTRPL) * fi(i - 3) 
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Prepare_TDMA_1deri_C2P_RHS_array')
+        fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &
+                coeff( l, 2, IBC_INTRPL) * fi(i - 2) + &
+                coeff( l, 3, IBC_INTRPL) * fi(i - 3) 
       end if
     else
       fo(i) = coeff( l, 1, IBC_INTRPL) * fi(i - 1) + &

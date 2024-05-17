@@ -451,14 +451,14 @@ contains
 ! qx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
-    call write_visu_field(dm, accc, dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "qx", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
     call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_visu_field(dm, accc, dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "qy", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qz, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
@@ -467,7 +467,31 @@ contains
     call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP))
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_visu_field(dm, accc, dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "qz", trim(visuname), SCALAR, CELL, iter)
+
+    if(dm%is_thermo) then
+!----------------------------------------------------------------------------------------------------------
+! gx, default x-pencil, staggered to cell centre
+!----------------------------------------------------------------------------------------------------------
+      call Get_x_midp_P2C_3D(fl%gx, accc, dm, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_gx)
+      call write_visu_field(dm, accc, dm%dccc, "gx", trim(visuname), SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! gy, default x-pencil, staggered to cell centre
+!----------------------------------------------------------------------------------------------------------
+      call transpose_x_to_y(fl%gy, acpc_ypencil, dm%dcpc)
+      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_gy)
+      call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
+      call write_visu_field(dm, accc, dm%dccc, "gy", trim(visuname), SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! gz, default x-pencil, staggered to cell centre
+!----------------------------------------------------------------------------------------------------------
+      call transpose_x_to_y(fl%gz, accp_ypencil, dm%dccp)
+      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
+      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_gz)
+      call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
+      call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
+      call write_visu_field(dm, accc, dm%dccc, "gz", trim(visuname), SCALAR, CELL, iter)
+    end if
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
@@ -477,13 +501,14 @@ contains
   end subroutine
 
   !==========================================================================================================
-  subroutine write_visu_thermo(tm, dm)
+  subroutine write_visu_thermo(tm, fl, dm)
     use udf_type_mod
     use precision_mod
     use operations
     implicit none 
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(in) :: tm
+    type(t_flow),   intent(in) :: fl
 
     integer :: iter 
     character(120) :: visuname
@@ -497,7 +522,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call write_visu_field(dm, tm%tTemp, dm%dccc, "temp", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%tTemp, dm%dccc, "Temp", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%dDens, dm%dccc, "Dens", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%mVisc, dm%dccc, "Visc", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%kCond, dm%dccc, "Cond", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%hEnth, dm%dccc, "Enth", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------

@@ -111,11 +111,11 @@ contains
     ! default : x pencil. 
     ! varaible index is LOCAL. means 1:xsize(1)
     !----------------------------------------------------------------------------------------------------------
-    call alloc_x(tm%dh,    dm%dccc) ; tm%dh    = ZERO
-    call alloc_x(tm%hEnth, dm%dccc) ; tm%hEnth = ZERO
-    call alloc_x(tm%kCond, dm%dccc) ; tm%kCond = ONE
-    call alloc_x(tm%tTemp, dm%dccc) ; tm%tTemp = ONE
-    call alloc_x(tm%ene_rhs, dm%dccc) ; tm%ene_rhs = ZERO
+    call alloc_x(tm%dh,       dm%dccc) ; tm%dh    = ZERO
+    call alloc_x(tm%hEnth,    dm%dccc) ; tm%hEnth = ZERO
+    call alloc_x(tm%kCond,    dm%dccc) ; tm%kCond = ONE
+    call alloc_x(tm%tTemp,    dm%dccc) ; tm%tTemp = ONE
+    call alloc_x(tm%ene_rhs,  dm%dccc) ; tm%ene_rhs = ZERO
     call alloc_x(tm%ene_rhs0, dm%dccc) ; tm%ene_rhs0 = ZERO
 
     if(nrank == 0) call Print_debug_end_msg
@@ -617,10 +617,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to initialize pressure correction term
 !----------------------------------------------------------------------------------------------------------
-    fl%pcor(:, :, :) = ZERO
-
-    call write_visu_flow(fl, dm)
-    
+    fl%pcor(:, :, :) = ZERO    
 #ifdef DEBUG_STEPS
     ! write(*,*) 'init ux', fl%qx(:, 8, 8)!, fl%qx(:, 1, 8) !debug_test
     ! write(*,*) 'init uy', fl%qy(:, 8, 8)!, fl%qy(:, 1, 8) !debug_test
@@ -643,6 +640,7 @@ contains
     use thermo_info_mod
     use io_restart_mod
     use statistics_mod
+    use io_visulisation_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -679,19 +677,14 @@ contains
       tm%iteration = 0
     end if
 
-    call Calculate_massflux_from_velocity (fl, dm)
-    !----------------------------------------------------------------------------------------------------------
-    ! to set up old arrays 
-    !----------------------------------------------------------------------------------------------------------
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
-    
+
+    call Calculate_massflux_from_velocity (fl, dm)
+    call write_visu_thermo(tm, fl, dm)
+
     return
   end subroutine
-
-
-
-
 !==========================================================================================================
 !==========================================================================================================
 !> \brief Initialize Vortex Green flow

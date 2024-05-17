@@ -4,9 +4,10 @@ module boundary_conditions_mod
   
   private :: map_bc_1d_uprofile
   private :: apply_bc_constant_flow
-  private :: refresh_bc_type
+  private :: reassign_bc_type
   public  :: configure_bc_type
-  public  :: configure_bc_vars
+  public  :: configure_bc_vars_flow
+  public  :: configure_bc_vars_thermo
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
   public  :: update_flow_bc_1dm_halo
@@ -17,7 +18,7 @@ module boundary_conditions_mod
   
 contains
 
-  subroutine refresh_bc_type(bc_nominal)
+  subroutine reassign_bc_type(bc_nominal)
     implicit none 
     integer, intent(inout) :: bc_nominal(2, NBC)
     integer :: n, m
@@ -67,9 +68,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc for calculation from given nominal b.c.
 !----------------------------------------------------------------------------------------------------------
-    call refresh_bc_type(dm%ibcx_nominal)
-    call refresh_bc_type(dm%ibcy_nominal)
-    call refresh_bc_type(dm%ibcz_nominal)
+    call reassign_bc_type(dm%ibcx_nominal)
+    call reassign_bc_type(dm%ibcy_nominal)
+    call reassign_bc_type(dm%ibcz_nominal)
 !----------------------------------------------------------------------------------------------------------
 ! allocate bc to variables
 !----------------------------------------------------------------------------------------------------------
@@ -246,10 +247,57 @@ contains
     implicit none
     type(t_domain), intent( inout)   :: dm
 
-    real(WP) :: var1y(1:dm%np(2))
     
-    integer :: m, n, k, ny
 
+    return
+  end subroutine
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine configure_bc_vars_flow(dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(inout)  :: dm
+
+    real(WP) :: var1y(1:dm%np(2))
+    integer  :: m, n, k, ny
+!----------------------------------------------------------------------------------------------------------
+! to set up real bc values for calculation from given nominal b.c. values
+! np, not nc, is used to provide enough space
+! NBC = qx, qy, qz, p, T; 
+! DIM = gx, gy, gz; 
+! warning: this bc treatment is not proper for a inlet plane with field data.... to check and to update
+!----------------------------------------------------------------------------------------------------------
+    allocate( dm%fbcx_qx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
+    allocate( dm%fbcy_qx(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(3)) )! default y pencil
+    allocate( dm%fbcz_qx(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4) )! default z pencil
+
+    allocate( dm%fbcx_qy(             4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)) )! default x pencil
+    allocate( dm%fbcy_qy(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
+    allocate( dm%fbcz_qy(dm%dcpc%zsz(1), dm%dcpc%zsz(2),              4) )! default z pencil
+
+    allocate( dm%fbcx_qz(             4, dm%dccp%xsz(2), dm%dccp%xsz(3)) )! default x pencil
+    allocate( dm%fbcy_qz(dm%dccp%ysz(1),              4, dm%dccp%ysz(3)) )! default y pencil
+    allocate( dm%fbcz_qz(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) )! default z pencil
+
+    allocate( dm%fbcx_pr(             4, dm%dccc%xsz(2), dm%dccc%xsz(3)) )! default x pencil
+    allocate( dm%fbcy_pr(dm%dccc%ysz(1),              4, dm%dccc%ysz(3)) )! default y pencil
+    allocate( dm%fbcz_pr(dm%dccc%zsz(1), dm%dccc%zsz(2),              4) )! default z pencil
+
+    if(dm%is_thermo) then
+      allocate( dm%fbcx_gx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_gx(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_gx(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4) )! default z pencil
+
+      allocate( dm%fbcx_gy(             4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_gy(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_gy(dm%dcpc%zsz(1), dm%dcpc%zsz(2),              4) )! default z pencil
+
+      allocate( dm%fbcx_gz(             4, dm%dccp%xsz(2), dm%dccp%xsz(3)) )! default x pencil
+      allocate( dm%fbcy_gz(dm%dccp%ysz(1),              4, dm%dccp%ysz(3)) )! default y pencil
+      allocate( dm%fbcz_gz(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) )! default z pencil
+    end if
     ! -3-1-||||-2-4
     !do m = 1, NBC ! u, v, w, p, T(dim)
 
@@ -323,58 +371,20 @@ contains
     ! end do
 
     return
-  end subroutine
-
+  end subroutine 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine configure_bc_vars(dm)
+subroutine configure_bc_vars_thermo(dm)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
     type(t_domain), intent(inout) :: dm
 
-!----------------------------------------------------------------------------------------------------------
-! to set up real bc values for calculation from given nominal b.c. values
-! np, not nc, is used to provide enough space
-! NBC = qx, qy, qz, p, T; 
-! DIM = gx, gy, gz; 
-! warning: this bc treatment is not proper for a inlet plane with field data.... to check and to update
-!----------------------------------------------------------------------------------------------------------
-      allocate( dm%fbcx_qx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qx(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qx(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_qy(             4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qy(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qy(dm%dcpc%zsz(1), dm%dcpc%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_qz(             4, dm%dccp%xsz(2), dm%dccp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_qz(dm%dccp%ysz(1),              4, dm%dccp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_qz(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_pr(             4, dm%dccc%xsz(2), dm%dccc%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_pr(dm%dccc%ysz(1),              4, dm%dccc%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_pr(dm%dccc%zsz(1), dm%dccc%zsz(2),              4) )! default z pencil
-
     if(dm%is_thermo) then
-      allocate( dm%fbcx_gx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_gx(dm%dpcc%ysz(1),              4, dm%dpcc%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_gx(dm%dpcc%zsz(1), dm%dpcc%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_gy(             4, dm%dcpc%xsz(2), dm%dcpc%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_gy(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_gy(dm%dcpc%zsz(1), dm%dcpc%zsz(2),              4) )! default z pencil
-
-      allocate( dm%fbcx_gz(             4, dm%dccp%xsz(2), dm%dccp%xsz(3)) )! default x pencil
-      allocate( dm%fbcy_gz(dm%dccp%ysz(1),              4, dm%dccp%ysz(3)) )! default y pencil
-      allocate( dm%fbcz_gz(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) )! default z pencil
-
       allocate( dm%ftpbcx_var(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
       allocate( dm%ftpbcy_var(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
       allocate( dm%ftpbcz_var(dm%dppp%zsz(1), dm%dppp%zsz(2),             4)  )! default z pencil
     end if
-
-    call apply_bc_constant_flow(dm)
 
     return
   end subroutine 

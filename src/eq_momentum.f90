@@ -221,9 +221,9 @@ contains
 ! others
 !----------------------------------------------------------------------------------------------------------
     real(WP) :: one_third_rre, two_third_rre, two_rre
-    ! real(WP) :: fbcx(       4, dm%dpcc%xsz(2), dm%dpcc%xsz(2))
-    ! real(WP) :: fbcy(dm%np(1),        4, dm%np(3))
-    ! real(WP) :: fbcz(dm%np(1), dm%np(2),        4)
+    real(WP) :: fbcx(       4, dm%dpcc%xsz(2), dm%dpcc%xsz(3))
+    real(WP) :: fbcy(dm%dcpc%ysz(1),        4, dm%dcpc%ysz(3))
+    real(WP) :: fbcz(dm%dccp%zsz(1), dm%dccp%zsz(2),        4)
     integer :: mbc(1:2, 1:3)
     integer  :: i
     real(WP) :: rhsx_bulk, rhsz_bulk
@@ -379,11 +379,11 @@ contains
       call Get_x_midp_C2P_3D          (fl%mVisc, m_pcc,    dm, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, :, :)%m )  ! x-pencil : x-mom, w thermal
       call transpose_x_to_y (m_pcc, m_pcc_ypencil, dm%dpcc)                            ! y-pencil : x-mom, w thermal
 
-      call Get_y_1st_derivative_C2C_3D(m_pcc_ypencil, dmdy_pcc_ypencil, dm, dm%ibcy_Th(:, IBC_PCC))  ! y-pencil : x-mom, w thermal
+      call Get_y_1st_derivative_C2C_3D(m_pcc_ypencil, dmdy_pcc_ypencil, dm, dm%ibcy_Th(:, IBC_PCC), dm%ftpbcy_var(:, :, :)%m)  ! y-pencil : x-mom, w thermal
       call transpose_y_to_x (dmdy_pcc_ypencil, dmdy_pcc,         dm%dpcc)                            ! x-pencil : x-mom, w thermal
       
       call transpose_y_to_z (m_pcc_ypencil,    m_pcc_zpencil,    dm%dpcc)                            ! z-pencil : x-mom, w thermal
-      call Get_z_1st_derivative_C2C_3D(m_pcc_zpencil, dmdz_pcc_zpencil, dm, dm%ibcz_Th(:, IBC_PCC))  ! z-pencil : x-mom, w thermal
+      call Get_z_1st_derivative_C2C_3D(m_pcc_zpencil, dmdz_pcc_zpencil, dm, dm%ibcz_Th(:, IBC_PCC), dm%ftpbcz_var(:, :, :)%m)  ! z-pencil : x-mom, w thermal
       call transpose_z_to_y (dmdz_pcc_zpencil, apcc_ypencil,      dm%dpcc)                            ! intermediate, apcc_ypencil = dmdz_pcc_ypencil
       call transpose_y_to_x (apcc_ypencil,      dmdz_pcc,         dm%dpcc)                            ! x-pencil : x-mom, w thermal
 
@@ -393,10 +393,10 @@ contains
       call transpose_y_to_z (m_cpc_ypencil,    m_cpc_zpencil,       dm%dcpc)                            ! z-pencil : y-mom, w thermal
       call transpose_y_to_x (m_cpc_ypencil,    m_cpc,               dm%dcpc)                            ! x-pencil : y-mom, w thermal
       
-      call Get_z_1st_derivative_C2C_3D (m_cpc_zpencil, dmdz_cpc_zpencil, dm, dm%ibcy_Th(:, IBC_CPC))
+      call Get_z_1st_derivative_C2C_3D (m_cpc_zpencil, dmdz_cpc_zpencil, dm, dm%ibcy_Th(:, IBC_CPC), dm%ftpbcz_var(:, :, :)%m)
       call transpose_z_to_y (dmdz_cpc_zpencil,    dmdz_cpc_ypencil,       dm%dcpc) 
       
-      call Get_x_1st_derivative_C2C_3D(m_cpc,  dmdx_cpc, dm, dm%ibcx_Th(:, IBC_CPC))                ! x-pencil : y-mom, w thermal
+      call Get_x_1st_derivative_C2C_3D(m_cpc,  dmdx_cpc, dm, dm%ibcx_Th(:, IBC_CPC), dm%ftpbcx_var(:, :, :)%m)                ! x-pencil : y-mom, w thermal
       call transpose_x_to_y (dmdx_cpc, dmdx_cpc_ypencil,    dm%dcpc)
 
       call transpose_y_to_z (accc_ypencil,      accc_zpencil,      dm%dccc)                             ! intermediate, accc_zpencil = m_zpencil
@@ -404,10 +404,10 @@ contains
       call Get_z_midp_C2P_3D(accc_zpencil, m_ccp_zpencil, dm, dm%ibcz_Th(:, IBC_CCC), dm%ftpbcz_var(:, :, :)%m )              ! z-pencil : z-mom, w thermal
       call transpose_z_to_y (m_ccp_zpencil,    m_ccp_ypencil,    dm%dccp)                             ! y-pencil : z-mom, w thermal
       call transpose_y_to_x (m_ccp_ypencil,    m_ccp,            dm%dccp)                             ! x-pencil : z-mom, w thermal
-      call Get_x_1st_derivative_C2C_3D(m_ccp,  dmdx_ccp, dm, dm%ibcx_Th(:, IBC_CCP))                ! x-pencil : z-mom, w thermal
+      call Get_x_1st_derivative_C2C_3D(m_ccp,  dmdx_ccp, dm, dm%ibcx_Th(:, IBC_CCP), dm%ftpbcx_var(:, :, :)%m)                ! x-pencil : z-mom, w thermal
       call transpose_x_to_y (dmdx_ccp,         accp_ypencil,      dm%dccp)                             ! intermidate, accp_ypencil = dmdx_ccp_ypencil
       call transpose_y_to_z (accp_ypencil,      dmdx_ccp_zpencil, dm%dccp)                             ! z-pencil : z-mom, w thermal
-      call Get_y_1st_derivative_C2C_3D(m_ccp_ypencil, dmdy_ccp_ypencil, dm, dm%ibcy_Th(:, IBC_CCP))   ! y-pencil : z-mom, w thermal
+      call Get_y_1st_derivative_C2C_3D(m_ccp_ypencil, dmdy_ccp_ypencil, dm, dm%ibcy_Th(:, IBC_CCP), dm%ftpbcy_var(:, :, :)%m)   ! y-pencil : z-mom, w thermal
       call transpose_y_to_z (dmdy_ccp_ypencil, dmdy_ccp_zpencil, dm%dccp)
 !----------------------------------------------------------------------------------------------------------
 ! calculate div(u_vec)
@@ -500,7 +500,8 @@ if(iviscous) then
     !call Get_x_2nd_derivative_P2P_3D(fl%qx, apcc, dm, dm%ibcx(:, 1)) ! check
     call Get_x_1st_derivative_P2C_3D(fl%qx, accc, dm, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx) ! accc = du/dx, at (i, j, k)
     call get_ibc_for_calcuation(dm%ibcx_qx(:, IBC_CCC), mbc) 
-    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, mbc(:, 2)) ! accc = d(du/dx)/dx, at (i', j, k)
+    fbcx(:,:,:)=ZERO
+    call Get_x_1st_derivative_C2P_3D(accc,  apcc, dm, mbc(:, 2), fbcx) ! accc = d(du/dx)/dx, at (i', j, k)
     if(dm%ibcx_qx(1, IBC_PCC) ==  IBC_DIRICHLET .and. dm%dpcc%xst(1) == 1)              apcc(1, :, :) = ZERO
     if(dm%ibcx_qx(2, IBC_PCC) ==  IBC_DIRICHLET .and. dm%dpcc%xen(1) == dm%dpcc%xsz(1)) apcc(dm%dpcc%xsz(1), :, :) = ZERO ! check, how to deal with wall bc
     
@@ -682,7 +683,8 @@ if(iviscous)then
     !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, acpc_ypencil, dm, dm%ibcy(:, 2))
     call Get_y_1st_derivative_P2C_3D(qy_ypencil,   accc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
     call get_ibc_for_calcuation(dm%ibcy_qy(:, IBC_CCC), mbc)
-    call Get_y_1st_derivative_C2P_3D(accc_ypencil, acpc_ypencil, dm, mbc(:, 2))
+    fbcy(:,:,:)=ZERO
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil, acpc_ypencil, dm, mbc(:, 2),fbcy)
     if(dm%ibcy_qy(1, IBC_CPC) ==  IBC_DIRICHLET .and. dm%dcpc%yst(2) == 1)              acpc_ypencil(:, 1,              :) = ZERO
     if(dm%ibcy_qy(2, IBC_CPC) ==  IBC_DIRICHLET .and. dm%dcpc%yen(2) == dm%dcpc%ysz(2)) acpc_ypencil(:, dm%dcpc%ysz(2), :) = ZERO ! check, how to deal with wall bc
 
@@ -812,9 +814,9 @@ if(iconvection)then
 !----------------------------------------------------------------------------------------------------------
     call get_ibc_for_calcuation(dm%ibcz_qz(:, IBC_CCC), mbc, dm%ibcz_qz(:, IBC_CCC))
     if ( .not. dm%is_thermo) then
-      call Get_z_1st_derivative_C2P_3D(-qz_ccc_zpencil * qz_ccc_zpencil, accp_zpencil, dm, mbc(:, 1))
+      call Get_z_1st_derivative_C2P_3D(-qz_ccc_zpencil * qz_ccc_zpencil, accp_zpencil, dm, mbc(:, 1), dm%fbcz_qz * dm%fbcz_qz)
     else
-      call Get_z_1st_derivative_C2P_3D(-gz_ccc_zpencil * qz_ccc_zpencil, accp_zpencil, dm, mbc(:, 1))
+      call Get_z_1st_derivative_C2P_3D(-gz_ccc_zpencil * qz_ccc_zpencil, accp_zpencil, dm, mbc(:, 1), dm%fbcz_gz * dm%fbcz_gz)
     end if
     mz_rhs_zpencil = mz_rhs_zpencil + accp_zpencil
 #ifdef DEBUG_STEPS
@@ -868,7 +870,8 @@ if(iviscous)then
     !call Get_z_2nd_derivative_P2P_3D(qz_zpencil, accp_zpencil, dm, dm%ibcz(:, 3))
     call Get_z_1st_derivative_P2C_3D(qz_zpencil,   accc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP))
     call get_ibc_for_calcuation(dm%ibcz_qz(:, IBC_CCC), mbc)
-    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, mbc(:, 2))
+    fbcz(:,:,:)=ZERO
+    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, mbc(:, 2),fbcz)
     if(dm%ibcz_qz(1, IBC_CCP) ==  IBC_DIRICHLET) accp_zpencil(:, :, 1) = ZERO
     if(dm%ibcz_qz(2, IBC_CCP) ==  IBC_DIRICHLET) accp_zpencil(:, :, dm%dpcc%xsz(1)) = ZERO ! check, how to deal with wall bc
     
@@ -1030,7 +1033,7 @@ end if
     
 #ifdef DEBUG_STEPS  
     if(nrank == 0) &
-    call Print_debug_mid_msg("Updating the velocity/mass flux ...")
+    call Print_debug_mid_msg("Correcting the velocity/mass flux ...")
 #endif
 !----------------------------------------------------------------------------------------------------------
 !   x-pencil, ux = ux - dt * alpha * d(phi_ccc)/dx
@@ -1276,6 +1279,7 @@ end if
     use io_visulisation_mod
     use typeconvert_mod
     use wtformat_mod
+    use operations
 #endif
     implicit none
 
@@ -1286,7 +1290,7 @@ end if
 !----------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !----------------------------------------------------------------------------------------------------------
-    call update_flow_bc_1dm_halo(dm, fl)
+    !call update_flow_bc_1dm_halo(dm, fl)
     call Compute_momentum_rhs(fl, dm, isub)
 !----------------------------------------------------------------------------------------------------------
 ! to update intermediate (\hat{q}) or (\hat{g})
@@ -1295,14 +1299,12 @@ end if
       fl%qx = fl%qx + fl%mx_rhs
       fl%qy = fl%qy + fl%my_rhs
       fl%qz = fl%qz + fl%mz_rhs
-    else if ( dm%is_thermo) then 
+    else
       fl%gx = fl%gx + fl%mx_rhs
       fl%gy = fl%gy + fl%my_rhs
       fl%gz = fl%gz + fl%mz_rhs
-    else
-      call Print_error_msg("Error in velocity updating")
     end if
-    call update_flow_bc_1dm_halo(dm, fl)
+    !call update_flow_bc_1dm_halo(dm, fl)
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, '', 'ux@bf divg') ! debug_ww
     call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, '', 'uy@bf divg') ! debug_ww
@@ -1311,6 +1313,9 @@ end if
     call wrt_3d_all_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', 'bf_divg') ! debug_ww
     call wrt_3d_all_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', 'bf_divg') ! debug_ww
     call wrt_3d_all_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', 'bf_divg') ! debug_ww
+    call write_visu_any3darray(fl%qx, 'qx'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+    call write_visu_any3darray(fl%qy, 'qy'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+    call write_visu_any3darray(fl%qz, 'qz'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
 #endif
     !in order for a high order spacial accuracy
     ! to use Alternating direction implicit method
@@ -1318,20 +1323,15 @@ end if
     ! alternating direction implicit schemes for the two-dimensional 
     ! time fractional equation
 
-! #ifdef DEBUG_STEPS
-!   call write_visu_any3darray(fl%qx, 'qxs_RK'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
-!   call write_visu_any3darray(fl%qy, 'qys_RK'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
-!   call write_visu_any3darray(fl%qz, 'qzs_RK'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
-! #endif
 !----------------------------------------------------------------------------------------------------------
 ! to solve Poisson equation
 !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("  Solving Poisson Equation ...") 
     !call solve_poisson_x2z(fl, dm, isub) !
     call solve_poisson(fl, dm, isub) ! test show above two methods gave the same results. 
-!#ifdef DEBUG_STEPS
-    !call write_visu_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
-!#endif
+#ifdef DEBUG_STEPS
+    call write_visu_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
 !----------------------------------------------------------------------------------------------------------
@@ -1355,7 +1355,7 @@ end if
 !----------------------------------------------------------------------------------------------------------
 ! to apply bc
 !----------------------------------------------------------------------------------------------------------
-  call update_flow_bc_1dm_halo(dm, fl)
+  !call update_flow_bc_1dm_halo(dm, fl)
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity from gx gy gz 
 !----------------------------------------------------------------------------------------------------------

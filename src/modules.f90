@@ -479,7 +479,7 @@ module udf_type_mod
     real(wp) :: noiselevel
     real(wp) :: umax(1:3)
     real(wp) :: mcon
-  
+
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)
     real(WP), allocatable :: qz(:, :, :)
@@ -523,7 +523,7 @@ module udf_type_mod
     real(WP) :: init_T0
     real(WP) :: time
     real(WP) :: rPrRen
-    
+
     real(WP), allocatable :: dh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)

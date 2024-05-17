@@ -98,7 +98,7 @@ contains
     div0 = ZERO
     call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx_qx(:, IBC_PCC))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    !write(*,*) 'div, x', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
+    !write(*,*) 'div, x', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
 !----------------------------------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ contains
     call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy_qy(:, IBC_CPC))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    !write(*,*) 'div, y', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
+    !write(*,*) 'div, y', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
 ! operation in z pencil, dw/dz
 !----------------------------------------------------------------------------------------------------------
@@ -124,8 +124,8 @@ contains
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
-    !write(*,*) 'div, z', div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
-    !write(*,*) 'divall', div(8, 8, 8)
+    !write(*,*) 'div, z', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
+    !write(*,*) 'divall', div0(1, 1, 1), div(8, 8, 8)
     return
   end subroutine
 
@@ -273,7 +273,7 @@ contains
       call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
     end if
 
-#ifdef DEBUG_STEPS !test, check
+#ifdef DEBUG_STEPS
     if(MOD(iter, dm%visu_nfre) == 0) &
     call write_visu_any3darray(div, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif

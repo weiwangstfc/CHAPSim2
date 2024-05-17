@@ -51,6 +51,7 @@ subroutine Initialize_chapsim
   use poisson_interface_mod
   use solver_tools_mod
   use thermo_info_mod
+  use io_visulisation_mod
   implicit none
   integer :: i
 
@@ -79,8 +80,12 @@ subroutine Initialize_chapsim
 ! build up domain decomposition
 !----------------------------------------------------------------------------------------------------------
   call Buildup_mpi_domain_decomposition
+!----------------------------------------------------------------------------------------------------------
+! build up bounary condition
+!----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call configure_bc_vars(domain(i)) 
+    call configure_bc_vars_flow(domain(i)) 
+    if(domain(i)%is_thermo) call configure_bc_vars_thermo(domain(i)) 
   end do
   
 #ifdef DEBUG_ALGO
@@ -115,7 +120,9 @@ subroutine Initialize_chapsim
     !==========================================================================================================
     !  validation for each time step
     !==========================================================================================================
+    
     call Check_mass_conservation(flow(i), domain(i), 0, 'initialization') 
+    call write_visu_flow(flow(i), domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain
@@ -316,7 +323,7 @@ subroutine Solve_eqs_iteration
       if(MOD(iter, domain(i)%visu_nfre) == 0) then
         if(is_flow(i)) call write_visu_flow(flow(i), domain(i))
         if(domain(i)%is_thermo .and. is_thermo(i)) then
-          call write_visu_thermo(thermo(i), domain(i))
+          call write_visu_thermo(thermo(i), flow(i), domain(i))
         end if
         if(iter > domain(i)%stat_istart ) then
           if(is_flow(i)) call write_visu_stats_flow(flow(i), domain(i))
