@@ -19,7 +19,7 @@ module solver_tools_mod
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_velocity_from_massflux
 
-  public  :: update_rhou_bc
+  public  :: update_g_rhou_bc
 
 contains
 !==========================================================================================================
@@ -816,7 +816,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine update_rhou_bc (dm) ! 
+  subroutine update_g_rhou_bc (dm) ! 
     use parameters_constant_mod
     use udf_type_mod
     implicit none

@@ -11,7 +11,11 @@ module boundary_conditions_mod
   public  :: update_bc_interface_flow
   public  :: update_bc_interface_thermo
   public  :: update_flow_bc_1dm_halo
-  public  :: get_ibc_for_calcuation
+  public  :: update_symmetric_ibc
+
+  public :: get_dirichlet_geo_bcx
+  public :: get_dirichlet_geo_bcy
+  public :: get_dirichlet_geo_bcz
 
   !public  :: apply_bc_const
   !public  :: apply_convective_outlet
@@ -264,9 +268,7 @@ contains
     integer  :: m, n, k, ny
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc values for calculation from given nominal b.c. values
-! np, not nc, is used to provide enough space
-! NBC = qx, qy, qz, p, T; 
-! DIM = gx, gy, gz; 
+! bc always saved on the boundar face centre 
 ! warning: this bc treatment is not proper for a inlet plane with field data.... to check and to update
 !----------------------------------------------------------------------------------------------------------
     allocate( dm%fbcx_qx(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
@@ -380,14 +382,15 @@ subroutine configure_bc_vars_thermo(dm)
     implicit none
     type(t_domain), intent(inout) :: dm
 
-    if(dm%is_thermo) then
-      allocate( dm%ftpbcx_var(             4, dm%dppp%xsz(2), dm%dppp%xsz(3)) )! default x pencil
-      allocate( dm%ftpbcy_var(dm%dppp%ysz(1),              4, dm%dppp%ysz(3)) )! default y pencil
-      allocate( dm%ftpbcz_var(dm%dppp%zsz(1), dm%dppp%zsz(2),             4)  )! default z pencil
-    end if
+    if( .not. dm%is_thermo) return
+
+    allocate( dm%ftpbcx_var(             4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) )! default x pencil
+    allocate( dm%ftpbcy_var(dm%dcpc%ysz(1),              4, dm%dcpc%ysz(3)) )! default y pencil
+    allocate( dm%ftpbcz_var(dm%dccp%zsz(1), dm%dccp%zsz(2),             4)  )! default z pencil
 
     return
   end subroutine 
+
 !==========================================================================================================
 !==========================================================================================================
   subroutine update_flow_bc_1dm_halo(dm, fl) ! similar to asymmetric
@@ -841,7 +844,7 @@ subroutine configure_bc_vars_thermo(dm)
   end subroutine
 !==========================================================================================================
 ! to calculate boundary during calculation from primary boundary
-  subroutine get_ibc_for_calcuation(ibc, mbc, jbc)
+  subroutine update_symmetric_ibc(ibc, mbc, jbc)
     use parameters_constant_mod
     integer, intent(in)  :: ibc(2)
     integer, intent(out) :: mbc(2, 3)
@@ -1021,7 +1024,91 @@ subroutine configure_bc_vars_thermo(dm)
 
 !     return
 !   end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine get_dirichlet_geo_bcx(ibcx, varx, fbcx)
+    use parameters_constant_mod
+    implicit none
+    integer,  intent(in)    :: ibcx(2)
+    real(WP), intent(in)    :: varx(:, :, :)
+    real(WP), intent(inout) :: fbcx(:, :, :)
 
+    integer :: n
+
+    if( any(ibcx /= IBC_DIRICHLET) ) return
+
+    if(size(varx, 3) /= size(fbcx, 3) .or. &
+       size(varx, 2) /= size(fbcx, 2)) call Print_error_msg("Error input.")
+
+    if (ibcx(1) == IBC_DIRICHLET) then
+      fbcx(1, :, :) = varx(1, :, :)
+      fbcx(3, :, :) = fbcx(1, :, :)
+    end if
+
+    if (ibcx(2) == IBC_DIRICHLET) then
+      n = size(varx, 1)
+      fbcx(2, :, :) = varx(n, :, :)
+      fbcx(4, :, :) = fbcx(2, :, :)
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine get_dirichlet_geo_bcy(ibcy, vary, fbcy)
+    use parameters_constant_mod
+    implicit none
+    integer,  intent(in)    :: ibcy(2)
+    real(WP), intent(in)    :: vary(:, :, :)
+    real(WP), intent(inout) :: fbcy(:, :, :)
+
+    integer :: n
+
+    if( any(ibcy /= IBC_DIRICHLET) ) return
+
+    if(size(vary, 1) /= size(fbcy, 1) .or. &
+       size(vary, 3) /= size(fbcy, 3)) call Print_error_msg("Error input.")
+
+    if (ibcy(1) == IBC_DIRICHLET) then
+      fbcy(:, 1, :) = vary(:, 1, :)
+      fbcy(:, 3, :) = fbcy(:, 1, :)
+    end if
+
+    if (ibcy(2) == IBC_DIRICHLET) then
+      n = size(vary, 2)
+      fbcy(:, 2, :) = vary(:, n, :)
+      fbcy(:, 4, :) = fbcy(:, 2, :)
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine get_dirichlet_geo_bcz(ibcz, varz, fbcz)
+    use parameters_constant_mod
+    implicit none
+    integer,  intent(in)    :: ibcz(2)
+    real(WP), intent(in)    :: varz(:, :, :)
+    real(WP), intent(inout) :: fbcz(:, :, :)
+
+    integer :: n
+
+    if( any(ibcz /= IBC_DIRICHLET) ) return
+
+    if(size(varz, 1) /= size(fbcz, 1) .or. &
+       size(varz, 2) /= size(fbcz, 2)) call Print_error_msg("Error input.")
+
+    if (ibcz(1) == IBC_DIRICHLET) then
+      fbcz(:, :, 1) = varz(:, :, 1)
+      fbcz(:, :, 3) = fbcz(:, :, 1)
+    end if
+
+    if (ibcz(2) == IBC_DIRICHLET) then
+      n = size(varz, 3)
+      fbcz(:, :, 2) = varz(:, :, n)
+      fbcz(:, :, 4) = fbcz(:, :, 2)
+    end if
+
+    return
+  end subroutine
 
 
 end module

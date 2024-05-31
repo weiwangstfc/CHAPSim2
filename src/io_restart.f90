@@ -214,7 +214,7 @@ contains
     use thermo_info_mod
     use eq_energy_mod
     use solver_tools_mod
-    type(t_domain), intent(in) :: dm
+    type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
 

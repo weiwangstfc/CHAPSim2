@@ -77,6 +77,14 @@ subroutine Initialize_chapsim
 !----------------------------------------------------------------------------------------------------------
   call Prepare_LHS_coeffs_for_operations
 !----------------------------------------------------------------------------------------------------------
+! test all the operations.
+!----------------------------------------------------------------------------------------------------------  
+#ifdef DEBUG_ALGO
+  call Test_algorithms()
+  call Print_warning_msg(" === The solver will stop as per the user's request in <Test_algorithms> === ")
+  stop
+#endif
+!----------------------------------------------------------------------------------------------------------
 ! build up domain decomposition
 !----------------------------------------------------------------------------------------------------------
   call Buildup_mpi_domain_decomposition
@@ -87,12 +95,6 @@ subroutine Initialize_chapsim
     call configure_bc_vars_flow(domain(i)) 
     if(domain(i)%is_thermo) call configure_bc_vars_thermo(domain(i)) 
   end do
-  
-#ifdef DEBUG_ALGO
-  call Test_algorithms()
-  call Print_warning_msg(" === The solver will stop as per the user's request in <Test_algorithms> === ")
-  stop
-#endif
 !----------------------------------------------------------------------------------------------------------
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------
@@ -109,7 +111,7 @@ subroutine Initialize_chapsim
     i = 1 
     call Buildup_thermo_mapping_relations(thermo(i))
     call Buildup_undim_thermo_bc(thermo(i), domain(i))
-    call update_rhou_bc(domain(i))
+    call update_g_rhou_bc(domain(i))
   end if
 !----------------------------------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
