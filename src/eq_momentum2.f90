@@ -664,9 +664,9 @@ contains
 !----------------------------------------------------------------------------------------------------------  
     call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc, dm%ibcx_qx(:, IBC_CCC))
     if ( .not. dm%is_thermo) then
-      call Get_x_1st_derivative_C2P_3D(-qxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbc(:, 1), -dm%fbcx_qx * dm%fbcx_qx)
+      call Get_x_1st_derivative_C2P_3D(-qxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcx_qx * dm%fbcx_qx)
     else
-      call Get_x_1st_derivative_C2P_3D(-gxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbc(:, 1), -dm%fbcx_gx * dm%fbcx_qx)
+      call Get_x_1st_derivative_C2P_3D(-gxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcx_gx * dm%fbcx_qx)
     end if
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -674,9 +674,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call update_symmetric_ibc(dm%ibcy_qy(:, IBC_PPC), mbc, dm%ibcy_qx(:, IBC_PPC))
     if ( .not. dm%is_thermo) then
-      call Get_y_1st_derivative_P2C_3D(-qyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, 1))
+      call Get_y_1st_derivative_P2C_3D(-qyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcy_qy * dm%fbcy_qx)
     else
-      call Get_y_1st_derivative_P2C_3D(-gyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, 1))
+      call Get_y_1st_derivative_P2C_3D(-gyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcy_gy * dm%fbcy_qx)
     end if
     !if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil

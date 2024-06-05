@@ -2214,11 +2214,15 @@ contains
     ibc = ibc0
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_midp_C2P_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @ Get_x_midp_C2P_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_midp_C2P_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @ Get_x_midp_C2P_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @ Get_x_midp_C2P_1D')
         ibc(i) = IBC_INTRPL
       end if
     end do
@@ -2266,7 +2270,15 @@ contains
     ibc = ibc0
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_midp_P2C_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
     end do
@@ -2316,11 +2328,15 @@ contains
     ibc = ibc0
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_midp_C2P_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_midp_C2P_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_midp_C2P_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_midp_C2P_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_midp_C2P_1D')
         ibc(i) = IBC_INTRPL
       end if
     end do
@@ -2371,7 +2387,15 @@ contains
     ibc = ibc0
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_midp_P2C_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
     end do
@@ -2422,11 +2446,15 @@ contains
     ibc = ibc0
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_midp_C2P_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_midp_C2P_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_z_midp_C2P_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_midp_C2P_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_midp_C2P_1D')
         ibc(i) = IBC_INTRPL
       end if
     end do
@@ -2474,7 +2502,15 @@ contains
     ibc = ibc0
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_midp_P2C_1D, degragded to IBC_INTRPL.')
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
     end do
@@ -2539,13 +2575,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2593,13 +2633,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2645,17 +2689,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2702,9 +2746,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_P2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2754,13 +2806,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_y_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2811,13 +2867,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_y_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2868,17 +2928,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2929,9 +2989,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_y_1st_derivative_P2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -2984,13 +3052,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ Get_x_1st_derivative_C2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1st_derivative_C2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -3036,13 +3108,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_z_1st_derivative_P2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -3088,17 +3164,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc)) )then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
-      if(ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for DIRICHLET @ Get_x_1st_derivative_C2P_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1st_derivative_C2P_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -3144,9 +3220,17 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if(ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc)) ) then
-          ibc(i) = IBC_INTRPL
-          call Print_warning_msg('Lack of fbc info for IBC_INTERIOR @ Get_z_1st_derivative_P2C_1D, degragded to IBC_INTRPL.')
+      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
+      end if
+      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
+        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2C_1D')
+        ibc(i) = IBC_INTRPL
       end if
     end do
 
@@ -3211,8 +3295,12 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_midp_C2P_1D (fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(1:4, j, k)
+          call Get_x_midp_C2P_1D (fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_x_midp_C2P_1D (fi, fo, dm, iacc, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -3242,8 +3330,12 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_midp_P2C_1D (fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(1:4, j, k)
+          call Get_x_midp_P2C_1D (fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_x_midp_P2C_1D (fi, fo, dm, iacc, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -3274,8 +3366,12 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_midp_C2P_1D (fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, 1:4, k)
+          call Get_y_midp_C2P_1D (fi, fo, dm, iacc, ibc, fbc)
+        else 
+          call Get_y_midp_C2P_1D (fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3305,8 +3401,12 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_midp_P2C_1D (fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then 
+          fbc(1:4) = fbc2d(i, 1:4, k)
+          call Get_y_midp_P2C_1D (fi, fo, dm, iacc, ibc, fbc)
+        else 
+          call Get_y_midp_P2C_1D (fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3337,8 +3437,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_midp_C2P_1D (fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, j, 1:4)
+          call Get_z_midp_C2P_1D (fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_z_midp_C2P_1D (fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -3368,8 +3472,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_midp_P2C_1D (fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, j, 1:4)
+          call Get_z_midp_P2C_1D (fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_z_midp_P2C_1D (fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -3417,8 +3525,12 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(1:4, j, k)
+          call Get_x_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_x_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -3450,8 +3562,12 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then 
+          fbc(1:4) = fbc2d(1:4, j, k)
+          call Get_x_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_x_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -3482,8 +3598,12 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then 
+          fbc(1:4) = fbc2d(1:4, j, k)
+          call Get_x_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_x_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -3514,8 +3634,12 @@ contains
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
         fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(1:4, j, k)
+          call Get_x_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_x_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(:, j, k) = fo(:)
       end do
     end do
@@ -3544,8 +3668,12 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, 1:4, k)
+          call Get_y_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_y_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3576,8 +3704,12 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then 
+          fbc(1:4) = fbc2d(i, 1:4, k)
+          call Get_y_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_y_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3607,8 +3739,12 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, 1:4, k)
+          call Get_y_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_y_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3640,8 +3776,12 @@ contains
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, 1:4, k)
+          call Get_y_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_y_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, :, k) = fo(:)
       end do
     end do
@@ -3671,8 +3811,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then 
+          fbc(1:4) = fbc2d(i, j, 1:4)
+          call Get_z_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_z_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -3704,8 +3848,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, j, 1:4)
+          call Get_z_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_z_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -3736,8 +3884,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, j, 1:4)
+          call Get_z_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_z_1st_derivative_C2P_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, j, :) = fo(:)
       end do
     end do
@@ -3768,8 +3920,12 @@ contains
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
         fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        if(present(fbc2d)) then
+          fbc(1:4) = fbc2d(i, j, 1:4)
+          call Get_z_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc, fbc)
+        else
+          call Get_z_1st_derivative_P2C_1D(fi, fo, dm, iacc, ibc)
+        end if
         fo3d(i, j, :) = fo(:)
       end do
     end do

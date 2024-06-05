@@ -3,7 +3,7 @@ module boundary_conditions_mod
   character(12) :: filename(5)
   
   private :: map_bc_1d_uprofile
-  private :: apply_bc_constant_flow
+  private :: map_1d_profile_to_case
   private :: reassign_bc_type
   public  :: configure_bc_type
   public  :: configure_bc_vars_flow
@@ -19,6 +19,11 @@ module boundary_conditions_mod
 
   !public  :: apply_bc_const
   !public  :: apply_convective_outlet
+
+  integer, save :: JBC_SELF = 1, &
+                  JBC_GRAD = 2, &
+                  JBC_PROD = 3
+
   
 contains
 
@@ -98,71 +103,103 @@ contains
       dm%ibcz_Th(n, :) = dm%ibcz_nominal(n, 5)
     end do 
 !----------------------------------------------------------------------------------------------------------
-! correct bc for future calculation
+! correct bc for future calculation. only here uses the IBC_CCC, IBC_CCP, etc...
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 2
-      ! - x - 
-      if(dm%ibcx_nominal(n, 1) == IBC_DIRICHLET) then ! ux at x-dir
-        dm%ibcx_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qx(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qx(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qx(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      if(dm%ibcx_nominal(n, 2) == IBC_DIRICHLET) then ! uy at x-dir
-        dm%ibcx_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qy(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qy(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qy(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      if(dm%ibcx_nominal(n, 3) == IBC_DIRICHLET) then ! uz at x-dir
-        dm%ibcx_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qz(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qz(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcx_qz(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      ! - y - 
-      if(dm%ibcy_nominal(n, 1) == IBC_DIRICHLET) then
-        dm%ibcy_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qx(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qx(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qx(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      if(dm%ibcy_nominal(n, 2) == IBC_DIRICHLET) then
-        dm%ibcy_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qy(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qy(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qy(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      if(dm%ibcy_nominal(n, 3) == IBC_DIRICHLET) then
-        dm%ibcy_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qz(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qz(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcy_qz(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      ! - z - 
-      if(dm%ibcz_nominal(n, 1) == IBC_DIRICHLET) then
-        dm%ibcz_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qx(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qx(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qx(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      if(dm%ibcz_nominal(n, 2) == IBC_DIRICHLET) then
-        dm%ibcz_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qy(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qy(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qy(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
-      if(dm%ibcz_nominal(n, 3)== IBC_DIRICHLET) then
-        dm%ibcz_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qz(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qz(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-        dm%ibcz_qz(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
-      end if 
+    ! do n = 1, 2
+    !   ! - x - 
+    !   if(dm%ibcx_nominal(n, 1) == IBC_DIRICHLET) then ! ux at x-dir
+    !     dm%ibcx_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qx(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qx(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qx(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   if(dm%ibcx_nominal(n, 2) == IBC_DIRICHLET) then ! uy at x-dir
+    !     dm%ibcx_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qy(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qy(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qy(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   if(dm%ibcx_nominal(n, 3) == IBC_DIRICHLET) then ! uz at x-dir
+    !     dm%ibcx_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qz(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qz(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcx_qz(n, IBC_CPP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   ! - y - 
+    !   if(dm%ibcy_nominal(n, 1) == IBC_DIRICHLET) then
+    !     dm%ibcy_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qx(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qx(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qx(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   if(dm%ibcy_nominal(n, 2) == IBC_DIRICHLET) then
+    !     dm%ibcy_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qy(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qy(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qy(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   if(dm%ibcy_nominal(n, 3) == IBC_DIRICHLET) then
+    !     dm%ibcy_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qz(n, IBC_CCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qz(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcy_qz(n, IBC_PCP) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   ! - z - 
+    !   if(dm%ibcz_nominal(n, 1) == IBC_DIRICHLET) then
+    !     dm%ibcz_qx(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qx(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qx(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qx(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   if(dm%ibcz_nominal(n, 2) == IBC_DIRICHLET) then
+    !     dm%ibcz_qy(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qy(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qy(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qy(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
+    !   if(dm%ibcz_nominal(n, 3)== IBC_DIRICHLET) then
+    !     dm%ibcz_qz(n, IBC_CCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qz(n, IBC_CPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qz(n, IBC_PCC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !     dm%ibcz_qz(n, IBC_PPC) = IBC_ASYMMETRIC ! default, non-slip wall, check
+    !   end if 
 
-    end do
+    ! end do
 
     return
   end subroutine 
+!==========================================================================================================
+!==========================================================================================================
+  subroutine map_1d_profile_to_case(nin, yin, uin, nout, ycase, ucase)
+    use cubic_spline_interpolation
+    use precision_mod
+    implicit none
+    integer, intent(in) :: nin
+    real(WP), dimension(nin), intent(in) :: yin
+    real(WP), dimension(nin), intent(in) :: uin
+    integer, intent(in) :: nout
+    real(WP), dimension(nout), intent(in)  :: ycase
+    real(WP), dimension(nout), intent(out) :: ucase
+
+    integer :: i
+    real(WP), allocatable :: cs_b(:), cs_c(:), cs_d(:)
+
+    allocate(cs_b(nin))
+    allocate(cs_c(nin))
+    allocate(cs_d(nin))
+
+    call cubic_spline (nin, yin, uin, cs_b, cs_c, cs_d)
+
+    do i = 1, nout
+      ucase(i) = spline_interpolation(nin, uin, cs_b, cs_c, cs_d, ycase(i))
+    end do 
+
+    deallocate(cs_b)
+    deallocate(cs_c)
+    deallocate(cs_d)
+
+    return
+  end subroutine
 !==========================================================================================================
 !==========================================================================================================
   subroutine  map_bc_1d_uprofile(filename, n, y, u)
@@ -227,31 +264,6 @@ contains
 
     deallocate(uprofile)
     deallocate(yy)
-
-    return
-  end subroutine
-
-
-!==========================================================================================================
-!> \brief Apply b.c. conditions 
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   public
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!----------------------------------------------------------------------------------------------------------
-!  mode           name          role                                           
-!----------------------------------------------------------------------------------------------------------
-!> \param[in]     d             domain
-!> \param[out]    f             flow
-!==========================================================================================================
-  subroutine apply_bc_constant_flow (dm) ! apply once only
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent( inout)   :: dm
-
-    
 
     return
   end subroutine
@@ -351,13 +363,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to build up bc for var(x_const, y, z)
 !----------------------------------------------------------------------------------------------------------
-    ! filename(1) = 'pf1d_u1y.dat' !(undim)
+    ! ! ux - 
+    ! if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D) then
+    !   filename = 'pf1d_u1y.dat' !(undim)
+    !   call map_bc_1d_uprofile( filename, dm%nc(2), dm%yc, var1y(1:dm%nc(2)) )
+    !   call transpose_y_to_x
+    !   dm%fbcx_qx(1, :, :) = 
+    ! end if
     ! filename(2) = 'pf1d_v1y.dat' !(undim)
     ! filename(3) = 'pf1d_w1y.dat' !(undim)
     ! filename(4) = 'pf1d_p1y.dat' !(undim)
     ! filename(5) = 'pf1d_T1y.dat' !(dim  )
     ! do m = 1, NBC
     !   if(dm%ibcx_nominal(1, m) == IBC_PROFILE1D) then
+
     !     if(m /= 2) then
     !       ny = dm%nc(2)
     !       call map_bc_1d_uprofile( filename(m), ny, dm%yc, var1y(1:ny) )
@@ -365,10 +384,12 @@ contains
     !       ny = dm%np(2)
     !       call map_bc_1d_uprofile( filename(m), ny, dm%yp, var1y(1:ny) )
     !     end if
+
     !     do k = 1, size(dm%fbcx_var, 3) 
     !       do j = 1, 
     !       dm%fbcx_var(1, 1:ny, k, m) = var1y(1:ny) ! wrong
     !     end do
+
     !   end if
     ! end do
 
@@ -852,24 +873,24 @@ subroutine configure_bc_vars_thermo(dm)
     
     integer :: i
     
-    mbc(:, 1) = ibc(:)
-    mbc(:, 2) = ibc(:)
-    mbc(:, 3) = ibc(:)
+    mbc(:, JBC_SELF) = ibc(:)
+    mbc(:, JBC_GRAD) = ibc(:)
+    mbc(:, JBC_PROD) = ibc(:)
 
     do i = 1, 2
       if(present(jbc)) then
 
         if(ibc(i)==IBC_SYMMETRIC .and. jbc(i)==IBC_SYMMETRIC) then
-          mbc(i, 1) = IBC_SYMMETRIC
+          mbc(i, JBC_PROD) = IBC_SYMMETRIC
         else if (ibc(i)==IBC_SYMMETRIC .and. jbc(i)==IBC_ASYMMETRIC) then
-          mbc(i, 1) = IBC_ASYMMETRIC
+          mbc(i, JBC_PROD) = IBC_ASYMMETRIC
         else if (ibc(i)==IBC_ASYMMETRIC .and. jbc(i)==IBC_SYMMETRIC) then
-          mbc(i, 1) = IBC_ASYMMETRIC
+          mbc(i, JBC_PROD) = IBC_ASYMMETRIC
         else if (ibc(i)==IBC_ASYMMETRIC .and. jbc(i)==IBC_ASYMMETRIC) then
-          mbc(i, 1) = IBC_SYMMETRIC
+          mbc(i, JBC_PROD) = IBC_SYMMETRIC
         else 
           if(ibc(i)==jbc(i)) then
-            mbc(i, 1) = ibc(i)
+            mbc(i, JBC_PROD) = ibc(i)
           else
             call Print_warning_msg("The two operational variables have different boundary conditions.")
           end if
@@ -878,13 +899,13 @@ subroutine configure_bc_vars_thermo(dm)
       else
 
         if(ibc(i)==IBC_SYMMETRIC) then
-          mbc(i, 1) = ibc(i)               ! variable itself
-          mbc(i, 2) = IBC_ASYMMETRIC       ! d(var)/dn, 
-          mbc(i, 3) = ibc(i)               ! var * var
+          mbc(i, JBC_SELF) = ibc(i)               ! variable itself
+          mbc(i, JBC_GRAD) = IBC_ASYMMETRIC       ! d(var)/dn, 
+          mbc(i, JBC_PROD) = ibc(i)               ! var * var
         else if(ibc(i)==IBC_ASYMMETRIC) then
-          mbc(i, 1) = ibc(i)              ! variable itself
-          mbc(i, 2) = IBC_SYMMETRIC       ! d(var)/dn, 
-          mbc(i, 3) = IBC_SYMMETRIC       ! var * var
+          mbc(i, JBC_SELF) = ibc(i)              ! variable itself
+          mbc(i, JBC_GRAD) = IBC_SYMMETRIC       ! d(var)/dn, 
+          mbc(i, JBC_PROD) = IBC_SYMMETRIC       ! var * var
         else
           mbc(i, :) = ibc(i)
         end if

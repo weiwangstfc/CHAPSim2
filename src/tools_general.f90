@@ -406,39 +406,6 @@ contains
 end module
 
 
-subroutine map_1d_profile_to_case(nin, yin, uin, nout, ycase, ucase)
-  use cubic_spline_interpolation
-  use precision_mod
-  implicit none
-  integer, intent(in) :: nin
-  real(WP), dimension(nin), intent(in) :: yin
-  real(WP), dimension(nin), intent(in) :: uin
-  integer, intent(in) :: nout
-  real(WP), dimension(nout), intent(in)  :: ycase
-  real(WP), dimension(nout), intent(out) :: ucase
-
-  integer :: i
-  real(WP), allocatable :: cs_b(:), cs_c(:), cs_d(:)
-
-  allocate(cs_b(nin))
-  allocate(cs_c(nin))
-  allocate(cs_d(nin))
-
-  call cubic_spline (nin, yin, uin, cs_b, cs_c, cs_d)
-
-
-  do i = 1, nout
-    ucase(i) = spline_interpolation(nin, uin, cs_b, cs_c, cs_d, ycase(i))
-  end do 
-
-  deallocate(cs_b)
-  deallocate(cs_c)
-  deallocate(cs_d)
-
-  return
-end subroutine
-
-
 !==========================================================================================================
 
 !==========================================================================================================
