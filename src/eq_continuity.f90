@@ -96,7 +96,7 @@ contains
 ! operation in x pencil, du/dx
 !----------------------------------------------------------------------------------------------------------
     div0 = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx_qx(:, IBC_PCC))
+    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !write(*,*) 'div, x', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ contains
     div0_ypencil = ZERO
     div0 = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy_qy(:, IBC_CPC))
+    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !write(*,*) 'div, y', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
@@ -120,7 +120,7 @@ contains
     div0 = ZERO
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz_qz(:, IBC_CCP))
+    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP))
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
@@ -183,7 +183,7 @@ contains
     div0 = ZERO
     div0_ypencil_ggl = ZERO
     div_ypencil_ggl = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx_qx(:, IBC_PCC))
+    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC))
     call transpose_x_to_y(div0, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div0_ypencil_ggl
 !----------------------------------------------------------------------------------------------------------
@@ -193,7 +193,7 @@ contains
     div0_ypencil = ZERO
     div0_ypencil_ggl = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy_qy(:, IBC_CPC))
+    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC))
     call ypencil_index_lgl2ggl(div0_ypencil, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div_ypencil_ggl + div0_ypencil_ggl
     call transpose_y_to_z(div_ypencil_ggl, div_zpencil_ggg, dm%dccc)
@@ -206,7 +206,7 @@ contains
     div0_zpencil_ggg = ZERO
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz_qz(:, IBC_CCP))
+    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP))
     call zpencil_index_llg2ggg(div0_zpencil, div0_zpencil_ggg, dm%dccc)
     div_zpencil_ggg = div_zpencil_ggg + div0_zpencil_ggg
 

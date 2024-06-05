@@ -401,7 +401,7 @@ contains
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, wrtfmt1s) '  spatial accuracy scheme options : '
-            write (*, wrtfmt1s) '    2 = IACCU_CD2, 3 = IACCU_CD4, 4 = IACCU_CP4, 6 = IACCU_CP6 = 6'
+            write (*, wrtfmt1s) '    1 = IACCU_CD2, 2 = IACCU_CD4, 3 = IACCU_CP4, 4 = IACCU_CP6'
             write (*, wrtfmt1i) '  current spatial accuracy scheme :', domain(i)%iAccuracy
             write (*, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do

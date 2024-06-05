@@ -77,21 +77,21 @@
 ! !      --> h_ypencil --> h_cpc_ypencil
 ! !                    --> h_zpencil --> h_ccp_zpencil
 ! !----------------------------------------------------------------------------------------------------------
-!     call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_pcc,         dm, dm%ibcx(:, 5), bm%ftpbcx_var(:, :, :)%h) ! for d(g_x h_pcc))/dy
+!     call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_pcc,         dm, dm%iAccuracy, dm%ibcx(:, 5), bm%ftpbcx_var(:, :, :)%h) ! for d(g_x h_pcc))/dy
 !     call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-!     call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%ibcy(:, 5), bm%ftpbcy_var(:, :, :)%h)! for d(g_y h_cpc)/dy
+!     call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 5), bm%ftpbcy_var(:, :, :)%h)! for d(g_y h_cpc)/dy
 !     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-!     call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%ibcz(:, 5), bm%ftpbcz_var(:, :, :)%h) ! for d(g_z h_ccp)/dz
+!     call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 5), bm%ftpbcz_var(:, :, :)%h) ! for d(g_z h_ccp)/dz
 ! !----------------------------------------------------------------------------------------------------------
 ! !    k --> k_pcc
 ! !      --> k_ypencil --> k_cpc_ypencil
 ! !                    --> k_zpencil --> k_ccp_zpencil              
 ! !----------------------------------------------------------------------------------------------------------
-!     call Get_x_midp_C2P_3D(tm%kCond,      kCond_pcc,         dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
+!     call Get_x_midp_C2P_3D(tm%kCond,      kCond_pcc,         dm, dm%iAccuracy, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
 !     call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-!     call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%k)
+!     call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 5), dm%ftpbcy_var(:, :, :)%k)
 !     call transpose_y_to_z (accc_ypencil,  kCond_zpencil, dm%dccc) 
-!     call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%k)
+!     call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 5), dm%ftpbcz_var(:, :, :)%k)
 ! !----------------------------------------------------------------------------------------------------------
 ! !    T --> T_ypencil --> T_zpencil
 ! !----------------------------------------------------------------------------------------------------------
@@ -105,7 +105,7 @@
 ! ! x-pencil : d (gx * h_pcc) / dx 
 ! !----------------------------------------------------------------------------------------------------------
 !     tm%ene_rhs = ZERO
-!     call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 1) ) ! accc = -d(gx * h)/dx
+!     call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%iAccuracy, dm%ibcx(:, 1) ) ! accc = -d(gx * h)/dx
 !     tm%ene_rhs = tm%ene_rhs + accc
 ! !----------------------------------------------------------------------------------------------------------
 ! ! x-pencil : d (T) / dx 
@@ -133,7 +133,7 @@
 ! !----------------------------------------------------------------------------------------------------------
 ! ! x-pencil : d ( k_pcc * d (T) / dx ) dx
 ! !----------------------------------------------------------------------------------------------------------
-!     call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, dm%ibcx(:, 5) )
+!     call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, dm%iAccuracy, dm%ibcx(:, 5) )
 
 !     tm%ene_rhs = tm%ene_rhs + accc
 ! !==========================================================================================================
@@ -144,7 +144,7 @@
 ! ! y-pencil : d (gy * h_cpc) / dy 
 ! !----------------------------------------------------------------------------------------------------------
 !     ene_rhs_ypencil = ZERO
-!     call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2) )
+!     call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 2) )
 !     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 ! !----------------------------------------------------------------------------------------------------------
 ! ! y-pencil : d (T) / dy
@@ -172,7 +172,7 @@
 ! !----------------------------------------------------------------------------------------------------------
 ! ! y-pencil : d ( k_cpc * d (T) / dy ) dy
 ! !----------------------------------------------------------------------------------------------------------
-!     call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 5) )
+!     call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 5) )
 !     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 
 !     call transpose_y_to_x(ene_rhs_ypencil, accc, dm%dccc)
@@ -185,7 +185,7 @@
 ! ! z-pencil : d (gz * h_ccp) / dz 
 ! !----------------------------------------------------------------------------------------------------------
 !     ene_rhs_zpencil = ZERO
-!     call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3) )
+!     call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3) )
 !     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 ! !----------------------------------------------------------------------------------------------------------
 ! ! z-pencil : d (T) / dz
@@ -213,7 +213,7 @@
 ! !----------------------------------------------------------------------------------------------------------
 ! ! z-pencil : d ( k_ccp * d (T) / dz ) / dz
 ! !----------------------------------------------------------------------------------------------------------
-!     call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 5) )
+!     call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 5) )
 !     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 
 !     call transpose_z_to_y(ene_rhs_zpencil, ene_rhs_ypencil, dm%dccc)

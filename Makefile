@@ -71,7 +71,7 @@ OBJS1= mpi_mod.o\
       boundary_conditions.o\
       input_general.o\
       algorithms.o\
-      operations.o\
+      operations2.o\
       tools_solver.o\
       geometry.o\
       io_tools.o\

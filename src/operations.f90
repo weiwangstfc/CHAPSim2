@@ -6177,7 +6177,7 @@ alpha_itf = ZERO
     ! do i = 1, 4 
     !   write(wrt_unit,'(A,1I5.1,4ES13.5)') 'x-intpbc-c2p ', i, lbcx(i), fbc(i), fbc(i), zero
     ! end do
-    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
+    call Get_x_midp_C2P_1D (fxc, fgxp, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6209,7 +6209,7 @@ alpha_itf = ZERO
     end do
 ! y: c2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_midp_C2P_1D (fyc, fgyp, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6242,7 +6242,7 @@ alpha_itf = ZERO
     end do
 ! z: c2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
+    call Get_z_midp_C2P_1D (fzc, fgzp, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -6311,7 +6311,7 @@ alpha_itf = ZERO
     end do
 ! x: p2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%ibcx_Th(:, IBC_PCC), fbc)
+    call Get_x_midp_P2C_1D (fxp, fgxc, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_PCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -6344,7 +6344,7 @@ alpha_itf = ZERO
     end do
 ! y: p2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_midp_P2C_1D (fyp, fgyc, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -6380,7 +6380,7 @@ alpha_itf = ZERO
     end do
 ! z: p2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
+    call Get_z_midp_P2C_1D (fzp, fgzc, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -6421,8 +6421,8 @@ alpha_itf = ZERO
     end do
     ! intp p2c + 1st deri c2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_midp_P2C_1D          (fyp, fgyc, dm, dm%ibcy_Th(:, IBC_PPP), fbc)
-    call Get_y_1st_derivative_C2P_1D(fgyc,fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_midp_P2C_1D          (fyp, fgyc, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_PPP), fbc)
+    call Get_y_1st_derivative_C2P_1D(fgyc,fgyp, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
 
     err_Linf = ZERO
     err_L2   = ZERO
@@ -6461,8 +6461,8 @@ alpha_itf = ZERO
 !     end do
 !     ! intp p2c + 1st deri c2p
 !     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-!     call Get_y_midp_P2C_1D          (fyp,      fgyc, dm, dm%ibcy_Th(:, IBC_PPP), fbc)
-!     call Get_y_1st_derivative_C2P_1D(fgyc*fgyc,fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc*fbc)
+!     call Get_y_midp_P2C_1D          (fyp,      fgyc, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_PPP), fbc)
+!     call Get_y_1st_derivative_C2P_1D(fgyc*fgyc,fgyp, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc*fbc)
 
 !     err_Linf = ZERO
 !     err_L2   = ZERO
@@ -6695,7 +6695,7 @@ alpha_itf = ZERO
     end do
 ! x: c2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
+    call Get_x_1st_derivative_C2C_1D (fxc, fgxc, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -6727,7 +6727,7 @@ alpha_itf = ZERO
     end do
 ! y: c2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_1st_derivative_C2C_1D (fyc, fgyc, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -6760,7 +6760,7 @@ alpha_itf = ZERO
     end do
 ! z: c2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
+    call Get_z_1st_derivative_C2C_1D (fzc, fgzc, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -6796,7 +6796,7 @@ alpha_itf = ZERO
     ! end if
 
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
+    call Get_x_1st_derivative_C2P_1D (fxc, fgxp, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6824,7 +6824,7 @@ alpha_itf = ZERO
 
 ! y: c2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_1st_derivative_C2P_1D (fyc, fgyp, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6852,7 +6852,7 @@ alpha_itf = ZERO
 
 ! z: c2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
+    call Get_z_1st_derivative_C2P_1D (fzc, fgzp, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -6926,7 +6926,7 @@ alpha_itf = ZERO
     end do
 ! x: p2p
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
+    call Get_x_1st_derivative_P2P_1D (fxp, fgxp, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -6959,7 +6959,7 @@ alpha_itf = ZERO
     end do
 ! y: p2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_1st_derivative_P2P_1D (fyp, fgyp, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -6991,7 +6991,7 @@ alpha_itf = ZERO
     end do
 ! z: p2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
+    call Get_z_1st_derivative_P2P_1D (fzp, fgzp, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)
@@ -7023,7 +7023,7 @@ alpha_itf = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! x: p2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%ibcx_Th(:, IBC_PCC), fbc)
+    call Get_x_1st_derivative_P2C_1D (fxp, fgxc, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_PCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -7052,7 +7052,7 @@ alpha_itf = ZERO
 
 ! y: p2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_1st_derivative_P2C_1D (fyp, fgyc, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -7080,7 +7080,7 @@ alpha_itf = ZERO
 
 ! z: p2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
+    call Get_z_1st_derivative_P2C_1D (fzp, fgzc, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -7315,7 +7315,7 @@ alpha_itf = ZERO
     end do
 ! x: c2c
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
+    call Get_x_2nd_derivative_C2C_1D (fxc, fgxc, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%nc(1)
@@ -7346,7 +7346,7 @@ alpha_itf = ZERO
     end do
 ! y: c2c
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_2nd_derivative_C2C_1D (fyc, fgyc, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%nc(2)
@@ -7377,7 +7377,7 @@ alpha_itf = ZERO
     end do
 ! z: c2c
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%ibcz_Th(:, IBC_CCC), fbc)
+    call Get_z_2nd_derivative_C2C_1D (fzc, fgzc, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%nc(3)
@@ -7446,7 +7446,7 @@ alpha_itf = ZERO
     end do
 ! x: p2p
     fbc(1:4) = dm%fbcx_pr(1:4, 1, 1)
-    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%ibcx_Th(:, IBC_CCC), fbc)
+    call Get_x_2nd_derivative_P2P_1D (fxp, fgxp, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do i = 1, dm%np(1)
@@ -7477,7 +7477,7 @@ alpha_itf = ZERO
     end do
 ! y: p2p
     fbc(1:4) = dm%fbcy_pr(1, 1:4, 1)
-    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%ibcy_Th(:, IBC_CCC), fbc)
+    call Get_y_2nd_derivative_P2P_1D (fyp, fgyp, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do j = 1, dm%np(2)
@@ -7509,7 +7509,7 @@ alpha_itf = ZERO
     end do
 ! z: p2p
     fbc(1:4) = dm%fbcz_pr(1, 1, 1:4)
-    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%ibcz_Th(:, IBC_PPP), fbc)
+    call Get_z_2nd_derivative_P2P_1D (fzp, fgzp, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_PPP), fbc)
     err_Linf = ZERO
     err_L2   = ZERO
     do k = 1, dm%np(3)

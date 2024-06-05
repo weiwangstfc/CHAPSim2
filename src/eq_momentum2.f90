@@ -323,25 +323,25 @@ contains
 !                          | -[ipz]-> qxiz_pcp_zpencil(common) -[z2y]-> qxiz_pcp_ypencil(temp) -[y2x]-> qxiz_pcp_xpencil(no-thermal)
 !                          | -[1dz]-> qxdz_pcp_zpencil(common) -[z2y]-> qxdz_pcp_ypencil(temp) -[y2x]-> qxdz_pcp_xpencil(common)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, qxix_ccc_xpencil, dm, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
-    call Get_x_1st_derivative_P2C_3D(fl%qx, qxdx_ccc_xpencil, dm, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
+    call Get_x_midp_P2C_3D(fl%qx, qxix_ccc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
+    call Get_x_1st_derivative_P2C_3D(fl%qx, qxdx_ccc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
     
     call transpose_x_to_y (fl%qx, apcc_ypencil, dm%dpcc) !apcc_ypencil = qx_ypencil
-    call Get_y_1st_derivative_C2P_3D(apcc_ypencil, qxdy_ppc_ypencil, dm, dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx)
+    call Get_y_1st_derivative_C2P_3D(apcc_ypencil, qxdy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx)
     call transpose_y_to_x(qxdy_ppc_ypencil, qxdy_ppc_xpencil, dm%dppc)
-    call Get_y_midp_C2P_3D(apcc_ypencil, qxiy_ppc_ypencil, dm, dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx) 
+    call Get_y_midp_C2P_3D(apcc_ypencil, qxiy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx) 
     if(.not. dm%is_thermo) then
       call transpose_y_to_x (qxiy_ppc_ypencil, qxiy_ppc_xpencil, dm%dppc)
     end if
 
     call transpose_y_to_z (apcc_ypencil, apcc_zpencil, dm%dpcc)!apcc_zpencil = qx_zpencil
-    call Get_z_midp_C2P_3D(apcc_zpencil, qxiz_pcp_zpencil, dm, dm%ibcz_qx(:, IBC_PCC), dm%fbcz_qx)
+    call Get_z_midp_C2P_3D(apcc_zpencil, qxiz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_qx(:, IBC_PCC), dm%fbcz_qx)
     if(.not. dm%is_thermo) then
       call transpose_z_to_y (qxiz_pcp_zpencil, apcp_ypencil, dm%dpcc)! apcp_ypencil = qxiz_pcp_ypencil
       call transpose_y_to_x (apcp_ypencil, qxiz_pcp_xpencil, dm%dpcp)
     end if
 
-    call Get_z_1st_derivative_C2P_3D(apcc_zpencil, qxdz_pcp_zpencil, dm, dm%ibcz_qx(:, IBC_PCC), dm%fbcz_qx)
+    call Get_z_1st_derivative_C2P_3D(apcc_zpencil, qxdz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_qx(:, IBC_PCC), dm%fbcz_qx)
     call transpose_z_to_y(qxdz_pcp_zpencil, apcp_ypencil,     dm%dpcp) !qxdz_pcp_ypencil
     call transpose_y_to_x(apcp_ypencil,     qxdz_pcp_xpencil, dm%dpcp)
 !----------------------------------------------------------------------------------------------------------
@@ -355,27 +355,27 @@ contains
 !                          | -[ipz]-> qyiz_cpp_zpencil(no-cly) -[z2y]-> qyiz_cpp_ypencil(no-thermal)    
 !                          | -[1dz]-> qydz_cpp_zpencil(no-cly) -[z2y]-> qydz_cpp_ypencil(no-cly)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(fl%qy, qydx_ppc_xpencil, dm, dm%ibcx_qy(:, IBC_CPC), dm%fbcx_qy)
+    call Get_x_1st_derivative_C2P_3D(fl%qy, qydx_ppc_xpencil, dm, dm%iAccuracy, dm%ibcx_qy(:, IBC_CPC), dm%fbcx_qy)
     call transpose_x_to_y(qydx_ppc_xpencil, qydx_ppc_ypencil, dm%dppc)
-    call Get_x_midp_C2P_3D(fl%qy, qyix_ppc_xpencil, dm, dm%ibcx_qy(:, IBC_CPC), dm%fbcx_qy)
+    call Get_x_midp_C2P_3D(fl%qy, qyix_ppc_xpencil, dm, dm%iAccuracy, dm%ibcx_qy(:, IBC_CPC), dm%fbcx_qy)
     if(.not. dm%is_thermo) then
       call transpose_x_to_y (qyix_ppc_xpencil, qyix_ppc_ypencil, dm%dppc)
     end if
     call transpose_x_to_y (fl%qy, acpc_ypencil, dm%dcpc) !qy_ypencil
     if(dm%icoordinate == ICARTESIAN) then
-      call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qydy_ccc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
+      call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qydy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
     end if
 
     if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
-      call Get_y_midp_P2C_3D(acpc_ypencil, qyiy_ccc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
+      call Get_y_midp_P2C_3D(acpc_ypencil, qyiy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
     end if
 
     call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)!acpc_zpencil = qy_zpencil
-    call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qydz_cpp_zpencil, dm, dm%ibcz_qy(:, IBC_CPC), dm%fbcz_qy)
+    call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qydz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_qy(:, IBC_CPC), dm%fbcz_qy)
     call transpose_z_to_y(qydz_cpp_zpencil, qydz_cpp_ypencil, dm%dcpp)
 
     if(dm%icoordinate == ICARTESIAN) then
-      call Get_z_midp_C2P_3D(acpc_zpencil, qyiz_cpp_zpencil, dm, dm%ibcz_qy(:, IBC_CPC), dm%fbcz_qy)
+      call Get_z_midp_C2P_3D(acpc_zpencil, qyiz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_qy(:, IBC_CPC), dm%fbcz_qy)
       if(.not. dm%is_thermo) then
         call transpose_z_to_y(qyiz_cpp_zpencil, qyiz_cpp_ypencil, dm%dcpp)
       end if
@@ -391,31 +391,31 @@ contains
 !                          | -[ipz]-> qziz_ccc_zpencil(common)
 !                          | -[1dz]-> qzdz_ccc_zpencil(common) <need BCz> -[y2z]-> qzdz_ccc_ypencil(cly-only) <need BCy>
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(fl%qz, qzdx_pcp_xpencil, dm, dm%ibcx_qz(:, IBC_CCP), dm%fbcx_qz)
+    call Get_x_1st_derivative_C2P_3D(fl%qz, qzdx_pcp_xpencil, dm, dm%iAccuracy, dm%ibcx_qz(:, IBC_CCP), dm%fbcx_qz)
     call transpose_x_to_y(qzdx_pcp_xpencil, apcp_ypencil, dm%dpcp)
     call transpose_y_to_z(apcp_ypencil, qzdx_pcp_zpencil, dm%dpcp)
 
-    call Get_x_midp_C2P_3D(fl%qz, qzix_pcp_xpencil, dm, dm%ibcx_qz(:, IBC_CCP), dm%fbcx_qz)
+    call Get_x_midp_C2P_3D(fl%qz, qzix_pcp_xpencil, dm, dm%iAccuracy, dm%ibcx_qz(:, IBC_CCP), dm%fbcx_qz)
     if(.not. dm%is_thermo) then
       call transpose_x_to_y(qzix_pcp_xpencil, apcp_ypencil, dm%dpcp) !qzix_pcp_ypencil
       call transpose_y_to_z(apcp_ypencil, qzix_pcp_zpencil, dm%dpcp)
     end if
     call transpose_x_to_y(fl%qz, accp_ypencil, dm%dccp) ! qz_ypencil
     if(dm%icoordinate == ICARTESIAN)then
-      call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzdy_cpp_ypencil, dm, dm%ibcy_qz(:, IBC_CCP), dm%fbcy_qz)
+      call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzdy_cpp_ypencil, dm, dm%iAccuracy, dm%ibcy_qz(:, IBC_CCP), dm%fbcy_qz)
       call transpose_y_to_z(qzdy_cpp_ypencil, qzdy_cpp_zpencil, dm%dcpp)
     end if
 
     if((.not. dm%is_thermo) .or. (dm%icoordinate == ICARTESIAN)) then
-      call Get_y_midp_C2P_3D(accp_ypencil, qziy_cpp_ypencil, dm, dm%ibcy_qz(:, IBC_CCP), dm%fbcy_qz)
+      call Get_y_midp_C2P_3D(accp_ypencil, qziy_cpp_ypencil, dm, dm%iAccuracy, dm%ibcy_qz(:, IBC_CCP), dm%fbcy_qz)
       if(.not. dm%is_thermo) then
         call transpose_y_to_z(qziy_cpp_ypencil, qziy_cpp_zpencil, dm%dcpp)
       end if
     end if
 
     call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp) ! qz_zpencil
-    call Get_z_midp_P2C_3D(accp_zpencil, qziz_ccc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_qz)
-    call Get_z_1st_derivative_P2C_3D(accp_zpencil, qzdz_ccc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP))
+    call Get_z_midp_P2C_3D(accp_zpencil, qziz_ccc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_qz)
+    call Get_z_1st_derivative_P2C_3D(accp_zpencil, qzdz_ccc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP))
 
     ! if(dm%icoordinate == ICYLINDRICAL) then
     !   call transpose_z_to_y(qzdz_ccc_zpencil, qzdz_ccc_ypencil, dm%dccc)
@@ -476,14 +476,14 @@ contains
 !               | -[y2z]-> gx_zpencil(temp) 
 !                          | -[ipz]-> gxiz_pcp_zpencil(temp) -[z2y]-> gxiz_pcp_ypencil(temp) -[y2x]-> gxiz_pcp_xpencil
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_P2C_3D(fl%gx, gxix_ccc_xpencil, dm, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_gx)
+      call Get_x_midp_P2C_3D(fl%gx, gxix_ccc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_gx)
       
       call transpose_x_to_y (fl%gx, apcc_ypencil, dm%dpcc) !gx_ypencil
-      call Get_y_midp_C2P_3D(apcc_ypencil, appc_ypencil, dm, dm%ibcy_qx(:, IBC_PCC), dm%fbcy_gx)
+      call Get_y_midp_C2P_3D(apcc_ypencil, appc_ypencil, dm, dm%iAccuracy, dm%ibcy_qx(:, IBC_PCC), dm%fbcy_gx)
       call transpose_y_to_x (appc_ypencil, gxiy_ppc_xpencil, dm%dppc)
 
       call transpose_y_to_z (apcc_ypencil, apcc_zpencil, dm%dpcc)!gx_zpencil
-      call Get_z_midp_C2P_3D(apcc_zpencil, apcp_zpencil, dm, dm%ibcz_qx(:, IBC_PCC), dm%fbcz_gx)
+      call Get_z_midp_C2P_3D(apcc_zpencil, apcp_zpencil, dm, dm%iAccuracy, dm%ibcz_qx(:, IBC_PCC), dm%fbcz_gx)
       call transpose_z_to_y (apcp_zpencil, apcp_ypencil, dm%dpcc)!qxiz_pcp_ypencil
       call transpose_y_to_x (apcp_ypencil, gxiz_pcp_xpencil, dm%dpcp)
 !----------------------------------------------------------------------------------------------------------
@@ -494,14 +494,14 @@ contains
 !               | -[y2z]-> gy_zpencil(temp) 
 !                          | -[ipz]-> gyiz_cpp_zpencil(temp) -[z2y]-> gyiz_cpp_ypencil          
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_C2P_3D(fl%gy, appc_xpencil, dm, dm%ibcx_qy(:, IBC_CPC), dm%fbcx_gy)
+      call Get_x_midp_C2P_3D(fl%gy, appc_xpencil, dm, dm%iAccuracy, dm%ibcx_qy(:, IBC_CPC), dm%fbcx_gy)
       call transpose_x_to_y (appc_xpencil, gyix_ppc_ypencil, dm%dppc)
 
       call transpose_x_to_y (fl%gy, acpc_ypencil, dm%dcpc) !gy_ypencil
-      call Get_y_midp_P2C_3D(acpc_ypencil, gyiy_ccc_ypencil, dm, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_gy)
+      call Get_y_midp_P2C_3D(acpc_ypencil, gyiy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_gy)
 
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)!qy_zpencil
-      call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz_qy(:, IBC_CPC), dm%fbcz_gy)
+      call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%iAccuracy, dm%ibcz_qy(:, IBC_CPC), dm%fbcz_gy)
       call transpose_z_to_y(acpp_zpencil, gyiz_cpp_ypencil, dm%dcpp)
 !----------------------------------------------------------------------------------------------------------
 !    gz 
@@ -511,19 +511,19 @@ contains
 !               | -[y2z]-> gz_zpencil(temp) 
 !                          | -[ipz]-> gziz_ccc_zpencil
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_C2P_3D(fl%gz, apcp_xpencil, dm, dm%ibcx_qz(:, IBC_CCP), dm%fbcx_gz)
+      call Get_x_midp_C2P_3D(fl%gz, apcp_xpencil, dm, dm%iAccuracy, dm%ibcx_qz(:, IBC_CCP), dm%fbcx_gz)
       call transpose_x_to_y(apcp_xpencil, apcp_ypencil, dm%dpcp)
       call transpose_y_to_z(apcp_ypencil, gzix_pcp_zpencil, dm%dpcp)
 
       call transpose_x_to_y(fl%gz, accp_ypencil, dm%dccp) ! gz_ypencil
       
       if(dm%icoordinate == ICARTESIAN) then
-        call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%ibcy_qz(:, IBC_CCP), dm%fbcy_gz)
+        call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%iAccuracy, dm%ibcy_qz(:, IBC_CCP), dm%fbcy_gz)
         call transpose_y_to_z(acpp_ypencil, gziy_cpp_zpencil, dm%dcpp)
       end if
 
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp) ! gz_zpencil
-      call Get_z_midp_P2C_3D(accp_zpencil, gziz_ccc_zpencil, dm, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_gz)
+      call Get_z_midp_P2C_3D(accp_zpencil, gziz_ccc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_gz)
 !----------------------------------------------------------------------------------------------------------
 !    m = mu_ccc_xpencil <need BCx>
 !             BCx:|-->mu_4cc_xpencil
@@ -539,20 +539,20 @@ contains
       call transpose_x_to_y(mu_ccc_xpencil, mu_ccc_ypencil, dm%dccc)
       call transpose_y_to_z(mu_ccc_ypencil, mu_ccc_zpencil, dm%dccc)
 
-      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%ibcx_Th(:, IBC_CCC), dm%fbcx_ftp(:, :, :)%m) ! muix_pcc_xpencil
+      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), dm%fbcx_ftp(:, :, :)%m) ! muix_pcc_xpencil
       call transpose_x_to_y(apcc_xpencil, apcc_ypencil, dm%dpcc) ! muix_pcc_ypencil
       
-      call Get_y_midp_C2P_3D(apcc_ypencil, muixy_ppc_ypencil, dm, dm%ibcy_Th(:, IBC_PCC), dm%fbcy_ftp(:, :, :)%m)
+      call Get_y_midp_C2P_3D(apcc_ypencil, muixy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_PCC), dm%fbcy_ftp(:, :, :)%m)
       call transpose_y_to_x(muixy_ppc_ypencil, muixy_ppc_xpencil, dm%dppc) 
 
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc) ! muix_pcc_zpencil
-      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%ibcz_Th(:, IBC_PCC), dm%fbcz_ftp(:, :, :)%m)
+      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_PCC), dm%fbcz_ftp(:, :, :)%m)
       call transpose_z_to_y(muixz_pcp_zpencil, apcp_zpencil, dm%dpcp)
       call transpose_y_to_x(apcp_zpencil, muixz_pcp_xpencil, dm%dpcp)
 
-      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%ibcy_Th(:, IBC_CCC), dm%fbcy_ftp(:, :, :)%m) ! muiy_cpc_ypencil
+      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:, IBC_CCC), dm%fbcy_ftp(:, :, :)%m) ! muiy_cpc_ypencil
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc) !muiy_cpc_zpencil
-      call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%ibcz_Th(:, IBC_CPC), dm%fbcz_ftp(:, :, :)%m)
+      call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:, IBC_CPC), dm%fbcz_ftp(:, :, :)%m)
       call transpose_z_to_y(muiyz_cpp_zpencil, muiyz_cpp_ypencil, dm%dcpp)
 
     end if
@@ -584,16 +584,16 @@ contains
 !       call multiple_cylindrical_rn(acpc_xpencil, dm%dcpc, dm%rpi, 1, IPENCIL(1)) ! qr/r
 
 !       call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%dcpc)
-!       call Get_y_midp_P2C_3D(acpc_ypencil, qyriy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qyr(:, :, :))
-!       call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qyrdy_ccc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_qyr(:, :, :))
+!       call Get_y_midp_P2C_3D(acpc_ypencil, qyriy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 2), dm%fbcy_qyr(:, :, :))
+!       call Get_y_1st_derivative_P2C_3D(acpc_ypencil, qyrdy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 2), dm%fbcy_qyr(:, :, :))
 !       if( any(dm%ibcy(:, 2) == IBC_DIRICHLET) )then
-!         call Get_y_1st_derivative_P2P_3D(acpc_ypencil, acpc_ypencil1, dm, dm%ibcy(:, 2), dm%fbcy_qyr(:, :, :))
+!         call Get_y_1st_derivative_P2P_3D(acpc_ypencil, acpc_ypencil1, dm, dm%iAccuracy, dm%ibcy(:, 2), dm%fbcy_qyr(:, :, :))
 !         call get_dirichlet_geo_bcy(dm%ibcy(:, 2), acpc_ypencil1, qyrdy_c4c_ypencil)
 !       end if
 
 !       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)
-!       call Get_z_midp_C2P_3D(acpc_zpencil, qyriz_cpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz_qyr(:, :, :))
-!       call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qyrdz_cpp_zpencil, dm, dm%ibcz(:, 2), dm%fbcz_qyr(:, :, :))
+!       call Get_z_midp_C2P_3D(acpc_zpencil, qyriz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 2), dm%fbcz_qyr(:, :, :))
+!       call Get_z_1st_derivative_C2P_3D(acpc_zpencil, qyrdz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 2), dm%fbcz_qyr(:, :, :))
 
 !       if(.not. dm%is_thermo) call transpose_z_to_y(qyriz_cpp_zpencil, qyriz_cpp_ypencil, dm%dcpp)
 !       call transpose_z_to_y(qyrdz_cpp_zpencil, qyrdz_cpp_ypencil, dm%dcpp)
@@ -609,14 +609,14 @@ contains
 
 !       call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%dccp)
 
-!       call Get_y_midp_C2P_3D(accp_ypencil, qzriy_cpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_qzr(:, :, :))
+!       call Get_y_midp_C2P_3D(accp_ypencil, qzriy_cpp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 3), dm%fbcy_qzr(:, :, :))
 !       call transpose_y_to_z(qzriy_cpp_ypencil, qzriy_cpp_zpencil, dm%dcpp)
 
-!       call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzrdy_cpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_qzr(:, :, :))
+!       call Get_y_1st_derivative_C2P_3D(accp_ypencil, qzrdy_cpp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 3), dm%fbcy_qzr(:, :, :))
 !       call transpose_y_to_z(qzrdy_cpp_ypencil, qzrdy_cpp_zpencil, dm%dcpp)
 
 !       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-!       call Get_z_midp_P2C_3D(accp_zpencil, qzriz_ccc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_qzr(:, :, :))
+!       call Get_z_midp_P2C_3D(accp_zpencil, qzriz_ccc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3), dm%fbcz_qzr(:, :, :))
 
 !       if(dm%is_thermo) then
 ! !----------------------------------------------------------------------------------------------------------
@@ -628,7 +628,7 @@ contains
         
 !         call transpose_x_to_y(acpc_xpencil, acpc_ypencil, dm%dcpc)
 !         call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)
-!         call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_gyr(:, :, :))
+!         call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3), dm%fbcz_gyr(:, :, :))
 !         call transpose_z_to_y(acpp_zpencil, gyriz_cpp_ypencil, dm%dcpp)
 ! !----------------------------------------------------------------------------------------------------------
 ! !    gz/r=gzr
@@ -641,11 +641,11 @@ contains
 
 !         call transpose_x_to_y(accp_xpencil, accp_ypencil, dm%dccp)
 
-!         call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%ibcy(:, 3), dm%fbcy_gzr(:, :, :))
+!         call Get_y_midp_C2P_3D(accp_ypencil, acpp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 3), dm%fbcy_gzr(:, :, :))
 !         call transpose_y_to_z(acpp_ypencil, gzriy_cpp_zpencil, dm%dccp)
 
 !         call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-!         call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_gzr(:, :, :))
+!         call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3), dm%fbcz_gzr(:, :, :))
 !         call transpose_z_to_y(accc_zpencil, gzriz_ccc_ypencil, dm%dccc)
 !       end if
 
@@ -664,9 +664,9 @@ contains
 !----------------------------------------------------------------------------------------------------------  
     call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc, dm%ibcx_qx(:, IBC_CCC))
     if ( .not. dm%is_thermo) then
-      call Get_x_1st_derivative_C2P_3D(-qxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, mbc(:, 1), -dm%fbcx_qx * dm%fbcx_qx)
+      call Get_x_1st_derivative_C2P_3D(-qxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbc(:, 1), -dm%fbcx_qx * dm%fbcx_qx)
     else
-      call Get_x_1st_derivative_C2P_3D(-gxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, mbc(:, 1), -dm%fbcx_gx * dm%fbcx_qx)
+      call Get_x_1st_derivative_C2P_3D(-gxix_ccc_xpencil * qxix_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbc(:, 1), -dm%fbcx_gx * dm%fbcx_qx)
     end if
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
@@ -674,9 +674,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call update_symmetric_ibc(dm%ibcy_qy(:, IBC_PPC), mbc, dm%ibcy_qx(:, IBC_PPC))
     if ( .not. dm%is_thermo) then
-      call Get_y_1st_derivative_P2C_3D(-qyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, mbc(:, 1))
+      call Get_y_1st_derivative_P2C_3D(-qyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, 1))
     else
-      call Get_y_1st_derivative_P2C_3D(-gyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, mbc(:, 1))
+      call Get_y_1st_derivative_P2C_3D(-gyix_ppc_ypencil * qxiy_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, 1))
     end if
     !if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
@@ -685,9 +685,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call update_symmetric_ibc(dm%ibcz_qz(:, IBC_PCP), mbc, dm%ibcz_qx(:, IBC_PCP))
     if ( .not. dm%is_thermo) then
-      call Get_z_1st_derivative_P2C_3D(-qzix_pcp_zpencil * qxiz_pcp_zpencil, apcc_zpencil, dm, mbc(:, 1) )
+      call Get_z_1st_derivative_P2C_3D(-qzix_pcp_zpencil * qxiz_pcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbc(:, 1) )
     else
-      call Get_z_1st_derivative_P2C_3D(-gzix_pcp_zpencil * qxiz_pcp_zpencil, apcc_zpencil, dm, mbc(:, 1) )
+      call Get_z_1st_derivative_P2C_3D(-gzix_pcp_zpencil * qxiz_pcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbc(:, 1) )
     end if
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
 
@@ -703,13 +703,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-mom pressure gradient in x direction, X-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D( -fl%pres, apcc_xpencil, dm, dm%ibcx_pr(:, IBC_CCC), -dm%fbcx_pr(:, :, :) )
+    call Get_x_1st_derivative_C2P_3D( -fl%pres, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_pr(:, IBC_CCC), -dm%fbcx_pr(:, :, :) )
     mx_rhs_pfc_xpencil=  mx_rhs_pfc_xpencil + apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! X-mom gravity in x direction, X-pencil
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo .and. (fl%igravity == i .or. fl%igravity == -i) )  then
-      call Get_x_midp_C2P_3D(fl%dDens, apcc_xpencil, dm, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, :, :)%d )
+      call Get_x_midp_C2P_3D(fl%dDens, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:, IBC_CCC), dm%ftpbcx_var(:, :, :)%d )
       mx_rhs_pfc_xpencil =  mx_rhs_pfc_xpencil + fl%fgravity(i) * apcc_xpencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -720,12 +720,12 @@ contains
 !----------------------------------------------------------------------------------------------------------
     accc_xpencil = TWO * mu_ccc_xpencil * qxdx_ccc_xpencil 
     call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), dm%ibcx_Th(:, IBC_CCC), mbc) 
-    call Get_x_1st_derivative_C2P_3D(accc_xpencil,  apcc_xpencil, dm, mbc(:, 2)) 
+    call Get_x_1st_derivative_C2P_3D(accc_xpencil,  apcc_xpencil, dm, dm%iAccuracy, mbc(:, 2)) 
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil
 
     accc_xpencil = TWO_THIRD * mu_ccc_xpencil * div_ccc_xpencil 
     call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc) 
-    call Get_x_1st_derivative_C2P_3D(accc_xpencil,  apcc_xpencil, dm, mbc(:, 1)) 
+    call Get_x_1st_derivative_C2P_3D(accc_xpencil,  apcc_xpencil, dm, dm%iAccuracy, mbc(:, 1)) 
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! X-mom diffusion term (x-v-2/3), Y-pencil, (1/r) * d_y [mu^{x,y} * (d_x q_y + r * d_y q_x) ] at (i', j, k)
@@ -737,12 +737,12 @@ contains
     ! if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_ypencil, dm%dppc, ONE/dm%rpi, 1, IPENCIL(2))
     !appc_ypencil = ( appc_ypencil + qydx_ppc_ypencil) * muixy_ppc_ypencil
     appc_ypencil = muixy_ppc_ypencil * qydx_ppc_ypencil
-    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%ibcy_qy(:, IBC_PPC))
+    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_PPC))
     mx_rhs_ypencil =  mx_rhs_ypencil + apcc_ypencil
     
     call update_symmetric_ibc(dm%ibcy_qy(:, IBC_PPC), mbc) 
     appc_ypencil = muixy_ppc_ypencil * qxdy_ppc_ypencil
-    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, mbc(:, 2))
+    call Get_y_1st_derivative_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, 2))
     !if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil =  mx_rhs_ypencil + apcc_ypencil
 !----------------------------------------------------------------------------------------------------------
@@ -750,7 +750,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     apcp_zpencil = ( qxdz_pcp_zpencil + qzdx_pcp_zpencil) * muixz_pcp_zpencil
     call get_dirichlet_geo_bcz(dm%ibcz(:, i), apcp_zpencil, fbcz_pc4)
-    call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%ibcz(:, i), fbcz_pc4)
+    call Get_z_1st_derivative_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, i), fbcz_pc4)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_zpencil, dm%dpcc, dm%rci, 2, IPENCIL(3))
     mx_rhs_zpencil =  mx_rhs_zpencil + apcc_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -783,7 +783,7 @@ contains
     end if
     
     appc_xpencil = appc_xpencil * qyix_ppc_xpencil
-    call Get_x_1st_derivative_P2C_3D( appc_xpencil, acpc_xpencil, dm, dm%ibcx(:, i), fbcx_4pc )
+    call Get_x_1st_derivative_P2C_3D( appc_xpencil, acpc_xpencil, dm, dm%iAccuracy, dm%ibcx(:, i), fbcx_4pc )
     fl%my_rhs = fl%my_rhs - acpc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom convection term (y-c2/4), Y-pencil: -d(<gy>^y * <qy/r>^r)/dy at (i, j', k)
@@ -818,7 +818,7 @@ contains
 
     accc_ypencil = accc_ypencil1 * accc_ypencil
     
-    call Get_y_1st_derivative_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c )
+    call Get_y_1st_derivative_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), fbcy_c4c )
     my_rhs_ypencil = my_rhs_ypencil - acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom convection term (y-c3/4), Z-pencil: -d(<gz/r>^r * <qr/r>^z)/dz at (i, j', k)
@@ -843,7 +843,7 @@ contains
       end if
     end if
     acpp_zpencil = acpp_zpencil1 * acpp_zpencil
-    call Get_z_1st_derivative_P2C_3D( acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, i), fbcz_cp4 )
+    call Get_z_1st_derivative_P2C_3D( acpp_zpencil, acpc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, i), fbcz_cp4 )
     my_rhs_zpencil = my_rhs_zpencil - acpc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom convection term (y-c4/4), Y-pencil: < <gz/r>^z * <qz/r>^z >^y
@@ -857,20 +857,20 @@ contains
         call get_dirichlet_geo_bcy(dm%ibcy(:, i), dm%fbcy_gzr * dm%fbcy_qzr, fbcy_c4p)
       end if
       accc_ypencil = accc_ypencil * qzriz_ccc_ypencil 
-      call Get_y_midp_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), fbcy_c4c)
+      call Get_y_midp_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), fbcy_c4c)
       my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom pressure gradient in y direction, Y-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_C2P_3D( pres_ypencil, acpc_ypencil, dm, dm%ibcy(:, 4), dm%fbcy_pr(:, :, :) )
+    call Get_y_1st_derivative_C2P_3D( pres_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 4), dm%fbcy_pr(:, :, :) )
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil - acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom gravity in y direction, Y-pencil
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo .and. (fl%igravity == i .or. fl%igravity == -i) )  then
-      call Get_y_midp_C2P_3D(dDens_ypencil, acpc_ypencil, dm, dm%ibcy(:, 5), dm%fbcy_ftp(:, :, :)%d )
+      call Get_y_midp_C2P_3D(dDens_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 5), dm%fbcy_ftp(:, :, :)%d )
       my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil + fl%fgravity(i) * acpc_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -880,7 +880,7 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_xpencil1, dm%dppc, ONE/dm%rpi, 1, IPENCIL(1))
     appc_xpencil = ( appc_xpencil1 + qydx_ppc_xpencil) * muixy_ppc_xpencil
     call get_dirichlet_geo_bcx(dm%ibcx(:, i), appc_xpencil, fbcx_4pc)
-    call Get_x_1st_derivative_P2C_3D(appc_xpencil, acpc_xpencil, dm, dm%ibcx(:, i), fbcx_4pc)
+    call Get_x_1st_derivative_P2C_3D(appc_xpencil, acpc_xpencil, dm, dm%iAccuracy, dm%ibcx(:, i), fbcx_4pc)
     fl%my_rhs = fl%my_rhs + acpc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term (y-v-2/4), Y-pencil, d_y [2 * r * mu * (d_y (qy/r) - 1/3*div) ] at (i, j', k)
@@ -903,7 +903,7 @@ contains
       if( any(dm%ibcy(:, i) == IBC_DIRICHLET) ) &
       call multiple_cylindrical_rn_x4x(ac4c_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     end if
-    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  acpc_ypencil, dm, dm%ibcy(:, 2), ac4c_ypencil) 
+    call Get_y_1st_derivative_C2P_3D(accc_ypencil,  acpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 2), ac4c_ypencil) 
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term (y-v-3/4), Z-pencil, d_z [mu^{y,z} * (dy(qz/r) + 1/r dz(qr/r) - 1/r * (qz/r)^r)] at (i, j', k)
@@ -923,7 +923,7 @@ contains
     acpp_zpencil = acpp_zpencil * muiyz_cpp_zpencil
 
     call get_dirichlet_geo_bcz(dm%ibcz(:, i), acpp_zpencil, fbcz_cp4)
-    call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%ibcz(:, i), fbcz_cp4)
+    call Get_z_1st_derivative_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%iAccuracy, dm%ibcz(:, i), fbcz_cp4)
     my_rhs_zpencil =  my_rhs_zpencil + acpc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term (y-v-4/4), Y-pencil, ( -2 * mu * [ 1/r^2 * dzqz - 1/3 div + 1/r * (qr/r)^r ] )^r at (i, j', k)
@@ -948,7 +948,7 @@ contains
         ac4c_ypencil = (ac4c_ypencil - ONE_THIRD * div_c4c_ypencil + ac4c_ypencil1) * TWO * mu_c4c_ypencil
       end if
 
-      call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%ibcy(:, i), ac4c_ypencil)
+      call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), ac4c_ypencil)
       my_rhs_ypencil =  my_rhs_ypencil - acpc_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -984,7 +984,7 @@ contains
     apcp_xpencil = apcp_xpencil * qzix_pcp_xpencil
 
     call get_dirichlet_geo_bcx(dm%ibcx(:, i), apcp_xpencil, fbcx_4cp)
-    call Get_x_1st_derivative_P2C_3D( appc_xpencil, accp_xpencil, dm, dm%ibcx(:, i), fbcx_4cp )
+    call Get_x_1st_derivative_P2C_3D( appc_xpencil, accp_xpencil, dm, dm%iAccuracy, dm%ibcx(:, i), fbcx_4cp )
     fl%mz_rhs = fl%mz_rhs - accp_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom convection term (y-c2/4), Y-pencil: -d(<gy>^z * <qz/r>^r)/dy at (i, j, k')
@@ -1004,7 +1004,7 @@ contains
     acpp_ypencil = acpp_ypencil * acpp_ypencil1
 
     call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
-    call Get_y_1st_derivative_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p )
+    call Get_y_1st_derivative_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), fbcy_c4p )
     mz_rhs_ypencil = mz_rhs_ypencil - accp_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom convection term (z-c3/4), Z-pencil: -d(<gz>^z * <qz>^z)/dz at (i, j, k')
@@ -1019,7 +1019,7 @@ contains
 
     accc_zpencil = accc_zpencil * qziz_ccc_zpencil
 
-    call Get_z_1st_derivative_C2P_3D( accc_zpencil, accp_zpencil, dm, dm%ibcz(:, i), fbcz_cc4 )
+    call Get_z_1st_derivative_C2P_3D( accc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, i), fbcz_cc4 )
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 2, IPENCIL(3))
     mz_rhs_zpencil = mz_rhs_zpencil - accp_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -1035,19 +1035,19 @@ contains
       acpp_ypencil = acpp_ypencil * qzriy_cpp_ypencil
 
       call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
-      call Get_y_midp_C2P_3D( acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p)
+      call Get_y_midp_C2P_3D( acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), fbcy_c4p)
       mz_rhs_ypencil = mz_rhs_ypencil - accp_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom pressure gradient in z direction, Z-pencil, d(sigma_1 p)
 !----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_C2P_3D( pres_zpencil, accp_zpencil, dm, dm%ibcz(:, 4), dm%fbcz_pr(:, :, :) )
+    call Get_z_1st_derivative_C2P_3D( pres_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 4), dm%fbcz_pr(:, :, :) )
     mz_rhs_pfc_zpencil =  mz_rhs_pfc_zpencil - accp_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom gravity in z direction, Z-pencil
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo .and. (fl%igravity == i .or. fl%igravity == -i) )  then
-      call Get_z_midp_C2P_3D(dDens_zpencil, accp_zpencil, dm, dm%ibcz(:, 5), dm%fbcz_ftp(:, :, :)%d )
+      call Get_z_midp_C2P_3D(dDens_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 5), dm%fbcz_ftp(:, :, :)%d )
       mz_rhs_pfc_zpencil =  mz_rhs_pfc_zpencil + fl%fgravity(i) * accp_zpencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -1056,7 +1056,7 @@ contains
     apcp_xpencil = ( qxdz_pcp_xpencil + qzdx_pcp_xpencil) * muixz_pcp_xpencil
 
     call get_dirichlet_geo_bcx(dm%ibcx(:, i), apcp_xpencil, fbcx_4cp)
-    call Get_x_1st_derivative_P2C_3D(apcp_xpencil, accp_xpencil, dm, dm%ibcx(:, i), fbcx_4cp)
+    call Get_x_1st_derivative_P2C_3D(apcp_xpencil, accp_xpencil, dm, dm%iAccuracy, dm%ibcx(:, i), fbcx_4cp)
     fl%mz_rhs = fl%mz_rhs + accp_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom diffusion term (z-v-2/4), Y-pencil, d_y [mu^{y,z} * (r * dy(qz/r) + dz(qr/r) - (qz/r)^r)] at (i, j, k')
@@ -1076,7 +1076,7 @@ contains
     acpp_ypencil = acpp_ypencil * muiyz_cpp_ypencil
 
     call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
-    call Get_y_1st_derivative_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p)
+    call Get_y_1st_derivative_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), fbcy_c4p)
     mz_rhs_ypencil =  mz_rhs_ypencil + accp_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-mom diffusion term (z-v-3/4), Z-pencil, d_z [2 * mu * (1/r^2 * d_z (qz) - 1/3*div + 1/r * (qy/r)^y) ] at (i, j, k')
@@ -1110,7 +1110,7 @@ contains
       acc4_zpencil = ( acc4_zpencil - ONE_THIRD * div_cc4_zpencil + acc4_zpencil1) * TWO * mu_cc4_zpencil
     end if
     
-    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%ibcz(:, i), acc4_zpencil) 
+    call Get_z_1st_derivative_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, i), acc4_zpencil) 
     mz_rhs_zpencil = mz_rhs_zpencil + accp_zpencil
 
 !----------------------------------------------------------------------------------------------------------
@@ -1129,7 +1129,7 @@ contains
       acpp_ypencil = (acpp_ypencil - acpp_ypencil1) * muiyz_cpp_ypencil
 
       call get_dirichlet_geo_bcy(dm%ibcy(:, i), acpp_ypencil, fbcy_c4p)
-      call Get_y_midp_C2P_3D(acpp_ypencil, accp_ypencil, dm, dm%ibcy(:, i), fbcy_c4p)
+      call Get_y_midp_C2P_3D(acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, dm%ibcy(:, i), fbcy_c4p)
       mz_rhs_ypencil =  mz_rhs_ypencil + accp_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -1245,7 +1245,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     dphidx_pcc = ZERO
     fbcx_4cc = ZERO ! check
-    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%ibcx(:, 4), fbcx_4cc )
+    call Get_x_1st_derivative_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%iAccuracy, dm%ibcx(:, 4), fbcx_4cc )
     ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 !----------------------------------------------------------------------------------------------------------
 !   y-pencil, uy = uy - dt * alpha * d(phi_ccc)/dy
@@ -1255,7 +1255,7 @@ contains
     dphidy_cpc = ZERO
     fbcy_c4c = ZERO
     call transpose_x_to_y (phi_ccc, phi_ccc_ypencil, dm%dccc)
-    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%ibcy(:, 4), fbcy_c4c )
+    call Get_y_1st_derivative_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 4), fbcy_c4c )
     call transpose_y_to_x (dphidy_cpc_ypencil, dphidy_cpc, dm%dcpc)
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
 !----------------------------------------------------------------------------------------------------------
@@ -1267,7 +1267,7 @@ contains
     dphidz_ccp = ZERO
     fbcz_cc4 = ZERO
     call transpose_y_to_z (phi_ccc_ypencil, pphi_ccc_zpencil, dm%dccc)
-    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%ibcz(:, 4), fbcz_cc4 )
+    call Get_z_1st_derivative_C2P_3D(pphi_ccc_zpencil, dphidz_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 4), fbcz_cc4 )
     call transpose_z_to_y (dphidz_ccp_zpencil, dphidz_ccp_ypencil, dm%dccp)
     call transpose_y_to_x (dphidz_ccp_ypencil, dphidz_ccp,         dm%dccp)
     uz = uz - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidz_ccp

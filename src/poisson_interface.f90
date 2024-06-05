@@ -180,17 +180,17 @@ contains
     !   bci = SEVENTEEN / SIXTYTWO / THREE
     ! end if
     
-    alcaix6 = d1fC2P(3, 1, IBC_PERIODIC)
-    acix6   = d1rC2P(3, 1, IBC_PERIODIC) / dx
-    bcix6   = d1rC2P(3, 2, IBC_PERIODIC) / dx
+    alcaix6 = d1fC2P(3, 1, IBC_PERIODIC, dm%iAccuracy)
+    acix6   = d1rC2P(3, 1, IBC_PERIODIC, dm%iAccuracy) / dx
+    bcix6   = d1rC2P(3, 2, IBC_PERIODIC, dm%iAccuracy) / dx
 
-    alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC)
-    aciy6   = d1rC2P(3, 1, IBC_PERIODIC) / dy
-    bciy6   = d1rC2P(3, 2, IBC_PERIODIC) / dy
+    alcaiy6 = d1fC2P(3, 1, IBC_PERIODIC, dm%iAccuracy)
+    aciy6   = d1rC2P(3, 1, IBC_PERIODIC, dm%iAccuracy) / dy
+    bciy6   = d1rC2P(3, 2, IBC_PERIODIC, dm%iAccuracy) / dy
 
-    alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC)
-    aciz6   = d1rC2P(3, 1, IBC_PERIODIC) / dz
-    bciz6   = d1rC2P(3, 2, IBC_PERIODIC) / dz
+    alcaiz6 = d1fC2P(3, 1, IBC_PERIODIC, dm%iAccuracy)
+    aciz6   = d1rC2P(3, 1, IBC_PERIODIC, dm%iAccuracy) / dz
+    bciz6   = d1rC2P(3, 2, IBC_PERIODIC, dm%iAccuracy) / dz
 
     ! ! only IBC_PERIODIC is necessary, as all non-period data are converted to periodic data.
     ! if(dm%ibcx(1, 1) == IBC_PERIODIC ) then
@@ -254,9 +254,9 @@ contains
     !   dicix6 = ZERO
     ! end if
 
-    ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC)
-    aicix6   = m1rC2P(3, 1, IBC_PERIODIC)
-    bicix6   = m1rC2P(3, 2, IBC_PERIODIC)
+    ailcaix6 = m1fC2P(3, 1, IBC_PERIODIC, dm%iAccuracy)
+    aicix6   = m1rC2P(3, 1, IBC_PERIODIC, dm%iAccuracy)
+    bicix6   = m1rC2P(3, 2, IBC_PERIODIC, dm%iAccuracy)
     cicix6   = zero
     dicix6   = zero
 

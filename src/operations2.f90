@@ -57,7 +57,7 @@ module operations
 !                    4 = IACCU_CP6
 !----------------------------------------------------------------------------------------------------------
   integer, parameter :: NL = 5 ! rows/line types
-  integer, parameter :: NC = 3 ! how many coefficients
+  integer, parameter :: NS = 3 ! how many coefficients
   integer, parameter :: NBCS = 0 ! bc index, start
   integer, parameter :: NBCE = 6 ! bc index, end
   integer, parameter :: NACC = 4 ! accuracy types
@@ -65,26 +65,26 @@ module operations
 ! for 1st derivative
 !----------------------------------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), save, public :: d1fC2C(NL, NC, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rC2C(NL, NC, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fC2C(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rC2C(NL, NS, NBCS:NBCE, NACC)
   ! collocated P2P
-  real(WP), save, public :: d1fP2P(NL, NC, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rP2P(NL, NC, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fP2P(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rP2P(NL, NS, NBCS:NBCE, NACC)
   ! staggered C2P
-  real(WP), save, public :: d1fC2P(NL, NC, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rC2P(NL, NC, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fC2P(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rC2P(NL, NS, NBCS:NBCE, NACC)
   ! staggered P2C
-  real(WP), save, public :: d1fP2C(NL, NC, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rP2C(NL, NC, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fP2C(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rP2C(NL, NS, NBCS:NBCE, NACC)
 !----------------------------------------------------------------------------------------------------------
 ! for iterpolation
 !----------------------------------------------------------------------------------------------------------
   ! interpolation P2C
-  real(WP), save, public :: m1fP2C(NL, NC, NBCS:NBCE, NACC)
-  real(WP), save, public :: m1rP2C(NL, NC, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1fP2C(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1rP2C(NL, NS, NBCS:NBCE, NACC)
   ! interpolation C2P
-  real(WP), save, public :: m1fC2P(NL, NC, NBCS:NBCE, NACC)
-  real(WP), save, public :: m1rC2P(NL, NC, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1fC2P(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1rC2P(NL, NS, NBCS:NBCE, NACC)
 
 !----------------------------------------------------------------------------------------------------------
 ! coefficients array for TDMA of 1st deriviative  
@@ -257,7 +257,6 @@ module operations
 
   public  :: Test_interpolation
   public  :: Test_1st_derivative
-  public  :: Test_2nd_derivative
 
 contains
 !==========================================================================================================
@@ -292,25 +291,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   initialisation
 !----------------------------------------------------------------------------------------------------------
-    d1fC2C(:, :, :, :) = ZERO
-    d1rC2C(:, :, :, :) = ZERO
-    d1fP2P(:, :, :, :) = ZERO
-    d1rP2P(:, :, :, :) = ZERO
+    d1fC2C(:, :, :, :) = MAXP
+    d1rC2C(:, :, :, :) = MAXP
+    d1fP2P(:, :, :, :) = MAXP
+    d1rP2P(:, :, :, :) = MAXP
 
-    d1fC2P(:, :, :, :) = ZERO
-    d1rC2P(:, :, :, :) = ZERO
-    d1fP2C(:, :, :, :) = ZERO
-    d1rP2C(:, :, :, :) = ZERO
+    d1fC2P(:, :, :, :) = MAXP
+    d1rC2P(:, :, :, :) = MAXP
+    d1fP2C(:, :, :, :) = MAXP
+    d1rP2C(:, :, :, :) = MAXP
 
-    d2fC2C(:, :, :, :) = ZERO
-    d2rC2C(:, :, :, :) = ZERO
-    d2fP2P(:, :, :, :) = ZERO
-    d2rP2P(:, :, :, :) = ZERO
-
-    m1fC2P(:, :, :, :) = ZERO
-    m1rC2P(:, :, :, :) = ZERO
-    m1fP2C(:, :, :, :) = ZERO
-    m1rP2C(:, :, :, :) = ZERO
+    m1fC2P(:, :, :, :) = MAXP
+    m1rC2P(:, :, :, :) = MAXP
+    m1fP2C(:, :, :, :) = MAXP
+    m1rP2C(:, :, :, :) = MAXP
 !==========================================================================================================
 ! Set 1 : C2C, periodic & symmetric & asymmetric
 !         1st derivative on collocated grids, C2C/P2P bulk coefficients
@@ -342,7 +336,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C, IBC_PERIODIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2C(1:5, 1, IBC_PERIODIC, n) = alpha(n)
       d1fC2C(1:5, 2, IBC_PERIODIC, n) = ONE
       d1fC2C(1:5, 3, IBC_PERIODIC, n) = alpha(n)
@@ -352,7 +346,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C, IBC_SYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2C(1,   1, IBC_SYMMETRIC, n) = ZERO        ! not used
       d1fC2C(1,   2, IBC_SYMMETRIC, n) = ONE - alpha(n)
       d1fC2C(1,   3, IBC_SYMMETRIC, n) = alpha(n)
@@ -365,7 +359,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C, IBC_ASYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2C(1,   1, IBC_ASYMMETRIC, n) = ZERO        ! not used
       d1fC2C(1,   2, IBC_ASYMMETRIC, n) = ONE + alpha(n)
       d1fC2C(1,   3, IBC_ASYMMETRIC, n) = alpha(n)
@@ -427,7 +421,7 @@ contains
         b1(IACCU_CP6) = TWO
         c1(IACCU_CP6) = HALF
 
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2C(1, 1,   IBC_INTRPL, n) = ZERO ! not used
       d1fC2C(1, 2,   IBC_INTRPL, n) = ONE
       d1fC2C(1, 3,   IBC_INTRPL, n) = alpha1(n)
@@ -489,7 +483,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : IBC_SYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, n
+    do n = 1, NACC
       d1fP2P(1,   1, IBC_SYMMETRIC, n) = ZERO ! not used
       d1fP2P(1,   2, IBC_SYMMETRIC, n) = ONE
       d1fP2P(1,   3, IBC_SYMMETRIC, n) = ZERO
@@ -502,7 +496,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : IBC_ASYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, 4
+    do n = 1, NACC
       d1fP2P(1,   1, IBC_ASYMMETRIC, n) = ZERO ! not used
       d1fP2P(1,   2, IBC_ASYMMETRIC, n) = ONE
       d1fP2P(1,   3, IBC_ASYMMETRIC, n) = TWO * alpha(n)
@@ -525,7 +519,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, 4
+    do n = 1, NACC
       d1fP2P(1, 1,   IBC_NEUMANN, n) = ZERO ! not used
       d1fP2P(1, 2,   IBC_NEUMANN, n) = ONE
       d1fP2P(1, 3,   IBC_NEUMANN, n) = ZERO
@@ -578,7 +572,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2P, IBC_PERIODIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2P(1:5, 1, IBC_PERIODIC, n) = alpha(n)
       d1fC2P(1:5, 2, IBC_PERIODIC, n) = ONE
       d1fC2P(1:5, 3, IBC_PERIODIC, n) = alpha(n)
@@ -589,7 +583,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2P, IBC_SYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2P(1,   1, IBC_SYMMETRIC, n) = ZERO ! not used
       d1fC2P(1,   2, IBC_SYMMETRIC, n) = ONE
       d1fC2P(1,   3, IBC_SYMMETRIC, n) = ZERO
@@ -602,7 +596,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2P : IBC_ASYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2P(1,   1, IBC_ASYMMETRIC, n) = ZERO ! not used
       d1fC2P(1,   2, IBC_ASYMMETRIC, n) = ONE
       d1fC2P(1,   3, IBC_ASYMMETRIC, n) = TWO * alpha(n)
@@ -635,7 +629,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2P : IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2P(1, 1,   IBC_NEUMANN, n) = ZERO ! not used
       d1fC2P(1, 2,   IBC_NEUMANN, n) = ONE
       d1fC2P(1, 3,   IBC_NEUMANN, n) = ZERO
@@ -649,33 +643,40 @@ contains
     end do
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : C2P, IBC_INTRPL, no bc, no reconstuction. exterpolation only. 
+! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
+!                                                 b/(3h) * ( f_{i+1} - f_{i-2} )
+! when i' = 1',    need: f'_0', f_0, f_{-1}
+! when i' = 2',    need: f_0
+! when i' = np-1', need: f_{np}
+! when i' = np',   need: f'_{np+1'}, f_{np}, f_{np+1}
 ! [ 1     alpha1                            ][f'_1']=[a1 * f_{1}/h  + b1 * f_{2}/h + c1 * f_{3}/h  ]
 ! [alpha2 1      alpha2                     ][f'_2'] [a2 * (f_{2} - f_{1})/h  ]
 ! [       alpha  1      alpha               ][f'_i'] [a *  (f_{i} - f_{i-1})/h + b/3 * (f_{i+1} - f_{i-2})/h]
 ! [                     alpha2 1      alpha2][f'_4'] [a2 * (f_{n-1} - f_{n-2})/h]
 ! [                            alpha1 1     ][f'_5'] [-a1 * f_{n-1}/h  - b1 * f_{n-2}/h - c1 * f_{n-3}/h]
+! tested: low accuracy at the line 2 and 4.
 !----------------------------------------------------------------------------------------------------------
     alpha1(IACCU_CD2) = ZERO
         a1(IACCU_CD2) = -ONE
         b1(IACCU_CD2) = ONE
         c1(IACCU_CD2) = ZERO
 
-    alpha1(IACCU_CD4) = ZERO
-        a1(IACCU_CD4) = -TWO
-        b1(IACCU_CD4) = THREE
-        c1(IACCU_CD4) = -ONE
+    alpha1(IACCU_CD4) = alpha1(IACCU_CD2)
+        a1(IACCU_CD4) =     a1(IACCU_CD2)
+        b1(IACCU_CD4) =     b1(IACCU_CD2)
+        c1(IACCU_CD4) =     c1(IACCU_CD2)
 
     alpha1(IACCU_CP4) = alpha1(IACCU_CD2)!TWENTYTHREE
         a1(IACCU_CP4) =     a1(IACCU_CD2)!-TWENTYFIVE
         b1(IACCU_CP4) =     b1(IACCU_CD2)!TWENTYSIX
         c1(IACCU_CP4) =     c1(IACCU_CD2)!-ONE, need to be zero to keep compact scheme
 
-    alpha1(IACCU_CP6) = TWENTYTHREE
-        a1(IACCU_CP6) = -TWENTYFIVE
-        b1(IACCU_CP6) = TWENTYSIX
-        c1(IACCU_CP6) = -ONE
+    alpha1(IACCU_CP6) = alpha1(IACCU_CD2)
+        a1(IACCU_CP6) =     a1(IACCU_CD2) 
+        b1(IACCU_CP6) =     b1(IACCU_CD2) 
+        c1(IACCU_CP6) =     c1(IACCU_CD2) 
 
-    do n = 1, 4
+    do n = 1, NACC
       d1fC2P(1, 1,   IBC_INTRPL, n) = ZERO ! not used
       d1fC2P(1, 2,   IBC_INTRPL, n) = ONE
       d1fC2P(1, 3,   IBC_INTRPL, n) = alpha1(n)
@@ -695,6 +696,7 @@ contains
     end do
     ! check which below method works good! 
     do n = 1, 2
+      ! 
       ! method 1: exterpolation, following Line 1
       !d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
       !d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
@@ -738,7 +740,7 @@ contains
 ! alpha * f'_{i-1} +  f'_i +  alpha * f'_{i+1}  = a/(h ) * ( f_{i'+1} - f_{i'} ) + &
 !                                                 b/(3h) * ( f_{i'+2} - f_{i'-1} )
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, 4
+    do n = 1, NACC
       d1fP2C(1,   1, IBC_SYMMETRIC, n) = ZERO ! not used
       d1fP2C(1,   2, IBC_SYMMETRIC, n) = ONE - alpha(n)
       d1fP2C(1,   3, IBC_SYMMETRIC, n) = alpha(n)
@@ -751,7 +753,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : IBC_ASYMMETRIC, unknowns from both rhs and lhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, 4
+    do n = 1, NACC
       d1fP2C(1,   1, IBC_ASYMMETRIC, n) = ZERO ! not used
       d1fP2C(1,   2, IBC_ASYMMETRIC, n) = ONE + alpha(n)
       d1fP2C(1,   3, IBC_ASYMMETRIC, n) = alpha(n)
@@ -812,7 +814,7 @@ contains
         b1(IACCU_CP6) = TWO
         c1(IACCU_CP6) = -ONE
 
-    do n = 1, 4
+    do n = 1, NACC
       d1fP2C(1, 1,   IBC_INTRPL, n) = ZERO ! not used
       d1fP2C(1, 2,   IBC_INTRPL, n) = ONE
       d1fP2C(1, 3,   IBC_INTRPL, n) = alpha1(n)
@@ -854,7 +856,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !interpolation : C2P for IBC_PERIODIC, unknowns from both lhs and rhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, 4
+    do n = 1, NACC
       m1fC2P(1:5, 1, IBC_PERIODIC, n) = alpha(n)
       m1fC2P(1:5, 2, IBC_PERIODIC, n) = ONE
       m1fC2P(1:5, 3, IBC_PERIODIC, n) = alpha(n)
@@ -865,7 +867,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !interpolation. C2P for IBC_SYMMETRIC, unknowns from both lhs and rhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       m1fC2P(1,   1, IBC_SYMMETRIC, n) = ZERO ! not used
       m1fC2P(1,   2, IBC_SYMMETRIC, n) = ONE
       m1fC2P(1,   3, IBC_SYMMETRIC, n) = alpha(n) + alpha(n)
@@ -878,7 +880,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !interpolation. C2P for IBC_ASYMMETRIC, unknowns from both lhs and rhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       m1fC2P(1,   1, IBC_ASYMMETRIC, n) = ZERO ! not used
       m1fC2P(1,   2, IBC_ASYMMETRIC, n) = ONE
       m1fC2P(1,   3, IBC_ASYMMETRIC, n) = ZERO
@@ -894,15 +896,15 @@ contains
     m1fC2P(:,   :, IBC_INTERIOR, :) = m1fC2P(:,   :, IBC_PERIODIC, :)
     m1rC2P(:,   :, IBC_INTERIOR, :) = m1rC2P(:,   :, IBC_PERIODIC, :)
 
-    m1fC2P(1:2, :, IBC_INTERIOR, 3) = m1fC2P(1:2, :, IBC_PERIODIC, 1) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1rC2P(1:2, :, IBC_INTERIOR, 3) = m1rC2P(1:2, :, IBC_PERIODIC, 1) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1fC2P(4:5, :, IBC_INTERIOR, 3) = m1fC2P(4:5, :, IBC_PERIODIC, 1) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1rC2P(4:5, :, IBC_INTERIOR, 3) = m1rC2P(4:5, :, IBC_PERIODIC, 1) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1fC2P(1:2, :, IBC_INTERIOR, IACCU_CP4) = m1fC2P(1:2, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1rC2P(1:2, :, IBC_INTERIOR, IACCU_CP4) = m1rC2P(1:2, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1fC2P(4:5, :, IBC_INTERIOR, IACCU_CP4) = m1fC2P(4:5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1rC2P(4:5, :, IBC_INTERIOR, IACCU_CP4) = m1rC2P(4:5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
 
-    m1fC2P(1:2, :, IBC_INTERIOR, 4) = m1fC2P(1:2, :, IBC_PERIODIC, 2) ! 5 cell stencil, 6th CP --> 4th CD
-    m1rC2P(1:2, :, IBC_INTERIOR, 4) = m1rC2P(1:2, :, IBC_PERIODIC, 2) ! 5 cell stencil, 6th CP --> 4th CD
-    m1fC2P(4:5, :, IBC_INTERIOR, 4) = m1fC2P(4:5, :, IBC_PERIODIC, 2) ! 5 cell stencil, 6th CP --> 4th CD
-    m1rC2P(4:5, :, IBC_INTERIOR, 4) = m1rC2P(4:5, :, IBC_PERIODIC, 2) ! 5 cell stencil, 6th CP --> 4th CD
+    m1fC2P(1:2, :, IBC_INTERIOR, IACCU_CP6) = m1fC2P(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1rC2P(1:2, :, IBC_INTERIOR, IACCU_CP6) = m1rC2P(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1fC2P(4:5, :, IBC_INTERIOR, IACCU_CP6) = m1fC2P(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1rC2P(4:5, :, IBC_INTERIOR, IACCU_CP6) = m1rC2P(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : C2P for IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
@@ -911,7 +913,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : C2P for IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       m1fC2P(1, 1,   IBC_DIRICHLET, n) = ZERO ! not used
       m1fC2P(1, 2,   IBC_DIRICHLET, n) = ONE
       m1fC2P(1, 3,   IBC_DIRICHLET, n) = ZERO
@@ -938,12 +940,12 @@ contains
         a1(IACCU_CP4) = THREE
         b1(IACCU_CP4) = ONE
         c1(IACCU_CP4) = ZERO
-    alpha1(IACCU_CP6) = FIVE
+    alpha1(IACCU_CP6) = FIVE 
         a1(IACCU_CP6) = FIFTEEN * QUARTER
         b1(IACCU_CP6) = TWOPFIVE
         c1(IACCU_CP6) = -QUARTER
 
-    do n = 1, 4
+    do n = 1, NACC
       m1fC2P(1, 1,   IBC_INTRPL, n) = ZERO ! not used
       m1fC2P(1, 2,   IBC_INTRPL, n) = ONE
       m1fC2P(1, 3,   IBC_INTRPL, n) = alpha1(n)
@@ -992,10 +994,10 @@ contains
 ! P2C : i_max = nc
 ! alpha * f_{i-1} + f_i + alpha * f_{i+1} =    a/2 * ( f_{i'}   + f_{i'+1} ) + &
 !                                              b/2 * ( f_{i'+2} + f_{i'-1} )
-! when i = 1,    need: f_{0}, f_{0'}
+! when i = 1,    need: LHS: f_{0}, RHS: f_{0'}
 ! when i = 2,    need: nothing
 ! when i = nc-1, need: nothing
-! when i = nc,   need: f_{np'}, f_{np'+1}
+! when i = nc,   need: LHS: f_{np}, RHS: f_{np'+1}
 !==========================================================================================================
 !----------------------------------------------------------------------------------------------------------
 !interpolation : P2C for IBC_PERIODIC, unknowns from both lhs and rhs could be reconstructed from bc.
@@ -1005,7 +1007,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C. IBC_SYMMETRIC, unknowns from both lhs and rhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       m1fP2C(1,   1, IBC_SYMMETRIC, n) = ZERO ! not used
       m1fP2C(1,   2, IBC_SYMMETRIC, n) = ONE + alpha(n)
       m1fP2C(1,   3, IBC_SYMMETRIC, n) = alpha(n)
@@ -1018,7 +1020,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C. IBC_ASYMMETRIC, unknowns from both lhs and rhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
-    do n = 1, 4
+    do n = 1, NACC
       m1fP2C(1,   1, IBC_ASYMMETRIC, n) = ZERO ! not used
       m1fP2C(1,   2, IBC_ASYMMETRIC, n) = ONE - alpha(n)
       m1fP2C(1,   3, IBC_ASYMMETRIC, n) = alpha(n)
@@ -1031,23 +1033,23 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : P2C, IBC_INTERIOR, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    m1fP2C(:, :, IBC_INTERIOR, :) = m1fP2C(:, :, IBC_PERIODIC, :)
-    m1rP2C(:, :, IBC_INTERIOR, :) = m1rP2C(:, :, IBC_PERIODIC, :)
+    m1fP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC) = m1fP2C(1:NL, 1:NS, IBC_PERIODIC, 1:NACC)
+    m1rP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC) = m1rP2C(1:NL, 1:NS, IBC_PERIODIC, 1:NACC)
 
-    m1fP2C(1, :, IBC_INTERIOR, IACCU_CP4) = m1fP2C(1, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1rP2C(1, :, IBC_INTERIOR, IACCU_CP4) = m1rP2C(1, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1fP2C(5, :, IBC_INTERIOR, IACCU_CP4) = m1fP2C(5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1rP2C(5, :, IBC_INTERIOR, IACCU_CP4) = m1rP2C(5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1fP2C(1, :, IBC_INTERIOR, IACCU_CP4) = m1fP2C(1, :, IBC_INTERIOR, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1rP2C(1, :, IBC_INTERIOR, IACCU_CP4) = m1rP2C(1, :, IBC_INTERIOR, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1fP2C(5, :, IBC_INTERIOR, IACCU_CP4) = m1fP2C(5, :, IBC_INTERIOR, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1rP2C(5, :, IBC_INTERIOR, IACCU_CP4) = m1rP2C(5, :, IBC_INTERIOR, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
 
-    m1fP2C(1, :, IBC_INTERIOR, IACCU_CP6) = m1fP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    m1rP2C(1, :, IBC_INTERIOR, IACCU_CP6) = m1rP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    m1fP2C(5, :, IBC_INTERIOR, IACCU_CP6) = m1fP2C(4, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    m1rP2C(5, :, IBC_INTERIOR, IACCU_CP6) = m1rP2C(4, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1fP2C(1, :, IBC_INTERIOR, IACCU_CP6) = m1fP2C(1, :, IBC_INTERIOR, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1rP2C(1, :, IBC_INTERIOR, IACCU_CP6) = m1rP2C(1, :, IBC_INTERIOR, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1fP2C(5, :, IBC_INTERIOR, IACCU_CP6) = m1fP2C(5, :, IBC_INTERIOR, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1rP2C(5, :, IBC_INTERIOR, IACCU_CP6) = m1rP2C(5, :, IBC_INTERIOR, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C. IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    m1fP2C(:, :, IBC_DIRICHLET, :) = m1fP2C(:, :, IBC_INTERIOR, :)
-    m1rP2C(:, :, IBC_DIRICHLET, :) = m1rP2C(:, :, IBC_INTERIOR, :)
+    m1fP2C(1:NL, 1:NS, IBC_DIRICHLET, 1:NACC) = m1fP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC)
+    m1rP2C(1:NL, 1:NS, IBC_DIRICHLET, 1:NACC) = m1rP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC)
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C. IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
@@ -1077,7 +1079,7 @@ contains
         a1(IACCU_CP6) = QUARTER
         b1(IACCU_CP6) = ONEPFIVE
         c1(IACCU_CP6) = QUARTER
-    do n = 1, 4
+    do n = 1, NACC
       m1fP2C(1, 1,   IBC_INTRPL, n) = ZERO ! not used
       m1fP2C(1, 2,   IBC_INTRPL, n) = ONE
       m1fP2C(1, 3,   IBC_INTRPL, n) = alpha1(n)
@@ -1092,8 +1094,8 @@ contains
       m1rP2C(5, 2,   IBC_INTRPL, n) = m1rP2C(1, 2, IBC_INTRPL, n)
       m1rP2C(5, 3,   IBC_INTRPL, n) = m1rP2C(1, 3, IBC_INTRPL, n)
 
-      m1fP2C(3, 1:3, IBC_INTRPL, n) = m1fP2C(3, 1:3, IBC_PERIODIC, n)
-      m1rP2C(3, 1:3, IBC_INTRPL, n) = m1rP2C(3, 1:3, IBC_PERIODIC, n)
+      m1fP2C(2:4, 1:3, IBC_INTRPL, n) = m1fP2C(2:4, 1:3, IBC_PERIODIC, n)
+      m1rP2C(2:4, 1:3, IBC_INTRPL, n) = m1rP2C(2:4, 1:3, IBC_PERIODIC, n)
     end do
     
     if(nrank == 0) call Print_debug_end_msg
@@ -1118,20 +1120,19 @@ contains
 !> \param[out]    c             = RHS
 !> \param[out]    d             An assisting coeffients for the TDMA scheme.
 !----------------------------------------------------------------------------------------------------------
-  subroutine Buildup_TDMA_LHS_array(n, is_periodic, coeff, a, b, c, d)
+  subroutine Buildup_TDMA_LHS_array(n, coeff, a, b, c, d)
     use tridiagonal_matrix_algorithm
     use parameters_constant_mod
     implicit none
 
     integer, intent(in) :: n
-    logical,  intent(in)   :: is_periodic
-    real(WP), intent(in)   :: coeff(NL, NC, NBCS:NBCE, NACC)
+    real(WP), intent(in)   :: coeff(NL, NS, NBCS:NBCE, NACC)
     real(WP), intent(out)  :: a(n, NBCS:NBCE, NBCS:NBCE, NACC), &
                               b(n, NBCS:NBCE, NBCS:NBCE, NACC), &
                               c(n, NBCS:NBCE, NBCS:NBCE, NACC), &
                               d(n, NBCS:NBCE, NBCS:NBCE, NACC)
 
-    integer :: i, j, m, k
+    integer :: i, j, m, k, s
 
     a(:, :, :, :) =  ZERO
     b(:, :, :, :) =  ZERO
@@ -1141,9 +1142,6 @@ contains
     do m = 1, NACC
       do j = NBCS, NBCE
         do i = NBCS, NBCE
-
-          if (j == k .and. i /= k) cycle
-          if (j /= k .and. i == k) cycle
 
           a(1,         i, j, m) = coeff( 1, 1, i, m)
           a(2,         i, j, m) = coeff( 2, 1, i, m)
@@ -1163,7 +1161,7 @@ contains
           c(n - 1,     i, j, m) = coeff( 4, 3, j, m)
           c(n,         i, j, m) = coeff( 5, 3, j, m)
 
-          if (is_periodic) then
+          if (j == k .and. i == k) then
             call Preprocess_TDMA_coeffs( a(1:n-1, i, j, m), &
                                          b(1:n-1, i, j, m), &
                                          c(1:n-1, i, j, m), &
@@ -1213,77 +1211,80 @@ contains
     i = 2
     nsz = domain(1)%nc(i)
 
-    allocate (ad1y_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1y_C2C = ZERO
-    allocate (bd1y_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1y_C2C = ZERO
-    allocate (cd1y_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1y_C2C = ZERO
-    allocate (dd1y_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1y_C2C = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
+    allocate (ad1y_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1y_C2C = ZERO
+    allocate (bd1y_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1y_C2C = ZERO
+    allocate (cd1y_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1y_C2C = ZERO
+    allocate (dd1y_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1y_C2C = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fC2C, &
           ad1y_C2C, bd1y_C2C, cd1y_C2C, dd1y_C2C)
 
-    allocate (ad1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1y_P2C = ZERO
-    allocate (bd1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1y_P2C = ZERO
-    allocate (cd1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1y_P2C = ZERO
-    allocate (dd1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1y_P2C = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
+    allocate (ad1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1y_P2C = ZERO
+    allocate (bd1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1y_P2C = ZERO
+    allocate (cd1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1y_P2C = ZERO
+    allocate (dd1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1y_P2C = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fP2C, &
           ad1y_P2C, bd1y_P2C, cd1y_P2C, dd1y_P2C)
 
-    allocate (am1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); am1y_P2C = ZERO
-    allocate (bm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bm1y_P2C = ZERO
-    allocate (cm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cm1y_P2C = ZERO
-    allocate (dm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dm1y_P2C = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fP2C, &
+    allocate (am1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); am1y_P2C = ZERO
+    allocate (bm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bm1y_P2C = ZERO
+    allocate (cm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cm1y_P2C = ZERO
+    allocate (dm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm1y_P2C = ZERO
+    call Buildup_TDMA_LHS_array(nsz, m1fP2C, &
           am1y_P2C, bm1y_P2C, cm1y_P2C, dm1y_P2C)
+
 !----------------------------------------------------------------------------------------------------------
 ! y-direction, with np unknows
 !----------------------------------------------------------------------------------------------------------
     nsz = domain(1)%np(i)
 
-    allocate (ad1y_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1y_P2P = ZERO
-    allocate (bd1y_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1y_P2P = ZERO
-    allocate (cd1y_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1y_P2P = ZERO
-    allocate (dd1y_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1y_P2P = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
+    allocate (ad1y_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1y_P2P = ZERO
+    allocate (bd1y_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1y_P2P = ZERO
+    allocate (cd1y_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1y_P2P = ZERO
+    allocate (dd1y_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1y_P2P = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fP2P, &
           ad1y_P2P, bd1y_P2P, cd1y_P2P, dd1y_P2P)
 
-    allocate (ad1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1y_C2P = ZERO
-    allocate (bd1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1y_C2P = ZERO
-    allocate (cd1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1y_C2P = ZERO
-    allocate (dd1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1y_C2P = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
+    allocate (ad1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1y_C2P = ZERO
+    allocate (bd1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1y_C2P = ZERO
+    allocate (cd1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1y_C2P = ZERO
+    allocate (dd1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1y_C2P = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fC2P, &
           ad1y_C2P, bd1y_C2P, cd1y_C2P, dd1y_C2P) 
 
-    allocate (am1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); am1y_C2P = ZERO
-    allocate (bm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bm1y_C2P = ZERO
-    allocate (cm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cm1y_C2P = ZERO
-    allocate (dm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dm1y_C2P = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), m1fC2P, &
+    allocate (am1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); am1y_C2P = ZERO
+    allocate (bm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bm1y_C2P = ZERO
+    allocate (cm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cm1y_C2P = ZERO
+    allocate (dm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm1y_C2P = ZERO
+    call Buildup_TDMA_LHS_array(nsz, m1fC2P, &
           am1y_C2P, bm1y_C2P, cm1y_C2P, dm1y_C2P)
+
 !----------------------------------------------------------------------------------------------------------
 ! z-direction, with nc unknows
 !----------------------------------------------------------------------------------------------------------
     i = 3
     nsz = domain(1)%nc(i)
 
-    allocate (ad1z_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1z_C2C = ZERO
-    allocate (bd1z_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1z_C2C = ZERO
-    allocate (cd1z_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1z_C2C = ZERO
-    allocate (dd1z_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1z_C2C = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2C, &
+    allocate (ad1z_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1z_C2C = ZERO
+    allocate (bd1z_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1z_C2C = ZERO
+    allocate (cd1z_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1z_C2C = ZERO
+    allocate (dd1z_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1z_C2C = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fC2C, &
           ad1z_C2C, bd1z_C2C, cd1z_C2C, dd1z_C2C)
 
-    allocate (ad1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1z_P2C = ZERO
-    allocate (bd1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1z_P2C = ZERO
-    allocate (cd1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1z_P2C = ZERO
-    allocate (dd1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1z_P2C = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2C, &
+    allocate (ad1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1z_P2C = ZERO
+    allocate (bd1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1z_P2C = ZERO
+    allocate (cd1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1z_P2C = ZERO
+    allocate (dd1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1z_P2C = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fP2C, &
           ad1z_P2C, bd1z_P2C, cd1z_P2C, dd1z_P2C)
 
-    allocate (am1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); am1z_P2C = ZERO
-    allocate (bm1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bm1z_P2C = ZERO
-    allocate (cm1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cm1z_P2C = ZERO
-    allocate (dm1z_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dm1z_P2C = ZERO
-    call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fP2C, &
+    allocate (am1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); am1z_P2C = ZERO
+    allocate (bm1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bm1z_P2C = ZERO
+    allocate (cm1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cm1z_P2C = ZERO
+    allocate (dm1z_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm1z_P2C = ZERO
+    call Buildup_TDMA_LHS_array(nsz, m1fP2C, &
           am1z_P2C, bm1z_P2C, cm1z_P2C, dm1z_P2C)
+
 !----------------------------------------------------------------------------------------------------------
 ! z-direction, with np unknows
 !----------------------------------------------------------------------------------------------------------
@@ -1291,26 +1292,27 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st derivative in z direction with np unknows
 !----------------------------------------------------------------------------------------------------------
-    allocate (ad1z_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1z_P2P = ZERO
-    allocate (bd1z_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1z_P2P = ZERO
-    allocate (cd1z_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1z_P2P = ZERO
-    allocate (dd1z_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1z_P2P = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fP2P, &
+    allocate (ad1z_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1z_P2P = ZERO
+    allocate (bd1z_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1z_P2P = ZERO
+    allocate (cd1z_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1z_P2P = ZERO
+    allocate (dd1z_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1z_P2P = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fP2P, &
           ad1z_P2P, bd1z_P2P, cd1z_P2P, dd1z_P2P)
 
-    allocate (ad1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); ad1z_C2P = ZERO
-    allocate (bd1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bd1z_C2P = ZERO
-    allocate (cd1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cd1z_C2P = ZERO
-    allocate (dd1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dd1z_C2P = ZERO
-    call Buildup_TDMA_LHS_array(nsz, domain(1)%is_periodic(i), d1fC2P, &
+    allocate (ad1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); ad1z_C2P = ZERO
+    allocate (bd1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bd1z_C2P = ZERO
+    allocate (cd1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cd1z_C2P = ZERO
+    allocate (dd1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dd1z_C2P = ZERO
+    call Buildup_TDMA_LHS_array(nsz, d1fC2P, &
           ad1z_C2P, bd1z_C2P, cd1z_C2P, dd1z_C2P)
 
-    allocate (am1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); am1z_C2P = ZERO
-    allocate (bm1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); bm1z_C2P = ZERO
-    allocate (cm1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); cm1z_C2P = ZERO
-    allocate (dm1z_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); dm1z_C2P = ZERO
-    call Buildup_TDMA_LHS_array( nsz, domain(1)%is_periodic(i), m1fC2P, &
+    allocate (am1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); am1z_C2P = ZERO
+    allocate (bm1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bm1z_C2P = ZERO
+    allocate (cm1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cm1z_C2P = ZERO
+    allocate (dm1z_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm1z_C2P = ZERO
+    call Buildup_TDMA_LHS_array(nsz, m1fC2P, &
           am1z_C2P, bm1z_C2P, cm1z_C2P, dm1z_C2P)
+
 !----------------------------------------------------------------------------------------------------------
 ! x-direction
 !----------------------------------------------------------------------------------------------------------
@@ -1321,65 +1323,66 @@ contains
 !----------------------------------------------------------------------------------------------------------
       nsz = domain(i)%nc(1)
 
-      allocate (xtdma_lhs(i)%ad1x_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%ad1x_C2C = ZERO
-      allocate (xtdma_lhs(i)%bd1x_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%bd1x_C2C = ZERO
-      allocate (xtdma_lhs(i)%cd1x_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%cd1x_C2C = ZERO
-      allocate (xtdma_lhs(i)%dd1x_C2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%dd1x_C2C = ZERO
-      call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fC2C, &
+      allocate (xtdma_lhs(i)%ad1x_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%ad1x_C2C = ZERO
+      allocate (xtdma_lhs(i)%bd1x_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%bd1x_C2C = ZERO
+      allocate (xtdma_lhs(i)%cd1x_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%cd1x_C2C = ZERO
+      allocate (xtdma_lhs(i)%dd1x_C2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%dd1x_C2C = ZERO
+      call Buildup_TDMA_LHS_array(nsz , d1fC2C, &
             xtdma_lhs(i)%ad1x_C2C, &
             xtdma_lhs(i)%bd1x_C2C, &
             xtdma_lhs(i)%cd1x_C2C, &
             xtdma_lhs(i)%dd1x_C2C)
-  
-      allocate (xtdma_lhs(i)%ad1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%ad1x_P2C = ZERO
-      allocate (xtdma_lhs(i)%bd1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%bd1x_P2C = ZERO
-      allocate (xtdma_lhs(i)%cd1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%cd1x_P2C = ZERO
-      allocate (xtdma_lhs(i)%dd1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%dd1x_P2C = ZERO
-      call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fP2C, &
+
+      allocate (xtdma_lhs(i)%ad1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%ad1x_P2C = ZERO
+      allocate (xtdma_lhs(i)%bd1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%bd1x_P2C = ZERO
+      allocate (xtdma_lhs(i)%cd1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%cd1x_P2C = ZERO
+      allocate (xtdma_lhs(i)%dd1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%dd1x_P2C = ZERO
+      call Buildup_TDMA_LHS_array(nsz , d1fP2C, &
             xtdma_lhs(i)%ad1x_P2C, &
             xtdma_lhs(i)%bd1x_P2C, &
             xtdma_lhs(i)%cd1x_P2C, &
             xtdma_lhs(i)%dd1x_P2C)
 
-      allocate (xtdma_lhs(i)%am1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%am1x_P2C = ZERO
-      allocate (xtdma_lhs(i)%bm1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%bm1x_P2C = ZERO
-      allocate (xtdma_lhs(i)%cm1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%cm1x_P2C = ZERO
-      allocate (xtdma_lhs(i)%dm1x_P2C ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%dm1x_P2C = ZERO
-      call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), m1fP2C, &
+      allocate (xtdma_lhs(i)%am1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%am1x_P2C = ZERO
+      allocate (xtdma_lhs(i)%bm1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%bm1x_P2C = ZERO
+      allocate (xtdma_lhs(i)%cm1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%cm1x_P2C = ZERO
+      allocate (xtdma_lhs(i)%dm1x_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%dm1x_P2C = ZERO
+      call Buildup_TDMA_LHS_array(nsz , m1fP2C, &
           xtdma_lhs(i)%am1x_P2C, &
           xtdma_lhs(i)%bm1x_P2C, &
           xtdma_lhs(i)%cm1x_P2C, &
           xtdma_lhs(i)%dm1x_P2C)      
+
 !----------------------------------------------------------------------------------------------------------
 ! x-direction, with np unknows
 !----------------------------------------------------------------------------------------------------------
       nsz = domain(i)%np(1)
 
-      allocate (xtdma_lhs(i)%ad1x_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%ad1x_P2P = ZERO
-      allocate (xtdma_lhs(i)%bd1x_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%bd1x_P2P = ZERO
-      allocate (xtdma_lhs(i)%cd1x_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%cd1x_P2P = ZERO
-      allocate (xtdma_lhs(i)%dd1x_P2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%dd1x_P2P = ZERO
-      call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fP2P, &
+      allocate (xtdma_lhs(i)%ad1x_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%ad1x_P2P = ZERO
+      allocate (xtdma_lhs(i)%bd1x_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%bd1x_P2P = ZERO
+      allocate (xtdma_lhs(i)%cd1x_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%cd1x_P2P = ZERO
+      allocate (xtdma_lhs(i)%dd1x_P2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%dd1x_P2P = ZERO
+      call Buildup_TDMA_LHS_array(nsz , d1fP2P, &
             xtdma_lhs(i)%ad1x_P2P, &
             xtdma_lhs(i)%bd1x_P2P, &
             xtdma_lhs(i)%cd1x_P2P, &
             xtdma_lhs(i)%dd1x_P2P)
-  
-      allocate (xtdma_lhs(i)%ad1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%ad1x_C2P = ZERO
-      allocate (xtdma_lhs(i)%bd1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%bd1x_C2P = ZERO
-      allocate (xtdma_lhs(i)%cd1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%cd1x_C2P = ZERO
-      allocate (xtdma_lhs(i)%dd1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%dd1x_C2P = ZERO
-      call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), d1fC2P, &
+
+      allocate (xtdma_lhs(i)%ad1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%ad1x_C2P = ZERO
+      allocate (xtdma_lhs(i)%bd1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%bd1x_C2P = ZERO
+      allocate (xtdma_lhs(i)%cd1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%cd1x_C2P = ZERO
+      allocate (xtdma_lhs(i)%dd1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%dd1x_C2P = ZERO
+      call Buildup_TDMA_LHS_array(nsz , d1fC2P, &
             xtdma_lhs(i)%ad1x_C2P, &
             xtdma_lhs(i)%bd1x_C2P, &
             xtdma_lhs(i)%cd1x_C2P, &
             xtdma_lhs(i)%dd1x_C2P)
 
-      allocate (xtdma_lhs(i)%am1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%am1x_C2P = ZERO
-      allocate (xtdma_lhs(i)%bm1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%bm1x_C2P = ZERO
-      allocate (xtdma_lhs(i)%cm1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%cm1x_C2P = ZERO
-      allocate (xtdma_lhs(i)%dm1x_C2P ( nsz, NBCS:NBCE, NBCS:NBSE, NACC ) ); xtdma_lhs(i)%dm1x_C2P = ZERO
-      call Buildup_TDMA_LHS_array(nsz, domain(i)%is_periodic(1), m1fC2P, &
+      allocate (xtdma_lhs(i)%am1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%am1x_C2P = ZERO
+      allocate (xtdma_lhs(i)%bm1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%bm1x_C2P = ZERO
+      allocate (xtdma_lhs(i)%cm1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%cm1x_C2P = ZERO
+      allocate (xtdma_lhs(i)%dm1x_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); xtdma_lhs(i)%dm1x_C2P = ZERO
+      call Buildup_TDMA_LHS_array(nsz , m1fC2P, &
           xtdma_lhs(i)%am1x_C2P, &
           xtdma_lhs(i)%bm1x_C2P, &
           xtdma_lhs(i)%cm1x_C2P, &
@@ -1532,8 +1535,8 @@ contains
       fp(2) = - fi(np - 2)
     else if (ibc(2) == IBC_NEUMANN) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P2P')
-      fp(1) = fi(np - 1) - fbc(2) * TWO * d1(2)
-      fp(2) = fi(np - 2) - fbc(2) * TWO * ( d1(2) + d1(4) ) 
+      fp(1) = fi(np - 1) + fbc(2) * TWO * d1(2)
+      fp(2) = fi(np - 2) + fbc(2) * TWO * ( d1(2) + d1(4) ) 
     else if (ibc(2) == IBC_DIRICHLET) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_P2P')
       fp(1) = TWO * fbc(2) - fi(np - 1)
@@ -1562,7 +1565,7 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 4, 0:6)
+    real(WP), intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
     integer,  intent(in ) :: ibc(2)
     real(WP), intent(in ) :: d1(4)
     real(WP), optional, intent(in ) :: fbc(4)
@@ -1581,6 +1584,7 @@ contains
     end do
 !----------------------------------------------------------------------------------------------------------
 !>                   BC                                BC
+!                        1     2             nc-1   nc    nc+1  nc+2
 !>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
 !>      -1     0      1     2     3      np-2   np-1  np    np+1  np+2 (non-periodic)
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
@@ -1598,8 +1602,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 1
     if(is_bc_extd(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i) + fi(i + 1) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fp(0) + fi(i + 2) )
+      fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i) + fi(i + 1) ) + &
+              coeff( 1, 2, ibc(1) ) * ( fp(0) + fi(i + 2) )
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -1608,8 +1612,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = nc
     if(is_bc_main(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i + 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fi(i - 1) + fp(1) )
+      fo(i) = coeff( 5, 1, ibc(2) ) * ( fi(i    ) + fi(i + 1) ) + &
+              coeff( 5, 2, ibc(2) ) * ( fi(i - 1) + fp(1) )
     else if( ibc(2) == IBC_PERIODIC ) then
       fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i    ) + fp(1) ) + &
               coeff( 5, 2, IBC_PERIODIC ) * ( fi(i - 1) + fp(2) )
@@ -1624,8 +1628,8 @@ contains
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i + 1) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fi(i - 1) + fp(1)     )
     else
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i + 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fi(i - 1) + fi(i + 2) )
+      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i    ) + fi(i + 1) ) + &
+              coeff( 4, 2, ibc(2) ) * ( fi(i - 1) + fi(i + 2) )
     end if
 !----------------------------------------------------------------------------------------------------------
 !   mesh-based scaling
@@ -1652,7 +1656,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
+    real(WP),           intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
     real(WP),           intent(in ) :: d1(4)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(4) ! used for Dirichlet B.C. (1||2) & interior (3, 1,|| 2, 4)
@@ -1660,8 +1664,15 @@ contains
     integer :: i
     real(WP) :: fc(-1:2)
     logical :: is_bc_main(2), is_bc_extd(2)
-
-
+!==========================================================================================================
+!interpolation. C2P 
+! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
+!                                              b/2 * ( f_{i+1} + f_{i-2} )
+! when i' = 1,    need: f_{0'}, f_{0}, f_{-1}
+! when i' = 2,    need:         f_{0}
+! when i' = np-1, need:         f_{np'}
+! when i' = np,   need: f_{np'+1}, f_{np'}, f_{np'+1}
+!==========================================================================================================
     fo(:) = ZERO
 !----------------------------------------------------------------------------------------------------------
 !   i = bulk
@@ -1677,23 +1688,23 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
     is_bc_main(1) = (ibc(1) == IBC_INTERIOR   .or. &
-                 ibc(1) == IBC_PERIODIC   .or. &
-                 ibc(1) == IBC_SYMMETRIC  .or. &
-                 ibc(1) == IBC_ASYMMETRIC .or. &
-                 ibc(1) == IBC_NEUMANN )
+                     ibc(1) == IBC_PERIODIC   .or. &
+                     ibc(1) == IBC_SYMMETRIC  .or. &
+                     ibc(1) == IBC_ASYMMETRIC .or. &
+                     ibc(1) == IBC_NEUMANN )
     is_bc_extd(1) = (is_bc_main(1) .or. &
-                 ibc(1) == IBC_DIRICHLET)
+                     ibc(1) == IBC_DIRICHLET)
     is_bc_main(2) = (ibc(2) == IBC_INTERIOR   .or. &
-                 ibc(2) == IBC_SYMMETRIC  .or. &
-                 ibc(2) == IBC_ASYMMETRIC .or. &
-                 ibc(2) == IBC_NEUMANN )
+                     ibc(2) == IBC_SYMMETRIC  .or. &
+                     ibc(2) == IBC_ASYMMETRIC .or. &
+                     ibc(2) == IBC_NEUMANN )
     is_bc_extd(2) = (is_bc_main(2) .or. &
-                 ibc(2) == IBC_DIRICHLET)
+                     ibc(2) == IBC_DIRICHLET)
 !----------------------------------------------------------------------------------------------------------
     i = 1    
     if(is_bc_main(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC) * ( fi(i    ) + fc( 0) )+ &
-              coeff( 1, 2, IBC_PERIODIC) * ( fi(i + 1) + fc(-1) )
+      fo(i) = coeff( 1, 1, ibc(1)) * ( fi(i    ) + fc( 0) )+ &
+              coeff( 1, 2, ibc(1)) * ( fi(i + 1) + fc(-1) )
     else if (ibc(1) == IBC_DIRICHLET) then
       fo(i) = fbc(1)
     else
@@ -1704,8 +1715,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 2 
     if(is_bc_main(1)) then
-      fo(i) = coeff( 2, 1, IBC_PERIODIC) * ( fi(i    ) + fi(i - 1) ) + &
-              coeff( 2, 2, IBC_PERIODIC) * ( fi(i + 1) + fc(0)     )
+      fo(i) = coeff( 2, 1, ibc(1)) * ( fi(i    ) + fi(i - 1) ) + &
+              coeff( 2, 2, ibc(1)) * ( fi(i + 1) + fc(0)     )
     else if (ibc(1) == IBC_DIRICHLET) then
       fo(i) = coeff( 2, 1, IBC_DIRICHLET) * ( fi(i    ) + fi(i - 1) ) + &
               coeff( 2, 2, IBC_DIRICHLET) * ( fi(i + 1) + fc(0)     )
@@ -1715,8 +1726,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = np
     if(is_bc_main(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fc(1) + fi(i - 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fc(2) + fi(i - 2) )
+      fo(i) = coeff( 5, 1, ibc(2) ) * ( fc(1) + fi(i - 1) ) + &
+              coeff( 5, 2, ibc(2) ) * ( fc(2) + fi(i - 2) )
     else if (ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i) + fi(i - 1) ) + &
               coeff( 5, 2, IBC_PERIODIC ) * ( fc(1) + fi(i - 2) )
@@ -1730,8 +1741,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
     if(is_bc_main(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i) + fi(i - 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fc(1) + fi(i - 2) )
+      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i) + fi(i - 1) ) + &
+              coeff( 4, 2, ibc(2) ) * ( fc(1) + fi(i - 2) )
     else if (ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i - 1) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fi(i + 1) + fi(i - 2) )
@@ -1770,7 +1781,7 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 4, 0:6)
+    real(WP), intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
     real(WP), intent(in ) :: d1(4)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -1806,8 +1817,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 1
     if(is_bc(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i + 1) - fc( 0) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 2) - fc(-1) )
+      fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i + 1) - fc( 0) ) + &
+              coeff( 1, 2, ibc(1) ) * ( fi(i + 2) - fc(-1) )
+
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -1816,16 +1828,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 2
     if(is_bc(1)) then
-      fo(i) = coeff( 2, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( 2, 2, IBC_PERIODIC ) * ( fi(i + 2) - fc(0)     )
+      fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( 2, 2, ibc(1) ) * ( fi(i + 2) - fc(0)     )
     else
       fo(i) = coeff( 2, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc  
     if(is_bc(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fc(1) - fi(i - 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fc(2) - fi(i - 2) )
+      fo(i) = coeff( 5, 1, ibc(2) ) * ( fc(1) - fi(i - 1) ) + &
+              coeff( 5, 2, ibc(2) ) * ( fc(2) - fi(i - 2) )
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
@@ -1834,8 +1846,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = nc - 1  
     if(is_bc(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fc(1)     - fi(i - 2) )
+      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( 4, 2, ibc(2) ) * ( fc(1)     - fi(i - 2) )
     else
       fo(i) = coeff( 4, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
     end if
@@ -1870,7 +1882,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
+    real(WP),           intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
     real(WP),           intent(in ) :: d1(4)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -1907,30 +1919,31 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 1
     if(is_bc_main(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i + 1) - fp( 0) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 2) - fp(-1) )
+      fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i + 1) - fp( 0) ) + &
+              coeff( 1, 2, ibc(1) ) * ( fi(i + 2) - fp(-1) )
     else if(ibc(1) == IBC_NEUMANN) then
-      fo(i) = fbc(1)
+      fo(i) = fbc(1)/dd
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
               coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
     end if
+
 !----------------------------------------------------------------------------------------------------------    
     i = 2
     if(is_bc_extd(1)) then
-      fo(i) = coeff( 2, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( 2, 2, IBC_PERIODIC ) * ( fi(i + 2) - fp(0)     )
+      fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( 2, 2, ibc(1) ) * ( fi(i + 2) - fp(0)     )
     else
       fo(i) = coeff( 2, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
     if(is_bc_main(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fp(1) - fi(i - 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fp(2) - fi(i - 2) )
+      fo(i) = coeff( 5, 1, ibc(2) ) * ( fp(1) - fi(i - 1) ) + &
+              coeff( 5, 2, ibc(2) ) * ( fp(2) - fi(i - 2) )
     else if(ibc(2) == IBC_NEUMANN) then
-      fo(i) = fbc(2)
+      fo(i) = fbc(2)/dd
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
@@ -1939,8 +1952,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
     if(is_bc_extd(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i - 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fp(1)     - fi(i - 2) )
+      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i - 1) ) + &
+              coeff( 4, 2, ibc(2) ) * ( fp(1)     - fi(i - 2) )
     else
       fo(i) = coeff( 4, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
     end if
@@ -1976,7 +1989,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
+    real(WP),           intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
     real(WP),           intent(in ) :: d1(4)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -2016,10 +2029,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 1
     if(is_bc_main(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i    ) - fc( 0) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 1) - fc(-1) )
+      fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i    ) - fc( 0) ) + &
+              coeff( 1, 2, ibc(1) ) * ( fi(i + 1) - fc(-1) )
     else if(ibc(1) == IBC_NEUMANN) then
-      fo(i) = fbc(1)
+      fo(i) = fbc(1)/dd
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -2028,21 +2041,21 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 2
     if(is_bc_extd(1)) then
-      fo(i) = coeff( 2, 1, IBC_PERIODIC ) * ( fi(i    ) - fi(i - 1) ) + &
-              coeff( 2, 2, IBC_PERIODIC ) * ( fi(i + 1) - fc(0)     )
+      fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i    ) - fi(i - 1) ) + &
+              coeff( 2, 2, ibc(1) ) * ( fi(i + 1) - fc(0)     )
     else
       fo(i) = coeff( 2, 1, IBC_PERIODIC ) * ( fi(i    ) - fi(i - 1) )
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
     if(is_bc_main(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fc(1) - fi(i - 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fc(2) - fi(i - 2) )
+      fo(i) = coeff( 5, 1, ibc(2) ) * ( fc(1) - fi(i - 1) ) + &
+              coeff( 5, 2, ibc(2) ) * ( fc(2) - fi(i - 2) )
     else if(ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i) - fi(i - 1) ) + &
               coeff( 5, 2, IBC_PERIODIC ) * ( fc(1) - fi(i - 2) )
     else if(ibc(2) == IBC_NEUMANN) then
-      fo(i) = fbc(2)
+      fo(i) = fbc(2)/dd
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i - 1) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 2) + &
@@ -2051,8 +2064,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
     if(is_bc_extd(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i) - fi(i - 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fc(1) - fi(i - 2) )
+      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i) - fi(i - 1) ) + &
+              coeff( 4, 2, ibc(2) ) * ( fc(1) - fi(i - 2) )
     else if(ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i)   - fi(i - 1) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fi(i+1) - fi(i - 2) )
@@ -2084,7 +2097,7 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(5, 4, 0:6)
+    real(WP), intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
     real(WP), intent(in ) :: dd
     real(WP), intent(in ) :: d1(4)
     integer,  intent(in ) :: ibc(2)
@@ -2121,8 +2134,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = 1
     if(is_bc_extd(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 2) - fp(0) )
+      fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i + 1) - fi(i) ) + &
+              coeff( 1, 2, ibc(1) ) * ( fi(i + 2) - fp(0) )
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -2131,8 +2144,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = nc
     if(is_bc_main(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fp(1)     - fi(i - 1) )
+      fo(i) = coeff( 5, 1, ibc(2) ) * ( fi(i + 1) - fi(i    ) ) + &
+              coeff( 5, 2, ibc(2) ) * ( fp(1)     - fi(i - 1) )
     else if(ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fp(1) - fi(i    ) ) + &
               coeff( 5, 2, IBC_PERIODIC ) * ( fp(2) - fi(i - 1) )
@@ -2144,8 +2157,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     i = nc - 1
     if(is_bc_main(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fi(i + 2) - fi(i - 1) )
+      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i    ) ) + &
+              coeff( 4, 2, ibc(2) ) * ( fi(i + 2) - fi(i - 1) )
     else if(ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fp(1)     - fi(i - 1) )
@@ -2160,197 +2173,6 @@ contains
 
     return
   end subroutine Prepare_TDMA_1deri_P2C_RHS_array
-!==========================================================================================================
-!> \brief Preparing the RHS array for the TDMA algorithm for 2nd-derivative-C2C.
-!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
-!> for the 2nd derivative.
-!> \param[in]   np      the number of unknowns
-!> \param[in]   ibc     the b.c. type at two ends of the unknown array
-!> \param[in]   fbc     the b.c. values for the given ibc
-!> \param[in]   coeff   the defined TDMA coefficients
-!> \param[in]   dd      (1/spacing)^2, ie. 1/dx^2, 1/dy^2, 1/dz^2
-!> \param[in]   fi      the input variable to build up the RHS array
-!> \param[out]  fo      the output RHS array
-!==========================================================================================================
-  subroutine Prepare_TDMA_2deri_C2C_RHS_array(fi, fo, nc, coeff, dd, ibc, fbc)
-    use parameters_constant_mod
-    implicit none
-    real(WP),           intent(in ) :: fi(:)
-    integer,            intent(in ) :: nc ! unknow numbers
-    real(WP),           intent(out) :: fo(nc)
-    real(WP),           intent(in ) :: coeff(5, 4, 0:6)
-    real(WP),           intent(in ) :: dd
-    integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(4)
-
-    integer :: i!, l, m
-    real(WP) :: fc(-1:2)
-    logical :: is_bc(2)
-    real(WP) :: d1(4)
-
-    fo(:) = ZERO
-!----------------------------------------------------------------------------------------------------------
-!   i = bulk
-!----------------------------------------------------------------------------------------------------------
-    do i = 3, nc - 2
-      fo(i) = coeff( 3, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 3, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fi(i - 2) )
-    end do
-!----------------------------------------------------------------------------------------------------------
-!>                   BC                                BC
-!>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
-!>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
-!----------------------------------------------------------------------------------------------------------
-    d1 = ZERO
-    call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
-    do i = 1, 2
-      is_bc(i) =(ibc(i) == IBC_INTERIOR   .or. &
-                 ibc(i) == IBC_PERIODIC   .or. &
-                 ibc(i) == IBC_SYMMETRIC  .or. &
-                 ibc(i) == IBC_ASYMMETRIC .or. &
-                 ibc(i) == IBC_DIRICHLET)
-    end do
-!----------------------------------------------------------------------------------------------------------
-    i = 1
-    if(is_bc(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fc( 0) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fc(-1) )
-    else
-      fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
-              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) 
-    end if
-!----------------------------------------------------------------------------------------------------------
-    i = 2
-    if(is_bc(1)) then
-      fo(i) = coeff( 2, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 2, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fc(0)     )
-    else
-      fo(i) = coeff( 2, 1, IBC_INTRPL   ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!----------------------------------------------------------------------------------------------------------
-    i = nc
-    if(is_bc(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fc(1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fc(2) - TWO * fi(i) + fi(i - 2) )
-    else
-      fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( 5, 3, IBC_INTRPL) * fi(i - 2) + &
-              coeff( 5, 4, IBC_INTRPL) * fi(i - 3)  
-    end if  
-!----------------------------------------------------------------------------------------------------------
-    i = nc - 1
-    if(is_bc(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fc(1)     - TWO * fi(i) + fi(i - 2) )
-    else
-      fo(i) = coeff( 4, 1, IBC_INTRPL   ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if  
-!----------------------------------------------------------------------------------------------------------
-!   mesh-based scaling
-!----------------------------------------------------------------------------------------------------------
-    fo(:) = fo(:) * dd ! dd = (1/dx)^2
-
-    return
-  end subroutine Prepare_TDMA_2deri_C2C_RHS_array
-!==========================================================================================================
-!> \brief Preparing the RHS array for the TDMA algorithm for 2nd-derivative-P2P.
-!> This subroutine is called repeatly to update the RHS of the TDMA algorithm
-!> for the 2nd derivative.
-!> \param[in]   np      the number of unknowns
-!> \param[in]   ibc     the b.c. type at two ends of the unknown array
-!> \param[in]   fbc     the b.c. values for the given ibc
-!> \param[in]   coeff   the defined TDMA coefficients
-!> \param[in]   dd      (1/spacing)^2, ie. 1/dx^2, 1/dy^2, 1/dz^2
-!> \param[in]   fi      the input variable to build up the RHS array
-!> \param[out]  fo      the output RHS array
-!==========================================================================================================
-  subroutine Prepare_TDMA_2deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc, fbc)
-    use parameters_constant_mod
-    implicit none
-    real(WP), intent(in ) :: fi(:)
-    integer,  intent(in ) :: np ! unknow numbers
-    real(WP), intent(out) :: fo(np)
-    real(WP), intent(in ) :: coeff(5, 4, 0:6)
-    real(WP), intent(in ) :: dd
-    integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(4)
-
-    integer  :: i!, l, m
-    real(WP) :: fp(-1:2)
-    logical :: is_bc(2)
-    real(WP) :: d1(4)
-
-    fo(:) = ZERO
-!----------------------------------------------------------------------------------------------------------
-!   i = bulk
-!----------------------------------------------------------------------------------------------------------
-    do i = 3, np - 2
-      fo(i) = coeff( 3, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 3, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fi(i - 2) )
-    end do
-!----------------------------------------------------------------------------------------------------------
-!>                   BC                                BC
-!>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
-!>      -1     0      1     2     3      np-2   np-1  np    np+1  np+2 (non-periodic)
-!>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
-!----------------------------------------------------------------------------------------------------------
-    d1 = ZERO ! not used.
-    call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
-    do i = 1, 2
-      is_bc(i) =(ibc(i) == IBC_INTERIOR   .or. &
-                 ibc(i) == IBC_PERIODIC   .or. &
-                 ibc(i) == IBC_SYMMETRIC  .or. &
-                 ibc(i) == IBC_ASYMMETRIC .or. &
-                 ibc(i) == IBC_DIRICHLET)
-    end do
-!----------------------------------------------------------------------------------------------------------
-    i = 1
-    if(is_bc(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fp( 0) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fp(-1) )
-    else
-      fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
-              coeff( 1, 4, IBC_INTRPL) * fi(i + 3)  
-    end if
-!----------------------------------------------------------------------------------------------------------
-    i = 2
-    if(is_bc(1)) then
-      fo(i) = coeff( 1, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 1, 2, IBC_PERIODIC ) * ( fi(i + 2) - TWO * fi(i) + fp(0)     )
-    else
-      fo(i) = coeff( 2, 1, IBC_INTRPL   ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!----------------------------------------------------------------------------------------------------------
-    i = np
-    if(is_bc(2)) then
-      fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fp(1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 5, 2, IBC_PERIODIC ) * ( fp(2) - TWO * fi(i) + fi(i - 2) )
-    else
-      fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
-              coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( 5, 3, IBC_INTRPL) * fi(i - 2) + &
-              coeff( 5, 4, IBC_INTRPL) * fi(i - 3) 
-    end if
-!----------------------------------------------------------------------------------------------------------
-    i = np - 1
-    if(is_bc(2)) then
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) ) + &
-              coeff( 4, 2, IBC_PERIODIC ) * ( fp(1)     - TWO * fi(i) + fi(i - 2) )
-    else
-      fo(i) = coeff( 4, 1, IBC_INTRPL ) * ( fi(i + 1) - TWO * fi(i) + fi(i - 1) )
-    end if
-!----------------------------------------------------------------------------------------------------------
-!   mesh-based scaling
-!----------------------------------------------------------------------------------------------------------
-    fo(:) = fo(:) * dd ! dd = (1/dx)^2
-
-    return
-  end subroutine Prepare_TDMA_2deri_P2P_RHS_array
 !==========================================================================================================
 !> \brief To caculate the mid-point interpolation in 1D.
 !> This subroutine is called as required to get the mid-point interpolation.
@@ -2370,7 +2192,7 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !_______________________________________________________________________________
-  subroutine Get_x_midp_C2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_x_midp_C2P_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
@@ -2384,10 +2206,10 @@ contains
     real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: ixsub, nsz
-
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
 
     ibc = ibc0
     do i = 1, 2
@@ -2402,19 +2224,23 @@ contains
     end do
 
     ixsub = dm%idom
-    
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(1)
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :, iacc), d1(:), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%am1x_C2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%bm1x_C2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%cm1x_C2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%dm1x_C2P(:, ibc(1), ibc(2), iacc), &
-          nsz)
-
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            xtdma_lhs(ixsub)%am1x_C2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%bm1x_C2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%cm1x_C2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%dm1x_C2P(:, ibc(1), ibc(2), iacc), &
+            nsz)
+      end if
     return
   end subroutine Get_x_midp_C2P_1D
 !==========================================================================================================
@@ -2423,17 +2249,19 @@ contains
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: ixsub, nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2447,34 +2275,43 @@ contains
     fo = ZERO
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :, iacc), d1, ibc(:), fbc)
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%bm1x_P2C(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%cm1x_P2C(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%dm1x_P2C(:, ibc(1), ibc(2), iacc), &
-          nsz)
+
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1, ibc(:), fbc)
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            xtdma_lhs(ixsub)%am1x_P2C(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%bm1x_P2C(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%cm1x_P2C(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%dm1x_P2C(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
 
     return
   end subroutine Get_x_midp_P2C_1D
 !==========================================================================================================
-  subroutine Get_y_midp_C2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_y_midp_C2P_1D(fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
-    use tridiagonal_matrix_algorithm
     use udf_type_mod
+    use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2494,34 +2331,42 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2)  ) - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :, iacc), d1(:), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          am1y_C2P(:, ibc(1), ibc(2), iacc), &
-          bm1y_C2P(:, ibc(1), ibc(2), iacc), &
-          cm1y_C2P(:, ibc(1), ibc(2), iacc), &
-          dm1y_C2P(:, ibc(1), ibc(2), iacc), &
-          nsz)
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            am1y_C2P(:, ibc(1), ibc(2), iacc), &
+            bm1y_C2P(:, ibc(1), ibc(2), iacc), &
+            cm1y_C2P(:, ibc(1), ibc(2), iacc), &
+            dm1y_C2P(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
 ! stretching? No stretching conversion
     return
   end subroutine Get_y_midp_C2P_1D
 !==========================================================================================================
-  subroutine Get_y_midp_P2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_y_midp_P2C_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
-    
+
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2537,34 +2382,42 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :, iacc), d1, ibc(:), fbc(:) )
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          am1y_P2C(:, ibc(1), ibc(2), iacc), &
-          bm1y_P2C(:, ibc(1), ibc(2), iacc), &
-          cm1y_P2C(:, ibc(1), ibc(2), iacc), &
-          dm1y_P2C(:, ibc(1), ibc(2), iacc), &
-          nsz)
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:) )
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            am1y_P2C(:, ibc(1), ibc(2), iacc), &
+            bm1y_P2C(:, ibc(1), ibc(2), iacc), &
+            cm1y_P2C(:, ibc(1), ibc(2), iacc), &
+            dm1y_P2C(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
 
     return
   end subroutine Get_y_midp_P2C_1D
 !==========================================================================================================
-  subroutine Get_z_midp_C2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_z_midp_C2P_1D(fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2581,34 +2434,42 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) =  dm%h(3)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :, iacc), d1(:), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          am1z_C2P(:, ibc(1), ibc(2), iacc), &
-          bm1z_C2P(:, ibc(1), ibc(2), iacc), &
-          cm1z_C2P(:, ibc(1), ibc(2), iacc), &
-          dm1z_C2P(:, ibc(1), ibc(2), iacc), &
-          nsz)
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            am1z_C2P(:, ibc(1), ibc(2), iacc), &
+            bm1z_C2P(:, ibc(1), ibc(2), iacc), &
+            cm1z_C2P(:, ibc(1), ibc(2), iacc), &
+            dm1z_C2P(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
 
     return
   end subroutine Get_z_midp_C2P_1D
 !==========================================================================================================
-  subroutine Get_z_midp_P2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_z_midp_P2C_1D(fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2621,14 +2482,20 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(:, :, :, iacc), d1, ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(3), fo(:), &
-          am1z_P2C(:, ibc(1), ibc(2), iacc), &
-          bm1z_P2C(:, ibc(1), ibc(2), iacc), &
-          cm1z_P2C(:, ibc(1), ibc(2), iacc), &
-          dm1z_P2C(:, ibc(1), ibc(2), iacc), &
-          nsz)
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            am1z_P2C(:, ibc(1), ibc(2), iacc), &
+            bm1z_P2C(:, ibc(1), ibc(2), iacc), &
+            cm1z_P2C(:, ibc(1), ibc(2), iacc), &
+            dm1z_P2C(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
 
     return
   end subroutine Get_z_midp_P2C_1D
@@ -2651,22 +2518,24 @@ contains
 !> \param[in]     fi            the input array of original variable
 !> \param[out]    fo            the output array of interpolated variable
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_C2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_x_1st_derivative_C2C_1D(fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: ixsub, nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2684,23 +2553,31 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_C2C(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%bd1x_C2C(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%cd1x_C2C(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%dd1x_C2C(:, ibc(1), ibc(2), iacc), &
-          nsz)
+
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            xtdma_lhs(ixsub)%ad1x_C2C(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%bd1x_C2C(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%cd1x_C2C(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%dd1x_C2C(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
 
     return
   end subroutine Get_x_1st_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_P2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_x_1st_derivative_P2P_1D(fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
@@ -2709,10 +2586,10 @@ contains
     real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: ixsub, nsz
-
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2730,23 +2607,29 @@ contains
     fo = ZERO
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_P2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%bd1x_P2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%cd1x_P2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%dd1x_P2P(:, ibc(1), ibc(2), iacc), &
-          nsz)
-
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            xtdma_lhs(ixsub)%ad1x_P2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%bd1x_P2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%cd1x_P2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%dd1x_P2P(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
     return
   end subroutine Get_x_1st_derivative_P2P_1D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_C2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_x_1st_derivative_C2P_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
@@ -2755,10 +2638,10 @@ contains
     real(WP), optional, intent(in ) :: fbc(4)
 
     integer :: ixsub, nsz
-
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2781,34 +2664,41 @@ contains
 
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(1), fo(:), &
-          xtdma_lhs(ixsub)%ad1x_C2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%bd1x_C2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%cd1x_C2P(:, ibc(1), ibc(2), iacc), &
-          xtdma_lhs(ixsub)%dd1x_C2P(:, ibc(1), ibc(2), iacc), &
-          nsz)
-
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            xtdma_lhs(ixsub)%ad1x_C2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%bd1x_C2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%cd1x_C2P(:, ibc(1), ibc(2), iacc), &
+            xtdma_lhs(ixsub)%dd1x_C2P(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
     return
   end subroutine Get_x_1st_derivative_C2P_1D
 !==========================================================================================================
-  subroutine Get_x_1st_derivative_P2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_x_1st_derivative_P2C_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz, ixsub
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2823,36 +2713,44 @@ contains
 
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:) )
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(1), fo(:), &
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:) )
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           xtdma_lhs(ixsub)%ad1x_P2C(:, ibc(1), ibc(2), iacc), &
           xtdma_lhs(ixsub)%bd1x_P2C(:, ibc(1), ibc(2), iacc), &
           xtdma_lhs(ixsub)%cd1x_P2C(:, ibc(1), ibc(2), iacc), &
           xtdma_lhs(ixsub)%dd1x_P2C(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
 
     return
   end subroutine Get_x_1st_derivative_P2C_1D
 !==========================================================================================================
 ! y - Get_1st_derivative_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_C2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_y_1st_derivative_C2C_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2872,36 +2770,44 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(2), fo(:), &
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1y_C2C(:, ibc(1), ibc(2), iacc), &
           bd1y_C2C(:, ibc(1), ibc(2), iacc), &
           cd1y_C2C(:, ibc(1), ibc(2), iacc), &
           dd1y_C2C(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
 
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
 
     return
   end subroutine Get_y_1st_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_P2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_y_1st_derivative_P2P_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2921,36 +2827,44 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(2), fo(:), &
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1y_P2P(:, ibc(1), ibc(2), iacc), &
           bd1y_P2P(:, ibc(1), ibc(2), iacc), &
           cd1y_P2P(:, ibc(1), ibc(2), iacc), &
           dd1y_P2P(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
     
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
 
     return
   end subroutine Get_y_1st_derivative_P2P_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_C2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_y_1st_derivative_C2P_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -2974,36 +2888,44 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:) )
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(2), fo(:), &
-          ad1y_C2P(:, ibc(1), ibc(2), iacc), &
-          bd1y_C2P(:, ibc(1), ibc(2), iacc), &
-          cd1y_C2P(:, ibc(1), ibc(2), iacc), &
-          dd1y_C2P(:, ibc(1), ibc(2), iacc), &
-          nsz)
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:) )
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
+            ad1y_C2P(:, ibc(1), ibc(2), iacc), &
+            bd1y_C2P(:, ibc(1), ibc(2), iacc), &
+            cd1y_C2P(:, ibc(1), ibc(2), iacc), &
+            dd1y_C2P(:, ibc(1), ibc(2), iacc), &
+            nsz)
+    end if
   
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
 
     return
   end subroutine Get_y_1st_derivative_C2P_1D
 !==========================================================================================================
-  subroutine Get_y_1st_derivative_P2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_y_1st_derivative_P2C_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -3019,14 +2941,20 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(2), fo(:), &
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1y_P2C(:, ibc(1), ibc(2), iacc), &
           bd1y_P2C(:, ibc(1), ibc(2), iacc), &
           cd1y_P2C(:, ibc(1), ibc(2), iacc), &
           dd1y_P2C(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
 
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
 
@@ -3035,11 +2963,12 @@ contains
 !==========================================================================================================
 ! z - Get_1st_derivative_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_C2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_z_1st_derivative_C2C_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
@@ -3047,11 +2976,11 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: nsz
-
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -3068,34 +2997,42 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(:, :, :, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(3), fo(:), &
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1z_C2C(:, ibc(1), ibc(2), iacc), &
           bd1z_C2C(:, ibc(1), ibc(2), iacc), &
           cd1z_C2C(:, ibc(1), ibc(2), iacc), &
           dd1z_C2C(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
 
     return
   end subroutine Get_z_1st_derivative_C2C_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_P2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_z_1st_derivative_P2P_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -3112,34 +3049,42 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(:, :, :, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(3), fo(:), &
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1z_P2P(:, ibc(1), ibc(2), iacc), &
           bd1z_P2P(:, ibc(1), ibc(2), iacc), &
           cd1z_P2P(:, ibc(1), ibc(2), iacc), &
           dd1z_P2P(:, ibc(1), ibc(2), iacc), &
           nsz)
+      end if
 
     return
   end subroutine Get_z_1st_derivative_P2P_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_C2P_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_z_1st_derivative_C2P_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -3160,34 +3105,42 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(:, :, :, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:) )
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(3), fo(:), &
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:) )
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1z_C2P(:, ibc(1), ibc(2), iacc), &
           bd1z_C2P(:, ibc(1), ibc(2), iacc), &
           cd1z_C2P(:, ibc(1), ibc(2), iacc), &
           dd1z_C2P(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
 
     return
   end subroutine Get_z_1st_derivative_C2P_1D
 !==========================================================================================================
-  subroutine Get_z_1st_derivative_P2C_1D n (fi, fo, dm, iacc, ibc0, fbc)
+  subroutine Get_z_1st_derivative_P2C_1D (fi, fo, dm, iacc, ibc0, fbc)
     use parameters_constant_mod
     use udf_type_mod
     use tridiagonal_matrix_algorithm
     implicit none
+    
     real(WP),           intent(in ) :: fi(:)
     real(WP),           intent(out) :: fo(:)
     type(t_domain),     intent(in ) :: dm
     integer,            intent(in ) :: iacc
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
-    integer :: nsz
 
+    integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
+    logical :: is_periodic
     
     ibc = ibc0
     do i = 1, 2
@@ -3200,14 +3153,20 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(:, :, :, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
-    if (dm%is_compact_scheme) &
-    call Solve_TDMA(dm%is_periodic(3), fo(:), &
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+      if(ibc(1) == IBC_PERIODIC) then
+        is_periodic = .true.
+      else
+        is_periodic = .false.
+      end if
+      call Solve_TDMA(is_periodic, fo(:), &
           ad1z_P2C(:, ibc(1), ibc(2), iacc), &
           bd1z_P2C(:, ibc(1), ibc(2), iacc), &
           cd1z_P2C(:, ibc(1), ibc(2), iacc), &
           dd1z_P2C(:, ibc(1), ibc(2), iacc), &
           nsz)
+    end if
 
     return
   end subroutine Get_z_1st_derivative_P2C_1D
@@ -3817,216 +3776,6 @@ contains
 
     return 
   end subroutine Get_z_1st_derivative_P2C_3D
-!==========================================================================================================
-!> \brief To caculate the 2nd-deriviate in 3D.
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi            called-freq    xdomain     module
-!>       in-given pencil    needed       specified   pubic
-!----------------------------------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     ixsub         x-subdomain index
-!> \param[in]     ibc           bc type
-!> \param[in]     fbc           bc value
-!> \param[in]     inbr          the neibouring index of 4 bc nodes
-!> \param[in]     fi            the input array of original variable
-!> \param[out]    fo            the output array of interpolated variable
-!==========================================================================================================
-  subroutine Get_x_2nd_derivative_C2C_3D(fi3d, fo3d, dm, iacc, ibc, fbc2d)
-    use parameters_constant_mod
-    use udf_type_mod
-    use tridiagonal_matrix_algorithm
-    implicit none
-    real(WP),           intent(in) :: fi3d(:, :, :)
-    real(WP),           intent(out):: fo3d(:, :, :)
-    type(t_domain),     intent(in) :: dm
-    integer,            intent(in) :: iacc
-    integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 1) )
-    real(WP)   :: fo( size(fo3d, 1) )
-    real(WP)   :: fbc(4)
-    integer :: k, j
-!----------------------------------------------------------------------------------------------------------
-!  x-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do j = 1, size(fi3d, 2)
-        fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(1:4, j, k)
-        call Get_x_2nd_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
-        fo3d(:, j, k) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_x_2nd_derivative_C2C_3D
-  !==========================================================================================================
-  subroutine Get_x_2nd_derivative_P2P_3D(fi3d, fo3d, dm, iacc, ibc, fbc2d)
-    use parameters_constant_mod
-    use udf_type_mod
-    use tridiagonal_matrix_algorithm
-    implicit none
-    real(WP),           intent(in) :: fi3d(:, :, :)
-    real(WP),           intent(out):: fo3d(:, :, :)
-    type(t_domain),     intent(in) :: dm
-    integer,            intent(in) :: iacc
-    integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 1) )
-    real(WP)   :: fo( size(fo3d, 1) )
-    real(WP)   :: fbc(4)
-    integer :: k, j
-!----------------------------------------------------------------------------------------------------------
-!  x-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do j = 1, size(fi3d, 2)
-        fi(:) = fi3d(:, j, k)
-        if(present(fbc2d)) fbc(1:4) =  fbc2d(1:4, j, k)
-        call Get_x_2nd_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
-        fo3d(:, j, k) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_x_2nd_derivative_P2P_3D
-!==========================================================================================================
-  subroutine Get_y_2nd_derivative_C2C_3D(fi3d, fo3d, dm, iacc, ibc, fbc2d)
-    use parameters_constant_mod
-    use udf_type_mod
-    use tridiagonal_matrix_algorithm
-    implicit none
-    real(WP),           intent(in) :: fi3d(:, :, :)
-    real(WP),           intent(out):: fo3d(:, :, :)
-    type(t_domain),     intent(in) :: dm
-    integer,            intent(in) :: iacc
-    integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 2) )
-    real(WP)   :: fo( size(fo3d, 2) )
-    real(WP)   :: fbc(4)
-    integer :: k, i
-!----------------------------------------------------------------------------------------------------------
-!  y-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_2nd_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
-        fo3d(i, :, k) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_y_2nd_derivative_C2C_3D
-!==========================================================================================================
-  subroutine Get_y_2nd_derivative_P2P_3D(fi3d, fo3d, dm, iacc, ibc, fbc2d) ! not used.
-    use parameters_constant_mod
-    use udf_type_mod
-    use tridiagonal_matrix_algorithm
-    implicit none
-    real(WP),           intent(in) :: fi3d(:, :, :)
-    real(WP),           intent(out):: fo3d(:, :, :)
-    type(t_domain),     intent(in) :: dm
-    integer,            intent(in) :: iacc
-    integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 2) )
-    real(WP)   :: fo( size(fo3d, 2) )
-    real(WP)   :: fbc(4)
-    integer :: k, i
-!----------------------------------------------------------------------------------------------------------
-!  y-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    fo3d(:, :, :) = ZERO
-    do k = 1, size(fi3d, 3)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, :, k)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, 1:4, k)
-        call Get_y_2nd_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
-        fo3d(i, :, k) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_y_2nd_derivative_P2P_3D
-!==========================================================================================================
-  subroutine Get_z_2nd_derivative_C2C_3D(fi3d, fo3d, dm, iacc, ibc, fbc2d)
-    use parameters_constant_mod
-    use udf_type_mod
-    use tridiagonal_matrix_algorithm
-    implicit none
-    real(WP),           intent(in) :: fi3d(:, :, :)
-    real(WP),           intent(out):: fo3d(:, :, :)
-    type(t_domain),     intent(in) :: dm
-    integer,            intent(in) :: iacc
-    integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 3) )
-    real(WP)   :: fo( size(fo3d, 3) )
-    real(WP)   :: fbc(4)
-    integer :: j, i
-!----------------------------------------------------------------------------------------------------------
-!  z-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    fo3d(:, :, :) = ZERO
-    do j = 1, size(fi3d, 2)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_2nd_derivative_C2C_1D(fi, fo, dm, iacc, ibc, fbc)
-        fo3d(i, j, :) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_z_2nd_derivative_C2C_3D
-!==========================================================================================================
-  subroutine Get_z_2nd_derivative_P2P_3D(fi3d, fo3d, dm, iacc, ibc, fbc2d)
-    use parameters_constant_mod
-    use udf_type_mod
-    use tridiagonal_matrix_algorithm
-    implicit none
-    real(WP),           intent(in) :: fi3d(:, :, :)
-    real(WP),           intent(out):: fo3d(:, :, :)
-    type(t_domain),     intent(in) :: dm
-    integer,            intent(in) :: iacc
-    integer,            intent(in) :: ibc(2)
-    real(WP), optional, intent(in) :: fbc2d(:, :, :)
-
-    real(WP)   :: fi( size(fi3d, 3) )
-    real(WP)   :: fo( size(fo3d, 3) )
-    real(WP)   :: fbc(4)
-    integer :: j, i
-!----------------------------------------------------------------------------------------------------------
-!  z-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    fo3d(:, :, :) = ZERO
-    do j = 1, size(fi3d, 2)
-      do i = 1, size(fi3d, 1)
-        fi(:) = fi3d(i, j, :)
-        if(present(fbc2d)) fbc(1:4) = fbc2d(i, j, 1:4)
-        call Get_z_2nd_derivative_P2P_1D(fi, fo, dm, iacc, ibc, fbc)
-        fo3d(i, j, :) = fo(:)
-      end do
-    end do
-
-    return
-  end subroutine Get_z_2nd_derivative_P2P_3D
-
 
 !==========================================================================================================
 !==========================================================================================================
@@ -4053,7 +3802,7 @@ contains
     real(WP), intent(out) :: shift
 
     integer :: i
-
+    fbc = MAXP
     do i = 1, 2
       if (ibc(i) == IBC_PERIODIC) then
         ! f = sin(x/scale + shift) : f = sin(x)
@@ -4068,22 +3817,22 @@ contains
         scale = TWO
         shift = ZERO
       else if (ibc(i) == IBC_DIRICHLET) then
-      ! f = sin(x/scale + shift) : f = sin(x/3)
-        scale = THREE
+      ! f = sin(x/scale + shift) : f = sin(x/2)
+        scale = TWO
         shift = ZERO
         if(i==1) fbc(1) = ZERO
-        if(i==2) fbc(2) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==2) fbc(2) = sin_wp(TWOPI / TWO)
       else if (ibc(i) == IBC_NEUMANN) then
-      ! f = sin(x/scale + shift) : f = sin(x/3) : f'=1/3 cos(x/3)
-        scale = THREE
+      ! f = sin(x/scale + shift) : f = sin(x/2) : f'=1/2cos(x/2)
+        scale = TWO
         shift = ZERO
-        if(i==1) fbc(1) = ONE_THIRD * cos_wp(ZERO  * ONE_THIRD)
-        if(i==2) fbc(2) = ONE_THIRD * cos_wp(TWOPI * ONE_THIRD)
+        if(i==1) fbc(1) = HALF * cos_wp(ZERO )
+        if(i==2) fbc(2) = HALF * cos_wp(TWOPI * HALF)
       else 
-        scale = THREE
+        scale = TWO
         shift = ZERO
         if(i==1) fbc(1) = ZERO
-        if(i==2) fbc(2) = sin_wp(TWOPI * ONE_THIRD)
+        if(i==2) fbc(2) = sin_wp(TWOPI * HALF)
       end if
     end do
     return
@@ -4225,34 +3974,47 @@ contains
     type(t_domain), intent(inout) :: dm
 
     real(WP) :: scale, shift
-    real(WP) :: fbcx(4), fbcy(4), fbcz(4)
-    integer  :: ibcx(2), ibcy(2), ibcz(2)
-    integer :: iacc
+    real(WP) :: fbcx(4), fbcy(4), fbcz(4), fbc(4)
+    integer  :: ibcx(2), ibcy(2), ibcz(2), ibc(2)
+    integer :: iacc, n, i
+    character(1) :: str
 
     dm%h(1) = TWOPI / dm%nc(1)
     dm%h(2) = TWOPI / dm%nc(2)
     dm%h(3) = TWOPI / dm%nc(3)
+    dm%h1r(1) = ONE / dm%h(1)
+    dm%h1r(2) = ONE / dm%h(2)
+    dm%h1r(3) = ONE / dm%h(3)
     ibcx(:) = dm%ibcx_nominal(:, 5)
     ibcy(:) = dm%ibcy_nominal(:, 5)
     ibcz(:) = dm%ibcz_nominal(:, 5)
 
-    call test_function_setup(ibcx, dm%h(1), fbcx, scale, shift)
-    do iacc = 1, NACC
-      call test_interp_c2p_comparison(dm%nc(1), dm%np(1), dm%h(1), scale, shift, iacc, ibcx, fbcx, dm, 'x')
-      call test_interp_p2c_comparison(dm%nc(1), dm%np(1), dm%h(1), scale, shift, iacc, ibcx, fbcx, dm, 'x')
-    end do
 
-    call test_function_setup(ibcy, dm%h(2), fbcy, scale, shift)
-    do iacc = 1, NACC
-      call test_interp_c2p_comparison(dm%nc(2), dm%np(2), dm%h(2), scale, shift, iacc, ibcy, fbcy, dm, 'y')
-      call test_interp_p2c_comparison(dm%nc(2), dm%np(2), dm%h(2), scale, shift, iacc, ibcy, fbcy, dm, 'y')
-    do n = 1, NACC
-
-    call test_function_setup(ibcz, dm%h(3), fbcz, scale, shift)
-    do iacc = 1, NACC
-      call test_interp_c2p_comparison(dm%nc(3), dm%np(3), dm%h(3), scale, shift, iacc, ibcz, fbcz, dm, 'z')
-      call test_interp_p2c_comparison(dm%nc(3), dm%np(3), dm%h(3), scale, shift, iacc, ibcz, fbcz, dm, 'z')
-    end do
+    do i = 1, 3
+      if (i == 1) then
+        ibc(:) = ibcx(:)
+        fbc(:) = fbcx(:)
+        str = 'x'
+      else if (i == 2) then
+        ibc(:) = ibcy(:)
+        fbc(:) = fbcy(:)
+        str = 'y'
+      else if (i == 3) then
+        ibc(:) = ibcz(:)
+        fbc(:) = fbcz(:)
+        str = 'z'
+      else 
+      end if
+      call test_function_setup(ibc, dm%h(i), fbc, scale, shift)
+      do n = 1, NACC
+        iacc = n
+        call test_interp_p2c_comparison(dm%nc(i), dm%np(i), dm%h(i), scale, shift, iacc, ibc, fbc, dm, str)
+      end do
+      do n = 1, NACC
+        iacc = n
+        call test_interp_c2p_comparison(dm%nc(i), dm%np(i), dm%h(i), scale, shift, iacc, ibc, fbc, dm, str)
+      end do
+    end do 
 
     return 
   end subroutine
@@ -4379,7 +4141,7 @@ contains
 
     err_Linf = ZERO
     err_L2   = ZERO
-    write(wrt_unit(2), *) '# 1stder-p2c-'//trim(str),  ', iacc=', iacc, ', np=', np
+    write(wrt_unit(2), *) '# 1stder-p2p-'//trim(str),  ', iacc=', iacc, ', np=', np
     write(wrt_unit(2), *) '# i, xp, ref, cal, err'
     do i = 1, np
       xp = dd * real(i - 1, WP)
@@ -4434,17 +4196,17 @@ contains
 
     
     if(trim(str)=='x') then
-      call Get_x_1st_derivative_C2P_1D(fxc, fgxp, iacc, dm, ibc, fbc)
+      call Get_x_1st_derivative_C2P_1D(fxc, fgxp, dm, iacc, ibc, fbc)
     else if(trim(str)=='y') then
-      call Get_y_1st_derivative_C2P_1D(fxc, fgxp, iacc, dm, ibc, fbc)
+      call Get_y_1st_derivative_C2P_1D(fxc, fgxp, dm, iacc, ibc, fbc)
     else if(trim(str)=='z') then
-      call Get_z_1st_derivative_C2P_1D(fxc, fgxp, iacc, dm, ibc, fbc)
+      call Get_z_1st_derivative_C2P_1D(fxc, fgxp, dm, iacc, ibc, fbc)
     else
     end if
 
     err_Linf = ZERO
     err_L2   = ZERO
-    write(wrt_unit(2), *) '# 1stder-p2c-'//trim(str), ', iacc=', iacc, ', np=', np
+    write(wrt_unit(2), *) '# 1stder-c2p-'//trim(str), ', iacc=', iacc, ', np=', np
     write(wrt_unit(2), *) '# i, xp, ref, cal, err'
     do i = 1, np
       xp = dd * real(i - 1, WP)
@@ -4540,9 +4302,10 @@ contains
     type(t_domain), intent(inout) :: dm
 
     real(WP) :: scale, shift
-    real(WP) :: fbcx(4), fbcy(4), fbcz(4)
-    integer  :: ibcx(2), ibcy(2), ibcz(2)
-    integer :: iacc
+    real(WP) :: fbcx(4), fbcy(4), fbcz(4), fbc(4)
+    integer  :: ibcx(2), ibcy(2), ibcz(2), ibc(2)
+    integer :: n, iacc, i
+    character(1) :: str
 
     dm%h(1) = TWOPI / dm%nc(1)
     dm%h(2) = TWOPI / dm%nc(2)
@@ -4551,30 +4314,41 @@ contains
     ibcy(:) = dm%ibcy_nominal(:, 5)
     ibcz(:) = dm%ibcz_nominal(:, 5)
 
-    call test_function_setup(ibcx, dm%h(1), fbcx, scale, shift)
-    do iacc = 1, NACC
-      call test_1stder_p2p_comparison(dm%nc(1), dm%np(1), dm%h(1), scale, shift, iacc, ibcx, fbcx, dm, 'x')
-      call test_1stder_c2c_comparison(dm%nc(1), dm%np(1), dm%h(1), scale, shift, iacc, ibcx, fbcx, dm, 'x')
-      call test_1stder_p2c_comparison(dm%nc(1), dm%np(1), dm%h(1), scale, shift, iacc, ibcx, fbcx, dm, 'x')
-      call test_1stder_c2p_comparison(dm%nc(1), dm%np(1), dm%h(1), scale, shift, iacc, ibcx, fbcx, dm, 'x')
-    end do
-    
-    call test_function_setup(ibcy, dm%h(2), fbcy, scale, shift)
-    do iacc = 1, NACC
-      call test_1stder_p2p_comparison(dm%nc(2), dm%np(2), dm%h(2), scale, shift, iacc, ibcy, fbcy, dm, 'y')
-      call test_1stder_c2c_comparison(dm%nc(2), dm%np(2), dm%h(2), scale, shift, iacc, ibcy, fbcy, dm, 'y')
-      call test_1stder_p2c_comparison(dm%nc(2), dm%np(2), dm%h(2), scale, shift, iacc, ibcy, fbcy, dm, 'y')
-      call test_1stder_c2p_comparison(dm%nc(2), dm%np(2), dm%h(2), scale, shift, iacc, ibcy, fbcy, dm, 'y')
-    end do
-    
-    call test_function_setup(ibcz, dm%h(3), fbcz, scale, shift)
-    do iacc = 1, NACC
-      call test_1stder_p2p_comparison(dm%nc(3), dm%np(3), dm%h(3), scale, shift, iacc, ibcz, fbcz, dm, 'z')
-      call test_1stder_c2c_comparison(dm%nc(3), dm%np(3), dm%h(3), scale, shift, iacc, ibcz, fbcz, dm, 'z')
-      call test_1stder_p2c_comparison(dm%nc(3), dm%np(3), dm%h(3), scale, shift, iacc, ibcz, fbcz, dm, 'z')
-      call test_1stder_c2p_comparison(dm%nc(3), dm%np(3), dm%h(3), scale, shift, iacc, ibcz, fbcz, dm, 'z')
-    end do
-    
+
+    do i = 1, 3
+      if (i == 1) then
+        ibc(:) = ibcx(:)
+        fbc(:) = fbcx(:)
+        str = 'x'
+      else if (i == 2) then
+        ibc(:) = ibcy(:)
+        fbc(:) = fbcy(:)
+        str = 'y'
+      else if (i == 3) then
+        ibc(:) = ibcz(:)
+        fbc(:) = fbcz(:)
+        str = 'z'
+      else 
+      end if
+      call test_function_setup(ibc, dm%h(i), fbc, scale, shift)
+      write(*,*) 'input=sin(x/',scale,'+',shift,')'
+      do n = 1, NACC
+        iacc = n
+        call test_1stder_p2p_comparison(dm%nc(i), dm%np(i), dm%h(i), scale, shift, iacc, ibc, fbc, dm, str)
+      end do
+      do n = 1, NACC
+        iacc = n
+        call test_1stder_c2c_comparison(dm%nc(i), dm%np(i), dm%h(i), scale, shift, iacc, ibc, fbc, dm, str)
+      end do
+      do n = 1, NACC
+        iacc = n
+        call test_1stder_p2c_comparison(dm%nc(i), dm%np(i), dm%h(i), scale, shift, iacc, ibc, fbc, dm, str)
+      end do
+      do n = 1, NACC
+        iacc = n
+        call test_1stder_c2p_comparison(dm%nc(i), dm%np(i), dm%h(i), scale, shift, iacc, ibc, fbc, dm, str)
+      end do
+    end do 
     
     return 
   end subroutine
