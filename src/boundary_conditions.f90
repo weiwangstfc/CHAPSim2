@@ -589,11 +589,11 @@ subroutine configure_bc_vars_thermo(dm)
     end if
 
     ! p, dm0-dm1, nc
-    if(dm1%ibcx_pr(1, IBC_CCC) == IBC_INTERIOR) then
+    if(dm1%ibcx_pr(1) == IBC_INTERIOR) then
       dm1%fbcx_pr(1, :, :) = fl0%pres(dm0%nc(1),     :, :)
       dm1%fbcx_pr(3, :, :) = fl0%pres(dm0%nc(1) - 1, :, :)
     end if
-    if(dm0%ibcx_pr(2, IBC_CCC) == IBC_INTERIOR) then
+    if(dm0%ibcx_pr(2) == IBC_INTERIOR) then
       dm0%fbcx_pr(2, :, :) = fl1%pres(1, :, :)
       dm0%fbcx_pr(4, :, :) = fl1%pres(2, :, :)
     end if
