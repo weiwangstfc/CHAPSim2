@@ -94,6 +94,7 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain
     call configure_bc_vars_flow(domain(i)) 
     if(domain(i)%is_thermo) call configure_bc_vars_thermo(domain(i)) 
+    call buildup_symmetric_for_eqs(domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up fft basic info

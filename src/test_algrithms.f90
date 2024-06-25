@@ -163,15 +163,15 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC))
-        call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc, dm%ibcx_qx(:, IBC_CCC))
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
+        call update_symmetric_ibc(dm%ibcx_qx(:), mbc, dm%ibcx_qx(:))
         call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%iAccuracy, mbc(:, 1), dm%fbcx_qx(:, :, :) * dm%fbcx_qx(:, :, :) * HALF)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC))
-        call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc)
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
+        call update_symmetric_ibc(dm%ibcx_qx(:), mbc)
         call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :)* nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
@@ -180,15 +180,15 @@ contains
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
         !call Get_x_2nd_derivative_P2P_3D( fl%qx, mx_rhs, dm, dm%iAccuracy, dm%ibcx(:, 1) )
-        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC))
-        call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc)
+        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
+        call update_symmetric_ibc(dm%ibcx_qx(:), mbc)
         call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%iAccuracy, mbc(:, 2))
         fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC))
-        call update_symmetric_ibc(dm%ibcx_qx(:, IBC_CCC), mbc)
+        call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
+        call update_symmetric_ibc(dm%ibcx_qx(:), mbc)
         call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :) * nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
@@ -215,8 +215,8 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC))
-        call update_symmetric_ibc(dm%ibcy_qy(:, IBC_CCC), mbc, dm%ibcy_qy(:, IBC_CCC))
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
+        call update_symmetric_ibc(dm%ibcy_qy(:), mbc, dm%ibcy_qy(:))
         call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 1), dm%fbcy_qy(:, :, :) * dm%fbcy_qy(:, :, :) * HALF)
 
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
@@ -225,14 +225,14 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
-        !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy(:, :, :) )
+        !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy(:, :, :) )
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + fl%rre * my_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
-        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC))
-        call update_symmetric_ibc(dm%ibcy_qy(:, IBC_CCC), mbc)
+        call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
+        call update_symmetric_ibc(dm%ibcy_qy(:), mbc)
         call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 2), dm%fbcy_qy(:, :, :) * nu)
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
@@ -680,8 +680,8 @@ subroutine test_poisson(dm)
   dm%fbcx_pr(2, :, :) =  TWOPI
   dm%fbcx_pr(3, :, :) = dm%fbcx_pr(1, :, :)
   dm%fbcx_pr(4, :, :) = dm%fbcx_pr(2, :, :)
-  call Get_x_1st_derivative_C2P_3D(phi, rhs_pcc, dm, dm%iAccuracy, dm%ibcx_pr(:, IBC_CCC), dm%fbcx_pr)
-  call update_symmetric_ibc(dm%ibcx_pr(:, IBC_CCC), mbc)
+  call Get_x_1st_derivative_C2P_3D(phi, rhs_pcc, dm, dm%iAccuracy, dm%ibcx_pr(:), dm%fbcx_pr)
+  call update_symmetric_ibc(dm%ibcx_pr(:), mbc)
   call Get_x_1st_derivative_P2C_3D(rhs_pcc, rhs, dm, dm%iAccuracy, mbc(:, 2))
   if(nrank == 0) then
     do i = 1, dm%dccc%xsz(1)

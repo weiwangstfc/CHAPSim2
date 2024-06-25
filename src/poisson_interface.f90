@@ -114,25 +114,25 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   nclx1, ncly1, nclz1 are not used for poisson solver but only for debugging.
 !----------------------------------------------------------------------------------------------------------
-    if(dm%ibcx_qx(1, IBC_PCC) == IBC_PERIODIC ) then
+    if(dm%ibcx_qx(1) == IBC_PERIODIC ) then
       nclx1 = 0
-    else if (dm%ibcx_qx(1, IBC_PCC) == IBC_DIRICHLET ) then
+    else if (dm%ibcx_qx(1) == IBC_DIRICHLET ) then
       nclx1 = 2
     else
       nclx1 = 1
     end if
 
-    if(dm%ibcy_qx(1, IBC_PCC) == IBC_PERIODIC ) then
+    if(dm%ibcy_qx(1) == IBC_PERIODIC ) then
       ncly1 = 0
-    else if (dm%ibcy_qx(1, IBC_PCC) == IBC_DIRICHLET ) then
+    else if (dm%ibcy_qx(1) == IBC_DIRICHLET ) then
       ncly1 = 2
     else
       ncly1 = 1
     end if
 
-    if(dm%ibcz_qx(1, IBC_PCC)  == IBC_PERIODIC ) then
+    if(dm%ibcz_qx(1)  == IBC_PERIODIC ) then
       nclz1 = 0
-    else if (dm%ibcz_qx(1, IBC_PCC)  == IBC_DIRICHLET ) then
+    else if (dm%ibcz_qx(1)  == IBC_DIRICHLET ) then
       nclz1 = 2
     else
       nclz1 = 1

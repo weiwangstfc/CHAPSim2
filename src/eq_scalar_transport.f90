@@ -144,7 +144,7 @@
 ! ! y-pencil : d (gy * h_cpc) / dy 
 ! !----------------------------------------------------------------------------------------------------------
 !     ene_rhs_ypencil = ZERO
-!     call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy(:, 2) )
+!     call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy )
 !     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 ! !----------------------------------------------------------------------------------------------------------
 ! ! y-pencil : d (T) / dy

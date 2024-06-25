@@ -204,28 +204,28 @@ contains
       end do
 !     for dirichelt, the perturbation velocity should be zero.
       if(n == 1) then
-        if(dm%ibcx_qx(1, IBC_PCC) == IBC_DIRICHLET) ux(          1, :, :) = ZERO
-        if(dm%ibcx_qx(2, IBC_PCC) == IBC_DIRICHLET) ux(dtmp%xsz(1), :, :) = ZERO
+        if(dm%ibcx_qx(1) == IBC_DIRICHLET) ux(          1, :, :) = ZERO
+        if(dm%ibcx_qx(2) == IBC_DIRICHLET) ux(dtmp%xsz(1), :, :) = ZERO
       end if
       if(n == 2) then
-        if( dm%ibcy_qy(1, IBC_CPC) == IBC_DIRICHLET ) then
+        if( dm%ibcy_qy(1) == IBC_DIRICHLET ) then
           if(dtmp%xst(2) == 1) then
             uy(:,           1, :) = ZERO
           end if
         end if
-        if( dm%ibcy_qy(2, IBC_CPC) == IBC_DIRICHLET ) then
+        if( dm%ibcy_qy(2) == IBC_DIRICHLET ) then
           if(dtmp%xen(2) == dtmp%ysz(2)) then
             uy(:, dtmp%xsz(2), :) = ZERO
           end if
         end if
       end if
       if(n == 3) then
-        if( dm%ibcz_qz(1, IBC_CCP) == IBC_DIRICHLET ) then
+        if( dm%ibcz_qz(1) == IBC_DIRICHLET ) then
           if(dtmp%xst(3) == 1) then
             uz(:, :, 1) = ZERO
           end if
         end if
-        if( dm%ibcz_qz(2, IBC_CCP) == IBC_DIRICHLET ) then
+        if( dm%ibcz_qz(2) == IBC_DIRICHLET ) then
           if(dtmp%xen(3) == dtmp%zsz(3)) then
             uz(:, :, dtmp%xsz(3)) = ZERO
           end if
@@ -385,7 +385,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("     The initial bulk velocity (original) is:")
       write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -397,7 +397,7 @@ contains
     ! write(*,*) 'uy, scaled', uy(:, 8, 8), uy(:, 1, 8) !debug_test
     ! write(*,*) 'uz, scaled', uz(:, 8, 8), uz(:, 1, 8) !debug_test
 
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       call Print_debug_mid_msg("     The initial bulk velocity (corrected) is:")
       write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk

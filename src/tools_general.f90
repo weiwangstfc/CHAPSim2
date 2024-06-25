@@ -603,7 +603,7 @@ contains
 end module random_number_generation_mod
 
 
-
+!==========================================================================================================
 subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
   use precision_mod
   use udf_type_mod
@@ -664,7 +664,7 @@ return
 
 end subroutine
 
-
+!==========================================================================================================
 subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
   use precision_mod
   use udf_type_mod
@@ -706,4 +706,150 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
 
   return
 end subroutine
+
+!==========================================================================================================
+subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none 
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(inout) :: var(:, :, :)
+    real(WP), intent(in) :: r(:)
+    integer, intent(in) :: n
+    integer, intent(in) :: pencil
+
+    integer :: i, j, k, jj, nx, ny, nz, nyst
+ 
+    if(pencil == IPENCIL(1)) then
+        nx = dtmp%xsz(1)
+        ny = dtmp%xsz(2)
+        nz = dtmp%xsz(3)
+      nyst = dtmp%xst(2)
+    else if(pencil == IPENCIL(2)) then
+        nx = dtmp%ysz(1)
+        ny = dtmp%ysz(2)
+        nz = dtmp%ysz(3)
+      nyst = dtmp%yst(2)
+    else if(pencil == IPENCIL(3)) then
+        nx = dtmp%zsz(1)
+        ny = dtmp%zsz(2)
+        nz = dtmp%zsz(3)
+      nyst = dtmp%zst(2)
+    else
+        nx = 0
+        ny = 0
+        nz = 0
+      nyst = 0
+    end if
+
+    do k = 1, nz
+      do j = 1, ny
+        jj = nyst + j - 1
+        do i = 1, nx
+          var(i, j, k) = var(i, j, k) * (r(jj)**n)
+        end do
+      end do
+    end do 
+  
+    return 
+  end subroutine
+  !==========================================================================================================
+  subroutine multiple_cylindrical_rn_xx4(var, dtmp, r, n, pencil)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none 
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(inout) :: var(:, :, :)
+    real(WP), intent(in) :: r(:)
+    integer, intent(in) :: n
+    integer, intent(in) :: pencil
+
+    integer :: i, j, k, jj, nx, ny, nz, nyst
+ 
+    if(pencil == IPENCIL(1)) then
+      call Print_warning_msg("Warning: This is for z-pencil only.")
+        nx = dtmp%xsz(1)
+        ny = dtmp%xsz(2)
+        nz = dtmp%xsz(3)
+      nyst = dtmp%xst(2)
+    else if(pencil == IPENCIL(2)) then
+      call Print_warning_msg("Warning: This is for z-pencil only.")
+        nx = dtmp%ysz(1)
+        ny = dtmp%ysz(2)
+        nz = dtmp%ysz(3)
+      nyst = dtmp%yst(2)
+    else if(pencil == IPENCIL(3)) then
+        nx = dtmp%zsz(1)
+        ny = dtmp%zsz(2)
+        nz = dtmp%zsz(3)
+      nyst = dtmp%zst(2)
+    else
+        nx = 0
+        ny = 0
+        nz = 0
+      nyst = 0
+    end if
+
+    do j = 1, ny
+      jj = nyst + j - 1
+      do i = 1, nx
+        var(i, j, 1) = var(i, j, 1) * (r(jj)**n)
+        var(i, j, 2) = var(i, j, 1) * (r(jj)**n)
+        var(i, j, 3) = var(i, j, 1)
+        var(i, j, 4) = var(i, j, 2)
+      end do
+    end do
+  
+    return 
+  end subroutine
+!==========================================================================================================
+  subroutine multiple_cylindrical_rn_x4x(var, dtmp, r, n, pencil)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none 
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(inout) :: var(:, :, :)
+    real(WP), intent(in) :: r(:)
+    integer, intent(in) :: n
+    integer, intent(in) :: pencil
+
+    integer :: i, j, k, jj, nx, ny, nz, nyst
+ 
+    if(pencil == IPENCIL(1)) then
+      call Print_warning_msg("Warning: This is for y-pencil only.")
+        nx = dtmp%xsz(1)
+        ny = dtmp%xsz(2)
+        nz = dtmp%xsz(3)
+      nyst = dtmp%xst(2)
+    else if(pencil == IPENCIL(2)) then
+        nx = dtmp%ysz(1)
+        ny = dtmp%ysz(2)
+        nz = dtmp%ysz(3)
+      nyst = dtmp%yst(2)
+    else if(pencil == IPENCIL(3)) then
+      call Print_warning_msg("Warning: This is for y-pencil only.")
+        nx = dtmp%zsz(1)
+        ny = dtmp%zsz(2)
+        nz = dtmp%zsz(3)
+      nyst = dtmp%zst(2)
+    else
+      call Print_warning_msg("Warning: This is for y-pencil only.")
+        nx = 0
+        ny = 0
+        nz = 0
+      nyst = 0
+    end if
+
+    do k = 1, nz
+      do i = 1, nx
+        jj = nyst + ny - 1
+        var(i, 1, k) = var(i, 1, k) * (r(1)**n)
+        var(i, 2, k) = var(i, 2, k) * (r(jj)**n)
+        var(i, 3, k) = var(i, 1, k)
+        var(i, 4, k) = var(i, 2, k)
+      end do
+    end do 
+  
+    return 
+  end subroutine
 

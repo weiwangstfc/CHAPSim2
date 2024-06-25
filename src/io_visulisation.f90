@@ -450,13 +450,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! qx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
+    call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
     call write_visu_field(dm, accc, dm%dccc, "qx", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
+    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
     call write_visu_field(dm, accc, dm%dccc, "qy", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
@@ -464,7 +464,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qz, accp_ypencil, dm%dccp)
     call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP))
+    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
     call write_visu_field(dm, accc, dm%dccc, "qz", trim(visuname), SCALAR, CELL, iter)
@@ -473,13 +473,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! gx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_P2C_3D(fl%gx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_gx)
+      call Get_x_midp_P2C_3D(fl%gx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_gx)
       call write_visu_field(dm, accc, dm%dccc, "gx", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! gy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
       call transpose_x_to_y(fl%gy, acpc_ypencil, dm%dcpc)
-      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_gy)
+      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_gy)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
       call write_visu_field(dm, accc, dm%dccc, "gy", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
@@ -487,7 +487,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
       call transpose_x_to_y(fl%gz, accp_ypencil, dm%dccp)
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_gz)
+      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_gz)
       call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
       call write_visu_field(dm, accc, dm%dccc, "gz", trim(visuname), SCALAR, CELL, iter)
@@ -680,19 +680,19 @@ contains
       call write_visu_field(dm, var, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else if (is_decomp_same(dtmp, dm%dpcc)) then
-      call Get_x_midp_P2C_3D(var, accc, dm, dm%iAccuracy, dm%ibcx_qx(:, IBC_PCC), dm%fbcx_qx)
+      call Get_x_midp_P2C_3D(var, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
       call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else if (is_decomp_same(dtmp, dm%dcpc)) then
       call transpose_x_to_y(var, acpc_ypencil, dm%dcpc)
-      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:, IBC_CPC), dm%fbcy_qy)
+      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
       call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
     else if (is_decomp_same(dtmp, dm%dccp)) then
       call transpose_x_to_y(var, accp_ypencil, dm%dccp)
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:, IBC_CCP), dm%fbcz_qz)
+      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_qz)
       call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
       call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)

@@ -171,14 +171,34 @@ module parameters_constant_mod
                         IBC_OTHERS      = 11   ! exclusive
   integer, parameter :: NBC = 5! u, v, w, p, T
   integer, parameter :: IDIM(3) = (/1, 2, 3/)
-  integer, parameter :: IBC_CCC = 1, &
-                        IBC_CCP = 2, &
-                        IBC_CPC = 3, &
-                        IBC_PCC = 4, &
-                        IBC_PPC = 5, &
-                        IBC_PCP = 6, &
-                        IBC_CPP = 7, &
-                        IBC_PPP = 8
+  integer, parameter :: JBC_SELF = 1, &
+                        JBC_GRAD = 2, &
+                        JBC_PROD = 3
+
+  integer, save :: mbcx_cov1, &
+                   mbcy_cov1, &
+                   mbcz_cov1, &
+                   mbcx_tau1, &
+                   mbcy_tau1, &
+                   mbcz_tau1, &
+                   mbcx_cov2, &
+                   mbcy_cov2, &
+                   mbcz_cov2, &
+                   mbcr_cov2, &
+                   mbcy_tau2, &
+                   mbcx_tau2, &
+                   mbcz_tau2, &
+                   mbcx_cov3, &
+                   mbcy_cov3, &
+                   mbcz_cov3, &
+                   mbcr_cov3, &
+                   mbcy_tau3, &
+                   mbcx_tau3, &
+                   mbcz_tau3, &
+                   mbcr_tau3
+  logical, save :: is_fbcx_velo_required, &
+                   is_fbcy_velo_required, &
+                   is_fbcz_velo_required
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -371,21 +391,21 @@ module udf_type_mod
     ! integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
     ! integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
     ! integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcx_qx(2, 8)
-    integer  :: ibcy_qx(2, 8)
-    integer  :: ibcz_qx(2, 8)
-    integer  :: ibcx_qy(2, 8)
-    integer  :: ibcy_qy(2, 8)
-    integer  :: ibcz_qy(2, 8)
-    integer  :: ibcx_qz(2, 8)
-    integer  :: ibcy_qz(2, 8)
-    integer  :: ibcz_qz(2, 8)
-    integer  :: ibcx_pr(2, 8)
-    integer  :: ibcy_pr(2, 8)
-    integer  :: ibcz_pr(2, 8)
-    integer  :: ibcx_Th(2, 8)
-    integer  :: ibcy_Th(2, 8)
-    integer  :: ibcz_Th(2, 8)
+    integer  :: ibcx_qx(2)
+    integer  :: ibcy_qx(2)
+    integer  :: ibcz_qx(2)
+    integer  :: ibcx_qy(2)
+    integer  :: ibcy_qy(2)
+    integer  :: ibcz_qy(2)
+    integer  :: ibcx_qz(2)
+    integer  :: ibcy_qz(2)
+    integer  :: ibcz_qz(2)
+    integer  :: ibcx_pr(2)
+    integer  :: ibcy_pr(2)
+    integer  :: ibcz_pr(2)
+    integer  :: ibcx_Th(2)
+    integer  :: ibcy_Th(2)
+    integer  :: ibcz_Th(2)
     integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
     integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)

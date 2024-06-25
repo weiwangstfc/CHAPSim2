@@ -150,7 +150,7 @@ contains
     real(WP) :: ubulk
     
 
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:, IBC_PCC), dm%fbcy_qx(:, :, :), dm, dm%dpcc, fl%qx, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, fl%qx, ubulk, "ux")
     if(nrank == 0) then
         Call Print_debug_mid_msg("  The restarted mass flux is:")
         write (*, wrtfmt1e) ' average[u(x,y,z)]_[x,y,z]: ', ubulk

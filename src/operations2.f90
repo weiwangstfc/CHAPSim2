@@ -1503,9 +1503,13 @@ contains
       fp( 0) = -fi(2)
       fp(-1) = -fi(3)
     else if (ibc(1) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_P2P')
-      fp( 0) = TWO * fbc(1) - fi(2)
-      fp(-1) = TWO * fbc(1) - fi(3)
+      if(present(fbc)) then
+        fp( 0) = TWO * fbc(1) - fi(2)
+        fp(-1) = TWO * fbc(1) - fi(3)
+      else
+        fp( 0) = TWO * fi(1) - fi(2)
+        fp(-1) = TWO * fi(1) - fi(3)
+      end if
     else if (ibc(1) == IBC_NEUMANN) then
       if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P2P')
       fp( 0) = fi(2) - fbc(1) * TWO * d1(1)
@@ -1538,9 +1542,13 @@ contains
       fp(1) = fi(np - 1) + fbc(2) * TWO * d1(2)
       fp(2) = fi(np - 2) + fbc(2) * TWO * ( d1(2) + d1(4) ) 
     else if (ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_P2P')
-      fp(1) = TWO * fbc(2) - fi(np - 1)
-      fp(2) = TWO * fbc(2) - fi(np - 2)
+      if(present(fbc)) then
+        fp(1) = TWO * fbc(2) - fi(np - 1)
+        fp(2) = TWO * fbc(2) - fi(np - 2)
+      else
+        fp(1) = TWO * fi(np) - fi(np - 1)
+        fp(2) = TWO * fi(np) - fi(np - 2)
+      end if
     else
       fp(1) = MAXP
       fp(2) = MAXP
@@ -2273,10 +2281,6 @@ contains
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
@@ -2390,10 +2394,6 @@ contains
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
@@ -2503,10 +2503,6 @@ contains
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
@@ -2637,10 +2633,6 @@ contains
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2P_1D')
         ibc(i) = IBC_INTRPL
       end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2P_1D')
         ibc(i) = IBC_INTRPL
@@ -2748,10 +2740,6 @@ contains
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1st_derivative_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
@@ -2869,10 +2857,6 @@ contains
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2P_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
@@ -2993,10 +2977,6 @@ contains
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1st_derivative_P2C_1D')
         ibc(i) = IBC_INTRPL
@@ -3112,10 +3092,6 @@ contains
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2P_1D')
         ibc(i) = IBC_INTRPL
       end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2P_1D')
         ibc(i) = IBC_INTRPL
@@ -3222,10 +3198,6 @@ contains
     do i = 1, 2
       if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
         call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1st_derivative_P2C_1D')
         ibc(i) = IBC_INTRPL
       end if
       if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
