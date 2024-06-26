@@ -171,31 +171,39 @@ module parameters_constant_mod
                         IBC_OTHERS      = 11   ! exclusive
   integer, parameter :: NBC = 5! u, v, w, p, T
   integer, parameter :: IDIM(3) = (/1, 2, 3/)
+  integer, parameter :: IPENCIL(3) = (/1, 2, 3/)
   integer, parameter :: JBC_SELF = 1, &
                         JBC_GRAD = 2, &
                         JBC_PROD = 3
 
-  integer, save :: mbcx_cov1, &
-                   mbcy_cov1, &
-                   mbcz_cov1, &
-                   mbcx_tau1, &
-                   mbcy_tau1, &
-                   mbcz_tau1, &
-                   mbcx_cov2, &
-                   mbcy_cov2, &
-                   mbcz_cov2, &
-                   mbcr_cov2, &
-                   mbcy_tau2, &
-                   mbcx_tau2, &
-                   mbcz_tau2, &
-                   mbcx_cov3, &
-                   mbcy_cov3, &
-                   mbcz_cov3, &
-                   mbcr_cov3, &
-                   mbcy_tau3, &
-                   mbcx_tau3, &
-                   mbcz_tau3, &
-                   mbcr_tau3
+  integer, save :: mbcx_cov1(2), &
+                   mbcy_cov1(2), &
+                   mbcz_cov1(2), &
+                   mbcx_tau1(2), &
+                   mbcy_tau1(2), &
+                   mbcz_tau1(2), &
+                   mbcx_cov2(2), &
+                   mbcy_cov2(2), &
+                   mbcz_cov2(2), &
+                   mbcr_cov2(2), &
+                   mbcy_tau2(2), &
+                   mbcx_tau2(2), &
+                   mbcz_tau2(2), &
+                   mbcr_tau2(2), &
+                   mbcx_cov3(2), &
+                   mbcy_cov3(2), &
+                   mbcz_cov3(2), &
+                   mbcr_cov3(2), &
+                   mbcy_tau3(2), &
+                   mbcx_tau3(2), &
+                   mbcz_tau3(2), &
+                   mbcr_tau3(2), &
+                   ebcx_conv(2), &
+                   ebcy_conv(2), &
+                   ebcz_conv(2), &
+                   ebcx_difu(2), &
+                   ebcy_difu(2), &
+                   ebcz_difu(2)
   logical, save :: is_fbcx_velo_required, &
                    is_fbcy_velo_required, &
                    is_fbcz_velo_required
@@ -571,6 +579,7 @@ end module
 !==========================================================================================================
 module files_io_mod
   implicit none
+  character(8) :: dir_code='0_src'
   character(9) :: dir_data='1_data'
   character(6) :: dir_visu='2_visu'
   character(9) :: dir_moni='3_monitor'
@@ -579,6 +588,7 @@ module files_io_mod
 contains
   subroutine create_directory
     implicit none
+    call system('mkdir -p '//dir_code)
     call system('mkdir -p '//dir_data)
     call system('mkdir -p '//dir_visu)
     call system('mkdir -p '//dir_moni)

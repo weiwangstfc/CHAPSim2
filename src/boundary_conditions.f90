@@ -5,7 +5,7 @@ module boundary_conditions_mod
   private :: map_bc_1d_uprofile
   private :: map_1d_profile_to_case
   private :: reassign_bc_type
-  private  :: update_symmetric_ibc
+  public  :: update_symmetric_ibc
   public  :: configure_bc_type
   public  :: configure_bc_vars_flow
   public  :: configure_bc_vars_thermo
@@ -77,11 +77,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
     do n = 1, 2
       if(dm%ibcx_nominal(n, 1) == IBC_SYMMETRIC) &
-         dm%ibcx_nominal(n, 1) == IBC_ASYMMETRIC
+         dm%ibcx_nominal(n, 1) = IBC_ASYMMETRIC
       if(dm%ibcy_nominal(n, 2) == IBC_SYMMETRIC) &
-         dm%ibcy_nominal(n, 2) == IBC_ASYMMETRIC
+         dm%ibcy_nominal(n, 2) = IBC_ASYMMETRIC
       if(dm%ibcz_nominal(n, 3) == IBC_SYMMETRIC) &
-         dm%ibcz_nominal(n, 3) == IBC_ASYMMETRIC
+         dm%ibcz_nominal(n, 3) = IBC_ASYMMETRIC
     end do
 !----------------------------------------------------------------------------------------------------------
 ! to set up real bc for calculation from given nominal b.c.
@@ -899,6 +899,7 @@ subroutine configure_bc_vars_thermo(dm)
           mbc(i, JBC_PROD) = IBC_SYMMETRIC
         else 
           if(ibc(i)/=jbc(i)) then
+            if(nrank==0) write(*, *) "BCs for size ", i, " are ", ibc(i), jbc(i) 
             call Print_warning_msg("The two operational variables have different boundary conditions.")
           end if
         end if
@@ -928,6 +929,7 @@ subroutine configure_bc_vars_thermo(dm)
   subroutine buildup_symmetric_for_eqs(dm)
     use parameters_constant_mod
     use udf_type_mod
+    use wtformat_mod
     implicit none
     type(t_domain), intent( inout)   :: dm
     
@@ -938,93 +940,119 @@ subroutine configure_bc_vars_thermo(dm)
 !----------------------------------------------------------------------------------------------------------
     call update_symmetric_ibc(dm%ibcx_qx, mbc, dm%ibcx_qx)
     mbcx_cov1(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom x-convection is ", mbcx_cov1 
 
     call update_symmetric_ibc(dm%ibcy_qy, mbc, dm%ibcy_qx)
     mbcy_cov1(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom y-convection is ", mbcy_cov1
 
     call update_symmetric_ibc(dm%ibcz_qz, mbc, dm%ibcz_qx)
     mbcz_cov1(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom z-convection is ", mbcz_cov1
 
     call update_symmetric_ibc(dm%ibcx_qx, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcx_Th, mbc, bc)
     mbcx_tau1 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom x-viscous is ", mbcx_tau1
 
     call update_symmetric_ibc(dm%ibcy_qx, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcy_Th, mbc, bc)
-    call update_symmetric_ibc(dm%ibcy_Th, mbc0, m%ibcy_qy)
+    call update_symmetric_ibc(dm%ibcy_Th, mbc0, dm%ibcy_qy)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau1 is wrong.")
     mbcy_tau1 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom y-viscous is ", mbcy_tau1
 
     call update_symmetric_ibc(dm%ibcz_qx, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcy_Th, mbc, bc)
-    call update_symmetric_ibc(dm%ibcy_Th, mbc0, m%ibcz_qz)
+    call update_symmetric_ibc(dm%ibcy_Th, mbc0, dm%ibcz_qz)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau1 is wrong.")
-    mbcy_tau1 = mbc(:, JBC_PROD)
+    mbcz_tau1 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom z-viscous is ", mbcz_tau1
 !----------------------------------------------------------------------------------------------------------
 !   y-mom
 !----------------------------------------------------------------------------------------------------------
     call update_symmetric_ibc(dm%ibcx_qx, mbc, dm%ibcx_qy)
     mbcx_cov2(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom x-convection is ", mbcx_cov2
 
     call update_symmetric_ibc(dm%ibcy_qy, mbc, dm%ibcy_qy)
     mbcy_cov2(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom y-convection is ", mbcy_cov2
 
     call update_symmetric_ibc(dm%ibcz_qz, mbc, dm%ibcz_qy)
     mbcz_cov2(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom z-convection is ", mbcz_cov2
 
-    call update_symmetric_ibc(dm%ibcy_qz, mbc, dm%ibcy_qz)
-    mbcr_cov2(:) = mbc(:, JBC_PROD)
+    if(dm%icoordinate == ICYLINDRICAL) then
+      call update_symmetric_ibc(dm%ibcy_qz, mbc, dm%ibcy_qz)
+      mbcr_cov2(:) = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom r-convection is ", mbcr_cov2
+    end if
 
     call update_symmetric_ibc(dm%ibcy_qy, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcy_Th, mbc, bc)
     mbcy_tau2 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom y-viscous is ", mbcy_tau2
 
     call update_symmetric_ibc(dm%ibcx_qy, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcx_Th, mbc, bc)
-    call update_symmetric_ibc(dm%ibcx_Th, mbc0, m%ibcx_qx)
+    call update_symmetric_ibc(dm%ibcx_Th, mbc0, dm%ibcx_qx)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcx_tau2 is wrong.")
     mbcx_tau2 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom x-viscous is ", mbcx_tau2
 
     call update_symmetric_ibc(dm%ibcz_qy, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcz_Th, mbc, bc)
-    call update_symmetric_ibc(dm%ibcz_Th, mbc0, m%ibcz_qz)
+    call update_symmetric_ibc(dm%ibcz_Th, mbc0, dm%ibcz_qz)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcz_tau2 is wrong.")
     mbcz_tau2 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom z-viscous is ", mbcz_tau2
 
-    call update_symmetric_ibc(dm%ibcy_qz, mbc, m%ibcy_Th)
-    mbcr_tau2 = mbc(:, JBC_PROD)
+    if(dm%icoordinate == ICYLINDRICAL) then
+      call update_symmetric_ibc(dm%ibcy_qz, mbc, dm%ibcy_Th)
+      mbcr_tau2 = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom r-vicous is ", mbcr_tau2
+    end if
 !----------------------------------------------------------------------------------------------------------
 !   z-mom
 !----------------------------------------------------------------------------------------------------------
     call update_symmetric_ibc(dm%ibcx_qx, mbc, dm%ibcx_qz)
     mbcx_cov3(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom x-convection is ", mbcx_cov3
 
     call update_symmetric_ibc(dm%ibcy_qy, mbc, dm%ibcy_qz)
     mbcy_cov3(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom y-convection is ", mbcy_cov3
 
     call update_symmetric_ibc(dm%ibcz_qz, mbc, dm%ibcz_qz)
     mbcz_cov3(:) = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom z-convection is ", mbcz_cov3
 
-    call update_symmetric_ibc(dm%ibcy_qy, mbc, dm%ibcy_qz)
-    mbcr_cov3(:) = mbc(:, JBC_PROD)
+    if(dm%icoordinate == ICYLINDRICAL) then
+      call update_symmetric_ibc(dm%ibcy_qy, mbc, dm%ibcy_qz)
+      mbcr_cov3(:) = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom r-convection is ", mbcr_cov3
+    end if
 
     call update_symmetric_ibc(dm%ibcz_qz, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcz_Th, mbc, bc)
     mbcz_tau3 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom z-viscous is ", mbcz_tau3
 
     call update_symmetric_ibc(dm%ibcx_qz, mbc)
     bc(:) = mbc(:, JBC_GRAD)
     call update_symmetric_ibc(dm%ibcx_Th, mbc, bc)
-    call update_symmetric_ibc(dm%ibcx_Th, mbc0, m%ibcx_qx)
+    call update_symmetric_ibc(dm%ibcx_Th, mbc0, dm%ibcx_qx)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcx_tau3 is wrong.")
     mbcx_tau3 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom x-viscous is ", mbcx_tau3
 
     call update_symmetric_ibc(dm%ibcy_qz, mbc)
     bc(:) = mbc(:, JBC_GRAD)
@@ -1032,46 +1060,84 @@ subroutine configure_bc_vars_thermo(dm)
     call update_symmetric_ibc(dm%ibcy_Th, mbc0, dm%ibcz_qy)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
     mbcy_tau3 = mbc(:, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom y-viscous is ", mbcy_tau3
 
+    if(dm%icoordinate == ICYLINDRICAL) then
+      call update_symmetric_ibc(dm%ibcy_Th, mbc, dm%ibcy_qz)
+      if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
+      mbcr_tau3 = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom r-viscous is ", mbcr_tau3
+    end if
 
-    call update_symmetric_ibc(dm%ibcy_Th, mbc, dm%ibcy_qz)
-    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
-    mbcr_tau3 = mbc(:, JBC_PROD)
+!----------------------------------------------------------------------------------------------------------
+!   energy-eqs
+!----------------------------------------------------------------------------------------------------------
+    if(dm%is_thermo) then
+      call update_symmetric_ibc(dm%ibcx_qx, mbc, dm%ibcx_Th)
+      ebcx_conv(:) = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-convection is ", ebcx_conv
 
+      call update_symmetric_ibc(dm%ibcy_qy, mbc, dm%ibcy_Th)
+      ebcy_conv(:) = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-convection is ", ebcy_conv
+
+      call update_symmetric_ibc(dm%ibcz_qz, mbc, dm%ibcz_Th)
+      ebcz_conv(:) = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-convection is ", ebcz_conv
+
+      call update_symmetric_ibc(dm%ibcx_Th, mbc)
+      bc(:) = mbc(:, JBC_GRAD)
+      call update_symmetric_ibc(dm%ibcx_Th, mbc, bc)
+      ebcx_difu = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-diffusion is ", ebcx_difu
+
+      call update_symmetric_ibc(dm%ibcy_Th, mbc)
+      bc(:) = mbc(:, JBC_GRAD)
+      call update_symmetric_ibc(dm%ibcy_Th, mbc, bc)
+      ebcy_difu = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-diffusion is ", ebcy_difu
+
+      call update_symmetric_ibc(dm%ibcz_Th, mbc)
+      bc(:) = mbc(:, JBC_GRAD)
+      call update_symmetric_ibc(dm%ibcz_Th, mbc, bc)
+      ebcz_difu = mbc(:, JBC_PROD)
+      if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-diffusion is ", ebcz_difu
+
+    end if
 
 !----------------------------------------------------------------------------------------------------------
 ! preparation for b.c.
 !----------------------------------------------------------------------------------------------------------
-  is_fbcx_velo_required = .false.
-  if(dm%ibcx_qx(1) == IBC_DIRICHLET .or. &
-     dm%ibcx_qx(2) == IBC_DIRICHLET .or. &
-     dm%ibcx_qy(1) == IBC_DIRICHLET .or. &
-     dm%ibcx_qy(2) == IBC_DIRICHLET .or. &
-     dm%ibcx_qz(1) == IBC_DIRICHLET .or. &
-     dm%ibcx_qz(2) == IBC_DIRICHLET ) then
-     is_fbcx_velo_required = .true.
-     ! to add neumann later, check
-  end if
-  is_fbcy_velo_required = .false.
-  if(dm%ibcy_qx(1) == IBC_DIRICHLET .or. &
-     dm%ibcy_qx(2) == IBC_DIRICHLET .or. &
-     dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
-     dm%ibcy_qy(2) == IBC_DIRICHLET .or. &
-     dm%ibcy_qz(1) == IBC_DIRICHLET .or. &
-     dm%ibcy_qz(2) == IBC_DIRICHLET ) then
-     is_fbcy_velo_required = .true.
-     ! to add neumann later, check
-  end if
-  is_fbcz_velo_required = .false.
-  if(dm%ibcz_qx(1) == IBC_DIRICHLET .or. &
-     dm%ibcz_qx(2) == IBC_DIRICHLET .or. &
-     dm%ibcz_qy(1) == IBC_DIRICHLET .or. &
-     dm%ibcz_qy(2) == IBC_DIRICHLET .or. &
-     dm%ibcz_qz(1) == IBC_DIRICHLET .or. &
-     dm%ibcz_qz(2) == IBC_DIRICHLET ) then
-     is_fbcy_velo_required = .true.
-     ! to add neumann later, check
-  end if
+    is_fbcx_velo_required = .false.
+    if(dm%ibcx_qx(1) == IBC_DIRICHLET .or. &
+      dm%ibcx_qx(2) == IBC_DIRICHLET .or. &
+      dm%ibcx_qy(1) == IBC_DIRICHLET .or. &
+      dm%ibcx_qy(2) == IBC_DIRICHLET .or. &
+      dm%ibcx_qz(1) == IBC_DIRICHLET .or. &
+      dm%ibcx_qz(2) == IBC_DIRICHLET ) then
+      is_fbcx_velo_required = .true.
+      ! to add neumann later, check
+    end if
+    is_fbcy_velo_required = .false.
+    if(dm%ibcy_qx(1) == IBC_DIRICHLET .or. &
+      dm%ibcy_qx(2) == IBC_DIRICHLET .or. &
+      dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
+      dm%ibcy_qy(2) == IBC_DIRICHLET .or. &
+      dm%ibcy_qz(1) == IBC_DIRICHLET .or. &
+      dm%ibcy_qz(2) == IBC_DIRICHLET ) then
+      is_fbcy_velo_required = .true.
+      ! to add neumann later, check
+    end if
+    is_fbcz_velo_required = .false.
+    if(dm%ibcz_qx(1) == IBC_DIRICHLET .or. &
+      dm%ibcz_qx(2) == IBC_DIRICHLET .or. &
+      dm%ibcz_qy(1) == IBC_DIRICHLET .or. &
+      dm%ibcz_qy(2) == IBC_DIRICHLET .or. &
+      dm%ibcz_qz(1) == IBC_DIRICHLET .or. &
+      dm%ibcz_qz(2) == IBC_DIRICHLET ) then
+      is_fbcy_velo_required = .true.
+      ! to add neumann later, check
+    end if
 
     return 
   end subroutine

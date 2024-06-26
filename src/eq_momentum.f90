@@ -449,31 +449,28 @@ if(iconvection) then
 ! X-pencil : X-mom convection term (x-c1/3): -d(gx * qx)/dx at (i', j, k)
 ! Note: if qx is asymmetric, then qx^2 is symmetric. 
 !----------------------------------------------------------------------------------------------------------  
-    call update_symmetric_ibc(dm%ibcx_qx(:), mbc, dm%ibcx_qx(:))
     if ( .not. dm%is_thermo) then
-      call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcx_qx * dm%fbcx_qx)
+      call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc, apcc, dm, dm%iAccuracy, mbcx_cov1, -dm%fbcx_qx * dm%fbcx_qx)
     else
-      call Get_x_1st_derivative_C2P_3D(-gx_ccc * qx_ccc, apcc, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcx_gx * dm%fbcx_qx)
+      call Get_x_1st_derivative_C2P_3D(-gx_ccc * qx_ccc, apcc, dm, dm%iAccuracy, mbcx_cov1, -dm%fbcx_gx * dm%fbcx_qx)
     end if
     fl%mx_rhs = fl%mx_rhs + apcc
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : X-mom convection term (x-c2/3): -d(<gy>^x * <qx>^y)/dy at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
-    call update_symmetric_ibc(dm%ibcy_qy(:), mbc, dm%ibcy_qx(:))
     if ( .not. dm%is_thermo) then
-      call Get_y_1st_derivative_P2C_3D(-qy_ppc_ypencil * qx_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcy_qy * dm%fbcy_qx)
+      call Get_y_1st_derivative_P2C_3D(-qy_ppc_ypencil * qx_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbcy_cov1, -dm%fbcy_qy * dm%fbcy_qx)
     else
-      call Get_y_1st_derivative_P2C_3D(-gy_ppc_ypencil * qx_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcy_gy * dm%fbcy_qx)
+      call Get_y_1st_derivative_P2C_3D(-gy_ppc_ypencil * qx_ppc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbcy_cov1, -dm%fbcy_gy * dm%fbcy_qx)
     end if
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : X-mom convection term (x-c3/3): -d(<gz>^x * <qx>^z)/dz at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
-    call update_symmetric_ibc(dm%ibcz_qz(:), mbc, dm%ibcz_qx(:))
     if ( .not. dm%is_thermo) then
-      call Get_z_1st_derivative_P2C_3D(-qz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcz_qz * dm%fbcz_qx )
+      call Get_z_1st_derivative_P2C_3D(-qz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbcz_cov1, -dm%fbcz_qz * dm%fbcz_qx )
     else
-      call Get_z_1st_derivative_P2C_3D(-gz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbc(:, JBC_PROD), -dm%fbcz_gz * dm%fbcz_qx )
+      call Get_z_1st_derivative_P2C_3D(-gz_pcp_zpencil * qx_pcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbcz_cov1, -dm%fbcz_gz * dm%fbcz_qx )
     end if
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
 #ifdef DEBUG_STEPS

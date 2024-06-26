@@ -2323,7 +2323,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2382,7 +2382,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2437,7 +2437,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2493,7 +2493,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2786,7 +2786,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2847,7 +2847,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2904,7 +2904,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -2965,7 +2965,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -3024,7 +3024,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -3080,7 +3080,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -3132,7 +3132,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)
@@ -3188,7 +3188,7 @@ contains
     integer,            intent(in ) :: ibc0(2)
     real(WP), optional, intent(in ) :: fbc(4)
 
-    integer :: ixsub, nsz
+    integer :: nsz
     integer :: i
     integer :: ibc(2)
     real(WP) :: d1(4)

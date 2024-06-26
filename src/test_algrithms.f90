@@ -66,9 +66,9 @@ contains
 !       initial u(x, 0) = sin(pi * x), for 0< x < 2
 !       result is : 
 !----------------------------------------------------------------------------------------------------------
-      dm%ibcx_qx(:,:) = IBC_PERIODIC
-      dm%ibcy_qx(:,:) = IBC_PERIODIC
-      dm%ibcz_qx(:,:) = IBC_PERIODIC
+      dm%ibcx_qx = IBC_PERIODIC
+      dm%ibcy_qx = IBC_PERIODIC
+      dm%ibcz_qx = IBC_PERIODIC
       nu = ONE
       do i = 1, dm%np(idir)
         xp = dm%h(idir) * real(i - 1, WP)
@@ -88,15 +88,15 @@ contains
         if(idir == 3) uz(:, :, i) =  alpha * xp + beta
       end do 
       if(idir == 1) then
-        dm%ibcx_qx(:,:) = IBC_DIRICHLET
+        dm%ibcx_qx = IBC_DIRICHLET
         dm%fbcx_qx(1, :, :) = beta / (ONE)
         dm%fbcx_qx(2, :, :) = (alpha * dm%lxx + beta) / (ONE)
       else if(idir == 2) then
-        dm%ibcy_qy(:,:) = IBC_DIRICHLET
+        dm%ibcy_qy = IBC_DIRICHLET
         dm%fbcy_qy(:, 1, :) = beta / (ONE)
         dm%fbcy_qy(:, 2, :) = (alpha * dm%lyt + beta) / (ONE)
       else if(idir == 3) then
-        dm%ibcz_qy(:,:) = IBC_DIRICHLET
+        dm%ibcz_qy = IBC_DIRICHLET
         dm%fbcz_qz(:, :, 1) = beta / (ONE)
         dm%fbcz_qz(:, :, 2) = (alpha * dm%lzz + beta) / (ONE)
       else
