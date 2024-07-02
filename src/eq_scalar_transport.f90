@@ -116,7 +116,7 @@ contains
         fbcx(i) = ZERO
       else
         ibcx(i) = dm%ibcx(i, 5)
-        fbcx(i) = dm%fbcx_var(i, 5)
+        fbcx(i) = dm%fbcx_t(i, 5)
       end if
     end do
     call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, ibcx(:), fbcx(:) )
@@ -125,10 +125,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
     apcc = apcc * kCond_pcc
     if (dm%ibcx(1, 5) == IBC_NEUMANN) then
-      apcc(1, :, :) = dm%fbcx_var(1, 5)
+      apcc(1, :, :) = dm%fbcx_t(1, 5)
     end if
     if (dm%ibcx(2, 5) == IBC_NEUMANN) then
-      apcc(dm%dpcc%xen(1), :, :) = dm%fbcx_var(2, 5)
+      apcc(dm%dpcc%xen(1), :, :) = dm%fbcx_t(2, 5)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d ( k_pcc * d (T) / dx ) dx
@@ -155,7 +155,7 @@ contains
         fbcy(i) = ZERO
       else
         ibcy(i) = dm%ibcy(i, 5)
-        fbcy(i) = dm%fbcy_var(i, 5)
+        fbcy(i) = dm%fbcy_t(i, 5)
       end if
     end do
     call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, ibcy(:), fbcy(:) )
@@ -164,10 +164,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
     if (dm%ibcy(1, 5) == IBC_NEUMANN) then
-      acpc_ypencil(:, 1, :) = dm%fbcy_var(1, 5)
+      acpc_ypencil(:, 1, :) = dm%fbcy_t(1, 5)
     end if
     if (dm%ibcy(2, 5) == IBC_NEUMANN) then
-      acpc_ypencil(:, dm%dcpc%yen(2), :) = dm%fbcy_var(2, 5)
+      acpc_ypencil(:, dm%dcpc%yen(2), :) = dm%fbcy_t(2, 5)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d ( k_cpc * d (T) / dy ) dy
@@ -196,7 +196,7 @@ contains
         fbcz(i) = ZERO
       else
         ibcz(i) = dm%ibcz(i, 5)
-        fbcz(i) = dm%fbcz_var(i, 5)
+        fbcz(i) = dm%fbcz_t(i, 5)
       end if
     end do
     call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, ibcz(:), fbcz(:) )
@@ -205,10 +205,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     if (dm%ibcz(1, 5) == IBC_NEUMANN) then
-      accp_zpencil(:, 1, :) = dm%fbcz_var(1, 5)
+      accp_zpencil(:, 1, :) = dm%fbcz_t(1, 5)
     end if
     if (dm%ibcz(2, 5) == IBC_NEUMANN) then
-      accp_zpencil(:, :, dm%dccp%zen(3)) = dm%fbcz_var(2, 5)
+      accp_zpencil(:, :, dm%dccp%zen(3)) = dm%fbcz_t(2, 5)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d ( k_ccp * d (T) / dz ) / dz
@@ -250,7 +250,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   update other properties from rho * h
 !----------------------------------------------------------------------------------------------------------
-    call Update_thermal_properties(fl, tm, dm)
+    call Update_thermal_properties(dm, fl, tm)
 !----------------------------------------------------------------------------------------------------------
 !   No Need to apply b.c.
 !----------------------------------------------------------------------------------------------------------

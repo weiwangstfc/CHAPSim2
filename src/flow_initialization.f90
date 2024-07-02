@@ -17,13 +17,14 @@
 ! this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 ! Street, Fifth Floor, Boston, MA 02110-1301, USA.
 !----------------------------------------------------------------------------------------------------------
-module flow_thermo_initialiasation
+module flow_thermo_initialisation
   use vars_df_mod
   use solver_tools_mod
   implicit none
 
   private  :: Allocate_flow_variables
   private  :: Allocate_thermo_variables
+  private  :: Allocate_vof_variables
   private :: Generate_poiseuille_flow_profile
   private :: Generate_random_field
 
@@ -31,10 +32,15 @@ module flow_thermo_initialiasation
   private :: Initialize_flow_from_given_values
   private :: Initialize_vortexgreen_2dflow
   private :: Initialize_vortexgreen_3dflow
+  private :: Initialize_rotational_flow
+  private :: Initialize_vof_2d
+  private :: Initialize_vof_3d
 
   public  :: Validate_TGV2D_error
   public  :: Initialize_flow_fields
   public  :: Initialize_thermo_fields
+  public  :: Initialize_vof_fields
+  public  :: Initialize_update_vortex_flow
 
 contains
 !==========================================================================================================
@@ -68,6 +74,7 @@ contains
     call alloc_x(fl%qz,      dm%dccp) ; fl%qz = ZERO
 
     call alloc_x(fl%pres,    dm%dccc) ; fl%pres = ZERO
+    call alloc_x(fl%pres0,    dm%dccc) ; fl%pres0 = ZERO
     call alloc_x(fl%pcor,    dm%dccc) ; fl%pcor = ZERO
     call alloc_z(fl%pcor_zpencil_ggg,    dm%dccc, .true.) ; fl%pcor_zpencil_ggg = ZERO
 
@@ -120,6 +127,61 @@ contains
     return
 
   end subroutine Allocate_thermo_variables
+  !==========================================================================================================
+  subroutine Allocate_vof_variables (vf, dm)
+    use parameters_constant_mod
+    use mpi_mod
+    implicit none
+
+    type(t_domain), intent(in)    :: dm
+    type(t_vof), intent(inout) :: vf
+
+    if(.not. dm%is_vof) return
+    if(nrank == 0) call Print_debug_start_msg("Allocating vof variables ...")
+    !----------------------------------------------------------------------------------------------------------
+    ! default : x pencil. 
+    ! varaible index is LOCAL. means 1:xsize(1)
+    !----------------------------------------------------------------------------------------------------------
+    call alloc_x(vf%phi,     dm%dccc) ; vf%phi    = ZERO
+    call alloc_x(vf%phi1,    dm%dccc) ; vf%phi1   = ZERO
+    call alloc_x(vf%phi2,    dm%dccc) ; vf%phi2   = ZERO
+    call alloc_x(vf%phi3,    dm%dccc) ; vf%phi3   = ZERO
+
+    call alloc_x(vf%rhostar,  dm%dccc) ; vf%rhostar = ONE
+    call alloc_x(vf%mustar,   dm%dccc) ; vf%mustar  = ONE
+
+    call alloc_x(vf%lnx,     dm%dccc) ; vf%lnx    = ZERO
+    call alloc_x(vf%lny,     dm%dccc) ; vf%lny    = ZERO
+    call alloc_x(vf%lnz,     dm%dccc) ; vf%lnz    = ZERO
+
+    call alloc_x(vf%llxx,    dm%dccc) ; vf%llxx   = ZERO
+    call alloc_x(vf%llyy,    dm%dccc) ; vf%llyy   = ZERO
+    call alloc_x(vf%llzz,    dm%dccc) ; vf%llzz   = ZERO
+    call alloc_x(vf%llxy,    dm%dccc) ; vf%llxy   = ZERO
+    call alloc_x(vf%llyz,    dm%dccc) ; vf%llyz   = ZERO
+    call alloc_x(vf%llxz,    dm%dccc) ; vf%llxz   = ZERO
+
+    call alloc_x(vf%a200,    dm%dccc) ; vf%a200   = ZERO
+    call alloc_x(vf%a020,    dm%dccc) ; vf%a020   = ZERO
+    call alloc_x(vf%a002,    dm%dccc) ; vf%a002   = ZERO
+    call alloc_x(vf%a110,    dm%dccc) ; vf%a110   = ZERO
+    call alloc_x(vf%a011,    dm%dccc) ; vf%a011   = ZERO
+    call alloc_x(vf%a101,    dm%dccc) ; vf%a101   = ZERO
+    call alloc_x(vf%a100,    dm%dccc) ; vf%a100   = ZERO
+    call alloc_x(vf%a010,    dm%dccc) ; vf%a010   = ZERO
+    call alloc_x(vf%a001,    dm%dccc) ; vf%a001   = ZERO
+    call alloc_x(vf%dd,      dm%dccc) ; vf%dd     = ZERO
+
+    call alloc_x(vf%kappa,   dm%dccc) ; vf%kappa  = ZERO
+
+    call alloc_x(vf%flx,     dm%dpcc) ; vf%flx    = ZERO
+    call alloc_x(vf%gly,     dm%dcpc) ; vf%gly    = ZERO
+    call alloc_x(vf%hlz,     dm%dccp) ; vf%hlz    = ZERO
+
+    if(nrank == 0) call Print_debug_end_msg
+    return
+
+  end subroutine Allocate_vof_variables
   !==========================================================================================================
   !> \brief Generate a flow profile for Poiseuille flow in channel or pipe.     
   !---------------------------------------------------------------------------------------------------------- 
@@ -336,7 +398,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The initial mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -344,7 +406,7 @@ contains
 
     ux(:, :, :) = ux(:, :, :) / ubulk
 
-    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("  The scaled mass flux is:")
       write (*, wrtfmt1r) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -364,9 +426,9 @@ contains
               file    = trim(dir_chkp)//'/check_poiseuille_profile.dat', &
               status  = 'replace',         &
               action  = 'write')
-      write(pf_unit, '(A)') "# yc, ux_laminar, ux_real"
+      write(pf_unit, '(A)') "#id,  yc, ux_laminar, ux_real"
       do j = 1, dm%nc(2)
-        write(pf_unit, '(5ES13.5)') dm%yc(j), ux_1c1(j), ux_ypencil(dm%dpcc%yen(1)/2, j, dm%dpcc%yen(3)/2)
+        write(pf_unit, '(1I3.1, 5ES15.7)') j, dm%yc(j), ux_1c1(j), ux_ypencil(1, j, 1)
       end do
       close(pf_unit)
     end if
@@ -455,7 +517,7 @@ contains
         jj = dm%dpcc%xst(2) + j - 1
         do i = 1, dm%dpcc%xsz(1)
           ii = dm%dpcc%xst(1) + i - 1
-          ux(i, j, k) = ux(i, j, k) + dm%fbcx_var(1, j, k, 1)
+          ux(i, j, k) = ux(i, j, k) + dm%fbcx_qx(1, j, k)
         end do
       end do
     end do
@@ -466,7 +528,7 @@ contains
         jj = dm%dcpc%xst(2) + j - 1
         do i = 1, dm%dcpc%xsz(1)
           ii = dm%dcpc%xst(1) + i - 1
-          uy(i, j, k) = uy(i, j, k) + dm%fbcx_var(1, j, k, 2)
+          uy(i, j, k) = uy(i, j, k) + dm%fbcx_qy(1, j, k)
         end do
       end do
     end do
@@ -477,7 +539,7 @@ contains
         jj = dm%dccp%xst(2) + j - 1
         do i = 1, dm%dccp%xsz(1)
           ii = dm%dccp%xst(1) + i - 1
-          uz(i, j, k) = uz(i, j, k) + dm%fbcx_var(1, j, k, 3)
+          uz(i, j, k) = uz(i, j, k) + dm%fbcx_qz(1, j, k)
         end do
       end do
     end do
@@ -549,6 +611,10 @@ contains
         call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
       else if (dm%icase == ICASE_BURGERS) then
         call Initialize_burgers_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+      else if (dm%icase == ICASE_ROTATE ) then
+        call Initialize_rotational_flow   (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+      else if (dm%icase == ICASE_VORTEX ) then
+        call Initialize_update_vortex_flow (dm, fl%time, fl%qx, fl%qy, fl%qz, fl%pres)
       else
       end if
     else
@@ -624,7 +690,71 @@ contains
     return
   end subroutine
 
+  !==========================================================================================================
+  subroutine Initialize_vof_fields(vf, fl, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    use io_restart_mod
+    use io_visulisation_mod
+    use vof_info_mod
+    use eq_vof_mod
+    implicit none
 
+    type(t_domain), intent(inout) :: dm
+    type(t_flow),   intent(inout) :: fl
+    type(t_vof), intent(inout) :: vf
+
+    integer :: i
+
+    if(.not. dm%is_vof) return
+    if(nrank == 0) call Print_debug_start_msg("Initialize vof fields ...")
+
+!----------------------------------------------------------------------------------------------------------
+! to allocate vof variables
+!----------------------------------------------------------------------------------------------------------
+    call Allocate_vof_variables (vf, dm)
+!----------------------------------------------------------------------------------------------------------
+! initialize primary variables
+!----------------------------------------------------------------------------------------------------------
+    vf%time = ZERO
+    vf%iteration = 0
+    vf%voflim = 1.e-8_WP
+
+    if(vf%inittype == INIT_RESTART) then
+      call read_instantanous_vof_raw_data  (dm, vf)
+      call Initialize_vof_properties (fl, vf)
+      call restore_vof_variables_from_restart(dm, fl, vf)
+
+    else if (vf%inittype == INIT_INTERPL) then
+    
+    else if (vf%inittype == INIT_SLOTDISK) then
+      call Initialize_vof_2d      (dm, vf%inittype, vf%phi, vf%ibeta)
+    else if (vf%inittype == INIT_SLOTSPHERE) then
+      call Initialize_vof_3d    (dm, vf%inittype, vf%phi, vf%ibeta)
+    else if (vf%inittype == INIT_2DBUB) then
+      call Initialize_vof_2d  (dm, vf%inittype, vf%phi, vf%ibeta)
+      call Initialize_vof_properties (fl, vf)
+      vf%time = ZERO
+      vf%iteration = 0
+    else if (vf%inittype == INIT_3DBUB) then
+      call Initialize_vof_3d  (dm, vf%inittype, vf%phi, vf%ibeta)
+      call Initialize_vof_properties (fl, vf)
+      vf%time = ZERO
+      vf%iteration = 0
+    end if
+
+    call Update_Re(fl%iterfrom, fl)
+    call Update_gravity_sigma(fl, vf)
+    call cal_colour_function(dm, vf)
+
+!    call Calculate_massflux_from_velocity (fl, dm)
+    call write_snapshot_vof(vf, dm)
+
+!    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+!    fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
+
+    return
+  end subroutine
 
 
 !==========================================================================================================
@@ -705,6 +835,720 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine Initialize_vortexgreen_2dflow
+!==========================================================================================================
+!==========================================================================================================
+!> \brief Initialize rotating velocity field (for the slotted disk/sphere test)
+!>
+!> This subroutine is called locally once.
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!_______________________________________________________________________________
+  subroutine  Initialize_rotational_flow (dm, ux, uy, uz, p)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(in ) :: dm
+    real(WP),       intent(inout) :: ux(:, :, :) , &
+                                     uy(:, :, :) , &
+                                     uz(:, :, :) , &
+                                     p (:, :, :)
+    real(WP) :: xc, yc
+    real(WP) :: xp, yp
+    integer :: i, j, ii, jj
+    type(DECOMP_INFO) :: dtmp
+
+    if(nrank == 0) call Print_debug_mid_msg("Initializing rotational flow ...")
+!----------------------------------------------------------------------------------------------------------
+!   ux in x-pencil
+!----------------------------------------------------------------------------------------------------------
+    dtmp = dm%dpcc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
+      yc = dm%yc(jj)
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
+        xp = dm%h(1) * real(ii - 1, WP)
+        ux(i, j, :) =  real(0.5, WP) - yc
+      end do
+    end do
+!----------------------------------------------------------------------------------------------------------
+!   uy in x-pencil
+!---------------------------------------------------------------------------------------------------------- 
+    dtmp = dm%dcpc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
+      yp = dm%yp(jj)
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
+        xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+        uy(i, j, :) = xc - real(0.5, WP)
+      end do
+    end do
+!----------------------------------------------------------------------------------------------------------
+!   uz in x-pencil
+!---------------------------------------------------------------------------------------------------------- 
+    uz(:, :, :) =  ZERO
+!----------------------------------------------------------------------------------------------------------
+!   p in x-pencil
+!----------------------------------------------------------------------------------------------------------
+    p(:, :, :) =  ZERO
+
+    if(nrank == 0) call Print_debug_end_msg
+
+    return
+
+  end subroutine Initialize_rotational_flow
+!==========================================================================================================
+!==========================================================================================================
+!> \brief Initialize a time dependent vortex flow (for the stretched sphere test)
+!>
+!> This subroutine is called locally once.
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!_______________________________________________________________________________
+  subroutine  Initialize_update_vortex_flow (dm, time, ux, uy, uz, p)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(in ) :: dm
+    real(WP),       intent(in ) :: time
+    real(WP),       intent(inout) :: ux(:, :, :) , &
+                                     uy(:, :, :) , &
+                                     uz(:, :, :) , &
+                                     p (:, :, :)
+    real(WP) :: xc, yc, zc
+    real(WP) :: xp, yp, zp
+    real(WP), parameter :: ct = 3.
+    integer :: i, j, k, ii, jj, kk
+    type(DECOMP_INFO) :: dtmp
+
+    if(nrank == 0) call Print_debug_mid_msg("Initializing vortex flow ...")
+!----------------------------------------------------------------------------------------------------------
+!   ux in x-pencil
+!----------------------------------------------------------------------------------------------------------
+    dtmp = dm%dpcc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
+      zc = dm%h(3) * (real(kk-1, WP) + HALF)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
+          xp = dm%h(1) * real(ii-1, WP)
+          ux(i, j, k) =  TWO*(sin(PI*xp)**2)*sin(TWO*PI*yc)*sin(TWO*PI*zc)*cos(PI*time/ct)
+        end do
+      end do
+    end do
+!----------------------------------------------------------------------------------------------------------
+!   uy in x-pencil
+!---------------------------------------------------------------------------------------------------------- 
+    dtmp = dm%dcpc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
+      zc = dm%h(3) * (real(kk-1, WP) + HALF)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        yp = dm%yp(jj)
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
+          xc = dm%h(1) * (real(ii-1, WP) + HALF)
+          uy(i, j, k) = -sin(TWO*PI*xc)*(sin(PI*yp)**2)*sin(TWO*PI*zc)*cos(PI*time/ct)
+        end do
+      end do
+    end do
+!----------------------------------------------------------------------------------------------------------
+!   uz in x-pencil
+!---------------------------------------------------------------------------------------------------------- 
+    dtmp = dm%dccp
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
+      zp = dm%h(3) * real(kk-1, WP)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        yc = dm%yc(jj)
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
+          xc = dm%h(1) * (real(ii - 1, WP) + HALF)
+          uz(i, j, k) = -sin(TWO*PI*xc)*sin(TWO*PI*yc)*(sin(PI*zp)**2)*cos(PI*time/ct)
+        end do
+      end do
+    end do
+!----------------------------------------------------------------------------------------------------------
+!   p in x-pencil
+!----------------------------------------------------------------------------------------------------------
+    p(:, :, :) =  ZERO
+
+    if(nrank == 0) call Print_debug_end_msg
+
+    return
+
+  end subroutine Initialize_update_vortex_flow
+!==========================================================================================================
+!==========================================================================================================
+!> \brief Initialize vof field of a rotating slotted disk 
+!>
+!> This subroutine is called locally once.
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!_______________________________________________________________________________
+  subroutine  Initialize_vof_2d(dm, icase, phi, ibeta)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(IN) :: dm
+    integer, intent(IN) :: icase
+    integer, intent(IN) :: ibeta
+    real(WP),       intent(INOUT) :: phi(:, :, :)
+    real(WP) :: xp1, yp1, xp2, yp2
+    integer :: i, j, ii, jj
+    type(DECOMP_INFO) :: dtmp
+
+    real(WP) :: hh, beta
+    real(WP) :: dx, dy
+    integer :: ires_x, ires_y
+
+    real(WP), parameter :: eps = 1.d-30
+
+    if(nrank == 0) call Print_debug_mid_msg("Initializing 2d vof field ...")
+!----------------------------------------------------------------------------------------------------------
+!   vof in x-pencil
+!----------------------------------------------------------------------------------------------------------
+
+    beta = real(ibeta, WP)
+
+    ires_x = 20
+    ires_y = 20
+
+    dtmp = dm%dccc
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
+      yp1 = dm%yp(jj)
+      yp2 = dm%yp(jj+1)
+      do i = 1, dtmp%xsz(1)
+        ii = dtmp%xst(1) + i - 1
+        xp1 = dm%h(1) * real(ii - 1, WP)
+        xp2 = dm%h(1) * real(ii, WP)
+        hh = xp2-xp1
+        dx = (xp2-xp1)/real(ires_x, WP)
+        dy = (yp2-yp1)/real(ires_y, WP)
+        phi(i, j, :) =  CAL_VOF(xp1, yp1, xp2, yp2, ires_x, ires_y)
+      end do
+    end do
+
+    if(nrank == 0) call Print_debug_end_msg
+
+    return
+
+    contains
+
+    function CAL_VOF(x1, y1, x2, y2, ires_x, ires_y) result (vof)
+
+      implicit none
+
+      real(WP), intent(IN) :: x1, y1, x2, y2
+      integer, intent(IN) :: ires_x, ires_y
+      real(WP) :: vof
+
+      real(WP) :: vol
+      real(WP), allocatable, dimension(:,:) :: xx, yy
+      real(WP), allocatable, dimension(:,:) :: psi, colorfunc
+      real(WP), allocatable, dimension(:) :: temp
+      real(WP), allocatable, dimension(:) :: x,y
+
+      integer :: i, j
+
+      allocate (xx(ires_x+1,ires_y+1))
+      allocate (yy(ires_x+1,ires_y+1))
+      allocate (psi(ires_x+1,ires_y+1))
+      allocate (colorfunc(ires_x+1,ires_y+1))
+      allocate (temp(ires_y+1))
+
+      xx(1,:) = x1
+      yy(:,1) = y1
+      do i=1, ires_x
+        xx(i+1,:) = xx(i,:)+dx
+      enddo
+      do j=1, ires_y
+        yy(:,j+1) = yy(:,j)+dy
+      enddo
+      do j=1, ires_y+1
+        do i=1, ires_x+1
+          if(icase==INIT_SLOTDISK) then
+            psi(i,j) = CAL_PSI_SLOTDISK(xx(i,j), yy(i,j))
+          else if(icase==INIT_2DBUB)then
+            psi(i,j) = CAL_PSI_2DBUB(xx(i,j), yy(i,j))
+          end if
+          colorfunc(i,j) = 0.5d0*(1.d0+tanh(beta/hh*psi(i,j)))
+        enddo
+      enddo
+
+      vol = abs((y2-y1)*(x2-x1))
+
+      do j=1, ires_y+1
+        temp(j) = SIMPSON(xx(:,j), colorfunc(:,j))
+      enddo
+
+      vof = SIMPSON(yy(1,:), temp)/vol
+
+      deallocate(xx, yy, psi, colorfunc, temp)
+
+    end function CAL_VOF
+
+    function CAL_PSI_2DBUB(x, y) result (psi)
+
+      implicit none
+
+      real(WP), intent(IN) :: x, y
+      real(WP) :: psi
+      real(WP) :: radi, xc0, yc0
+      real(WP) :: x1, y1
+
+      radi = 0.25d0
+      xc0 = 0.5d0
+      yc0 = 0.5d0
+
+      psi = radi-sqrt((x-xc0)**2+(y-yc0)**2)
+
+    end function CAL_PSI_2DBUB
+
+    function CAL_PSI_SLOTDISK(x, y) result (psi)
+
+      implicit none
+
+      real(WP), intent(IN) :: x, y
+      real(WP) :: psi
+
+      real(WP) :: radi, xo, yo, xc0, yc0, x110, y110, x120, y120, x210, y210,  &
+                  x220, y220
+      real(WP) :: psi1, psi2, psi3, psi4
+      real(WP) :: x1, y1
+      real(WP) :: d11, d12, d13, d21, d22, d23, d31, d32, d33
+
+      radi = 0.15d0
+      xo = 0.5d0
+      yo = 0.5d0
+      xc0 = 0.5d0
+      yc0 = 0.75d0
+      x110 = xc0-0.025d0
+      y110 = -sqrt(radi**2-0.025d0**2)+yc0
+      x120 = xc0-0.025d0
+      y120 = 0.85d0
+      x210 = xc0+0.025d0
+      y210 = -sqrt(radi**2-0.025d0**2)+yc0
+      x220 = xc0+0.025d0
+      y220 = 0.85d0
+
+      x1 = x-xo
+      y1 = y-yo
+      psi1 = radi-sqrt((x-xc0)**2+(y-yc0)**2)
+      if (x1>=x120-xo .and. x1<=x220-xo .and. y1<=y120-yo) psi1 = 1.d0
+      d11 = (x-x110)*(y120-y110)-(x120-x110)*(y-y110)
+      d11 = d11/sqrt((x120-x110)**2+(y120-y110)**2+eps)
+      d12 = sqrt((x-x110)**2+(y-y110)**2)
+      d13 = sqrt((x-x120)**2+(y-y120)**2)
+      if (y1>=y110-yo .and. y1<=y120-yo) then
+        psi2 = d11
+      else
+        psi2 = min(d12,d13)
+      endif
+      d21 = (x-x210)*(y220-y210)-(x220-x210)*(y-y210)
+      d21 = d21/sqrt((x220-x210)**2+(y220-y210)**2+eps)
+      d22 = sqrt((x-x210)**2+(y-y210)**2)
+      d23 = sqrt((x-x220)**2+(y-y220)**2)
+      if (y1>=y210-yo .and. y1<=y220-yo)then
+        psi3 = d21
+      else
+        psi3 = min(d22,d23)
+      endif
+      d31 = (x-x120)*(y220-y120)-(x220-x120)*(y-y120)
+      d31 = d31/sqrt((x220-x120)**2+(y220-y120)**2+eps)
+      d32 = sqrt((x-x120)**2+(y-y120)**2)
+      d33 = sqrt((x-x220)**2+(y-y220)**2)
+      if (x1>=x120-xo .and. x1<=x220-xo)then
+        psi4 = d31
+      else
+        psi4 = min(d32,d33)
+      endif
+
+      if (psi1>=0.d0 .and. (d11<=0.d0 .or. d21>=0.d0 .or. d31<=0.d0))then
+        psi = min(abs(psi1),abs(psi2),abs(psi3),abs(psi4))
+      else
+        psi = -min(abs(psi1),abs(psi2),abs(psi3),abs(psi4))
+      endif
+
+    end function CAL_PSI_SLOTDISK
+
+    function SIMPSON(x, func) result(integral)
+
+      implicit none
+
+      real(WP), dimension(:), intent(IN) :: x, func
+      real(WP) :: integral
+
+      integer :: i, n
+      real(WP) :: h
+
+      n = size(x)-1
+      if(mod(n,2)/=0) then
+        if(nrank == 0) then
+          write (*,*) 'Error: n is not a even number in SIMPSON, simulation &&
+                       terminated'
+        end if
+        stop
+      endif
+      h = (x(n+1)-x(1))/real(n,kind=8)
+
+      integral = 0.d0
+      do i=3, n-1, 2
+        integral = integral+2.d0*func(i)
+      enddo
+
+      integral = integral+4.d0*func(2)+4.d0*func(n)
+
+      do i=4, n-2, 2
+        integral = integral+4.d0*func(i)
+      enddo
+
+      integral = (h/3.d0)*(func(1)+func(n+1)+integral)
+
+    end function SIMPSON
+
+  end subroutine Initialize_vof_2d
+!==========================================================================================================
+!==========================================================================================================
+!> \brief Initialize vof field of a rotating slotted sphere 
+!>
+!> This subroutine is called locally once.
+!>
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d             domain
+!> \param[out]    f             flow
+!_______________________________________________________________________________
+  subroutine  Initialize_vof_3d(dm, icase, phi, ibeta)
+    use parameters_constant_mod
+    use udf_type_mod
+    use math_mod
+    implicit none
+    type(t_domain), intent(IN) :: dm
+    integer, intent(IN) :: icase
+    integer, intent(IN) :: ibeta
+    real(WP),       intent(INOUT) :: phi(:, :, :)
+    real(WP) :: xp1, yp1, xp2, yp2, zp1, zp2
+    integer :: i, j, k, ii, jj, kk
+    type(DECOMP_INFO) :: dtmp
+
+    real(WP) :: hh, beta
+    real(WP) :: dx, dy, dz
+    integer :: ires_x, ires_y, ires_z
+
+    real(WP), parameter :: eps = 1.e-30_WP
+
+    if(nrank == 0) call Print_debug_mid_msg("Initializing 3d vof field ...")
+!----------------------------------------------------------------------------------------------------------
+!   vof in x-pencil
+!----------------------------------------------------------------------------------------------------------
+
+    beta = real(ibeta, WP)
+
+    ires_x = 20
+    ires_y = 20
+    ires_z = 20
+
+    dtmp = dm%dccc
+    do k = 1, dtmp%xsz(3)
+      kk = dtmp%xst(3) + k - 1
+      zp1 = dm%h(3) * real(kk - 1, WP)
+      zp2 = dm%h(3) * real(kk, WP)
+      do j = 1, dtmp%xsz(2)
+        jj = dtmp%xst(2) + j - 1
+        yp1 = dm%yp(jj)
+        yp2 = dm%yp(jj+1)
+        do i = 1, dtmp%xsz(1)
+          ii = dtmp%xst(1) + i - 1
+          xp1 = dm%h(1) * real(ii - 1, WP)
+          xp2 = dm%h(1) * real(ii, WP)
+          hh = xp2-xp1
+          dx = (xp2-xp1)/real(ires_x, WP)
+          dy = (yp2-yp1)/real(ires_y, WP)
+          dz = (zp2-zp1)/real(ires_z, WP)
+          phi(i, j, k) =  CAL_VOF(xp1, yp1, zp1, xp2, yp2, zp2, &
+                                  ires_x, ires_y, ires_z)
+        end do
+      end do
+    end do
+
+    if(nrank == 0) call Print_debug_end_msg
+
+    return
+
+    contains
+
+    function CAL_VOF(x1, y1, z1, x2, y2, z2, ires_x, ires_y, ires_z) result (vof)
+
+      implicit none
+
+      real(WP), intent(IN) :: x1, y1, z1, x2, y2, z2
+      integer, intent(IN) :: ires_x, ires_y, ires_z
+      real(WP) :: vof
+
+      real(WP) :: vol
+      real(WP), allocatable, dimension(:,:,:) :: xx, yy, zz
+      real(WP), allocatable, dimension(:,:,:) :: psi, colorfunc
+      real(WP), allocatable, dimension(:,:) :: temp1
+      real(WP), allocatable, dimension(:) :: temp2
+      real(WP), allocatable, dimension(:) :: x,y
+
+      integer :: i, j, k
+
+      allocate (xx(ires_x+1,ires_y+1,ires_z+1))
+      allocate (yy(ires_x+1,ires_y+1,ires_z+1))
+      allocate (zz(ires_x+1,ires_y+1,ires_z+1))
+      allocate (psi(ires_x+1,ires_y+1,ires_z+1))
+      allocate (colorfunc(ires_x+1,ires_y+1,ires_z+1))
+      allocate (temp1(ires_y+1,ires_z+1))
+      allocate (temp2(ires_z+1))
+
+      xx(1,:,:) = x1
+      yy(:,1,:) = y1
+      zz(:,:,1) = z1
+      do i=1, ires_x
+        xx(i+1,:,:) = xx(i,:,:)+dx
+      enddo
+      do j=1, ires_y
+        yy(:,j+1,:) = yy(:,j,:)+dy
+      enddo
+      do k=1, ires_z
+        zz(:,:,k+1) = zz(:,:,k)+dz
+      enddo
+      do k=1, ires_z+1
+        do j=1, ires_y+1
+          do i=1, ires_x+1
+            if(icase==INIT_SLOTSPHERE) then
+              psi(i,j,k) = CAL_PSI_SLOTSPHERE(xx(i,j,k), yy(i,j,k), zz(i,j,k))
+            else if(icase==INIT_3DBUB) then
+              psi(i,j,k) = CAL_PSI_3DBUB(xx(i,j,k), yy(i,j,k), zz(i,j,k))
+            end if
+            colorfunc(i,j,k) = 0.5_WP*(1._WP+tanh(beta/hh*psi(i,j,k)))
+          enddo
+        enddo
+      enddo
+
+      vol = abs((z2-z1)*(y2-y1)*(x2-x1))
+
+      do k=1, ires_z+1
+        do j=1, ires_y+1
+          temp1(j,k) = SIMPSON(xx(:,j,k), colorfunc(:,j,k))
+        enddo
+      enddo
+
+      do k=1, ires_z+1
+        temp2(k) = SIMPSON(yy(1,:,k), temp1(:,k))
+      enddo
+
+      vof = SIMPSON(zz(1,1,:), temp2)/vol
+
+      deallocate(xx, yy, zz, psi, colorfunc, temp1, temp2)
+
+    end function CAL_VOF
+
+    function CAL_PSI_3DBUB(x, y, z) result (psi)
+
+      implicit none
+
+      real(WP), intent(IN) :: x, y, z
+      real(WP) :: psi
+
+      real(WP) :: radi, xc0, yc0, zc0
+
+!      radi = 1.0_WP
+!      xc0 = 4.0_WP
+!      yc0 = 4.0_WP
+!      zc0 = 2.0_WP
+
+      radi = 0.25_WP
+      xc0 = 0.5_WP
+      yc0 = 0.5_WP
+      zc0 = 0.5_WP
+
+      psi = radi-sqrt((x-xc0)**2+(y-yc0)**2+(z-zc0)**2)
+
+    end function CAL_PSI_3DBUB
+
+    function CAL_PSI_SLOTSPHERE(x, y, z) result (psi)
+
+      implicit none
+
+      real(WP), intent(IN) :: x, y, z
+      real(WP) :: psi
+
+      real(WP) :: radi, r1, r2, xc0, yc0, zc0,           &
+                  x110, y110, x120, y120, x210, y210,    &
+                  x220, y220, z121, z122
+      real(WP) :: psi1, psi2, psi3, psi4
+      real(WP) :: d1, d2, d3, d4, k
+
+      radi = 0.15_WP
+      xc0 = 0.5_WP
+      yc0 = 0.75_WP
+      zc0 = 0.25_WP
+      r1 = sqrt(radi**2-0.025_WP**2)
+      r2 = sqrt(radi**2-0.1_WP**2)
+      x110 = xc0-0.025_WP
+      y110 = -r1+yc0
+      x120 = xc0-0.025_WP
+      y120 = 0.85_WP
+      z121 = -sqrt(r1**2-(y120-yc0)**2)+zc0
+      z122 = sqrt(r1**2-(y120-yc0)**2)+zc0
+      x210 = xc0+0.025_WP
+      y210 = -r1+yc0
+      x220 = xc0+0.025_WP
+      y220 = 0.85_WP
+
+      d1 = radi-sqrt((x-xc0)**2+(y-yc0)**2+(z-zc0)**2)
+      psi1 = d1
+
+      if (x>=x120 .and. x<=x220 .and. y<=y120) psi1 = 1._WP
+
+      k = (z122-zc0)/(y120-yc0)
+      if ((z-zc0)**2+(y-yc0)**2<=r1**2 .and. y<=y120) then
+        d2 = (x-x110)*(y120-y110)-(x120-x110)*(y-y110)
+        d2 = d2/sqrt((x120-x110)**2+(y120-y110)**2+eps)
+        psi2 = d2
+      else if ((y-yc0)>=k*(z-zc0) .and. (y-yc0)>=-k*(z-zc0) .and. y>y120) then
+        psi2 = CAL_LINE_DIST(z,y,x-x110,z121,y120,z122,y120)
+      else
+        psi2 = CAL_CIRC_DIST(z,y,x-x110,zc0,yc0,r1)
+      endif
+
+      if ((z-zc0)**2+(y-yc0)**2<=r1**2 .and. y<=y120) then
+        d3 = (x-x210)*(y220-y210)-(x220-x210)*(y-y210)
+        d3 = d3/sqrt((x220-x210)**2+(y220-y210)**2+eps)
+        psi3 = d3
+      else if ((y-yc0)>=(z-zc0) .and. (y-yc0)>=-(z-zc0) .and. y>y120) then
+        psi3 = CAL_LINE_DIST(z,y,x-x210,z121,y120,z122,y120)
+      else
+        psi3 = CAL_CIRC_DIST(z,y,x-x210,zc0,yc0,r1)
+      endif
+
+      k = (z122-zc0)/(x210-xc0)
+      if ((x-xc0)**2+(z-zc0)**2<=r2**2 .and. x<=x210 .and. x>=x110) then
+        d4 = (x-x120)*(y220-y120)-(x220-x120)*(y-y120)
+        d4 = d4/sqrt((x220-x120)**2+(y220-y120)**2+eps)
+        psi4 = d4 
+      else if ((z-zc0)<=k*(x-xc0) .and. (z-zc0)>=-k*(x-xc0) .and. x>x210) then
+        psi4 = CAL_LINE_DIST(x,z,y-y120,x210,z121,x210,z122)
+      else if ((z-zc0)<=-k*(x-xc0) .and. (z-zc0)>=k*(x-xc0) .and. x<x110) then
+        psi4 = CAL_LINE_DIST(x,z,y-y120,x110,z121,x110,z122)
+      else
+        psi4 = CAL_CIRC_DIST(x,z,y-y120,xc0,yc0,r2)
+      endif   
+
+!      if (d1>=0._WP .and. (d2<=0._WP .or. d3>=0._WP .or. d4<=0._WP))then
+      if (d1>=0._WP .and. (x<=x120 .or. x>=x220 .or. y>=y120))then
+        psi = min(abs(psi1),abs(psi2),abs(psi3),abs(psi4))
+      else
+        psi = -min(abs(psi1),abs(psi2),abs(psi3),abs(psi4))
+      endif
+
+    end function CAL_PSI_SLOTSPHERE
+
+    function CAL_CIRC_DIST(x1,x2,norm,o1,o2,r) result(dist)
+
+      implicit none
+
+      real(WP), intent(IN) :: x1,x2,norm,o1,o2,r
+      real(WP) :: dist
+
+      dist = sqrt((x1-o1)**2+(x2-o2)**2)-r
+      dist = sqrt(norm**2+dist**2)
+
+    end function CAL_CIRC_DIST
+
+    function CAL_LINE_DIST(x1,x2,norm,p11,p12,p21,p22) result(dist)
+
+      implicit none
+
+      real(WP), intent(IN) :: x1,x2,norm,p11,p12,p21,p22
+      real(WP) :: dist
+
+      real(WP) :: d1,d2
+
+      d1 = 0._WP
+      d2 = 0._WP
+      if(x1>=p11 .and. x1<=p21)then
+        dist = (x1-p11)*(p22-p12)-(p21-p11)*(x2-p12)
+        dist = dist/sqrt((p21-p11)**2+(p22-p12)**2+eps)
+        dist = sqrt(norm**2+dist**2)
+      else
+        d1 = sqrt((x1-p11)**2+(x2-p12)**2+norm**2)
+        d2 = sqrt((x1-p21)**2+(x2-p22)**2+norm**2)
+        dist = min(d1,d2)
+      end if
+
+    end function CAL_LINE_DIST
+
+    function SIMPSON(x, func) result(integral)
+
+      implicit none
+
+      real(WP), dimension(:), intent(IN) :: x, func
+      real(WP) :: integral
+
+      integer :: i, n
+      real(WP) :: h
+
+      n = size(x)-1
+      if(mod(n,2)/=0) then
+        if(nrank == 0) then
+          write (*,*) 'Error: n is not a even number in SIMPSON, simulation &&
+                       terminated'
+        end if
+        stop
+      endif
+      h = (x(n+1)-x(1))/real(n,kind=8)
+
+      integral = 0._WP
+      do i=3, n-1, 2
+        integral = integral+2._WP*func(i)
+      enddo
+
+      integral = integral+4._WP*func(2)+4._WP*func(n)
+
+      do i=4, n-2, 2
+        integral = integral+4._WP*func(i)
+      enddo
+
+      integral = (h/3._WP)*(func(1)+func(n+1)+integral)
+
+    end function SIMPSON
+
+  end subroutine Initialize_vof_3d
 !==========================================================================================================
 !==========================================================================================================
   subroutine  Validate_TGV2D_error(fl, dm)
@@ -927,4 +1771,4 @@ contains
     return
   end subroutine Initialize_vortexgreen_3dflow
 
-end module flow_thermo_initialiasation
+end module flow_thermo_initialisation

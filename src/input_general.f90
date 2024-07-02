@@ -65,13 +65,17 @@ contains
     real(WP), allocatable :: rtmpx(:)
     integer, allocatable  :: itmpx(:)
     integer :: i, j
+    logical :: is_any_flow
     logical :: is_any_energyeq
+    logical :: is_any_vof
     
     if(nrank == 0) then
       call Print_debug_start_msg("CHAPSim2.0 Starts ...")
       write (*, wrtfmt1i) '  The precision is   :', WP
     end if
+    is_any_flow     = .false.
     is_any_energyeq = .false.
+    is_any_vof      = .false.
 
     !----------------------------------------------------------------------------------------------------------
     ! open file
@@ -199,12 +203,13 @@ contains
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, wrtfmt1s) '  icase option: 0 = OTHERS,  1 = CHANNEL, 2 = PIPE'
             write (*, wrtfmt1s) '                3 = ANNUAL,  4 = TGV3D,   5 = TGV2D'
-            write (*, wrtfmt1s) '                6 = BURGERS, 7 = ALGTEST'
+            write (*, wrtfmt1s) '                6 = BURGERS, 7 = ALGTEST  8 = ROTATE'
             write (*, wrtfmt1i) '  current icase id : ', domain(i)%icase
             write (*, wrtfmt1s) '  coordinates system option : 1 = Cartesian,  2 = Cylindrical'
             write (*, wrtfmt1i) '  current coordinates system : ', domain(i)%icoordinate
             write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
             write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
+            if((domain(i)%lyt - domain(i)%lyb) < ZERO) call Print_error_msg("Y length is smaller than zero.")
             write (*, wrtfmt1r) '  scaled length in z-direction :', domain(i)%lzz
           end do
         end if
@@ -220,6 +225,7 @@ contains
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
           read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5) ! dimensional
+          read(inputUnit, *, iostat = ioerr) varname, domain(i)%ibcx_nominal(1:2, 6), domain(i)%fbcx_const(1:2, 6)
         end do
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
@@ -227,12 +233,14 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5) ! dimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcy_nominal(1:2, 6), domain(1)%fbcy_const(1:2, 6)
 
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5) ! dimensional
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 6), domain(1)%fbcz_const(1:2, 6)
 
         do i = 1, nxdomain
           domain(i)%ibcy_nominal(:, :) = domain(1)%ibcy_nominal(:, :)
@@ -242,7 +250,7 @@ contains
           domain(i)%fbcz_const(:, :) = domain(1)%fbcz_const(:, :)
 
           domain(i)%is_periodic(:) = .false.
-          do j = 1, 5
+          do j = 1, 6
             if(domain(i)%ibcx_nominal(1, j) == IBC_PERIODIC .or. &
                domain(i)%ibcx_nominal(2, j) == IBC_PERIODIC) then
               domain(i)%ibcx_nominal(1:2, j) = IBC_PERIODIC
@@ -264,7 +272,7 @@ contains
             domain(i)%ibcy_nominal(:, :) = IBC_INTERIOR
             domain(i)%is_periodic(2) = .false.
           end if
-
+          call configure_bc_type(domain(i)) 
         end do
         
         if(nrank == 0) then
@@ -279,17 +287,20 @@ contains
             write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
             write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
             write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5)
+            write (*, wrtfmt2i2r) '  vof-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 6), domain(i)%fbcx_const(1:2, 6)
           end do
           write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
           write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2)
           write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
           write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
           write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5)
+          write (*, wrtfmt2i2r) '  vof-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 6), domain(1)%fbcy_const(1:2, 6)
           write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
           write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
           write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
           write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
           write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5)
+          write (*, wrtfmt2i2r) '  vof-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 6), domain(1)%fbcz_const(1:2, 6)
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [mesh] 
@@ -408,6 +419,7 @@ contains
       !----------------------------------------------------------------------------------------------------------
       else if ( secname(1:slen) == '[flow]' ) then
 
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%is_flow
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%inittype
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%iterfrom
         read(inputUnit, *, iostat = ioerr) varname, flow(1)%init_velo3d(1:3)
@@ -417,6 +429,9 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%ren
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%idriven
         read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%drvfc   
+        read(inputUnit, *, iostat = ioerr) varname, flow(1 : nxdomain)%igravity
+
+        if(ANY(domain(:)%is_flow)) is_any_flow = .true.
 
         do i = 1, nxdomain
 
@@ -440,6 +455,7 @@ contains
         if( nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt3l) '  is flow field solved               ?', domain(i)%is_flow
             write (*, wrtfmt1i) '  flow initial type                  :', flow(i)%inittype
             write (*, wrtfmt1i) '  iteration starting from            :', flow(i)%iterfrom
             if(flow(i)%inittype == INIT_GVCONST) then
@@ -451,6 +467,7 @@ contains
             write (*, wrtfmt1r) '  flow Reynolds number               :', flow(i)%ren
             write (*, wrtfmt1i) '  flow driven force type             :', flow(i)%idriven
             write (*, wrtfmt1r) '  flow driven force(cf)              :', flow(i)%drvfc        
+            write (*, wrtfmt1i) '  gravity direction                  :', flow(i)%igravity
           end do
         end if
       !----------------------------------------------------------------------------------------------------------
@@ -459,7 +476,6 @@ contains
       else if ( secname(1:slen) == '[thermo]' )  then 
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%is_thermo
         read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%icht
-        read(inputUnit, *, iostat = ioerr) varname,   flow(1 : nxdomain)%igravity
 
         if(ANY(domain(:)%is_thermo)) is_any_energyeq = .true.
         if(is_any_energyeq) allocate( thermo(nxdomain) )
@@ -480,19 +496,78 @@ contains
         if(is_any_energyeq) thermo(1 : nxdomain)%iterfrom = itmp
         read(inputUnit, *, iostat = ioerr) varname, rtmpx(1: nxdomain)
         if(is_any_energyeq) thermo(1 : nxdomain)%init_T0 = rtmpx(1: nxdomain)
-        
+
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  is thermal field solved   ?', domain(i)%is_thermo
-            write (*, wrtfmt1i) '  is CHT solved             ?', domain(i)%icht
-            write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
+            write (*, wrtfmt3l) '  is thermal field solved   ?', domain(i)%is_thermo
+            write (*, wrtfmt3l) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
             write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%ref_l0
             write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%ref_T0
             write (*, wrtfmt1i) '  thermo field initial type :', thermo(i)%inittype
             write (*, wrtfmt1i) '  iteration starting from   :', thermo(i)%iterfrom
             write (*, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%init_T0
+          end do
+        end if
+      !----------------------------------------------------------------------------------------------------------
+      ! [vof] 
+      !----------------------------------------------------------------------------------------------------------
+      else if ( secname(1:slen) == '[vof]' )  then 
+        read(inputUnit, *, iostat = ioerr) varname, domain(1 : nxdomain)%is_vof
+
+        if(ANY(domain(:)%is_vof)) is_any_vof = .true.
+        if(is_any_vof) allocate( vof(nxdomain) )
+
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_vof) vof(1 : nxdomain)%ref_l0 = rtmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_vof) vof(1 : nxdomain)%ifluid = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_vof) vof(1 : nxdomain)%inittype = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_vof) vof(1 : nxdomain)%ireconstruct  = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_vof) vof(1 : nxdomain)%ibeta = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_vof) vof(1 : nxdomain)%igrad = itmp
+        read(inputUnit, *, iostat = ioerr) varname, itmp
+        if(is_any_vof) vof(1 : nxdomain)%iterfrom = itmp
+
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_vof) vof(1 : nxdomain)%rho1 = rtmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_vof) vof(1 : nxdomain)%rho2 = rtmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_vof) vof(1 : nxdomain)%mu1 = rtmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_vof) vof(1 : nxdomain)%mu2 = rtmp
+        read(inputUnit, *, iostat = ioerr) varname, rtmp
+        if(is_any_vof) vof(1 : nxdomain)%sigma0 = rtmp
+
+        if(is_any_vof) then
+          if(vof(i)%inittype==INIT_SLOTDISK .or. vof(i)%inittype==INIT_SLOTSPHERE) then
+            domain(1 : nxdomain)%is_flow   = .false.
+            domain(1 : nxdomain)%is_thermo = .false.
+          end if
+        end if
+
+        if(is_any_vof .and. nrank == 0) then
+          do i = 1, nxdomain
+            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt3l) '  is vof function solved       ?', domain(i)%is_vof
+            write (*, wrtfmt1r) '  reference length (m)         :', vof(i)%ref_l0
+            write (*, wrtfmt1i) '  secondary fluid medium       :', vof(i)%ifluid
+            write (*, wrtfmt1i) '  vof function initial type    :', vof(i)%inittype
+            write (*, wrtfmt1i) '  interface reconstruction     :', vof(i)%ireconstruct
+            write (*, wrtfmt1i) '  interface sharpness factor   :', vof(i)%ibeta
+            write (*, wrtfmt1i) '  gradient calculation scheme  :', vof(i)%igrad
+            write (*, wrtfmt1i) '  iteration starting from      :', vof(i)%iterfrom
+            write (*, wrtfmt1r) '  constant phase 1 density     :', vof(i)%rho1
+            write (*, wrtfmt1r) '  constant phase 2 density     :', vof(i)%rho2
+            write (*, wrtfmt1r) '  constant phase 1 viscosity   :', vof(i)%mu1
+            write (*, wrtfmt1r) '  constant phase 1 viscosity   :', vof(i)%mu2
+            write (*, wrtfmt1r) '  surface tension coefficient  :', vof(i)%sigma0
           end do
         end if
       !----------------------------------------------------------------------------------------------------------
@@ -505,6 +580,10 @@ contains
         if(is_any_energyeq) thermo(1 : nxdomain)%nIterThermoStart = itmpx(1:nxdomain)
         read(inputUnit, *, iostat = ioerr) varname,   itmpx(1:nxdomain)
         if(is_any_energyeq) thermo(1 : nxdomain)%nIterThermoEnd = itmpx(1:nxdomain)
+        read(inputUnit, *, iostat = ioerr) varname,   itmpx(1:nxdomain)
+        if(is_any_vof) vof(1 : nxdomain)%nIterVofStart = itmpx(1:nxdomain)
+        read(inputUnit, *, iostat = ioerr) varname,   itmpx(1:nxdomain)
+        if(is_any_vof) vof(1 : nxdomain)%nIterVofEnd = itmpx(1:nxdomain)
 
         if( nrank == 0) then
           do i = 1, nxdomain
@@ -514,6 +593,10 @@ contains
             if(is_any_energyeq) then
             write (*, wrtfmt1i) '  thermal simulation starting from iteration :', thermo(i)%nIterThermoStart
             write (*, wrtfmt1i) '  thermal simulation ending   at   iteration :', thermo(i)%nIterThermoEnd
+            end if
+            if(is_any_vof) then
+            write (*, wrtfmt1i) '  vof simulation starting from iteration :', vof(i)%nIterVofStart
+            write (*, wrtfmt1i) '  vof simulation ending   at   iteration :', vof(i)%nIterVofEnd
             end if
           end do
         end if
@@ -625,7 +708,7 @@ contains
   
       end if 
       
-      domain(i)%tAlpha(:) = domain(i)%tGamma(:) + domain(i)%tZeta(:)
+      domain(i)%tAlpha(0:3) = domain(i)%tGamma(0:3) + domain(i)%tZeta(0:3)
 
     end do
 

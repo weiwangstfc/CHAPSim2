@@ -9,6 +9,7 @@ module solver_tools_mod
 
   public  :: Update_Re
   public  :: Update_PrGr
+  public  :: Update_gravity_sigma
   public  :: Calculate_xz_mean_yprofile
   public  :: Adjust_to_xzmean_zero
   public  :: Get_volumetric_average_3d
@@ -51,6 +52,54 @@ contains
     return
   end subroutine Update_Re
 
+!==========================================================================================================
+!==========================================================================================================
+  !For now if VOF equation is solved without thermal, properties are not scaled
+  !The Re specified in the input is not the real Re. Later this could be useful
+  !when properties are scaled based on phase 1.
+  subroutine Update_gravity_sigma(fl, vf)
+    use parameters_constant_mod
+    use thermo_info_mod
+    use udf_type_mod
+    implicit none
+    type(t_flow),   intent(inout) :: fl
+    type(t_vof),    intent(inout) :: vf
+
+    real(WP) :: u0, rtmp0, rtmp
+
+    if (fl%rre * vf%rho0 * vf%ref_l0 /= 0) then
+        u0 = ONE / (fl%rre * vf%rho0 * vf%ref_l0) * vf%mu0
+    else
+        print *, "Error: Division by zero in Update_gravity_sigma"
+        return
+    end if
+
+    rtmp0 = vf%ref_l0 / u0 / u0
+    rtmp  = rtmp0 * GRAVITY
+
+    fl%fgravity(:) = ZERO
+    if (fl%igravity == 1 ) then ! flow/gravity same dirction - x
+      fl%fgravity(1) =  rtmp
+    else if (fl%igravity == 2 ) then ! flow/gravity same dirction - y
+      fl%fgravity(2) =  rtmp
+    else if (fl%igravity == 3 ) then ! flow/gravity same dirction - z
+      fl%fgravity(3) =  rtmp
+    else if (fl%igravity == -1 ) then ! flow/gravity opposite dirction - x
+      fl%fgravity(1) =  - rtmp
+    else if (fl%igravity == -2 ) then ! flow/gravity opposite dirction - y
+      fl%fgravity(2) =  - rtmp
+    else if (fl%igravity == -3 ) then ! flow/gravity opposite dirction - z
+      fl%fgravity(3) =  - rtmp
+    else ! no gravity
+      fl%fgravity(:) = ZERO
+    end if
+
+    vf%sigma12 = rtmp0 * vf%sigma0
+
+  end subroutine Update_gravity_sigma
+
+!==========================================================================================================
+!==========================================================================================================
   subroutine Update_PrGr(fl, tm)
     use parameters_constant_mod
     use thermo_info_mod
@@ -308,14 +357,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%ibcx(:, 1))
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%ibcy(:, 2))
     var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : \overline{w}^z/dz at cell centre
@@ -323,7 +372,7 @@ contains
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%ibcz(:, 3))
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
@@ -431,7 +480,7 @@ contains
         allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
         vcp_ypencil = ZERO
 
-        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy, fbcy)
+        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, ibcy)
 
         fo = ZERO
         vol = ZERO
@@ -767,15 +816,23 @@ contains
 
     integer :: m
 
-    if(.not. dm%is_thermo) return
+    if(.not. (dm%is_thermo .or.dm%is_vof)) return
 !----------------------------------------------------------------------------------------------------------
 !   get bc gx, gy, gz (at bc not cell centre)
 !----------------------------------------------------------------------------------------------------------
-    do m = NBC + 1, NBC + NDIM
-      dm%fbcx_var(:, :, :, m) = dm%fbcx_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcy_var(:, :, :, m) = dm%fbcy_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-      dm%fbcz_var(:, :, :, m) = dm%fbcz_var(:, :, :, m - NBC) * dm%ftpbcx_var(:, :, :)%d
-    end do
+
+    dm%fbcx_gx(:, :, :) = dm%fbcx_qx(:, :, :) * dm%ftpbcx_var(:, :, :)%d
+    dm%fbcy_gx(:, :, :) = dm%fbcy_qx(:, :, :) * dm%ftpbcy_var(:, :, :)%d
+    dm%fbcz_gx(:, :, :) = dm%fbcz_qx(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+
+    dm%fbcx_gy(:, :, :) = dm%fbcx_qy(:, :, :) * dm%ftpbcx_var(:, :, :)%d
+    dm%fbcy_gy(:, :, :) = dm%fbcy_qy(:, :, :) * dm%ftpbcy_var(:, :, :)%d
+    dm%fbcz_gy(:, :, :) = dm%fbcz_qy(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+
+    dm%fbcx_gz(:, :, :) = dm%fbcx_qz(:, :, :) * dm%ftpbcx_var(:, :, :)%d
+    dm%fbcy_gz(:, :, :) = dm%fbcy_qz(:, :, :) * dm%ftpbcy_var(:, :, :)%d
+    dm%fbcz_gz(:, :, :) = dm%fbcz_qz(:, :, :) * dm%ftpbcz_var(:, :, :)%d
+
 
     return
   end subroutine

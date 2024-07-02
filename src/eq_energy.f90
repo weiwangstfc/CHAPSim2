@@ -106,7 +106,7 @@ contains
 ! x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
     tm%ene_rhs = ZERO
-    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%dh * dm%fbcx_var(:, :, :, 1 + NBC) ) ! accc = -d(gx * h)/dx
+    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%ibcx(:, 5), dm%ftpbcx_var(:, :, :)%dh * dm%fbcx_gx(:, :, :) ) ! accc = -d(gx * h)/dx
     tm%ene_rhs = tm%ene_rhs + accc
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d (T) / dx 
@@ -118,7 +118,7 @@ contains
     apcc = apcc * kCond_pcc
     do n = 1, 2
       if (dm%ibcx(n, 5) == IBC_NEUMANN) then
-        fbcx(:, :, :) = dm%fbcx_var(:, :, :, 5)
+        fbcx(:, :, :) = dm%fbcx_t(:, :, :)
       else if (dm%ibcx(n, 5) == IBC_DIRICHLET) then
         fbcx(:, :, :) = dm%ftpbcx_var(:, :, :)%t * dm%ftpbcx_var(:, :, :)%k
       end if
@@ -137,7 +137,7 @@ contains
 ! y-pencil : d (gy * h_cpc) / dy 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_ypencil = ZERO
-    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%ftpbcy_var(:, :, :)%dh * dm%fbcy_var(:, :, :, 2 + NBC) )
+    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%ftpbcy_var(:, :, :)%dh * dm%fbcy_gy(:, :, :) )
     ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : d (T) / dy
@@ -149,7 +149,7 @@ contains
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
     do n = 1, 2
       if (dm%ibcy(1, 5) == IBC_NEUMANN) then
-        fbcy(:, :, :) = dm%fbcy_var(:, :, :, 5)
+        fbcy(:, :, :) = dm%fbcy_t(:, :, :)
       else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
         fbcy(:, :, :) = dm%ftpbcy_var(:, :, :)%t * dm%ftpbcy_var(:, :, :)%k
       end if
@@ -170,7 +170,7 @@ contains
 ! z-pencil : d (gz * h_ccp) / dz 
 !----------------------------------------------------------------------------------------------------------
     ene_rhs_zpencil = ZERO
-    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%ftpbcz_var(:, :, :)%dh * dm%fbcz_var(:, :, :, 3 + NBC ) )
+    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%ibcz(:, 3), dm%ftpbcz_var(:, :, :)%dh * dm%fbcz_gz(:, :, :) )
     ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
 !----------------------------------------------------------------------------------------------------------
 ! z-pencil : d (T) / dz
@@ -182,7 +182,7 @@ contains
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     do n = 1, 2
       if (dm%ibcz(1, 5) == IBC_NEUMANN) then
-        fbcz(:, :, :) = dm%fbcz_var(:, :, :, 5)
+        fbcz(:, :, :) = dm%fbcz_t(:, :, :)
       else if (dm%ibcy(1, 5) == IBC_DIRICHLET) then
         fbcz(:, :, :) = dm%ftpbcz_var(:, :, :)%t * dm%ftpbcz_var(:, :, :)%k
       end if
@@ -206,7 +206,7 @@ contains
   end subroutine Compute_energy_rhs
 !==========================================================================================================
 !==========================================================================================================
-  subroutine Solve_energy_eq(fl, tm, dm, isub)
+  subroutine Solve_energy_eq(isub, dm, fl, tm)
     use udf_type_mod
     use thermo_info_mod 
     use solver_tools_mod
@@ -227,7 +227,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   update other properties from rho * h
 !----------------------------------------------------------------------------------------------------------
-    call Update_thermal_properties(fl, tm, dm)
+    call Update_thermal_properties(dm, fl, tm)
 !----------------------------------------------------------------------------------------------------------
 !   No Need to apply b.c.
 !----------------------------------------------------------------------------------------------------------

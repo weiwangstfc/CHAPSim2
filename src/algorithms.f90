@@ -89,6 +89,100 @@ contains
     return
   end subroutine Solve_TDMA_cyclic
 !==========================================================================================================
+  subroutine Solve_Gauss_Seidel_basic(x, a, b, c, d, n)
+    
+    use precision_mod
+    use math_mod
+    implicit none
+
+    integer, intent(in) :: n
+    real(WP), intent(inout) :: x(n) ! R in, X out.
+    real(WP), intent(in) :: a(n), b(n), c(n), d(n)
+    
+    integer :: i
+    real(WP) :: res
+    real(WP) :: x0(n), r(n)
+    real(WP) :: a1(n), b1(n), c1(n), d1(n)
+    real(WP),parameter :: tor = 1.e-12_WP
+
+    a1 = a
+    b1 = b
+    c1 = c
+    d1 = d
+    ! restore coefficients
+    c1(1) = c1(1)*b1(1)
+    do i = 2, n
+      if(i<n) c1(i) = c1(i)/d1(i)
+    end do
+
+    r = x
+
+    do
+      x0 = x
+      do i=1,n    
+        if(i==1)then
+          x(i) = r(i)-c1(i)*x(i+1)
+        else if(i==n) then
+          x(i) = r(i)-a1(i)*x(i-1)
+        else
+          x(i) = r(i)-a1(i)*x(i-1)-c1(i)*x(i+1)
+        end if
+        x(i) = x(i)/b1(i)
+      enddo
+      res = maxval(abs_wp(x-x0))
+      write(*,*) res
+      if(res<tor) exit
+    enddo
+
+  end subroutine Solve_Gauss_Seidel_basic
+  !==========================================================================================================
+  subroutine Solve_Gauss_Seidel_cyclic(x, a, b, c, d, n)
+    
+    use precision_mod
+    use math_mod
+    implicit none
+
+    integer, intent(in) :: n
+    real(WP), intent(inout) :: x(n) ! R in, X out.
+    real(WP), intent(in) :: a(n), b(n), c(n), d(n)
+    
+    integer :: i
+    real(WP) :: res
+    real(WP) :: x0(n), r(n)
+    real(WP) :: a1(n), b1(n), c1(n), d1(n)
+    real(WP),parameter :: tor = 1.e-12_WP
+
+    a1 = a
+    b1 = b
+    c1 = c
+    d1 = d
+    ! restore coefficients
+    c1(1) = c1(1)*b1(1)
+    do i = 2, n
+      if(i<n) c1(i) = c1(i)/d1(i)
+    end do
+
+    r = x
+
+    do
+      x0 = x
+      do i=1,n    
+        if(i==1)then
+          x(i) = r(i)-a1(i)*x(n)-c1(i)*x(i+1)
+        else if(i==n) then
+          x(i) = r(i)-a1(i)*x(i-1)-c1(i)*x(1)
+        else
+          x(i) = r(i)-a1(i)*x(i-1)-c1(i)*x(i+1)
+        end if
+        x(i) = x(i)/b1(i)
+      enddo
+      res = maxval(abs_wp(x-x0))
+      write(*,*) res
+      if(res<tor) exit
+    enddo
+
+  end subroutine Solve_Gauss_Seidel_cyclic
+!==========================================================================================================
   subroutine Solve_TDMA(peri, x, a, b, c, d, n)
     use input_general_mod
     use precision_mod
@@ -101,8 +195,10 @@ contains
 
     if(peri) then
       call Solve_TDMA_cyclic(x(:), a(:), b(:), c(:), d(:), n)
+!      call Solve_Gauss_Seidel_cyclic(x(:), a(:), b(:), c(:), d(:), n)
     else 
       call Solve_TDMA_basic (x(:), a(:), b(:), c(:), d(:), n)
+!      call Solve_Gauss_Seidel_basic(x(:), a(:), b(:), c(:), d(:), n)
     end if
 
     return
@@ -114,10 +210,10 @@ contains
     use math_mod
     implicit none
     integer, parameter :: n = 10
-    real(WP) :: a(n), b(n), c(n), d(n), r(n)
+    real(WP) :: a(n), b(n), c(n), d(n), r(n), r1(n)
     real(WP) :: ref(n)
     integer :: i
-    !real(WP) :: PI = 3.1416926
+    real(WP) :: PI = 3.1416926
 
     ! example 1, n = 10
     a(1: n) = [3.0_WP, 1.0_WP, 1.0_WP, 7.0_WP, 6.0_WP, 3.0_WP, 8.0_WP, 6.0_WP, 5.0_WP, 4.0_WP]
@@ -127,22 +223,29 @@ contains
     ref=[1.0_WP, -1.0_WP, 2.0_WP, 1.0_WP, 3.0_WP, -2.0_WP, 0.0_WP, 4.0_WP, 2.0_WP, -1.0_WP]
 
     ! example 2, n = 7
-    ! a(1 : n) = [2.0_WP, 1.0_WP/4.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/4.0_WP, 2.0_WP]
-    ! b(1 : n) = [1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP]
-    ! c(1 : n) = [2.0_WP, 1.0_WP/4.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/4.0_WP, 2.0_WP]
-    ! r(1 : n) = [2.06748E+00_WP,  6.20245E-01_WP, -6.66189E-01_WP, -1.33238E+00_WP, -6.66189E-01_WP,  &
-    !             6.20245E-01_WP,  2.06748E+00_WP]
-    ! ref(1: n) = [dcos(0.0_WP), dcos(PI/3.0_WP), dcos(2.0_WP*PI/3.0_WP), &
-    !             dcos(PI), dcos(4.0_WP*PI/3.0_WP), dcos(5.0_WP*PI/3.0_WP), dcos(2.0_WP*PI)]
+!    a(1 : n) = [2.0_WP, 1.0_WP/4.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/4.0_WP, 2.0_WP]
+!    b(1 : n) = [1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP, 1.0_WP]
+!    c(1 : n) = [2.0_WP, 1.0_WP/4.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/3.0_WP, 1.0_WP/4.0_WP, 2.0_WP]
+!    r(1 : n) = [2.06748E+00_WP,  6.20245E-01_WP, -6.66189E-01_WP, -1.33238E+00_WP, -6.66189E-01_WP,  &
+!                6.20245E-01_WP,  2.06748E+00_WP]
+!    ref(1: n) = [dcos(0.0_WP), dcos(PI/3.0_WP), dcos(2.0_WP*PI/3.0_WP), &
+!                 dcos(PI), dcos(4.0_WP*PI/3.0_WP), dcos(5.0_WP*PI/3.0_WP), dcos(2.0_WP*PI)]
 
     d(:) = 0.0
 
     call Preprocess_TDMA_coeffs(a(:), b(:), c(:), d(:), n)
-    !write (*,'(A,7F8.4)') 'a', a(:)
-    !write (*,'(A,7F8.4)') 'b', b(:)
-    !write (*,'(A,7F8.4)') 'c', c(:)
-    !write (*,'(A,7F8.4)') 'd', d(:)
-    !write (*,'(A,7F8.4)') 'r', r(:)
+!    write (*,'(A,7F8.4)') 'a', a(:)
+!    write (*,'(A,7F8.4)') 'b', b(:)
+!    write (*,'(A,7F8.4)') 'c', c(:)
+!    write (*,'(A,7F8.4)') 'd', d(:)
+!    write (*,'(A,7F8.4)') 'r', r(:)
+
+!    r1(:) = r(:)
+!    call Solve_Gauss_Seidel_basic(r1(:), a(:), b(:), c(:), d(:), n)
+!    write (*, '(A)') 'Test_Gauss_Seidel_basic: cal, ref, diff'
+!    do i = 1, n
+!      write (*, '(I3, 2F8.4, 1ES17.7E3)') i, r1(i), ref(i), abs_wp(r1(i)-ref(i))
+!    end do
 
     call Solve_TDMA(.false., r(:), a(:), b(:), c(:), d(:), n)
     !write (*,'(A,7F8.4)') 'o', r(:)

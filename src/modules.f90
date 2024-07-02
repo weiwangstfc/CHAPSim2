@@ -111,7 +111,8 @@ module parameters_constant_mod
                                             ZERO, ZERO, ONE  /), &
                                             (/3, 3/) )
 
-  real(WP), parameter :: GRAVITY     = 9.80665_WP
+!  real(WP), parameter :: GRAVITY     = 9.80665_WP
+  real(WP), parameter :: GRAVITY     = 0.98_WP
 !----------------------------------------------------------------------------------------------------------
 ! case id
 !----------------------------------------------------------------------------------------------------------
@@ -122,7 +123,9 @@ module parameters_constant_mod
                         ICASE_TGV3D   = 4, &
                         ICASE_TGV2D   = 5, &
                         ICASE_BURGERS = 6, &
-                        ICASE_ALGTEST = 7
+                        ICASE_ALGTEST = 7, &
+                        ICASE_ROTATE  = 8, &
+                        ICASE_VORTEX  = 9
   integer, parameter :: NDIM = 3
 !----------------------------------------------------------------------------------------------------------
 ! flow initilisation
@@ -134,6 +137,13 @@ module parameters_constant_mod
                         INIT_GVCONST = 4, &
                         INIT_POISEUILLE = 5, &
                         INIT_FUNCTION = 6
+!----------------------------------------------------------------------------------------------------------
+! vof initilisation
+!----------------------------------------------------------------------------------------------------------
+  integer, parameter :: INIT_SLOTDISK   = 2,  &
+                        INIT_SLOTSPHERE = 3,  &
+                        INIT_2DBUB      = 4,  &
+                        INIT_3DBUB      = 5
 !----------------------------------------------------------------------------------------------------------
 ! coordinates
 !----------------------------------------------------------------------------------------------------------
@@ -169,7 +179,7 @@ module parameters_constant_mod
                         IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
                         IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
                         IBC_OTHERS      = 11   ! exclusive
-  integer, parameter :: NBC = 5! u, v, w, p, T
+  integer, parameter :: NBC = 6! u, v, w, p, T, vof
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -283,6 +293,7 @@ module wtformat_mod
   character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.6)'
   character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F23.15)'
   character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
+  character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES23.15, A24, 1ES23.15)'
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.6)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.6)'
   character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L3)'
@@ -336,7 +347,9 @@ module udf_type_mod
     logical :: is_periodic(NDIM)        ! is this direction periodic bc?
     logical :: is_stretching(NDIM)      ! is this direction of stretching grids?
     logical :: is_compact_scheme     ! is compact scheme applied?
+    logical :: is_flow               ! is the momentum equation to be solved?
     logical :: is_thermo             ! is thermal field considered? 
+    logical :: is_vof                ! is two phase flow (VOF method) considered?
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type
@@ -357,15 +370,15 @@ module udf_type_mod
     integer :: np_geo(NDIM) ! geometric points
     integer :: np(NDIM) ! calculated points
     integer :: proben   ! global number of probed points
-    integer  :: ibcx(2, NBC) ! real bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy(2, NBC) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcz(2, NBC) ! real bc type, (5 variables, 2 sides)
-    integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
-    integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
-    integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
-    real(wp) :: fbcx_const(2, NBC) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcy_const(2, NBC) ! bc values, (5 variables, 2 sides)
-    real(wp) :: fbcz_const(2, NBC) ! bc values, (5 variables, 2 sides)
+    integer  :: ibcx(2, NBC) ! real bc type, (6 variables, 2 sides), u, v, w, p, T, vof
+    integer  :: ibcy(2, NBC) ! real bc type, (6 variables, 2 sides)
+    integer  :: ibcz(2, NBC) ! real bc type, (6 variables, 2 sides)
+    integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (6 variables, 2 sides), u, v, w, p, T, vof
+    integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (6 variables, 2 sides)
+    integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (6 variables, 2 sides)
+    real(wp) :: fbcx_const(2, NBC) ! bc values, (6 variables, 2 sides)
+    real(wp) :: fbcy_const(2, NBC) ! bc values, (6 variables, 2 sides)
+    real(wp) :: fbcz_const(2, NBC) ! bc values, (6 variables, 2 sides)
 
     real(wp) :: lxx
     real(wp) :: lyt
@@ -401,9 +414,33 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
-    real(wp), allocatable :: fbcx_var(:, :, :, :) ! variable bc
-    real(wp), allocatable :: fbcy_var(:, :, :, :) ! variable bc
-    real(wp), allocatable :: fbcz_var(:, :, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_qx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_gx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_gx(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_pr(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_pr(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_pr(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_t(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_t(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_t(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_vof(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_vof(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcz_vof(:, :, :) ! variable bc
     type(t_fluidThermoProperty), allocatable :: ftpbcx_var(:, :, :)  ! undim, xbc state
     type(t_fluidThermoProperty), allocatable :: ftpbcy_var(:, :, :)  ! undim, ybc state
     type(t_fluidThermoProperty), allocatable :: ftpbcz_var(:, :, :)  ! undim, zbc state
@@ -433,6 +470,8 @@ module udf_type_mod
     real(WP) :: fgravity(NDIM)
 
     real(wp) :: noiselevel
+    real(wp) :: umax(1:3)
+    real(wp) :: mcon
   
     real(WP), allocatable :: qx(:, :, :)  !
     real(WP), allocatable :: qy(:, :, :)
@@ -442,6 +481,7 @@ module udf_type_mod
     real(WP), allocatable :: gz(:, :, :)
 
     real(WP), allocatable :: pres(:, :, :)
+    real(WP), allocatable :: pres0(:, :, :)
     real(WP), allocatable :: pcor(:, :, :)
     real(WP), allocatable :: pcor_zpencil_ggg(:, :, :)
 
@@ -490,6 +530,74 @@ module udf_type_mod
 
   end type t_thermo
 
+  type t_vof
+    integer  :: ifluid
+    integer  :: ifluid1
+    integer  :: inittype
+    integer  :: ireconstruct
+    integer  :: ibeta
+    integer  :: igrad
+    integer  :: iterfrom
+    integer  :: iteration
+    integer  :: nIterVofStart
+    integer  :: nIterVofEnd
+    real(WP) :: time
+    real(WP) :: voflim
+    real(WP) :: ref_l0
+    real(WP) :: rho0
+    real(WP) :: rho1
+    real(WP) :: rho2
+    real(WP) :: mu0
+    real(WP) :: mu1
+    real(WP) :: mu2
+    real(WP) :: sigma0
+    real(WP) :: sigma12
+
+    ! volume fraction
+    real(WP), allocatable :: phi(:, :, :)
+    real(WP), allocatable :: phi1(:, :, :)
+    real(WP), allocatable :: phi2(:, :, :)
+    real(WP), allocatable :: phi3(:, :, :)
+
+    ! interface density factor
+    real(WP), allocatable :: rhostar(:, :, :)
+
+    ! interface viscosity factor
+    real(WP), allocatable :: mustar(:, :, :)
+
+    ! parameters of the colour function
+    ! normal vector based on the local coordinates (nX, nY, nZ)
+    real(WP), allocatable :: lnx(:, :, :)
+    real(WP), allocatable :: lny(:, :, :)
+    real(WP), allocatable :: lnz(:, :, :)
+    ! Cartesian curvature tensor based on the local coodinates (lXX, lYY, ...)
+    real(WP), allocatable :: llxx(:, :, :)
+    real(WP), allocatable :: llyy(:, :, :)
+    real(WP), allocatable :: llzz(:, :, :)
+    real(WP), allocatable :: llxy(:, :, :)
+    real(WP), allocatable :: llyz(:, :, :)
+    real(WP), allocatable :: llxz(:, :, :)
+    ! coefficients of the approximation polynomial
+    real(WP), allocatable :: a200(:, :, :)
+    real(WP), allocatable :: a020(:, :, :)
+    real(WP), allocatable :: a002(:, :, :)
+    real(WP), allocatable :: a110(:, :, :)
+    real(WP), allocatable :: a011(:, :, :)
+    real(WP), allocatable :: a101(:, :, :)
+    real(WP), allocatable :: a100(:, :, :)
+    real(WP), allocatable :: a010(:, :, :)
+    real(WP), allocatable :: a001(:, :, :)
+    real(WP), allocatable :: dd(:, :, :)
+
+    ! curvature of the interface
+    real(WP), allocatable :: kappa(:, :, :)
+
+    ! numerical fluxes
+    real(WP), allocatable :: flx(:, :, :)
+    real(WP), allocatable :: gly(:, :, :)
+    real(WP), allocatable :: hlz(:, :, :)
+
+  end type t_vof
 
 end module
 !==========================================================================================================
@@ -501,6 +609,7 @@ module vars_df_mod
   type(t_domain), allocatable, save :: domain(:)
   type(t_flow),   allocatable, save :: flow(:)
   type(t_thermo), allocatable, save :: thermo(:)
+  type(t_vof),    allocatable, save :: vof(:)
 end module
 !==========================================================================================================
 module files_io_mod
@@ -711,4 +820,43 @@ contains
   end function real2str
 end module typeconvert_mod
 
+module EvenOdd_mod
+  implicit none
+contains
+  logical function is_even(number)  
+    implicit none
+    integer, intent(in) :: number  
+    ! Check if the number is even or odd
+    if (mod(number, 2) == 0) then
+        is_even = .true.
+    else
+        is_even = .false.
+    end if
+  end function
+end module
+
+!==========================================================================================================
+module flatten_index_mod
+ implicit none 
+ 
+ interface flatten_index
+   module procedure flatten_3d_to_1d
+   module procedure flatten_2d_to_1d
+ end interface
+ 
+contains
+
+ function flatten_3d_to_1d(i, j, k, Nx, Ny, Nz) result(n)
+   integer, intent(in) :: i, j, k, Nx, Ny, Nz
+   integer :: n
+   n = i + Nx * (j - 1)  + Nx * Ny * (k - 1)
+ end function
+ 
+ function flatten_2d_to_1d(i, j, Nx, Ny) result(n)
+   integer, intent(in) :: i, j, Nx, Ny
+   integer :: n
+   n = i + Nx * (j - 1)
+ end function
+ 
+end module
 

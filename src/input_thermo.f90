@@ -31,8 +31,8 @@ module thermo_info_mod
 
   integer, save :: N_FUNC2TABLE = 1024
   logical :: is_ftplist_dim
-  type(t_fluidThermoProperty), save, allocatable, dimension(:) :: ftplist
-  type(t_fluid_parameter), save :: fluidparam
+  type(t_fluidThermoProperty), save, allocatable, dimension(:) :: ftplist, ftplist1
+  type(t_fluid_parameter), save :: fluidparam, fluidparam1
 
   private :: buildup_property_relations_from_table
   private :: buildup_property_relations_from_function
@@ -53,7 +53,8 @@ module thermo_info_mod
 
   public  :: Buildup_thermo_mapping_relations
   public  :: Initialize_thermal_properties
-  
+  public  :: Update_thermal_properties
+
 contains
 !==========================================================================================================
 !==========================================================================================================
@@ -214,6 +215,8 @@ contains
   end subroutine ftp_get_thermal_properties_dimensional_from_T
 !==========================================================================================================
 !==========================================================================================================
+!!! make this private and add arguments fluidparam and ftplist
+!!! add another subroutine to replace this based on multiphase properties, so 'this' becomes mixture properties
   subroutine ftp_refresh_thermal_properties_from_T_undim ( this )
     use parameters_constant_mod, only : MINP, ONE, ZERO
     implicit none
@@ -859,6 +862,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]  none          NA
 !==========================================================================================================
+!!! makeing fluidparam as an argument
   subroutine Initialize_thermo_parameters(tm)
     use mpi_mod
     implicit none
@@ -977,17 +981,17 @@ contains
         do n = 1, 2
           if( dm%ibcx(n, 5) == IBC_DIRICHLET ) then
             ! dimensional T --> undimensional T
-            dm%fbcx_var  (n,   j, k, 5)  = dm%fbcx_var(n,   j, k, 5) / tm%ref_T0 
-            dm%fbcx_var  (n+2, j, k, 5)  = dm%fbcx_var(n+2, j, k, 5) / tm%ref_T0 
-            dm%ftpbcx_var(n,   j, k)%t   = dm%fbcx_var(n,   j, k, 5)
-            dm%ftpbcx_var(n+2, j, k)%t   = dm%fbcx_var(n+2, j, k, 5)
+            dm%fbcx_t  (n,   j, k)  = dm%fbcx_t(n,   j, k) / tm%ref_T0 
+            dm%fbcx_t  (n+2, j, k)  = dm%fbcx_t(n+2, j, k) / tm%ref_T0 
+            dm%ftpbcx_var(n,   j, k)%t   = dm%fbcx_t(n,   j, k)
+            dm%ftpbcx_var(n+2, j, k)%t   = dm%fbcx_t(n+2, j, k)
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcx_var(n,   j, k))
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcx_var(n+2, j, k))
 
           else if (dm%ibcx(1, 5) == IBC_NEUMANN) then
             ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%fbcx_var(n,   j, k, 5) = dm%fbcx_var(n,   j, k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%fbcx_var(n+2, j, k, 5) = dm%fbcx_var(n+2, j, k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+            dm%fbcx_t(n,   j, k) = dm%fbcx_t(n,   j, k) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcx_t(n+2, j, k) = dm%fbcx_t(n+2, j, k) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
           else
           end if
 
@@ -1003,17 +1007,17 @@ contains
         do n = 1, 2
           if( dm%ibcy(n, 5) == IBC_DIRICHLET ) then
             ! dimensional T --> undimensional T
-            dm%fbcy_var  (i, n,   k, 5)  = dm%fbcy_var(i, n,   k, 5) / tm%ref_T0 
-            dm%fbcy_var  (i, n+2, k, 5)  = dm%fbcy_var(i, n+2, k, 5) / tm%ref_T0 
-            dm%ftpbcy_var(i, n,   k)%t   = dm%fbcy_var(i, n,   k, 5)
-            dm%ftpbcy_var(i, n+2, k)%t   = dm%fbcy_var(i, n+2, k, 5)
+            dm%fbcy_t  (i, n,   k)  = dm%fbcy_t(i, n,   k) / tm%ref_T0 
+            dm%fbcy_t  (i, n+2, k)  = dm%fbcy_t(i, n+2, k) / tm%ref_T0 
+            dm%ftpbcy_var(i, n,   k)%t   = dm%fbcy_t(i, n,   k)
+            dm%ftpbcy_var(i, n+2, k)%t   = dm%fbcy_t(i, n+2, k)
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcy_var(i, n,   k))
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcy_var(i, n+2, k))
 
           else if (dm%ibcy(1, 5) == IBC_NEUMANN) then
             ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%fbcy_var(i, n,   k, 5) = dm%fbcy_var(i, n,   k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%fbcy_var(i, n+2, k, 5) = dm%fbcy_var(i, n+2, k, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+            dm%fbcy_t(i, n,   k) = dm%fbcy_t(i, n,   k) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcy_t(i, n+2, k) = dm%fbcy_t(i, n+2, k) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
           else
           end if
 
@@ -1029,17 +1033,17 @@ contains
         do n = 1, 2
           if( dm%ibcz(n, 5) == IBC_DIRICHLET ) then
             ! dimensional T --> undimensional T
-            dm%fbcz_var  (i, j, n,   5)  = dm%fbcz_var(i, j, n,   5) / tm%ref_T0 
-            dm%fbcz_var  (i, j, n+2, 5)  = dm%fbcz_var(i, j, n+2, 5) / tm%ref_T0 
-            dm%ftpbcz_var(i, j, n  )%t   = dm%fbcz_var(i, j, n,   5)
-            dm%ftpbcz_var(i, j, n+2)%t   = dm%fbcz_var(i, j, n+2, 5)
+            dm%fbcz_t  (i, j, n  )  = dm%fbcz_t(i, j, n  ) / tm%ref_T0 
+            dm%fbcz_t  (i, j, n+2)  = dm%fbcz_t(i, j, n+2) / tm%ref_T0 
+            dm%ftpbcz_var(i, j, n  )%t   = dm%fbcz_t(i, j, n  )
+            dm%ftpbcz_var(i, j, n+2)%t   = dm%fbcz_t(i, j, n+2)
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n  ))
             call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n+2))
 
           else if (dm%ibcz(1, 5) == IBC_NEUMANN) then
             ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%fbcz_var(i, j, n  , 5) = dm%fbcz_var(i, j, n,   5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%fbcz_var(i, j, n+2, 5) = dm%fbcz_var(i, j, n+2, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
+            dm%fbcz_t(i, j, n  ) = dm%fbcz_t(i, j, n  ) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+            dm%fbcz_t(i, j, n+2) = dm%fbcz_t(i, j, n+2) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
           else
           end if
 
@@ -1158,6 +1162,7 @@ contains
 !______________________________________________________________________________!
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
+!!! passing the two fluidparam and ftplist to build up the property dataset for the two fluids
   subroutine Buildup_thermo_mapping_relations(tm)
     implicit none
     type(t_thermo), intent(inout) :: tm
@@ -1171,9 +1176,9 @@ contains
     return
   end subroutine Buildup_thermo_mapping_relations
 
-
-  !==========================================================================================================
-  subroutine Update_thermal_properties(fl, tm, dm)
+!==========================================================================================================
+!==========================================================================================================
+  subroutine Update_thermal_properties(dm, fl, tm)
     use udf_type_mod
     implicit none
     type(t_domain), intent(in) :: dm
@@ -1185,6 +1190,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   x-pencil
 !----------------------------------------------------------------------------------------------------------
+    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+
     do k = dm%dccc%xst(3), dm%dccc%xen(3)
       do j = dm%dccc%xst(2), dm%dccc%xen(2)
         do i = dm%dccc%xst(1), dm%dccc%xen(1)
@@ -1199,12 +1207,9 @@ contains
       end do
     end do
 
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
-
   return
   end subroutine Update_thermal_properties
-  
+
 end module thermo_info_mod
 
 

@@ -24,10 +24,12 @@ module io_visulisation_mod
 
   private :: write_snapshot_headerfooter
   private :: write_field
+  private :: write_xdmf_vof_collective
 
   public  :: write_snapshot_ini
   public  :: write_snapshot_flow
   public  :: write_snapshot_thermo
+  public  :: write_snapshot_vof
   public  :: write_snapshot_flow_stat
   public  :: write_snapshot_thermo_stat
   public  :: write_snapshot_any3darray
@@ -368,6 +370,169 @@ contains
     return
   end subroutine 
 !==========================================================================================================
+!create xdmf file for collective visualisation
+!==========================================================================================================
+  subroutine write_xdmf_vof_collective(dm, vf, dtmp, attributetype, centring, iter)
+    use precision_mod
+    use decomp_2d
+    use decomp_2d_io
+    use udf_type_mod, only: t_domain, t_vof
+    use files_io_mod
+    use decomp_operation_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    type(t_vof),    intent(in) :: vf
+    character(*), intent(in) :: attributetype
+    character(*), intent(in) :: centring
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer, intent(in), optional :: iter
+
+    character(120) :: data_flname_path
+    character(120) :: visu_flname_path
+    character(120) :: keyword
+    character(120) :: dummy
+    character(200), allocatable :: buffer(:)
+    real(WP), allocatable :: time(:)
+    integer :: nsz(3)
+    integer :: i, ioxdmf, ios, num1, num2
+    integer :: line2change, number_lines
+    logical :: file_exists
+    save time
+
+    line2change = 0
+    number_lines = 0
+    num1 = vf%nIterVofEnd/dm%visu_nfre
+    if(.not.allocated(time)) allocate(time(num1))
+    num2 = iter/dm%visu_nfre+1
+    time(num2) = vf%time
+!    write(*,*) num2, time(num2)
+!----------------------------------------------------------------------------------------------------------
+! xmdf file name
+!----------------------------------------------------------------------------------------------------------
+    keyword = "snapshot_"//TRIM(svisudim)//"_vof"
+    call generate_pathfile_name(visu_flname_path, dm%idom, keyword, dir_visu, 'xdmf')
+    keyword = TRIM(svisudim)//"_"//"vof"
+    call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
+!----------------------------------------------------------------------------------------------------------
+! create xdmf file
+!----------------------------------------------------------------------------------------------------------
+    INQUIRE(FILE = visu_flname_path, exist = file_exists)
+    if (nrank==0) then
+      if(.not.file_exists) then
+        open(newunit = ioxdmf, file = TRIM(visu_flname_path), action = "write", status = "replace")
+        write(ioxdmf, '(A)')'<?xml version="1.0" ?>'
+        write(ioxdmf, '(A)')'<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>'
+        write(ioxdmf, '(A)')'<Xdmf xmlns:xi="http://www.w3.org/2001/XInclude" Version="2.0">'
+        write(ioxdmf, '(A)')'  <Domain>'
+        write(ioxdmf, '(A)')'    <Topology name="topo" TopologyType="3DRectMesh"'
+        write(ioxdmf, '(A,3I12,A)')'      Dimensions="', nnd_visu(3, dm%idom), nnd_visu(2, dm%idom), nnd_visu(1, dm%idom),'">'
+        write(ioxdmf, '(A)')'    </Topology>'
+        write(ioxdmf, '(A)')'    <Geometry name="geo" GeometryType="VXVYVZ">'
+        write(ioxdmf, '(A)')'      <DataItem Format="XML"'
+        write(ioxdmf, '(A)')'                NumberType="Float" Precision="8" '
+        write(ioxdmf, '(A,I12,A)')'                Dimensions="', nnd_visu(1, dm%idom), '">'
+        do i=1, nnd_visu(1, dm%idom)
+          write(ioxdmf, '(E20.14)') xp(i)
+        end do
+        write(ioxdmf, '(A)')'      </DataItem>'
+        write(ioxdmf, '(A)')'      <DataItem Format="XML"'
+        write(ioxdmf, '(A)')'                NumberType="Float" Precision="8" '
+        write(ioxdmf, '(A,I12,A)')'                Dimensions="', nnd_visu(2, dm%idom), '">'
+        do i=1, nnd_visu(2, dm%idom)
+          write(ioxdmf, '(E20.14)') yp(i)
+        end do
+        write(ioxdmf, '(A)')'      </DataItem>'
+        write(ioxdmf, '(A)')'      <DataItem Format="XML"'
+        write(ioxdmf, '(A)')'                NumberType="Float" Precision="8" '
+        write(ioxdmf, '(A,I12,A)')'                Dimensions="', nnd_visu(3, dm%idom), '">'
+        do i=1, nnd_visu(3, dm%idom)
+          write(ioxdmf, '(E20.14)') zp(i)
+        end do
+        write(ioxdmf, '(A)')'      </DataItem>'
+        write(ioxdmf, '(A)')'    </Geometry>'
+        write(ioxdmf, '(A)')'    <Grid Name="TimeSeries" GridType="Collection" CollectionType="Temporal">'
+        write(ioxdmf, '(A)')'      <Time TimeType="List">'
+        write(ioxdmf, '(A)')'        <DataItem Format="XML"'
+        write(ioxdmf, '(A)')'                  NumberType="Float"'
+        write(ioxdmf, '(A,I12,A)')'                  Dimensions="', num2,'">'
+        do i=1, num2
+          write(ioxdmf, '(E20.14)') time(i)
+        end do
+        write(ioxdmf, '(A)')'        </DataItem>'
+        write(ioxdmf, '(A)')'      </Time>'
+      else
+        if(vf%iterfrom==vf%iteration) return
+        open(newunit = ioxdmf, file = TRIM(visu_flname_path), action = "read", status = "old")
+        do
+          read(ioxdmf, '(A)', iostat=ios) dummy
+          if(ios/=0) exit
+          number_lines = number_lines+1
+          if(TRIM(dummy)=='      <Time TimeType="List">') line2change = number_lines+3
+        end do
+        close(ioxdmf)
+
+        allocate(buffer(number_lines))
+        open(newunit = ioxdmf, file = TRIM(visu_flname_path), action = "read", status = "old")
+        do i=1, number_lines
+          read(ioxdmf, '(A)', iostat=ios) buffer(i)
+          if(ios/=0) exit
+        end do
+        close(ioxdmf)
+
+        open(newunit = ioxdmf, file = TRIM(visu_flname_path), action = "write", status = "replace")
+        do i=1, line2change-1
+          write(ioxdmf, '(A)') TRIM(buffer(i))
+        end do
+        write(ioxdmf, '(A,I12,A)')'                  Dimensions="', num2,'">'
+        do i=line2change+1, line2change+num2-1
+          write(ioxdmf, '(A)')TRIM(buffer(i))
+        end do
+        write(ioxdmf, '(E20.14)')time(num2)
+        do i=line2change+num2, number_lines-3
+          write(ioxdmf, '(A)') TRIM(buffer(i))
+        end do
+      end if
+
+      if(TRIM(centring) == TRIM(CELL)) then
+        nsz(1:3) = ncl_visu(1:3, dm%idom)
+      else if (trim(centring) == TRIM(NODE)) then
+        nsz(1:3) = nnd_visu(1:3, dm%idom)
+      else
+      end if
+
+      call write_variable('vof')
+
+      write(ioxdmf, '(A)')'    </Grid>'
+      write(ioxdmf, '(A)')'  </Domain>'
+      write(ioxdmf, '(A)')'</Xdmf>'
+      
+      close(ioxdmf)
+    end if
+
+    contains
+    
+    subroutine write_variable(varname)
+      implicit none
+      character(len=*), intent(in) :: varname
+
+      write(ioxdmf, '(A,I12,A)')'      <Grid Name="T', iter, '" GridType="Uniform">'
+      write(ioxdmf, '(A)')'        <Topology Reference="/Xdmf/Domain/Topology[1]"/>'
+      write(ioxdmf, '(A)')'        <Geometry Reference="/Xdmf/Domain/Geometry[1]"/>'
+      write(ioxdmf, '(A)')'        <Attribute Name="'//trim(varname)// &
+                               '" AttributeType="'//trim(attributetype)// &
+                               '" Center="'//trim(centring)//'">'
+      write(ioxdmf, '(A)')'          <DataItem Format="Binary"'
+      write(ioxdmf, '(A)')'                    NumberType="Float" Precision="8" Endian="little" Seek="0"'
+      write(ioxdmf, '(A,3I12,A)')'                    Dimensions="', nsz(3), nsz(2), nsz(1), '">'
+      write(ioxdmf, '(A)')'                    '//"../"//trim(data_flname_path)
+      write(ioxdmf, '(A)')'          </DataItem>'
+      write(ioxdmf, '(A)')'        </Attribute>'
+      write(ioxdmf, '(A)')'      </Grid>'
+    end subroutine
+
+  end subroutine 
+
+!==========================================================================================================
   subroutine write_snapshot_flow(fl, dm)
     use udf_type_mod
     use precision_mod
@@ -399,13 +564,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! qx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1) )
+    call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%ibcx(:, 1))
     call write_field(dm, accc, dm%dccc, "ux", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%ibcy(:, 2))
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
     call write_field(dm, accc, dm%dccc, "uy", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
@@ -417,6 +582,7 @@ contains
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
     call write_field(dm, accc, dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
+!    call write_field(dm, vf%kappa, dm%dccc, "uz", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
@@ -451,6 +617,51 @@ contains
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
     call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    
+    return
+  end subroutine
+
+  !==========================================================================================================
+  subroutine write_snapshot_vof(vf, dm)
+    use udf_type_mod
+    use precision_mod
+    use operations
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    type(t_vof), intent(in) :: vf
+
+    integer :: iter 
+    character(120) :: visuname
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc
+
+    iter = vf%iteration
+    visuname = 'vof'
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, vof, to cell centre
+!----------------------------------------------------------------------------------------------------------
+    call Get_x_1st_derivative_C2P_3D(vf%phi, apcc, dm, dm%ibcx(:, 6), dm%fbcx_vof(:, :, :) )
+    call Get_x_midp_P2C_3D(apcc, accc, dm, dm%ibcx(:, 6), dm%fbcx_vof(:, :, :) )
+
+    call write_field(dm, vf%phi, dm%dccc, "vof", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%kappa, dm%dccc, "kappa", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%lnx, dm%dccc, "nx", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%lny, dm%dccc, "ny", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%llxx, dm%dccc, "lxx", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%llyy, dm%dccc, "lyy", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%llzz, dm%dccc, "lzz", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%rhostar, dm%dccc, "rhostar", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, vf%mustar, dm%dccc, "mustar", trim(visuname), SCALAR, CELL, iter)
+    call write_field(dm, accc, dm%dccc, "dphidx", trim(visuname), SCALAR, CELL, iter)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    call write_snapshot_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+    call write_xdmf_vof_collective(dm, vf, dm%dccc, SCALAR, CELL, iter)
     
     return
   end subroutine

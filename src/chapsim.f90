@@ -41,9 +41,10 @@ subroutine Initialize_chapsim
   use input_general_mod
   use geometry_mod
   use thermo_info_mod
+  use vof_info_mod
   use operations
   use domain_decomposition_mod
-  use flow_thermo_initialiasation
+  use flow_thermo_initialisation
   use mpi_mod
   use code_performance_mod
   use decomp_2d_poisson
@@ -69,9 +70,7 @@ subroutine Initialize_chapsim
   ! build up geometry information
   !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call configure_bc_type(domain(i)) 
     call Buildup_geometry_mesh_info(domain(i))
-    call configure_bc_vars(domain(i)) 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! build up operation coefficients for all x-subdomains
@@ -85,6 +84,9 @@ subroutine Initialize_chapsim
 ! build up domain decomposition
 !----------------------------------------------------------------------------------------------------------
   call Buildup_mpi_domain_decomposition
+  do i = 1, nxdomain
+    call configure_bc_vars(domain(i)) 
+  end do
 !----------------------------------------------------------------------------------------------------------
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------
@@ -104,11 +106,12 @@ subroutine Initialize_chapsim
     call update_rhou_bc(domain(i))
   end if
 !----------------------------------------------------------------------------------------------------------
-! Initialize flow and thermo fields
+! Initialize flow, thermo and vof fields
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call Initialize_flow_fields(flow(i), domain(i))
     if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
+    if(domain(i)%is_vof) call Initialize_vof_fields(vof(i), flow(i), domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain
@@ -116,6 +119,7 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain - 1
     call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
     if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+    if(domain(i)%is_vof) call update_bc_interface_vof(domain(i), vof(i), domain(i+1), vof(i+1))
   end do
   
   return
@@ -142,9 +146,11 @@ subroutine Solve_eqs_iteration
   !use poisson_mod
   use eq_energy_mod
   use eq_momentum_mod
-  use flow_thermo_initialiasation 
+  use eq_vof_mod
+  use flow_thermo_initialisation
   use code_performance_mod
   use thermo_info_mod
+  use vof_info_mod
   use vars_df_mod
   use input_general_mod
   use mpi_mod
@@ -156,10 +162,12 @@ subroutine Solve_eqs_iteration
   use statistics_mod
   use typeconvert_mod
   use boundary_conditions_mod
+  use tridiagonal_matrix_algorithm
   implicit none
 
   logical, allocatable :: is_flow  (:)
   logical, allocatable :: is_thermo(:)
+  logical, allocatable :: is_vof(:)
   integer :: i
   integer :: iter, isub
   integer :: iteration
@@ -172,18 +180,26 @@ subroutine Solve_eqs_iteration
   iteration = HUGE(0)
   niter     = 0
   do i = 1, nxdomain
-     if( flow(i)%iteration    < iteration) iteration = flow(i)%iteration
-     if( flow(i)%nIterFlowEnd > niter)     niter     = flow(i)%nIterFlowEnd
+     if( domain(i)%is_flow) then
+       if( flow(i)%iteration    < iteration) iteration = flow(i)%iteration
+       if( flow(i)%nIterFlowEnd > niter)     niter     = flow(i)%nIterFlowEnd
+     end if
      if( domain(i)%is_thermo) then
        if (thermo(i)%iteration      < iteration) iteration = thermo(i)%iteration
        if (thermo(i)%nIterThermoEnd > niter)     niter     = thermo(i)%nIterThermoEnd
+     end if
+     if( domain(i)%is_vof) then
+       if (vof(i)%iteration      < iteration) iteration = vof(i)%iteration
+       if (vof(i)%nIterVofEnd > niter)     niter     = vof(i)%nIterVofEnd
      end if
   end do
 
   allocate(is_flow  (nxdomain)) 
   allocate(is_thermo(nxdomain)) 
+  allocate(is_vof(nxdomain))
   is_flow   = .false.
   is_thermo = .false.
+  is_vof    = .false.
 
 
   call call_cpu_time(CPU_TIME_STEP_START, iteration, niter)
@@ -200,19 +216,24 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       !      setting up 1/re, 1/re/prt, gravity, etc
       !----------------------------------------------------------------------------------------------------------
-      call Update_Re(iter, flow(i))
-      if(domain(i)%is_thermo) &
-      call Update_PrGr(flow(i), thermo(i))
+      if(domain(i)%is_flow)   call Update_Re(iter, flow(i))
+      if(domain(i)%is_thermo) call Update_PrGr(flow(i), thermo(i))
+      if(domain(i)%is_vof .and. (.not.domain(i)%is_thermo)) then
+                              call Update_Re(iter, flow(i))
+                              call Update_gravity_sigma(flow(i), vof(i))
+      end if
       !----------------------------------------------------------------------------------------------------------
       !      setting up flow solver
       !----------------------------------------------------------------------------------------------------------
-      if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
-        is_flow(i) = .true.
-        if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
-        flow(i)%time = flow(i)%time + domain(i)%dt
-        flow(i)%iteration = flow(i)%iteration + 1
-        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
-        call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+      if(domain(i)%is_flow) then
+        if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
+          is_flow(i) = .true.
+          if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
+          flow(i)%time = flow(i)%time + domain(i)%dt
+          flow(i)%iteration = flow(i)%iteration + 1
+          call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+          call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+        end if
       end if
       !----------------------------------------------------------------------------------------------------------
       !     setting up thermo solver
@@ -225,14 +246,39 @@ subroutine Solve_eqs_iteration
           thermo(i)%iteration = thermo(i)%iteration + 1
         end if
       end if
+      !----------------------------------------------------------------------------------------------------------
+      !     setting up vof solver
+      !----------------------------------------------------------------------------------------------------------
+      if(domain(i)%is_vof) then
+        if ( (iter >= vof(i)%nIterVofStart) .and. (iter <= vof(i)%nIterVofEnd)) then
+          is_vof(i) = .true.
+          if (nrank == 0) write(*, wrtfmt1r) "vof field physical time = ", vof(i)%time
+          vof(i)%time = vof(i)%time  + domain(i)%dt
+          vof(i)%iteration = vof(i)%iteration + 1
+        end if
+      end if
     end do
     !==========================================================================================================
     !  main solver, domain coupling in each sub-iteration (check)
     !==========================================================================================================
+    do i = 1, nxdomain
+      if(is_vof(i)) then
+        call Solve_vof_eq(domain(i), flow(i), vof(i))
+        if(domain(i)%icase==ICASE_VORTEX) &
+          call Initialize_update_vortex_flow(domain(i), vof(i)%time, flow(i)%qx, flow(i)%qy, flow(i)%qz, flow(i)%pres)
+        if(.not.domain(i)%is_flow) &
+          call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
+      end if
+    end do
+    do i = 1, nxdomain - 1
+      if(is_vof(i))    call update_bc_interface_vof(domain(i), vof(i), domain(i+1), vof(i+1))
+    end do
+
     do isub = 1, domain(1)%nsubitr
       do i = 1, nxdomain
-        if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
-        if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
+        if(is_thermo(i)) call Solve_energy_eq  (isub, domain(i), flow(i), thermo(i))
+        if(is_flow(i).and.(.not.is_vof(i))) call Solve_momentum_eq(isub, domain(i), flow(i))
+        if(is_flow(i).and.is_vof(i)) call Solve_momentum_eq(isub, domain(i), flow(i), vf=vof(i))
       end do
       !----------------------------------------------------------------------------------------------------------
       ! update interface values for multiple domain
@@ -242,6 +288,7 @@ subroutine Solve_eqs_iteration
         if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
       end do
     end do
+!    call Test_TDMA_noncyclic()
 
     !==========================================================================================================
     ! result post-processing for each domain
@@ -292,6 +339,9 @@ subroutine Solve_eqs_iteration
           call write_instantanous_thermo_raw_data(thermo(i), domain(i))
           if(iter > domain(i)%stat_istart) call write_statistics_thermo(thermo(i), domain(i))
         end if
+        if(domain(i)%is_vof .and. is_vof(i)) then
+          call write_instantanous_vof_raw_data(vof(i), domain(i))
+        end if
       end if
       !----------------------------------------------------------------------------------------------------------
       ! write data for visualisation
@@ -300,6 +350,9 @@ subroutine Solve_eqs_iteration
         if(is_flow(i)) call write_snapshot_flow(flow(i), domain(i))
         if(domain(i)%is_thermo .and. is_thermo(i)) then
           call write_snapshot_thermo(thermo(i), domain(i))
+        end if
+        if(domain(i)%is_vof .and. is_vof(i)) then
+          call write_snapshot_vof(vof(i), domain(i))
         end if
         if(iter > domain(i)%stat_istart ) then
           if(is_flow(i)) call write_snapshot_flow_stat(flow(i), domain(i))

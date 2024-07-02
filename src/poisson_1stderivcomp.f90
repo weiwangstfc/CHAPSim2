@@ -17,7 +17,7 @@ module decomp_2d_poisson
   !  real(mytype), private, parameter :: PI = 3.14159265358979323846_mytype
 
 #ifdef DOUBLE_PREC
-  real(mytype), parameter :: epsilon = 1.e-20_mytype
+  real(mytype), parameter :: epsilon = 1.e-16_mytype
 #else
   real(mytype), parameter :: epsilon = 1.e-8_mytype
 #endif
@@ -95,12 +95,24 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if (bcx==0 .and. bcy==0 .and. bcz==0) then
        poisson => poisson_000
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_000 is used.'
+#endif
     else if (bcx==1 .and. bcy==0 .and. bcz==0) then
        poisson => poisson_100
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_100 is used.'
+#endif
     else if (bcx==0 .and. bcy==1 .and. bcz==0) then
        poisson => poisson_010
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_010 is used.'
+#endif
     else if (bcx==1 .and. bcy==1) then   ! 110 & 111
        poisson => poisson_11x
+#ifdef DEBUG_STEPS
+   write(*,*) 'poisson_11x is used.'
+#endif
     else
        stop 'boundary condition not supported'
     end if
@@ -113,6 +125,10 @@ contains
     if (bcx==1) nx=nx-1
     if (bcy==1) ny=ny-1
     if (bcz==1) nz=nz-1
+
+#ifdef DEBUG_STEPS
+   write(*,*) 'nx, ny, nz, nxm, nym, nzm:(fft)', nx, ny, nz, nxm, nym, nzm
+#endif
 
 #ifdef DEBUG_FFT 
     if (nrank .eq. 0) write(*,*)'# decomp_2d_poisson_init start'
@@ -355,6 +371,11 @@ contains
     call avg3d (abs_prec(cw1), avg_param)
     if (nrank == 0) write(*,*)'## hat_lmn(rhs_ijk) ', avg_param
 #endif
+!   WWcoments: cw1 is at node points (x_np = 0, x_1, x_2), it needs to shif to cell centre for further calculation.
+!   hat_f_{i+1/2} * e^(-I k_x x_{i+1/2} ) = [ hat_f_{i} * e^(-I k_x x_{i} ) ] * e^(-I k_x dx/2)
+!   = (rl + I iy)(cos(-k_x*dx/2) + i sin(-k_x * dx/2))
+!   = (rl + I iy)(b - i a) 
+!   = (rl * b + iy * a, iy * b - rl * a )
     do k = sp%xst(3), sp%xen(3)
        do j = sp%xst(2), sp%xen(2)
           do i = sp%xst(1), sp%xen(1)
@@ -389,7 +410,7 @@ contains
              tmp1 = rl(kxyz(i,j,k))
              tmp2 = iy(kxyz(i,j,k))
              ! CANNOT DO A DIVISION BY ZERO
-             if ((abs_prec(tmp1) < epsilon).or.(abs_prec(tmp2) < epsilon)) then
+             if ((tmp1 < epsilon).or.(tmp2 < epsilon)) then
                 cw1(i,j,k) = zero
              else
                 cw1(i,j,k) = cx(rl(cw1(i,j,k)) / (-tmp1), &
@@ -402,26 +423,37 @@ contains
 !                 write(*,*) 'AFTER',i,j,k,cw1(i,j,k),xyzk
 !               end if
 ! #endif
+!   WWcoments: calculation is at mid points, it needs to shif back to node points.
+!   hat_f_i * e^(-I k_x x_{i} ) = [hat_f_{i+1/2} * e^(-I k_x x_{i+1/2} )] * e^(+I k_x dx/2)
+!   = (rl + I iy)(cos(k_x*dx/2) + i sin(k_x * dx/2))
+!   = (rl + I iy)(b + i a) 
+!   = (rl * b - iy * a, iy * b + rl * a )
              ! post-processing backward
 
              ! POST PROCESSING IN Z
-              tmp1 = rl(cw1(i,j,k))
-              tmp2 = iy(cw1(i,j,k))
+             tmp1 = rl(cw1(i,j,k))
+             tmp2 = iy(cw1(i,j,k))
+             !cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
+             !               -tmp2 * bz(k) - tmp1 * az(k))
              cw1(i,j,k) = cx(tmp1 * bz(k) - tmp2 * az(k), &
-                            -tmp2 * bz(k) - tmp1 * az(k))
+                             tmp2 * bz(k) + tmp1 * az(k))
 
              ! POST PROCESSING IN Y
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
-             cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
-                             tmp2 * by(j) - tmp1 * ay(j))
+             !cw1(i,j,k) = cx(tmp1 * by(j) + tmp2 * ay(j), &
+             !                tmp2 * by(j) - tmp1 * ay(j))
+             cw1(i,j,k) = cx(tmp1 * by(j) - tmp2 * ay(j), &
+                             tmp2 * by(j) + tmp1 * ay(j))
              if (j > (ny/2 + 1)) cw1(i,j,k) = -cw1(i,j,k)
 
              ! POST PROCESSING IN X
              tmp1 = rl(cw1(i,j,k))
              tmp2 = iy(cw1(i,j,k))
-             cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
-                            -tmp2 * bx(i) + tmp1 * ax(i))
+             !cw1(i,j,k) = cx(tmp1 * bx(i) + tmp2 * ax(i), &
+             !               -tmp2 * bx(i) + tmp1 * ax(i))
+             cw1(i,j,k) = cx(tmp1 * bx(i) - tmp2 * ax(i), &
+                             tmp2 * bx(i) + tmp1 * ax(i))
              if (i > (nx/2+1)) cw1(i,j,k) = -cw1(i,j,k)
 
              
@@ -887,7 +919,7 @@ contains
        end do
 
     else
-       !call matrice_refinement()
+       call matrice_refinement()
        !write(*,*) 'PO_010 ii1 A rl ', rl(a(1,1,1,1)),rl(a(1,1,1,2)),rl(a(1,1,1,3)),&
        !                              rl(a(1,1,1,4)),rl(a(1,1,1,5))
        !write(*,*) 'PO_010 ii1 A iy ', iy(a(1,1,1,1)),iy(a(1,1,1,2)),iy(a(1,1,1,3)),&
@@ -966,14 +998,14 @@ contains
 
     endif
 
-    !we are in Y pencil
-    do k = sp%yst(3), sp%yen(3)  
-       do i = sp%yst(1), sp%yen(1)
-          if ((i == nx/2+1).and.(k == nz/2+1)) then
-             cw2b(i,:,k) = zero
-          endif
-       enddo
-    enddo
+   !we are in Y pencil, !check below necessary? , commented by WW
+   !  do k = sp%yst(3), sp%yen(3)  
+   !     do i = sp%yst(1), sp%yen(1)
+   !        if ((i == nx/2+1).and.(k == nz/2+1)) then
+   !           cw2b(i,:,k) = zero
+   !        endif
+   !     enddo
+   !  enddo
 #ifdef DEBUG_FFT
     do k = sp%yst(3), sp%yen(3)
        do j = sp%yst(2), sp%yen(2)
@@ -1115,8 +1147,6 @@ contains
     if (bcz == 1) then
        nz = nz_global - 1
     else if (bcz == 0) then
-       nz = nz_global
-    else
        nz = nz_global
     end if
 
@@ -1702,6 +1732,7 @@ contains
     complex(mytype) :: cx
     real(mytype) :: rl, iy
     external cx, rl, iy
+    logical :: ftr = .false.
 
     xkx = zero
     xk2 = zero
@@ -1748,7 +1779,6 @@ contains
        do j = 1, ny/2 + 1
           w = twopi *  real(j-1, mytype)/real(ny, mytype)
           wp = aciy6 * two * dy * sin_prec(w * half) + bciy6 * two * dy * sin_prec(three * half * w)
-
           wp = wp / (one + two * alcaiy6 * cos_prec(w))
 !
           if (istret == 0) yky(j) = cx_one_one * (real(ny,mytype) * wp / yly)
@@ -1810,37 +1840,42 @@ contains
     if ((bcx == 0).and.(bcz == 0).and.(bcy /= 0)) then
        do k = sp%yst(3), sp%yen(3)
 !
-          ! rlezs = rl(ezs(k)) * dz
+          if(ftr) rlezs = rl(ezs(k)) * dz
 !
           do j = sp%yst(2), sp%yen(2)
 !
-            !  rleys = rl(eys(j)) * dy
+             if(ftr) rleys = rl(eys(j)) * dy
 !
              do i = sp%yst(1), sp%yen(1)
 !
-!                 rlexs = rl(exs(i)) * dx
-! !
-!                 xtt_rl = two * &
-!      (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
-! !
-!                 ytt_rl = two * &
-!      (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
-! !
-!                 ztt_rl = two * &
-!      (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
-! !
-!                 xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
-!                 ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
-!                 ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
-! !
-!                 xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
-!                 yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
-!                 zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
+                if(ftr) then
+                rlexs = rl(exs(i)) * dx
 !
-                xt2 = xk2(i) !* ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-                yt2 = yk2(j) !* ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-                zt2 = zk2(k) !* ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
+                xtt_rl = two * &
+     (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
 !
+                ytt_rl = two * &
+     (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
+!
+                ztt_rl = two * &
+     (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
+!
+                xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
+                ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
+                ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
+!
+                xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
+                yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
+                zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
+!
+                xt2 = xk2(i) * ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                yt2 = yk2(j) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                zt2 = zk2(k) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
+               else 
+                xt2 = xk2(i) 
+                yt2 = yk2(j) 
+                zt2 = zk2(k)                 
+               end if
                 xyzk = xt2 + yt2 + zt2
                 kxyz(i,j,k) = xyzk
 !
@@ -1852,37 +1887,41 @@ contains
        if (bcz==0) then
           do k = sp%xst(3),sp%xen(3)
 !
-            !  rlezs = rl(ezs(k)) * dz
+             if(ftr) rlezs = rl(ezs(k)) * dz
 !
              do j = sp%xst(2),sp%xen(2)
 !
-                ! rleys = rl(eys(j)) * dy
+                if(ftr) rleys = rl(eys(j)) * dy
 !
                 do i = sp%xst(1),sp%xen(1)
+                   if(ftr) then
+                   rlexs = rl(exs(i)) * dx
 !
-                  !  rlexs = rl(exs(i)) * dx
+                   xtt_rl = two * &  
+  (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
 !
-!                    xtt_rl = two * &  
-!   (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
-! !
-!                    ytt_rl = two * &
-!   (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
-! !
-!                    ztt_rl = two * &
-!   (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
-! !
-!                    xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
-!                    ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
-!                    ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
-! !
-!                    xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
-!                    yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
-!                    zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
+                   ytt_rl = two * &
+  (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
 !
-                   xt2 = xk2(i) !* ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-                   yt2 = yk2(j) !* ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
-                   zt2 = zk2(k) !* ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
+                   ztt_rl = two * &
+  (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
 !
+                   xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
+                   ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
+                   ztt1_rl = two * aiciz6 * cos_prec(rlezs * half)
+!
+                   xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
+                   yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
+                   zt1_rl = one + two * ailcaiz6 * cos_prec(rlezs)
+!
+                   xt2 = xk2(i) * ((((ytt1_rl + ytt_rl) / yt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                   yt2 = yk2(j) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ztt1_rl + ztt_rl) / zt1_rl))**2)
+                   zt2 = zk2(k) * ((((xtt1_rl + xtt_rl) / xt1_rl) * ((ytt1_rl + ytt_rl) / yt1_rl))**2)
+                   else 
+                   xt2 = xk2(i)
+                   yt2 = yk2(j)
+                   zt2 = zk2(k)
+                   end if
                    xyzk = xt2 + yt2 + zt2
                    kxyz(i,j,k) = xyzk
 !
@@ -1893,59 +1932,62 @@ contains
        else
           do k = sp%xst(3), sp%xen(3)
 !
-            !  rlezs = rl(ezs(k)) * dz
-            !  iyezs = iy(ezs(k)) * dz
+             if(ftr)rlezs = rl(ezs(k)) * dz
+             if(ftr)iyezs = iy(ezs(k)) * dz
 !
              do j = sp%xst(2), sp%xen(2)
-!
-                ! rleys = rl(eys(j)) * dy
+                
+                if(ftr) rleys = rl(eys(j)) * dy
 !
                 do i = sp%xst(1), sp%xen(1)  
-! !
-!                    rlexs = rl(exs(i)) * dx
-! !
-!                    xtt_rl = two * &
-!   (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
-! !
-!                    ytt_rl = two * &
-!   (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
-! !
-!                    ztt = two * cx( &
-!   biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive),&
-!   biciz6 * cos_prec(iyezs * onepfive) + ciciz6 * cos_prec(iyezs * twopfive) + diciz6 * cos_prec(iyezs * threepfive))
-! !
-!                    xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
-!                    ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
-! !
-!                    ztt1 = two * cx(aiciz6 * cos_prec(rlezs * half),&
-!                                    aiciz6 * cos_prec(iyezs * half))
-! !
-!                    xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
-!                    yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
-! !
-!                    zt1 = cx((one + two * ailcaiz6 * cos_prec(rlezs)),&
-!                             (one + two * ailcaiz6 * cos_prec(iyezs)))
-! !
-!                    tmp1 = cx(rl(ztt1 + ztt) / rl(zt1),&
-!                              iy(ztt1 + ztt) / iy(zt1))
-! !
-!                    tmp2 = cx_one_one * (ytt1_rl + ytt_rl) / yt1_rl
-! !
-!                    tmp3 = cx_one_one * (xtt1_rl + xtt_rl) / xt1_rl
-! !
-!                    tmp4 = rl(tmp2)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
-! !
-!                    tmp5 = rl(tmp3)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
-! !
-!                    tmp6 = (rl(tmp3) * rl(tmp2))**2 * cx_one_one
-! !
-!                    tmp1 = cx(rl(tmp4) * rl(xk2(i)), iy(tmp4) * iy(xk2(i)))
-! !
-!                    tmp2 = cx(rl(tmp5) * rl(yk2(j)), iy(tmp5) * iy(yk2(j)))
-! !
-!                    tmp3 = rl(tmp6) * zk2(k)
+                  if(ftr)then
+                   rlexs = rl(exs(i)) * dx
 !
-                   xyzk = xk2(i) + yk2(j) + zk2(k)!tmp1 + tmp2 + tmp3
+                   xtt_rl = two * &
+  (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
+!
+                   ytt_rl = two * &
+  (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
+!
+                   ztt = two * cx( &
+  biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive),&
+  biciz6 * cos_prec(iyezs * onepfive) + ciciz6 * cos_prec(iyezs * twopfive) + diciz6 * cos_prec(iyezs * threepfive))
+!
+                   xtt1_rl = two * aicix6 * cos_prec(rlexs * half)
+                   ytt1_rl = two * aiciy6 * cos_prec(rleys * half)
+!
+                   ztt1 = two * cx(aiciz6 * cos_prec(rlezs * half),&
+                                   aiciz6 * cos_prec(iyezs * half))
+!
+                   xt1_rl = one + two * ailcaix6 * cos_prec(rlexs)
+                   yt1_rl = one + two * ailcaiy6 * cos_prec(rleys)
+!
+                   zt1 = cx((one + two * ailcaiz6 * cos_prec(rlezs)),&
+                            (one + two * ailcaiz6 * cos_prec(iyezs)))
+!
+                   tmp1 = cx(rl(ztt1 + ztt) / rl(zt1),&
+                             iy(ztt1 + ztt) / iy(zt1))
+!
+                   tmp2 = cx_one_one * (ytt1_rl + ytt_rl) / yt1_rl
+!
+                   tmp3 = cx_one_one * (xtt1_rl + xtt_rl) / xt1_rl
+!
+                   tmp4 = rl(tmp2)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
+!
+                   tmp5 = rl(tmp3)**2 * cx(rl(tmp1)**2, iy(tmp1)**2)
+!
+                   tmp6 = (rl(tmp3) * rl(tmp2))**2 * cx_one_one
+!
+                   tmp1 = cx(rl(tmp4) * rl(xk2(i)), iy(tmp4) * iy(xk2(i)))
+!
+                   tmp2 = cx(rl(tmp5) * rl(yk2(j)), iy(tmp5) * iy(yk2(j)))
+!
+                   tmp3 = rl(tmp6) * zk2(k)
+!
+                   xyzk = tmp1 + tmp2 + tmp3
+                   else
+                   xyzk = xk2(i) + yk2(j) + zk2(k)
+                   end if
                    kxyz(i,j,k) = xyzk
 !
                 enddo
@@ -2015,15 +2057,19 @@ contains
     real(mytype) :: rlezs, iyezs
 !
     real(mytype) :: xa0_2, xa1_2, xa01, xa0p1_2
+    logical :: ftr = .false.
 !
     do i = sp%yst(1),sp%yen(1)
-!
-      !  rlexs = rl(exs(i)) * dx
-      !  xtt_rl=two * (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
-      !  xtt1_rl=two * aicix6 * cos_prec(rlexs * half)
-      !  xt1_rl= one + two * ailcaix6 * cos_prec(rlexs)
+       if(ftr) then
+       rlexs = rl(exs(i)) * dx
+       xtt_rl=two * (bicix6 * cos_prec(rlexs * onepfive) + cicix6 * cos_prec(rlexs * twopfive) + dicix6 * cos_prec(rlexs * threepfive))
+       xtt1_rl=two * aicix6 * cos_prec(rlexs * half)
+       xt1_rl= one + two * ailcaix6 * cos_prec(rlexs)
        !
-       transx_rl(i) = one !(xtt1_rl + xtt_rl) / xt1_rl
+       transx_rl(i) = (xtt1_rl + xtt_rl) / xt1_rl
+       else
+       transx_rl(i) = one 
+       end if
        transx_rl2(i) = transx_rl(i)**2
 !
        transx(i) = cx_one_one * transx_rl(i)
@@ -2031,13 +2077,15 @@ contains
     enddo
 !
     do j = sp%yst(2),sp%yen(2)
-!
-      !  rleys = rl(eys(j)) * dy
-      !  ytt_rl=two * (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
-      !  ytt1_rl=two * aiciy6 * cos_prec(rleys * half)
-      !  yt1_rl=one + two * ailcaiy6 * cos_prec(rleys)
-!
+      if(ftr) then
+      rleys = rl(eys(j)) * dy
+      ytt_rl=two * (biciy6 * cos_prec(rleys * onepfive) + ciciy6 * cos_prec(rleys * twopfive) + diciy6 * cos_prec(rleys * threepfive))
+      ytt1_rl=two * aiciy6 * cos_prec(rleys * half)
+      yt1_rl=one + two * ailcaiy6 * cos_prec(rleys)
+      transy_rl(j) = (ytt1_rl + ytt_rl) / yt1_rl
+      else
        transy_rl(j) = one !(ytt1_rl + ytt_rl) / yt1_rl
+      end if
        transy_rl2(j) = transy_rl(j)**2
 !
        transy(j) = cx_one_one * transy_rl(j)
@@ -2046,13 +2094,16 @@ contains
 !
     if (bcz == 0) then
        do k = sp%yst(3),sp%yen(3)
-! !
-!           rlezs = rl(ezs(k)) * dz
-!        ztt_rl=two * (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
-!        ztt1_rl=two * aiciz6 * cos_prec(rlezs * half)
-!        zt1_rl=one + two * ailcaiz6 * cos_prec(rlezs)
+      if(ftr) then   
+          rlezs = rl(ezs(k)) * dz
+       ztt_rl=two * (biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive) + diciz6 * cos_prec(rlezs * threepfive))
+       ztt1_rl=two * aiciz6 * cos_prec(rlezs * half)
+       zt1_rl=one + two * ailcaiz6 * cos_prec(rlezs)
 !
-       transz_rl(k) = one !(ztt1_rl + ztt_rl) / zt1_rl
+       transz_rl(k) = (ztt1_rl + ztt_rl) / zt1_rl
+       else
+       transz_rl(k) = one
+       end if
        transz_rl2(k) = transz_rl(k)**2
 !
        transz_iy(k) = transz_rl(k)
@@ -2063,20 +2114,24 @@ contains
        enddo
     else
        do k = sp%yst(3),sp%yen(3)
+         if(ftr) then   
+          rlezs = rl(ezs(k)) * dz
+          iyezs = iy(ezs(k)) * dz
+          ztt = two * cx(biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive), &
+                         biciz6 * cos_prec(iyezs * onepfive) + ciciz6 * cos_prec(iyezs * twopfive))
+          ztt1 = two * cx(aiciz6 * cos_prec(rlezs * half),&
+                          aiciz6 * cos_prec(iyezs * half))
+          zt1 = cx(one + two * ailcaiz6 * cos_prec(rlezs),&
+                   one + two * ailcaiz6 * cos_prec(iyezs))
 !
-          ! rlezs = rl(ezs(k)) * dz
-          ! iyezs = iy(ezs(k)) * dz
-          ! ztt = two * cx(biciz6 * cos_prec(rlezs * onepfive) + ciciz6 * cos_prec(rlezs * twopfive), &
-          !                biciz6 * cos_prec(iyezs * onepfive) + ciciz6 * cos_prec(iyezs * twopfive))
-          ! ztt1 = two * cx(aiciz6 * cos_prec(rlezs * half),&
-          !                 aiciz6 * cos_prec(iyezs * half))
-          ! zt1 = cx(one + two * ailcaiz6 * cos_prec(rlezs),&
-          !          one + two * ailcaiz6 * cos_prec(iyezs))
-!
-          transz_rl(k) = one ! rl(ztt1 + ztt) / rl(zt1)
+          transz_rl(k) = rl(ztt1 + ztt) / rl(zt1)
+          transz_iy(k) = iy(ztt1 + ztt) / iy(zt1)
+          else
+          transz_rl(k) = one
+          transz_iy(k) = one
+          end if
           transz_rl2(k) = transz_rl(k)**2
-!
-          transz_iy(k) = one !iy(ztt1 + ztt) / iy(zt1)
+
           transz_iy2(k) = transz_iy(k)**2
 !      
           transz(k) = cx(transz_rl(k), transz_iy(k))
@@ -2089,7 +2144,11 @@ contains
        xa0 = alpha / pi + half / beta / pi
        if (istret == 1) xa1 = +one / four / beta / pi
        if (istret == 2) xa1 = -one / four / beta / pi
-!
+
+       ! below 2 lines added by WW
+      xa0 = xa0 /yly
+      xa1 = xa1 /yly
+
        xa0_2 = xa0**2
        xa1_2 = xa1**2
        xa01 = xa0 * xa1

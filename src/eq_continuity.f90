@@ -32,10 +32,15 @@ contains
 
     if(dm%iTimeScheme == ITIME_AB2) then
 
-      drhodt(:, :, :) = HALF * dDens  (:, :, :) - &
-                        TWO  * dDensm1(:, :, :) + &
+!      drhodt(:, :, :) = HALF * dDens  (:, :, :) - &
+!                        TWO  * dDensm1(:, :, :) + &
+!                        HALF * dDensm2(:, :, :)
+!      drhodt(:, :, :) = drhodt(:, :, :) * dm%dt
+
+      drhodt(:, :, :) = ONEPFIVE * dDens  (:, :, :) - &
+                        TWO  * dDensm1(:, :, :) +     &
                         HALF * dDensm2(:, :, :)
-      drhodt(:, :, :) = drhodt(:, :, :) * dm%dt
+      drhodt(:, :, :) = drhodt(:, :, :) / dm%dt
 
     else if (dm%iTimeScheme == ITIME_RK3 .or. dm%iTimeScheme == ITIME_RK3_CN) then
 
@@ -96,7 +101,7 @@ contains
 ! operation in x pencil, du/dx
 !----------------------------------------------------------------------------------------------------------
     div0 = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dv/dy
@@ -105,7 +110,7 @@ contains
     div0_ypencil = ZERO
     div0 = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
 !----------------------------------------------------------------------------------------------------------
@@ -118,7 +123,7 @@ contains
     div0 = ZERO
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3))
+    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3))
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
@@ -180,7 +185,7 @@ contains
     div0 = ZERO
     div0_ypencil_ggl = ZERO
     div_ypencil_ggl = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1), dm%fbcx_var(:, :, :, 1))
+    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%ibcx(:, 1))
     call transpose_x_to_y(div0, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div0_ypencil_ggl
 !----------------------------------------------------------------------------------------------------------
@@ -190,7 +195,7 @@ contains
     div0_ypencil = ZERO
     div0_ypencil_ggl = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2), dm%fbcy_var(:, :, :, 2))
+    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%ibcy(:, 2))
     call ypencil_index_lgl2ggl(div0_ypencil, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div_ypencil_ggl + div0_ypencil_ggl
     call transpose_y_to_z(div_ypencil_ggl, div_zpencil_ggg, dm%dccc)
@@ -203,7 +208,7 @@ contains
     div0_zpencil_ggg = ZERO
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3), dm%fbcz_var(:, :, :, 3) )
+    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%ibcz(:, 3))
     call zpencil_index_llg2ggg(div0_zpencil, div0_zpencil_ggg, dm%dccc)
     div_zpencil_ggg = div_zpencil_ggg + div0_zpencil_ggg
 
@@ -272,6 +277,9 @@ contains
 #ifdef DEBUG_STEPS
     call write_snapshot_any3darray(div, 'divU', trim(str), dm%dccc, dm, fl%iteration)
 #endif
+
+!    if(mod(fl%iteration,1000)==0)&
+!      call write_snapshot_any3darray(div, 'divU', trim(str), dm%dccc, dm, fl%iteration)
 
     call Find_maximum_absvar3d(div, trim(str)//" Check Mass Conservation:", wrtfmt1e)
 
