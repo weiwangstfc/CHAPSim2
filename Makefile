@@ -40,7 +40,7 @@ else ifeq ($(cfg), pg)
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
   FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
-	-ffpe-trap=invalid,zero,overflow -fall-intrinsics -fallow-argument-mismatch
+	-ffpe-trap=invalid,zero,overflow -fall-intrinsics #-fallow-argument-mismatch
   FFLGS= -DDOUBLE_PREC
   FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
@@ -68,6 +68,7 @@ OBJS1= mpi_mod.o\
       modules.o\
       tools_general.o\
       input_thermo.o\
+      input_vof.o\
       boundary_conditions.o\
       input_general.o\
       algorithms.o\
@@ -84,6 +85,7 @@ OBJS1= mpi_mod.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\
+      eq_vof.o\
       test_algrithms.o\
       io_restart.o\
       flow_initialization.o\
@@ -91,6 +93,7 @@ OBJS1= mpi_mod.o\
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 
 default :
+	@cp $(DIR_OBJ)/*.mod .
 	@cd $(DIR_BIN)
 	make $(PROGRAM) -f Makefile
 	@mv *.mod $(DIR_OBJ)
