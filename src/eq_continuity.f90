@@ -1,11 +1,14 @@
 module continuity_eq_mod
   use operations
   use decomp_2d
+
   public :: Calculate_drhodt
   public :: Get_divergence_vel
+  public :: Get_divergence
   public :: Get_divergence_vel_x2z
   public :: Check_mass_conservation
 contains
+
 !==========================================================================================================
 !==========================================================================================================
 !> \brief To calculate d(\rho)/dt in the continuity eq.
@@ -20,43 +23,139 @@ contains
 !> \param[out] drhodt           d(rho)/dt
 !> \param[in]  itime            the sub-step in RK3
 !_______________________________________________________________________________
-  subroutine Calculate_drhodt(dm, dDens, dDensm1, dDensm2, drhodt)
+  subroutine Calculate_drhodt(fl, dm, isub)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent ( in  ) :: dDens, dDensm1, dDensm2
-    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent ( out ) :: drhodt
+    type(t_flow), intent(inout) :: fl
+    integer, intent(in) :: isub
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div0
 
-    integer :: i
 
-    if(dm%iTimeScheme == ITIME_AB2) then
+    if( .not. dm%is_thermo) return
 
-      drhodt(:, :, :) = HALF * dDens  (:, :, :) - &
-                        TWO  * dDensm1(:, :, :) + &
-                        HALF * dDensm2(:, :, :)
-      drhodt(:, :, :) = drhodt(:, :, :) * dm%dt
+    ! method 1:
+    ! if(dm%iTimeScheme == ITIME_AB2) then
+    !   fl%pcor(:, :, :) = HALF * fl%dDens  (:, :, :) - &
+    !                      TWO  * fl%dDensm1(:, :, :) + &
+    !                      HALF * fl%dDensm2(:, :, :)
+    !   fl%pcor(:, :, :) = fl%pcor(:, :, :) / dm%dt
 
-    else if (dm%iTimeScheme == ITIME_RK3 .or. dm%iTimeScheme == ITIME_RK3_CN) then
+    ! else if (dm%iTimeScheme == ITIME_RK3 .or. dm%iTimeScheme == ITIME_RK3_CN) then
+    !   ! ! to check this part, is iteration necessary?
+    !   ! drhodt(:, :, :) = fl%dDens  (:, :, :)
+    !   ! do i = 1, dm%nsubitr
+    !   !   drhodt(:, :, :) = drhodt(:, :, :) + dm%tAlpha(i) * &
+    !   !                     (fl%dDensm1(:, :, :) - fl%dDensm2(:, :, :))  / dm%dt
+    !   ! end do
 
-      ! to check this part, is iteration necessary?
-      drhodt(:, :, :) = dDens  (:, :, :)
-      do i = 1, dm%nsubitr
-        drhodt(:, :, :) = drhodt(:, :, :) + dm%tAlpha(i) * &
-                          (dDensm1(:, :, :) - dDensm2(:, :, :))  * dm%dt
-      end do
+    !   fl%pcor(:, :, :) = HALF * fl%dDens  (:, :, :) - &
+    !                      TWO  * fl%dDensm1(:, :, :) + &
+    !                      HALF * fl%dDensm2(:, :, :)
+    !   fl%pcor(:, :, :) = fl%pcor(:, :, :) / dm%dt
 
-    else  
+    ! else  
+    !   ! default, Euler 1st order 
+      fl%pcor(:, :, :) = fl%dDens(:, :, :) - fl%dDensm1(:, :, :)
+      fl%pcor(:, :, :) = fl%pcor(:, :, :) / dm%dt
 
-      ! default, Euler 1st order 
-      drhodt(:, :, :) = dDens(:, :, :) - dDensm1(:, :, :)
-      drhodt(:, :, :) = drhodt(:, :, :) * dm%dt
+    ! end if
 
-    end if
+!  method 2
+    
+
+    !call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
+    !call Get_divergence_vel(fl%gx0, fl%gy0, fl%gz0, div0, dm)
+
+    ! fl%pcor=  ( dm%tAlpha(isub) * div + dm%tZeta(isub) * div0 ) &
+    !           / (dm%tGamma(isub) - TWO)
+    !fl%pcor =  -dm%tGamma(isub) * div - dm%tZeta(isub) * div0
 
 
     return
   end subroutine Calculate_drhodt
+
+  !==========================================================================================================
+!==========================================================================================================
+!> \brief To calculate divergence of (rho * u) or divergence of (u)
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[out]    div          div(q) or div(g)
+!> \param[in]     d            domain
+!_______________________________________________________________________________
+  subroutine Get_divergence(fl, div, dm)
+    use parameters_constant_mod
+    use udf_type_mod
+    use solver_tools_mod
+    implicit none
+
+    type(t_domain), intent(in) :: dm
+    type(t_flow),    intent(in) :: fl
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent (out) :: div
+
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)):: qx
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)):: qy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)):: qz
+
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: div0
+    real(WP), dimension(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3)) :: div0_ypencil
+    real(WP), dimension(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3)) :: div0_zpencil
+
+    real(WP), dimension(dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: qy_ypencil
+    real(WP), dimension(dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3)) :: qz_ypencil
+    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: qz_zpencil
+
+    if(dm%is_thermo) then
+      qx = fl%gx
+      qy = fl%gy
+      qz = fl%gz
+    else 
+      qx = fl%qx
+      qy = fl%qy
+      qz = fl%qz
+    end if
+
+    div = ZERO
+!----------------------------------------------------------------------------------------------------------
+! operation in x pencil, dqx/dx
+!----------------------------------------------------------------------------------------------------------
+    div0 = ZERO
+    call Get_x_1der_P2C_3D(qx, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    div(:, :, :) = div(:, :, :) + div0(:, :, :)
+!----------------------------------------------------------------------------------------------------------
+! operation in y pencil, dqy/dy * (1/r)
+!----------------------------------------------------------------------------------------------------------
+    qy_ypencil = ZERO
+    div0_ypencil = ZERO
+    div0 = ZERO
+    call transpose_x_to_y(qy, qy_ypencil, dm%dcpc)
+    call Get_y_1der_P2C_3D(qy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
+    call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 1, IPENCIL(1))
+    div(:, :, :) = div(:, :, :) + div0(:, :, :)
+!----------------------------------------------------------------------------------------------------------
+! operation in z pencil, dw/dz * (1/r)^2
+!----------------------------------------------------------------------------------------------------------
+    qz_ypencil = ZERO
+    qz_zpencil = ZERO
+    div0_zpencil = ZERO
+    div0_ypencil = ZERO
+    div0 = ZERO
+    call transpose_x_to_y(qz,         qz_ypencil, dm%dccp)
+    call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
+    call Get_z_1der_P2C_3D(qz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz)
+    call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
+    call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 2, IPENCIL(1))
+    div(:, :, :) = div(:, :, :) + div0(:, :, :)
+    
+    return
+  end subroutine
 
 !==========================================================================================================
 !==========================================================================================================
@@ -96,22 +195,23 @@ contains
 ! operation in x pencil, du/dx
 !----------------------------------------------------------------------------------------------------------
     div0 = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    call Get_x_1der_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !write(*,*) 'div, x', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
-! operation in y pencil, dv/dy
+! operation in y pencil, dqy/dy * (1/r)
 !----------------------------------------------------------------------------------------------------------
     uy_ypencil = ZERO
     div0_ypencil = ZERO
     div0 = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
+    call Get_y_1der_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
     call transpose_y_to_x(div0_ypencil, div0, dm%dccc)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 1, IPENCIL(1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !write(*,*) 'div, y', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
-! operation in z pencil, dw/dz
+! operation in z pencil, dw/dz * (1/r)^2
 !----------------------------------------------------------------------------------------------------------
     uz_ypencil = ZERO
     uz_zpencil = ZERO
@@ -120,9 +220,10 @@ contains
     div0 = ZERO
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
+    call Get_z_1der_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
     call transpose_z_to_y(div0_zpencil, div0_ypencil, dm%dccc)
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 2, IPENCIL(1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !write(*,*) 'div, z', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
     !write(*,*) 'divall', div0(1, 1, 1), div(8, 8, 8)
@@ -183,7 +284,7 @@ contains
     div0 = ZERO
     div0_ypencil_ggl = ZERO
     div_ypencil_ggl = ZERO
-    call Get_x_1st_derivative_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    call Get_x_1der_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
     call transpose_x_to_y(div0, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div0_ypencil_ggl
 !----------------------------------------------------------------------------------------------------------
@@ -193,7 +294,7 @@ contains
     div0_ypencil = ZERO
     div0_ypencil_ggl = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
-    call Get_y_1st_derivative_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
+    call Get_y_1der_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy)
     call ypencil_index_lgl2ggl(div0_ypencil, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div_ypencil_ggl + div0_ypencil_ggl
     call transpose_y_to_z(div_ypencil_ggl, div_zpencil_ggg, dm%dccc)
@@ -206,7 +307,7 @@ contains
     div0_zpencil_ggg = ZERO
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
-    call Get_z_1st_derivative_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
+    call Get_z_1der_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
     call zpencil_index_llg2ggg(div0_zpencil, div0_zpencil_ggg, dm%dccc)
     div_zpencil_ggg = div_zpencil_ggg + div0_zpencil_ggg
 
@@ -262,23 +363,19 @@ contains
 ! $d\rho / dt$ at cell centre
 !----------------------------------------------------------------------------------------------------------
     if (dm%is_thermo) then
-      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
+      call Calculate_drhodt(fl, dm, 0)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !----------------------------------------------------------------------------------------------------------
-    if (dm%is_thermo) then
-      call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
-    else
-      call Get_divergence_vel(fl%qx, fl%qy, fl%qz, div, dm)
-    end if
+    call Get_divergence(fl, div, dm)
 
 #ifdef DEBUG_STEPS
     if(MOD(iter, dm%visu_nfre) == 0) &
-    call write_visu_any3darray(div, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
+    call write_visu_any3darray(div+fl%pcor, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif
 
-    call Find_maximum_absvar3d(div, fl%mcon, trim(str)//" Check Mass Conservation:", wrtfmt1e)
+    call Find_maximum_absvar3d(div+fl%pcor, fl%mcon, trim(str)//" Check Mass Conservation:", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax

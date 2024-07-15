@@ -20,6 +20,7 @@
 module flow_thermo_initialiasation
   use vars_df_mod
   use solver_tools_mod
+  use print_msg_mod
   implicit none
 
   private  :: Allocate_flow_variables
@@ -88,6 +89,11 @@ contains
 
       call alloc_x(fl%dDensm1, dm%dccc) ; fl%dDensm1 = ONE
       call alloc_x(fl%dDensm2, dm%dccc) ; fl%dDensm2 = ONE
+
+      call alloc_x(fl%gx0,      dm%dpcc) ; fl%gx0 = ZERO
+      call alloc_x(fl%gy0,      dm%dcpc) ; fl%gy0 = ZERO
+      call alloc_x(fl%gz0,      dm%dccp) ; fl%gz0 = ZERO
+
     end if
 
     if(nrank == 0) call Print_debug_end_msg
@@ -193,12 +199,12 @@ contains
           end if
           do i = 1, dtmp%xsz(1)
             ii = i
-            seed = flatten_index(ii, jj, kk, dtmp%xsz(1), dtmp%ysz(2), dtmp%zsz(3)) + seed0 * n
+            seed = flatten_index(ii, jj, kk, dtmp%xsz(1), dtmp%ysz(2)) + seed0 * n
             call Initialize_random_number ( seed )
             call Generate_r_random( -ONE, ONE, rd)
             if(n == 1) ux(i, j, k) = lownoise * rd
-            if(n == 2) uy(i, j, k) = lownoise * rd
-            if(n == 3) uz(i, j, k) = lownoise * rd
+            if(n == 2) uy(i, j, k) = lownoise * rd / dm%rpi(jj)
+            if(n == 3) uz(i, j, k) = lownoise * rd / dm%rci(jj)
           end do
         end do
       end do
@@ -385,7 +391,8 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     !if(nrank == 0) call Print_debug_mid_msg("Ensure u, v, w, averaged in x and z direction is zero...")
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("     The initial bulk velocity (original) is:")
       write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -397,7 +404,8 @@ contains
     ! write(*,*) 'uy, scaled', uy(:, 8, 8), uy(:, 1, 8) !debug_test
     ! write(*,*) 'uz, scaled', uz(:, 8, 8), uz(:, 1, 8) !debug_test
 
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, ux, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       call Print_debug_mid_msg("     The initial bulk velocity (corrected) is:")
       write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -551,7 +559,6 @@ contains
     use udf_type_mod
     use parameters_constant_mod
     use io_restart_mod
-    use burgers_eq_mod
     use io_visulisation_mod
     use wtformat_mod
     use solver_tools_mod
@@ -609,7 +616,7 @@ contains
       else if (dm%icase == ICASE_TGV3D) then
         call Initialize_vortexgreen_3dflow (dm, fl%qx, fl%qy, fl%qz, fl%pres)
       else if (dm%icase == ICASE_BURGERS) then
-        call Initialize_burgers_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
+        !call Initialize_burgers_flow      (dm, fl%qx, fl%qy, fl%qz, fl%pres)
       else
       end if
     else

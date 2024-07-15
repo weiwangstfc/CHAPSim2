@@ -1,5 +1,6 @@
 module io_monitor_mod
   use precision_mod
+  use print_msg_mod
   implicit none
 
   public :: write_monitor_ini
@@ -240,7 +241,8 @@ contains
 !   x-pencil, 1/2*(uu+vv+ww) - calculation
 !----------------------------------------------------------------------------------------------------------
     fenergy = HALF * (accc1 * accc1 + accc2 * accc2 + accc3 * accc3)
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:,:,:), dm, dm%dccc, fenergy, bulk_energy)
+    !call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:,:,:), dm, dm%dccc, fenergy, bulk_energy)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, bulk_energy)
 !----------------------------------------------------------------------------------------------------------
 !   write data out
 !----------------------------------------------------------------------------------------------------------
@@ -261,7 +263,7 @@ contains
         write (*, *) 'Message: ', trim (iotxt)
         stop
       end if 
-      write(myunit, *) fl%time, fl%umax(1:3), fl%mcon
+      write(myunit, *) fl%time, fl%mcon
       close(myunit)
     end if     
 

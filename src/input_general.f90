@@ -25,8 +25,8 @@
 !> \date 11-05-2022, checked.
 !==========================================================================================================
 module input_general_mod
+  use print_msg_mod
   implicit none
-  
   public  :: Read_input_parameters
 
 contains
@@ -51,8 +51,7 @@ contains
     use boundary_conditions_mod
     use code_performance_mod
     implicit none
-
-    character(len = 18) :: flname = 'input_chapsim.ini'
+    character(len = 18) :: flinput = 'input_chapsim.ini'
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
     integer :: ioerr, inputUnit
@@ -64,7 +63,7 @@ contains
     real(WP) :: rtmp
     real(WP), allocatable :: rtmpx(:)
     integer, allocatable  :: itmpx(:)
-    integer :: i, j
+    integer :: i, j, m, n
     logical :: is_any_energyeq
     
     if(nrank == 0) then
@@ -77,19 +76,19 @@ contains
     ! open file
     !----------------------------------------------------------------------------------------------------------
     open ( newunit = inputUnit, &
-           file    = flname, &
+           file    = flinput, &
            status  = 'old', &
            action  = 'read', &
            iostat  = ioerr, &
            iomsg   = iotxt )
     if(ioerr /= 0) then
-      write (*, *) 'Problem openning : ', flname, ' for reading.'
+      write (*, *) 'Problem openning : ', flinput, ' for reading.'
       write (*, *) 'Message: ', trim (iotxt)
       stop 1
     end if
 
     if(nrank == 0) &
-    call Print_debug_start_msg("Reading General Parameters from "//flname//" ...")
+    call Print_debug_start_msg("Reading General Parameters from "//flinput//" ...")
     !----------------------------------------------------------------------------------------------------------
     ! reading input
     !----------------------------------------------------------------------------------------------------------
@@ -235,65 +234,57 @@ contains
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5) ! dimensional
 
-        do i = 1, nxdomain
+
+        do i = 2, nxdomain
           domain(i)%ibcy_nominal(:, :) = domain(1)%ibcy_nominal(:, :)
           domain(i)%ibcz_nominal(:, :) = domain(1)%ibcz_nominal(:, :)
-
           domain(i)%fbcy_const(:, :) = domain(1)%fbcy_const(:, :)
           domain(i)%fbcz_const(:, :) = domain(1)%fbcz_const(:, :)
+        end do
 
+        do i = 1, nxdomain
           domain(i)%is_periodic(:) = .false.
-          do j = 1, 5
-            if(domain(i)%ibcx_nominal(1, j) == IBC_PERIODIC .or. &
-               domain(i)%ibcx_nominal(2, j) == IBC_PERIODIC) then
-              domain(i)%ibcx_nominal(1:2, j) = IBC_PERIODIC
-              domain(i)%is_periodic(1) = .true.
+          do m = 1, NBC
+            if(domain(i)%ibcx_nominal(1, m) == IBC_PERIODIC .or. &
+               domain(i)%ibcx_nominal(2, m) == IBC_PERIODIC) then
+               domain(i)%ibcx_nominal(1:2, m) = IBC_PERIODIC
+               domain(i)%is_periodic(1) = .true.
             end if
-            if(domain(i)%ibcy_nominal(1, j) == IBC_PERIODIC .or. &
-              domain(i)%ibcy_nominal(2, j) == IBC_PERIODIC) then
-              domain(i)%ibcy_nominal(1:2, j) = IBC_PERIODIC
-              domain(i)%is_periodic(2) = .true.
+            if(domain(i)%ibcy_nominal(1, m) == IBC_PERIODIC .or. &
+               domain(i)%ibcy_nominal(2, m) == IBC_PERIODIC) then
+               domain(i)%ibcy_nominal(1:2, m) = IBC_PERIODIC
+               domain(i)%is_periodic(2) = .true.
             end if
-            if(domain(i)%ibcz_nominal(1, j) == IBC_PERIODIC .or. &
-              domain(i)%ibcz_nominal(2, j) == IBC_PERIODIC) then
-              domain(i)%ibcz_nominal(1:2, j) = IBC_PERIODIC
-              domain(i)%is_periodic(3) = .true.
+            if(domain(i)%ibcz_nominal(1, m) == IBC_PERIODIC .or. &
+               domain(i)%ibcz_nominal(2, m) == IBC_PERIODIC) then
+               domain(i)%ibcz_nominal(1:2, m) = IBC_PERIODIC
+               domain(i)%is_periodic(3) = .true.
             end if
           end do
 
           if (domain(i)%icase == ICASE_PIPE) then
-            domain(i)%ibcy_nominal(:, :) = IBC_INTERIOR
+            domain(i)%ibcy_nominal(1, :) = IBC_INTERIOR
             domain(i)%is_periodic(2) = .false.
           end if
-          call configure_bc_type(domain(i)) 
+          !----------------------------------------------------------------------------------------------------------
+          ! to exclude non-resonable input
+          !----------------------------------------------------------------------------------------------------------
+          do m = 1, NBC
+            if(domain(i)%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
+            do n = 1, 2
+              if(domain(i)%ibcx_nominal(n, m) >  IBC_OTHERS   ) call Print_error_msg(" This xBC is not suported.")
+              if(domain(i)%ibcy_nominal(n, m) >  IBC_OTHERS   ) call Print_error_msg(" This yBC is not suported.")
+              if(domain(i)%ibcz_nominal(n, m) >  IBC_OTHERS   ) call Print_error_msg(" This zBC is not suported.")
+              if(domain(i)%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This yBC IBC_PROFILE1D is not supported.")
+              if(domain(i)%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This zBC IBC_PROFILE1D is not supported.")
+            end do
+          end do 
+          !----------------------------------------------------------------------------------------------------------
+          ! to get calc b.c.
+          !----------------------------------------------------------------------------------------------------------
+          call config_calc_basic_ibc(domain(i))
+          call config_calc_eqs_ibc(domain(i))
         end do
-        
-        if(nrank == 0) then
-          write (*, wrtfmt1s) '  Boundary type options : '
-          write (*, wrtfmt1s) '   0 = IBC_INTERIOR,  1 = IBC_PERIODIC,  2  = IBC_SYMMETRIC, 3 = IBC_ASYMMETRIC, '
-          write (*, wrtfmt1s) '   4 = IBC_DIRICHLET, 5 = IBC_NEUMANN,   6  = IBC_INTRPL,    7 = IBC_CONVECTIVE, '
-          write (*, wrtfmt1s) '   8 = IBC_TURBGEN,   9 = IBC_PROFILE1D, 10 = IBC_DATABASE '
-          
-          do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, *) 'is periodic in xyz? ', domain(i)%is_periodic(1:3)
-            write (*, wrtfmt2i2r) '  u-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 1), domain(i)%fbcx_const(1:2, 1)
-            write (*, wrtfmt2i2r) '  v-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 2), domain(i)%fbcx_const(1:2, 2)
-            write (*, wrtfmt2i2r) '  w-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 3), domain(i)%fbcx_const(1:2, 3)
-            write (*, wrtfmt2i2r) '  p-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 4), domain(i)%fbcx_const(1:2, 4)
-            write (*, wrtfmt2i2r) '  T-x-bc-type-value :', domain(i)%ibcx_nominal(1:2, 5), domain(i)%fbcx_const(1:2, 5)
-          end do
-          write (*, wrtfmt2i2r) '  u-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 1), domain(1)%fbcy_const(1:2, 1)
-          write (*, wrtfmt2i2r) '  v-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 2), domain(1)%fbcy_const(1:2, 2)
-          write (*, wrtfmt2i2r) '  w-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 3), domain(1)%fbcy_const(1:2, 3)
-          write (*, wrtfmt2i2r) '  p-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 4), domain(1)%fbcy_const(1:2, 4)
-          write (*, wrtfmt2i2r) '  T-y-bc-type-value :', domain(1)%ibcy_nominal(1:2, 5), domain(1)%fbcy_const(1:2, 5)
-          write (*, wrtfmt2i2r) '  u-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 1), domain(1)%fbcz_const(1:2, 1)
-          write (*, wrtfmt2i2r) '  v-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 2), domain(1)%fbcz_const(1:2, 2)
-          write (*, wrtfmt2i2r) '  w-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 3), domain(1)%fbcz_const(1:2, 3)
-          write (*, wrtfmt2i2r) '  p-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 4), domain(1)%fbcz_const(1:2, 4)
-          write (*, wrtfmt2i2r) '  T-z-bc-type-value :', domain(1)%ibcz_nominal(1:2, 5), domain(1)%fbcz_const(1:2, 5)
-        end if
       !----------------------------------------------------------------------------------------------------------
       ! [mesh] 
       !----------------------------------------------------------------------------------------------------------
@@ -369,7 +360,7 @@ contains
         if(nrank == 0) then
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1r) '  physical time step(dt, unit = second) :', domain(i)%dt
+            write (*, wrtfmt1e) '  physical time step(dt, unit = second) :', domain(i)%dt
             write (*, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
           end do
         end if
@@ -575,14 +566,19 @@ contains
     ! end of reading, clearing dummies
     !----------------------------------------------------------------------------------------------------------
     if(.not.IS_IOSTAT_END(ioerr)) &
-    call Print_error_msg( 'Problem reading '//flname // &
+    call Print_error_msg( 'Problem reading '//flinput // &
     'in Subroutine: '// "Read_general_input")
 
     close(inputUnit)
 
     if(allocated(itmpx)) deallocate(itmpx)
     if(allocated(rtmpx)) deallocate(rtmpx)
-
+    !----------------------------------------------------------------------------------------------------------
+    ! convert the input dimensional temperature/heat flux into undimensional
+    !----------------------------------------------------------------------------------------------------------
+    do i = 1, nxdomain
+      if(domain(i)%is_thermo) call Convert_thermal_input_2undim(thermo(i), domain(i))
+    end do 
     !----------------------------------------------------------------------------------------------------------
     ! set up constant for time step marching 
     !----------------------------------------------------------------------------------------------------------

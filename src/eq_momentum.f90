@@ -2,6 +2,7 @@ module eq_momentum_mod
   use operations
   use precision_mod
   use decomp_2d
+  use print_msg_mod
   implicit none
 
   private :: Calculate_momentum_fractional_step
@@ -393,7 +394,7 @@ contains
       call transpose_y_to_z (m_cpc_ypencil,    m_cpc_zpencil,       dm%dcpc)                            ! z-pencil : y-mom, w thermal
       call transpose_y_to_x (m_cpc_ypencil,    m_cpc,               dm%dcpc)                            ! x-pencil : y-mom, w thermal
       
-      call Get_z_1st_derivative_C2C_3D (m_cpc_zpencil, dmdz_cpc_zpencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%ftpbcz_var(:, :, :)%m)
+      call Get_z_1st_derivative_C2C_3D (m_cpc_zpencil, dmdz_cpc_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%ftpbcz_var(:, :, :)%m)
       call transpose_z_to_y (dmdz_cpc_zpencil,    dmdz_cpc_ypencil,       dm%dcpc) 
       
       call Get_x_1st_derivative_C2C_3D(m_cpc,  dmdx_cpc, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%ftpbcx_var(:, :, :)%m)                ! x-pencil : y-mom, w thermal
@@ -1116,7 +1117,7 @@ end if
 ! $d\rho / dt$ at cell centre
 !----------------------------------------------------------------------------------------------------------
     if (dm%is_thermo) then
-      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, fl%pcor)
+      call Calculate_drhodt(fl, dm, isub)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
@@ -1225,8 +1226,8 @@ end if
       rhs_ypencil = ZERO
       rhs_zpencil = ZERO
       rhs_zpencil_ggg = ZERO
-      call Calculate_drhodt(dm, fl%dDens, fl%dDensm1, fl%dDensm2, rhs)
-      call transpose_x_to_y(rhs,         rhs_ypencil)
+      call Calculate_drhodt(fl, dm, isub)
+      call transpose_x_to_y(fl%pcor, rhs_ypencil)
       call transpose_y_to_z(rhs_ypencil, rhs_zpencil)
       call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
       fl%pcor_zpencil_ggg = fl%pcor_zpencil_ggg + rhs_zpencil_ggg

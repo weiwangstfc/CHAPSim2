@@ -20,10 +20,10 @@ PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
   FOPTS= -O -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
-   -finit-real=snan -ftrapv -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
+   -finit-local-zero -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
    -Wno-unused -fallow-argument-mismatch		   
   FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
-  FDEBG= -DDEBUG_STEPS -DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
+  FDEBG= #-DDEBUG_STEPS -DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
@@ -84,7 +84,6 @@ OBJS1= mpi_mod.o\
       eq_continuity.o\
       eq_energy.o\
       eq_momentum.o\
-      test_algrithms.o\
       io_restart.o\
       flow_initialization.o\
       chapsim.o

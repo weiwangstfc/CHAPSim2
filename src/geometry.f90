@@ -27,6 +27,7 @@
 module geometry_mod
   use vars_df_mod, only : domain
   use precision_mod
+  use print_msg_mod
   implicit none
 
   integer, save :: ndm = 0
@@ -178,7 +179,7 @@ contains
 
     type(t_domain), intent(inout) :: dm
 
-    integer    :: i
+    integer    :: i, k
     
     if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
 
@@ -204,7 +205,26 @@ contains
     dm%h(1) = dm%lxx / real(dm%nc(1), WP)
     dm%h(3) = dm%lzz / real(dm%nc(3), WP)
     dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP) ! default, uniform
-    
+
+    !----------------------------------------------------------------------------------------------------------
+    ! allocate  cylindrical radius
+    !----------------------------------------------------------------------------------------------------------
+    allocate ( dm%rpi( dm%np_geo(2) ) )
+    allocate ( dm%rci( dm%nc    (2) ) )
+    dm%rpi(:) = ONE
+    dm%rci(:) = ONE
+
+!----------------------------------------------------------------------------------------------------------
+! set up z-interior extention cells for pipe flow, zpencil only
+!----------------------------------------------------------------------------------------------------------
+    if(dm%icase == ICASE_PIPE) then
+      allocate (dm%knc_sym(dm%nc(3)))
+      do k = 1, dm%nc(3)
+        dm%knc_sym(k) = k + dm%nc(3)/2
+        if(dm%knc_sym(k) > dm%nc(3)) dm%knc_sym(k) = dm%knc_sym(k) - dm%nc(3)
+      end do
+    end if
+
     !----------------------------------------------------------------------------------------------------------
     ! allocate  variables for mapping physical domain to computational domain
     !----------------------------------------------------------------------------------------------------------
@@ -238,9 +258,24 @@ contains
       dm%h1r(i) = ONE / dm%h(i)
     end do
 
+    !----------------------------------------------------------------------------------------------------------
+    ! set rci, rpi for cylindrical coordinates
+    !----------------------------------------------------------------------------------------------------------
+    if(dm%icoordinate == ICYLINDRICAL) then 
+      if(dabs( dm%yp(1) ) < MINP) then
+        dm%rpi(1) = MAXP
+      else 
+        dm%rpi(1) = ONE / dm%yp(1)
+      end if
+      dm%rpi(2 : dm%np_geo(2)) = ONE / dm%yp(2 : dm%np_geo(2))
+      dm%rci(:) = ONE / dm%yc(:)
+    end if
+    !----------------------------------------------------------------------------------------------------------
+    ! print out data 
+    !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
       write (*, wrtfmt1i) 'For the domain-x  = ', dm%idom
-      write (*, wrtfmt3l) '  is periodic in x, y, z ?', dm%is_periodic(1:NDIM)
+      write (*, *)        '  is periodic in x, y, z :', dm%is_periodic(1:NDIM)
       write (*, wrtfmt3i) '  geometry number of nodes     in x, y, z: :', dm%np_geo(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of points in x, y, z: :', dm%np(1:NDIM)
@@ -253,8 +288,9 @@ contains
 #ifdef DEBUG_STEPS
     if(nrank == 0) then
       open(221, file = trim(dir_chkp)//'/check_mesh_yp.dat')
+      write(22, *) 'index, yp, rp'
       do i = 1, dm%np_geo(2)
-        write (221, *) i, dm%yp(i)
+        write (221, *) i, dm%yp(i), ONE / dm%rpi(i)
       end do
     end if
 #endif

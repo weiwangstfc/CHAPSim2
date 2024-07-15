@@ -5,6 +5,7 @@ module poisson_interface_mod
                              !        three, pi, threepfive, four, twopi, cx_one_one
   use math_mod, only: cos_prec, abs_prec, sin_prec
   use geometry_mod, only: alpha, beta
+  use print_msg_mod
   implicit none
 
   integer :: istret
@@ -97,7 +98,7 @@ contains
     implicit none
     type(t_domain), intent(in) :: dm
 
-    real(WP) :: alcai, aci, bci
+    !real(WP) :: alcai, aci, bci
     
 
     if (nrank == 0) call Print_debug_start_msg("Building up the interface for the poisson solver ...")

@@ -5,6 +5,7 @@ module eq_energy_mod
 
   private :: Compute_energy_rhs
   private :: Calculate_energy_fractional_step
+  private :: update_fbc_thermo      ! applied every time for constant heat flux (Neumann). due to using operations, stored here, not in boundary.f90
   public  :: Update_thermal_properties
   public  :: Solve_energy_eq
 contains
@@ -30,9 +31,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   main field
 !----------------------------------------------------------------------------------------------------------
-    do k = dm%dccc%xst(3), dm%dccc%xen(3)
-      do j = dm%dccc%xst(2), dm%dccc%xen(2)
-        do i = dm%dccc%xst(1), dm%dccc%xen(1)
+    do k = 1, dm%dccc%xsz(3)
+      do j = 1, dm%dccc%xsz(2)
+        do i = 1, dm%dccc%xsz(1)
           ftp%dh = tm%dh(i, j, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           tm%hEnth(i, j, k) = ftp%h
@@ -43,37 +44,38 @@ contains
         end do
       end do
     end do
-    fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
-    fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    fl%dDensm2 = fl%dDensm1
+    fl%dDensm1 = fl%dDens
+
 !----------------------------------------------------------------------------------------------------------
 !  BC - x
 !----------------------------------------------------------------------------------------------------------
   if( dm%ibcx_Th(1) == IBC_NEUMANN .or. &
       dm%ibcx_Th(2) == IBC_NEUMANN) then
-    call Get_x_midp_C2P_3D(tm%dh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_Th(:))
-    
+    call Get_x_midp_C2P_3D(tm%dh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%dh)
     if(dm%ibcx_Th(1) == IBC_NEUMANN .and. &
        dm%dpcc%xst(1) == 1) then 
-      do j = 1, dm%dpcc%xsz(2)
-        do k = 1, dm%dpcc%xsz(3)
+      do j = 1, size(dm%fbcx_ftp, 2)
+        do k = 1, size(dm%fbcx_ftp, 3)
           ftp%dh = dh_pcc(1, j, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
-          dm%ftpbcx_var(1, j, k) = ftp
-          dm%ftpbcx_var(3, j, k) = ftp
+          dm%fbcx_ftp(1, j, k) = ftp
+          dm%fbcx_ftp(3, j, k) = ftp
         end do
       end do 
     end if
     if(dm%ibcx_Th(2) == IBC_NEUMANN .and. &
        dm%dpcc%xen(1) == dm%np(1)) then 
-      do j = 1, dm%dpcc%xsz(2)
-        do k = 1, dm%dpcc%xsz(3)
+      do j = 1, size(dm%fbcx_ftp, 2)
+        do k = 1, size(dm%fbcx_ftp, 3)
           ftp%dh = dh_pcc(dm%np(1), j, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
-          dm%ftpbcx_var(2, j, k) = ftp
-          dm%ftpbcx_var(4, j, k) = ftp
+          dm%fbcx_ftp(2, j, k) = ftp
+          dm%fbcx_ftp(4, j, k) = ftp
         end do
       end do 
     end if
+
   end if
 !----------------------------------------------------------------------------------------------------------
 !  BC - y
@@ -81,27 +83,27 @@ contains
   if( dm%ibcy_Th(1) == IBC_NEUMANN .or. &
       dm%ibcy_Th(2) == IBC_NEUMANN) then
     call transpose_x_to_y(tm%dh, dh_ypencil, dm%dccc)
-    call Get_y_midp_C2P_3D(dh_ypencil, dh_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:))
+    call Get_y_midp_C2P_3D(dh_ypencil, dh_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%dh)
     
     if(dm%ibcy_Th(1) == IBC_NEUMANN .and. &
        dm%dcpc%yst(2) == 1) then 
-      do i = 1, dm%dcpc%ysz(1)
-        do k = 1, dm%dcpc%ysz(3)
+      do i = 1, size(dm%fbcy_ftp, 1)
+        do k = 1, size(dm%fbcy_ftp, 3)
           ftp%dh = dh_cpc_ypencil(i, 1, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
-          dm%ftpbcy_var(i, 1, k) = ftp
-          dm%ftpbcy_var(i, 3, k) = ftp
+          dm%fbcy_ftp(i, 1, k) = ftp
+          dm%fbcy_ftp(i, 3, k) = ftp
         end do
       end do
     end if
     if(dm%ibcy_Th(2) == IBC_NEUMANN .and. &
        dm%dcpc%yen(2) == dm%np(2)) then 
-      do i = 1, dm%dcpc%ysz(1)
-        do k = 1, dm%dcpc%ysz(3)
+      do i = 1, size(dm%fbcy_ftp, 1)
+        do k = 1, size(dm%fbcy_ftp, 3)
           ftp%dh = dh_cpc_ypencil(i, dm%np(1), k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
-          dm%ftpbcy_var(i, 2, k) = ftp
-          dm%ftpbcy_var(i, 4, k) = ftp
+          dm%fbcy_ftp(i, 2, k) = ftp
+          dm%fbcy_ftp(i, 4, k) = ftp
         end do
       end do
     end if
@@ -113,27 +115,27 @@ contains
       dm%ibcz_Th(2) == IBC_NEUMANN) then
     call transpose_x_to_y(tm%dh, dh_ypencil, dm%dccc)
     call transpose_y_to_z(dh_ypencil, dh_zpencil, dm%dccc)
-    call Get_z_midp_C2P_3D(dh_zpencil, dh_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:))
+    call Get_z_midp_C2P_3D(dh_zpencil, dh_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%dh)
     
     if(dm%ibcz_Th(1) == IBC_NEUMANN .and. &
        dm%dccp%zst(1) == 1) then 
-      do j = 1, dm%dccp%zsz(2)
-        do i = 1, dm%dccp%zsz(1)
+      do j = 1, size(dm%fbcz_ftp, 2)
+        do i = 1, size(dm%fbcz_ftp, 1)
           ftp%dh = dh_ccp_zpencil(i, j, 1)
           call ftp_refresh_thermal_properties_from_DH(ftp)
-          dm%ftpbcz_var(i, j, 1) = ftp
-          dm%ftpbcz_var(i, j, 3) = ftp
+          dm%fbcz_ftp(i, j, 1) = ftp
+          dm%fbcz_ftp(i, j, 3) = ftp
         end do
       end do
     end if
     if(dm%ibcz_Th(2) == IBC_NEUMANN .and. &
        dm%dccp%zen(1) == dm%np(3)) then 
-      do j = 1, dm%dccp%zsz(2)
-        do i = 1, dm%dccp%zsz(1)
+      do j = 1, size(dm%fbcz_ftp, 2)
+        do i = 1, size(dm%fbcz_ftp, 1)
           ftp%dh = dh_ccp_zpencil(i, j, dm%np(3))
           call ftp_refresh_thermal_properties_from_DH(ftp)
-          dm%ftpbcz_var(i, j, 2) = ftp
-          dm%ftpbcz_var(i, j, 4) = ftp
+          dm%fbcz_ftp(i, j, 2) = ftp
+          dm%fbcz_ftp(i, j, 4) = ftp
         end do
       end do
     end if
@@ -141,25 +143,103 @@ contains
 
   return
   end subroutine Update_thermal_properties
+
 !==========================================================================================================
-  subroutine Calculate_energy_fractional_step(rhs0, rhs1, dm, isub)
+!==========================================================================================================
+  subroutine update_fbc_thermo(tm, dm)
+    use operations
+    use parameters_constant_mod
+    use udf_type_mod
+    use thermo_info_mod
+    implicit none 
+    type(t_thermo), intent(in) :: tm
+    type(t_domain), intent(inout) :: dm
+    integer :: ibc(2)
+    real(WP), DIMENSION(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)) :: apcc_xpencil
+    real(WP), DIMENSION(dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: acpc_ypencil
+    real(WP), DIMENSION(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3)) :: accc_ypencil
+    real(WP), DIMENSION(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3)) :: accc_zpencil
+    real(WP), DIMENSION(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: accp_zpencil
+    integer :: n
+!----------------------------------------------------------------------------------------------------------
+!   fbcx_ftp
+!----------------------------------------------------------------------------------------------------------
+    if (dm%ibcx_Th(1) == IBC_NEUMANN .or. dm%ibcx_Th(2) == IBC_NEUMANN) then
+      ibc(1:2) = IBC_INTRPL
+      call Get_x_midp_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, ibc)
+      if (dm%ibcx_Th(1) == IBC_NEUMANN) dm%fbcx_ftp(1, :, :)%t = apcc_xpencil(1, :, :)
+      if (dm%ibcx_Th(2) == IBC_NEUMANN) dm%fbcx_ftp(2, :, :)%t = apcc_xpencil(dm%dpcc%xsz(1), :, :)
+      call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcx_ftp(1:2, :, :))
+      do n = 1, 2
+        dm%fbcx_gx(n, :, :) = dm%fbcx_qx(n, :, :) * dm%fbcx_ftp(n, :, :)%d
+        dm%fbcx_gy(n, :, :) = dm%fbcx_qy(n, :, :) * dm%fbcx_ftp(n, :, :)%d
+        dm%fbcx_gz(n, :, :) = dm%fbcx_qz(n, :, :) * dm%fbcx_ftp(n, :, :)%d
+      end do
+    end if
+!----------------------------------------------------------------------------------------------------------
+!   fbcy_ftp
+!----------------------------------------------------------------------------------------------------------
+    if (dm%ibcy_Th(1) == IBC_NEUMANN .or. dm%ibcy_Th(2) == IBC_NEUMANN) then
+      ibc(1:2) = IBC_INTRPL
+      call transpose_x_to_y(tm%tTemp, accc_ypencil, dm%dccc)
+      call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, ibc)
+      if (dm%ibcy_Th(1) == IBC_NEUMANN) dm%fbcy_ftp(:, 1, :)%t = acpc_ypencil(:, 1, :)
+      if (dm%ibcy_Th(2) == IBC_NEUMANN) dm%fbcy_ftp(:, 2, :)%t = acpc_ypencil(:, dm%dcpc%ysz(2), :)
+      call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcy_ftp(:, 1:2, :))
+      do n = 1, 2
+        dm%fbcy_gx(:, n, :) = dm%fbcy_qx(:, n, :) * dm%fbcy_ftp(:, n, :)%d
+        dm%fbcy_gy(:, n, :) = dm%fbcy_qy(:, n, :) * dm%fbcy_ftp(:, n, :)%d
+        dm%fbcy_gz(:, n, :) = dm%fbcy_qz(:, n, :) * dm%fbcy_ftp(:, n, :)%d
+      end do
+    end if
+!----------------------------------------------------------------------------------------------------------
+!   fbcz_ftp
+!----------------------------------------------------------------------------------------------------------
+    if (dm%ibcz_Th(1) == IBC_NEUMANN .or. dm%ibcz_Th(2) == IBC_NEUMANN) then
+      ibc(1:2) = IBC_INTRPL
+      call transpose_x_to_y(tm%tTemp,     accc_ypencil, dm%dccc)
+      call transpose_y_to_z(accc_ypencil, accc_zpencil, dm%dccc)
+      call Get_z_midp_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%iAccuracy, ibc)
+      if (dm%ibcz_Th(1) == IBC_NEUMANN) dm%fbcz_ftp(:, :, 1)%t = accp_zpencil(:, :, 1)
+      if (dm%ibcz_Th(2) == IBC_NEUMANN) dm%fbcz_ftp(:, :, 2)%t = accp_zpencil(:, :, dm%dccp%zsz(3))
+      call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcz_ftp(:, :, 1:2))
+      do n = 1, 2
+        dm%fbcz_gx(:, :, n) = dm%fbcz_qx(:, :, n) * dm%fbcz_ftp(:, :, n)%d
+        dm%fbcz_gy(:, :, n) = dm%fbcz_qy(:, :, n) * dm%fbcz_ftp(:, :, n)%d
+        dm%fbcz_gz(:, :, n) = dm%fbcz_qz(:, :, n) * dm%fbcz_ftp(:, :, n)%d
+      end do
+    end if
+
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine Calculate_energy_fractional_step(rhs0, rhs1, dtmp, dm, isub)
     use parameters_constant_mod
     use udf_type_mod
     implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
     type(t_domain), intent(in) :: dm
-    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)), intent(inout) :: rhs0, rhs1
+    real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(inout) :: rhs0, rhs1
     integer,  intent(in) :: isub
-    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: rhs_dummy
+    
+    real(WP) :: rhs_explicit_current, rhs_explicit_last, rhs_total
+    integer :: i, j, k 
 
+    do k = 1, dtmp%xsz(3)
+      do j = 1, dtmp%xsz(2)
+        do i = 1, dtmp%xsz(1)
 
-  ! add explicit terms
-    rhs_dummy(:, :, :) = rhs1(:, :, :)
-    rhs1(:, :, :) = dm%tGamma(isub) * rhs1(:, :, :) + &
-                    dm%tZeta (isub) * rhs0(:, :, :)
-    rhs0(:, :, :) = rhs_dummy(:, :, :)
-
-  ! times the time step 
-    rhs1(:, :, :) = dm%dt * rhs1(:, :, :)
+      ! add explicit terms : convection+viscous rhs
+          rhs_explicit_current = rhs1(i, j, k) ! not (*dt)
+          rhs_explicit_last    = rhs0(i, j, k) ! not (*dt)
+          rhs_total = dm%tGamma(isub) * rhs_explicit_current + &
+                      dm%tZeta (isub) * rhs_explicit_last
+          rhs0(i, j, k) = rhs_explicit_current
+      ! times the time step 
+          rhs1(i, j, k) = dm%dt * rhs_total ! * dt
+        end do
+      end do
+    end do
 
     return
   end subroutine
@@ -175,28 +255,31 @@ contains
     type(t_thermo), intent(inout) :: tm
     integer,        intent(in) :: isub    
 
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
+    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc_xpencil
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc_xpencil
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: apcc
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
     
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: gy_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_zpencil 
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: gy_cpc_ypencil
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: gz_ccp_zpencil 
 
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: hEnth_pcc
-    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: kCond_pcc
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: hEnth_pcc_xpencil
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: hEnth_cpc_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: hEnth_ccp_zpencil
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: Ttemp_ypencil
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: ene_rhs_ypencil
+
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: Ttemp_ccc_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: Ttemp_ccc_zpencil
+
+    real(WP), dimension( dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dppc%xsz(3) ) :: kCond_pcc_xpencil
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: kCond_cpc_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: kCond_ccp_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: Ttemp_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: kCond_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_zpencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: kCond_ccc_zpencil
+    
+    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: ene_rhs_ccc_ypencil
+    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_ccc_zpencil
     
     ! real(WP) :: fbcx(4, dm%np(2), dm%np(3))
     ! real(WP) :: fbcy(dm%np(1), 4, dm%np(3))
@@ -206,131 +289,122 @@ contains
 !==========================================================================================================
 !   preparation
 !==========================================================================================================
-    call transpose_x_to_y(fl%gy,        gy_ypencil,   dm%dcpc)   ! for d(g_y h)/dy
-    call transpose_x_to_y(fl%gz,        accp_ypencil, dm%dccp)   ! intermediate, accp_ypencil = gz_ypencil
-    call transpose_y_to_z(accp_ypencil, gz_zpencil,   dm%dccp)   ! for d(g_z h)/dz
+    call transpose_x_to_y(fl%gy,        gy_cpc_ypencil,   dm%dcpc)   ! for d(g_y h)/dy
+    call transpose_x_to_y(fl%gz,        accp_ypencil,     dm%dccp)   ! intermediate, accp_ypencil = gz_ypencil
+    call transpose_y_to_z(accp_ypencil, gz_ccp_zpencil,   dm%dccp)   ! for d(g_z h)/dz
 !----------------------------------------------------------------------------------------------------------
 !    h --> h_pcc
 !      --> h_ypencil --> h_cpc_ypencil
 !                    --> h_zpencil --> h_ccp_zpencil
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%hEnth,     hEnth_pcc,         dm, dm%iAccuracy, dm%ibcx_Th(:), dm%ftpbcx_var(:, :, :)%h ) ! for d(g_x h_pcc))/dy
-    call transpose_x_to_y (tm%hEnth,     accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%ftpbcy_var(:, :, :)%h)! for d(g_y h_cpc)/dy
+    call Get_x_midp_C2P_3D(tm%hEnth, hEnth_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%fbcx_ftp%h ) ! for d(g_x h_pcc))/dy
+    call transpose_x_to_y (tm%hEnth, accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
+    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%fbcy_ftp%h)! for d(g_y h_cpc)/dy
     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%ftpbcz_var(:, :, :)%h) ! for d(g_z h_ccp)/dz
+    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%fbcz_ftp%h) ! for d(g_z h_ccp)/dz
 !----------------------------------------------------------------------------------------------------------
 !    k --> k_pcc
 !      --> k_ypencil --> k_cpc_ypencil
 !                    --> k_zpencil --> k_ccp_zpencil              
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%kCond,      kCond_pcc,         dm, dm%iAccuracy, dm%ibcx_Th(:), dm%ftpbcx_var(:, :, :)%k) ! for d(k_pcc * (dT/dx) )/dx
-    call transpose_x_to_y (tm%kCond,      accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%ftpbcy_var(:, :, :)%k)
-    call transpose_y_to_z (accc_ypencil,  kCond_zpencil, dm%dccc) 
-    call Get_z_midp_C2P_3D(kCond_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%ftpbcz_var(:, :, :)%k)
+    call Get_x_midp_C2P_3D(tm%kCond, kCond_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%fbcx_ftp%k) ! for d(k_pcc * (dT/dx) )/dx
+    call transpose_x_to_y (tm%kCond, accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
+    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%fbcy_ftp%k)
+    call transpose_y_to_z (accc_ypencil,  kCond_ccc_zpencil, dm%dccc) 
+    call Get_z_midp_C2P_3D(kCond_ccc_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%fbcz_ftp%k)
 !----------------------------------------------------------------------------------------------------------
 !    T --> T_ypencil --> T_zpencil
 !----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y (tm%Ttemp,      Ttemp_ypencil, dm%dccc)   ! for k d2(T)/dy^2
-    call transpose_y_to_z (Ttemp_ypencil, Ttemp_zpencil, dm%dccc)   ! for k d2(T)/dz^2
+    call transpose_x_to_y (tm%Ttemp,      Ttemp_ccc_ypencil, dm%dccc)   ! for k d2(T)/dy^2
+    call transpose_y_to_z (Ttemp_ccc_ypencil, Ttemp_ccc_zpencil, dm%dccc)   ! for k d2(T)/dz^2
 !==========================================================================================================
-! the RHS of energy equation
-! x-pencil : the RHS terms of energy (derivative) operating in the x direction
+! the RHS of energy equation : convection terms
 !==========================================================================================================
+    tm%ene_rhs      = ZERO
+    ene_rhs_ccc_ypencil = ZERO
+    ene_rhs_ccc_zpencil = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
-    tm%ene_rhs = ZERO
-    call Get_x_1st_derivative_P2C_3D( - fl%gx * hEnth_pcc, accc, dm, dm%iAccuracy, ebcx_conv) ! accc = -d(gx * h)/dx
-    tm%ene_rhs = tm%ene_rhs + accc
+    apcc_xpencil = - fl%gx * hEnth_pcc_xpencil
+    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv) 
+    tm%ene_rhs = tm%ene_rhs + accc_xpencil
 !----------------------------------------------------------------------------------------------------------
-! x-pencil : d (T) / dx 
+! convection-y, y-pencil : d (gy * h_cpc) / dy  * (1/r)
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_C2P_3D(tm%tTemp, apcc, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%ftpbcx_var(:, :, :)%t )
+    acpc_ypencil = - gy_cpc_ypencil * hEnth_cpc_ypencil
+    call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_conv)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
+    ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
 !----------------------------------------------------------------------------------------------------------
-! x-pencil : k_pcc * d (T) / dx 
+! convection-z, z-pencil : d (gz/r * h_ccp) / dz   * (1/r)
 !----------------------------------------------------------------------------------------------------------
-    apcc = apcc * kCond_pcc
-!----------------------------------------------------------------------------------------------------------
-! x-pencil : d ( k_pcc * d (T) / dx ) dx
-!----------------------------------------------------------------------------------------------------------
-    call Get_x_1st_derivative_P2C_3D(apcc, accc, dm, dm%iAccuracy, ebcx_difu)
-
-    tm%ene_rhs = tm%ene_rhs + accc
+    accp_zpencil = - gz_ccp_zpencil * hEnth_ccp_zpencil
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
+    call Get_z_1der_P2C_3D( accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_conv)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
+    ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
 !==========================================================================================================
-! the RHS of energy equation
-! y-pencil : the RHS terms of energy (derivative) operating in the y direction
+! the RHS of energy equation : diffusion terms
 !==========================================================================================================
 !----------------------------------------------------------------------------------------------------------
-! y-pencil : d (gy * h_cpc) / dy 
+! diffusion-x, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
-    ene_rhs_ypencil = ZERO
-    call Get_y_1st_derivative_P2C_3D( - gy_ypencil * hEnth_cpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_conv)
-    ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
+    call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%t )
+    apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
+    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu)
+    tm%ene_rhs = tm%ene_rhs + accc_xpencil
 !----------------------------------------------------------------------------------------------------------
-! y-pencil : d (T) / dy
+! diffusion-y, d ( r * k_cpc * d (T) / dy ) dy * 1/r
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_C2P_3D(tTemp_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%ftpbcy_var(:, :, :)%t )
-!----------------------------------------------------------------------------------------------------------
-! y-pencil : k_cpc * d (T) / dy 
-!----------------------------------------------------------------------------------------------------------
+    call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%t )
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
+    call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
+    ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
 !----------------------------------------------------------------------------------------------------------
-! y-pencil : d ( k_cpc * d (T) / dy ) dy
-!----------------------------------------------------------------------------------------------------------
-    call Get_y_1st_derivative_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu)
-    ene_rhs_ypencil = ene_rhs_ypencil + accc_ypencil
-
-    call transpose_y_to_x(ene_rhs_ypencil, accc, dm%dccc)
-    tm%ene_rhs = tm%ene_rhs + accc
-!==========================================================================================================
-! the RHS of energy equation
-! z-pencil : the RHS terms of energy (derivative) operating in the z direction
-!==========================================================================================================
-!----------------------------------------------------------------------------------------------------------
-! z-pencil : d (gz * h_ccp) / dz 
-!----------------------------------------------------------------------------------------------------------
-    ene_rhs_zpencil = ZERO
-    call Get_z_1st_derivative_P2C_3D( - gz_zpencil * hEnth_ccp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_conv)
-    ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
-!----------------------------------------------------------------------------------------------------------
-! z-pencil : d (T) / dz
-!----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_C2P_3D(tTemp_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%ftpbcz_var(:, :, :)%t )
-!----------------------------------------------------------------------------------------------------------
-! z-pencil : k_ccp * d (T) / dz 
-!----------------------------------------------------------------------------------------------------------
+! diffusion-z, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
+    call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%t )
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
-!----------------------------------------------------------------------------------------------------------
-! z-pencil : d ( k_ccp * d (T) / dz ) / dz
-!----------------------------------------------------------------------------------------------------------
-    call Get_z_1st_derivative_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_difu)
-    ene_rhs_zpencil = ene_rhs_zpencil + accc_zpencil
-
-    call transpose_z_to_y(ene_rhs_zpencil, ene_rhs_ypencil, dm%dccc)
-    call transpose_y_to_x(ene_rhs_ypencil, accc,            dm%dccc)
-    tm%ene_rhs = tm%ene_rhs + accc
-
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
+    call Get_z_1der_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_difu)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
+    ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
+!==========================================================================================================
+! all convert into x-pencil
+!==========================================================================================================
+    call transpose_z_to_y(ene_rhs_ccc_zpencil, accc_ypencil, dm%dccc)
+    ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
+    call transpose_y_to_x(ene_rhs_ccc_ypencil, accc_xpencil, dm%dccc)
+    tm%ene_rhs = tm%ene_rhs + accc_xpencil
 !==========================================================================================================
 ! time approaching
 !==========================================================================================================
-    call Calculate_energy_fractional_step(tm%ene_rhs0, tm%ene_rhs, dm, isub)
+    call Calculate_energy_fractional_step(tm%ene_rhs0, tm%ene_rhs, dm%dccc, dm, isub)
 
     return
   end subroutine Compute_energy_rhs
+
 !==========================================================================================================
 !==========================================================================================================
   subroutine Solve_energy_eq(fl, tm, dm, isub)
     use udf_type_mod
     use thermo_info_mod 
     use solver_tools_mod
+    use boundary_conditions_mod
     implicit none
     type(t_domain), intent(inout)    :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     integer,        intent(in)    :: isub
 
+    if(isub==3) then
+      fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
+      fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+    end if
+
+    call update_fbcy_cc_thermo_halo(fl, tm, dm)
 !----------------------------------------------------------------------------------------------------------
 !   calculate rhs of energy equation
 !----------------------------------------------------------------------------------------------------------
@@ -343,6 +417,7 @@ contains
 !   update other properties from rho * h
 !----------------------------------------------------------------------------------------------------------
     call Update_thermal_properties(fl, tm, dm)
+    call update_fbc_thermo(tm, dm)
 !----------------------------------------------------------------------------------------------------------
 !   No Need to apply b.c.
 !----------------------------------------------------------------------------------------------------------

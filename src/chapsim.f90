@@ -55,20 +55,19 @@ subroutine Initialize_chapsim
   implicit none
   integer :: i
 
-  !----------------------------------------------------------------------------------------------------------
-  ! initialisation of mpi, nrank, nproc
-  !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! initialisation of mpi, nrank, nproc
+!----------------------------------------------------------------------------------------------------------
   call create_directory
   call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
   call Initialize_mpi
-
-  !----------------------------------------------------------------------------------------------------------
-  ! reading input parameters
-  !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! reading input parameters
+!----------------------------------------------------------------------------------------------------------
   call Read_input_parameters
-  !----------------------------------------------------------------------------------------------------------
-  ! build up geometry information
-  !----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
+! build up geometry information, mesh size, grid spacing/spacing, streching factor etc... 
+!----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call Buildup_geometry_mesh_info(domain(i))
   end do
@@ -89,14 +88,6 @@ subroutine Initialize_chapsim
 !----------------------------------------------------------------------------------------------------------
   call Buildup_mpi_domain_decomposition
 !----------------------------------------------------------------------------------------------------------
-! build up bounary condition
-!----------------------------------------------------------------------------------------------------------
-  do i = 1, nxdomain
-    call configure_bc_vars_flow(domain(i)) 
-    if(domain(i)%is_thermo) call configure_bc_vars_thermo(domain(i)) 
-    call buildup_symmetric_for_eqs(domain(i))
-  end do
-!----------------------------------------------------------------------------------------------------------
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
@@ -105,25 +96,32 @@ subroutine Initialize_chapsim
     call decomp_2d_poisson_init()
     if(nrank == 0 ) call Print_debug_end_msg
   end do
-  !----------------------------------------------------------------------------------------------------------
-  ! build up thermo_mapping_relations, independent of any domains
-  !----------------------------------------------------------------------------------------------------------
-  if(ANY(domain(:)%is_thermo)) then
-    i = 1 
-    call Buildup_thermo_mapping_relations(thermo(i))
-    call Buildup_undim_thermo_bc(thermo(i), domain(i))
-    call update_g_rhou_bc(domain(i))
-  end if
+!----------------------------------------------------------------------------------------------------------
+! build up thermo_mapping_relations, independent of any domains
+!----------------------------------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    if (domain(i)%is_thermo) then
+      call Buildup_thermo_mapping_relations(thermo(i))
+      exit
+    end if
+  end do
+!----------------------------------------------------------------------------------------------------------
+! build up bounary condition
+!----------------------------------------------------------------------------------------------------------
+  do i = 1, nxdomain
+    call allocate_fbc_flow(domain(i)) 
+    call apply_fbc_given_flow(domain(i)) 
+    if(domain(i)%is_thermo) then
+      call allocate_fbc_thermo(domain(i)) 
+      call apply_fbc_given_thermo(thermo(i), domain(i)) 
+    end if
+  end do
 !----------------------------------------------------------------------------------------------------------
 ! Initialize flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call Initialize_flow_fields(flow(i), domain(i))
     if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
-    !==========================================================================================================
-    !  validation for each time step
-    !==========================================================================================================
-    
     call Check_mass_conservation(flow(i), domain(i), 0, 'initialization') 
     call write_visu_flow(flow(i), domain(i))
   end do
@@ -131,8 +129,8 @@ subroutine Initialize_chapsim
 ! update interface values for multiple domain
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain - 1
-    call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
-    if(domain(i)%is_thermo) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+    call update_fbc_2dm_flow_halo(domain(i), flow(i), domain(i+1), flow(i+1))
+    if(domain(i)%is_thermo) call update_fbc_2dm_thermo_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
   end do
 
 #ifdef DEBUG_STEPS  
@@ -231,7 +229,7 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
         is_flow(i) = .true.
-        if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
+        if (nrank == 0) write(*, wrtfmt1e) "flow field physical time (s) = ", flow(i)%time
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
         call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
@@ -253,21 +251,26 @@ subroutine Solve_eqs_iteration
     !  main solver, domain coupling in each sub-iteration (check)
     !==========================================================================================================
     do isub = 1, domain(1)%nsubitr
-      do i = 1, nxdomain
-        if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
-        if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
-      end do
       !----------------------------------------------------------------------------------------------------------
       ! update interface values for multiple domain
       !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_flow(i))   call update_bc_interface_flow(domain(i), flow(i), domain(i+1), flow(i+1))
-        if(is_thermo(i)) call update_bc_interface_thermo(domain(i), flow(i), thermo(i), domain(i+1), flow(i+1), thermo(i+1))
+        if(is_flow(i))   call update_fbc_2dm_flow_halo  (domain(i), flow(i),   domain(i+1), flow(i+1))
+        if(is_thermo(i)) call update_fbc_2dm_thermo_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
+      end do
+      do i = 1, nxdomain
+        if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
+        if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
       end do
 #ifdef DEBUG_STEPS
       !call Print_warning_msg(" === The solver will stop as per the user's request. === ")
       !stop
 #endif
+    end do
+
+    do i = 1, nxdomain - 1
+      call update_fbc_2dm_flow_halo(domain(i), flow(i), domain(i+1), flow(i+1))
+      if(domain(i)%is_thermo) call update_fbc_2dm_thermo_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
     end do
     
     !==========================================================================================================
@@ -279,9 +282,9 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
-        call Find_maximum_absvar3d(flow(i)%qx, flow(i)%umax(1), "maximum ux:", wrtfmt1e)
-        call Find_maximum_absvar3d(flow(i)%qy, flow(i)%umax(2), "maximum uy:", wrtfmt1e)
-        call Find_maximum_absvar3d(flow(i)%qz, flow(i)%umax(3), "maximum uz:", wrtfmt1e)
+        call Find_max_min_3d(flow(i)%qx, "qx: ", wrtfmt1e)
+        call Find_max_min_3d(flow(i)%qy, "qy: ", wrtfmt1e)
+        call Find_max_min_3d(flow(i)%qz, "qz: ", wrtfmt1e)
         call Check_mass_conservation(flow(i), domain(i), iter) 
       end if
 

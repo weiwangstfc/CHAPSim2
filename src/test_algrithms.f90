@@ -164,32 +164,32 @@ contains
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
         call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call update_symmetric_ibc(dm%ibcx_qx(:), mbc, dm%ibcx_qx(:))
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%iAccuracy, mbc(:, 1), dm%fbcx_qx(:, :, :) * dm%fbcx_qx(:, :, :) * HALF)
+        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc, dm%ibcx_qx(:))
+        call Get_x_1der_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%iAccuracy, mbc(:, 1), dm%fbcx_qx(:, :, :) * dm%fbcx_qx(:, :, :) * HALF)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
         call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call update_symmetric_ibc(dm%ibcx_qx(:), mbc)
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :)* nu)
+        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc)
+        call Get_x_1der_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :)* nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
       end if
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
-        !call Get_x_2nd_derivative_P2P_3D( fl%qx, mx_rhs, dm, dm%iAccuracy, dm%ibcx(:, 1) )
-        call Get_x_1st_derivative_P2C_3D( fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call update_symmetric_ibc(dm%ibcx_qx(:), mbc)
-        call Get_x_1st_derivative_C2P_3D( qx_ccc, mx_rhs, dm, dm%iAccuracy, mbc(:, 2))
+        !call Get_x_2der_P2P_3D( fl%qx, mx_rhs, dm, dm%iAccuracy, dm%ibcx(:, 1) )
+        call Get_x_1der_P2C_3D( fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
+        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc)
+        call Get_x_1der_C2P_3D( qx_ccc, mx_rhs, dm, dm%iAccuracy, mbc(:, 2))
         fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
         call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call update_symmetric_ibc(dm%ibcx_qx(:), mbc)
-        call Get_x_1st_derivative_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :) * nu)
+        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc)
+        call Get_x_1der_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :) * nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
       end if
@@ -216,8 +216,8 @@ contains
       ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
         call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
-        call update_symmetric_ibc(dm%ibcy_qy(:), mbc, dm%ibcy_qy(:))
-        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 1), dm%fbcy_qy(:, :, :) * dm%fbcy_qy(:, :, :) * HALF)
+        call reconstruct_symmetry_ibc(dm%ibcy_qy(:), mbc, dm%ibcy_qy(:))
+        call Get_y_1der_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 1), dm%fbcy_qy(:, :, :) * dm%fbcy_qy(:, :, :) * HALF)
 
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
@@ -225,15 +225,15 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       if(icase == ICASE_BURGERS1D_VISCOUS) then
-        !call Get_y_2nd_derivative_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy(:, :, :) )
+        !call Get_y_2der_P2P_3D(qy_ypencil, my_rhs_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy(:, :, :) )
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + fl%rre * my_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
         call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
-        call update_symmetric_ibc(dm%ibcy_qy(:), mbc)
-        call Get_y_1st_derivative_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 2), dm%fbcy_qy(:, :, :) * nu)
+        call reconstruct_symmetry_ibc(dm%ibcy_qy(:), mbc)
+        call Get_y_1der_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 2), dm%fbcy_qy(:, :, :) * nu)
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
       end if
@@ -259,14 +259,14 @@ contains
       !   do i = 1, 2
       !     fbc(i) = dm%ibcz(i, 3) * dm%ibcz(i, 3)
       !   end do
-      !   call Get_z_1st_derivative_P2P_3D(-qz_zpencil * qz_zpencil * HALF, mz_rhs_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3), fbc(:))
+      !   call Get_z_1der_P2P_3D(-qz_zpencil * qz_zpencil * HALF, mz_rhs_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3), fbc(:))
       !   call transpose_z_to_y (mz_rhs_zpencil,  mz_rhs_ypencil, dm%dccp)  
       !   call transpose_y_to_x (mz_rhs_ypencil,  mz_rhs,         dm%dccp)     
       !   fl%mz_rhs = fl%mz_rhs + mz_rhs
       ! end if
       ! ! for x-mom diffusion term , \mu * Ljj(ux) at (i', j, k)
       ! if(icase == ICASE_BURGERS .or. icase == ICASE_BURGERS1D_VISCOUS) then
-      !   call Get_z_2nd_derivative_P2P_3D( qz_zpencil, mz_rhs_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3))
+      !   call Get_z_2der_P2P_3D( qz_zpencil, mz_rhs_zpencil, dm, dm%iAccuracy, dm%ibcz(:, 3))
       !   call transpose_z_to_y (mz_rhs_zpencil,  mz_rhs_ypencil, dm%dccp)  
       !   call transpose_y_to_x (mz_rhs_ypencil,  mz_rhs,         dm%dccp)    
       !   fl%mz_rhs = fl%mz_rhs + fl%rre * mz_rhs
@@ -317,7 +317,7 @@ contains
     real(WP) :: dd
     integer :: nx, ny, nz
     integer :: wrt_unit
-    character( len = 128) :: filename
+    character( len = 128) :: filename1
     logical :: file_exists = .FALSE.
     integer :: nsz
 
@@ -382,15 +382,15 @@ contains
     uerr2_work = sqrt_wp(uerr2_work)
 
     if(nrank == 0 ) then
-      filename = 'Validation_Burgers_error.dat'
+      filename1 = 'Validation_Burgers_error.dat'
 
-      INQUIRE(FILE = trim(filename), exist = file_exists)
+      INQUIRE(FILE = trim(filename1), exist = file_exists)
 
       if(.not.file_exists) then
-        open(newunit = wrt_unit, file = trim(filename), action = "write", status = "new")
+        open(newunit = wrt_unit, file = trim(filename1), action = "write", status = "new")
         write(wrt_unit, '(A)') 'Time, U(t), SD(uerr), Max(uerr)'
       else
-        open(newunit = wrt_unit, file = trim(filename), action = "write", status = "old", position="append")
+        open(newunit = wrt_unit, file = trim(filename1), action = "write", status = "old", position="append")
       end if
       ! data convert to cell centre data...
 
@@ -574,7 +574,7 @@ subroutine Test_algorithms()
   implicit none
 
   logical :: is_TDMA = .false.
-  logical :: is_operations = .true.
+  logical :: is_operations = .false.
   logical :: is_burgers = .false.
   integer :: n
 
@@ -680,9 +680,9 @@ subroutine test_poisson(dm)
   dm%fbcx_pr(2, :, :) =  TWOPI
   dm%fbcx_pr(3, :, :) = dm%fbcx_pr(1, :, :)
   dm%fbcx_pr(4, :, :) = dm%fbcx_pr(2, :, :)
-  call Get_x_1st_derivative_C2P_3D(phi, rhs_pcc, dm, dm%iAccuracy, dm%ibcx_pr(:), dm%fbcx_pr)
-  call update_symmetric_ibc(dm%ibcx_pr(:), mbc)
-  call Get_x_1st_derivative_P2C_3D(rhs_pcc, rhs, dm, dm%iAccuracy, mbc(:, 2))
+  call Get_x_1der_C2P_3D(phi, rhs_pcc, dm, dm%iAccuracy, dm%ibcx_pr(:), dm%fbcx_pr)
+  call reconstruct_symmetry_ibc(dm%ibcx_pr(:), mbc)
+  call Get_x_1der_P2C_3D(rhs_pcc, rhs, dm, dm%iAccuracy, mbc(:, 2))
   if(nrank == 0) then
     do i = 1, dm%dccc%xsz(1)
       ii = dm%dccc%xst(1) + i - 1

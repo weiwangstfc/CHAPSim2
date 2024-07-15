@@ -27,25 +27,26 @@
 module thermo_info_mod
   use parameters_constant_mod
   use udf_type_mod
+  use wtformat_mod
+  use mpi_mod
+  use print_msg_mod
   implicit none
 
   integer, save :: N_FUNC2TABLE = 1024
   logical :: is_ftplist_dim
   type(t_fluidThermoProperty), save, allocatable, dimension(:) :: ftplist
-  type(t_fluid_parameter), save :: fluidparam
-
+  
   private :: buildup_property_relations_from_table
   private :: buildup_property_relations_from_function
   private :: ftplist_check_monotonicity_DH_of_HorT
-  private :: Initialize_thermo_parameters
+  private :: Buildup_fluidparam
   private :: ftplist_sort_t_small2big
   private :: Write_thermo_property
-  public  :: Buildup_undim_thermo_bc
 
-  
   private :: ftp_is_T_in_scope
   private :: ftp_get_thermal_properties_dimensional_from_T
-  public  :: ftp_refresh_thermal_properties_from_T_undim
+  private :: ftp_refresh_thermal_properties_from_T_undim
+  public  :: ftp_refresh_thermal_properties_from_T_undim_3D
   private :: ftp_refresh_thermal_properties_from_H
   private :: ftp_convert_undim_to_dim
   private :: ftp_print
@@ -53,6 +54,7 @@ module thermo_info_mod
 
   public  :: Buildup_thermo_mapping_relations
   public  :: Initialize_thermal_properties
+  public  :: Convert_thermal_input_2undim
   
 contains
 !==========================================================================================================
@@ -72,9 +74,6 @@ contains
 !> \param[inout]  this          a cell element with udf property
 !_______________________________________________________________________________
   subroutine ftp_is_T_in_scope ( this )
-    use wtformat_mod
-    implicit none
-
     type( t_fluidThermoProperty ), intent( in ) :: this
     integer :: nlist
 
@@ -91,9 +90,9 @@ contains
     end if
 
     if(fluidparam%ipropertyState == IPROPERTY_FUNCS) then
-      if ( ( this%t < ( fluidparam%TM0 / fluidparam%ftp0ref%t ) ) .OR. &
+      if ( ( this%t < ( fluidparam%tm1 / fluidparam%ftp0ref%t ) ) .OR. &
            ( this%t > ( fluidparam%TB0 / fluidparam%ftp0ref%t ) ) ) then 
-        write(*, wrtfmt3r) 'this T, low T, high T:', this%t, fluidparam%TM0 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
+        write(*, wrtfmt3r) 'this T, low T, high T:', this%t, fluidparam%tm1 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
         write(*, wrtfmt3r) 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
         stop 'temperature exceeds specified range.'
       end if
@@ -120,8 +119,6 @@ contains
 !>                              the known/given T is dimensional. Otherwise, not.
 !_______________________________________________________________________________
   subroutine ftp_get_thermal_properties_dimensional_from_T (this)
-    use parameters_constant_mod, only : MINP, ONE, ZERO
-    implicit none
     type(t_fluidThermoProperty), intent(inout) :: this
     
     integer :: i1, i2, im
@@ -178,11 +175,11 @@ contains
   
       ! H = entropy = f(T)
       this%h = fluidparam%Hm0 + &
-               fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%Tm0) + &
+               fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%tm1) + &
                fluidparam%CoH(0) + &
-               fluidparam%CoH(1) * (t1    - fluidparam%Tm0) + &
-               fluidparam%CoH(2) * (t1**2 - fluidparam%Tm0**2) + &
-               fluidparam%CoH(3) * (t1**3 - fluidparam%Tm0**3)
+               fluidparam%CoH(1) * (t1    - fluidparam%tm1) + &
+               fluidparam%CoH(2) * (t1**2 - fluidparam%tm1**2) + &
+               fluidparam%CoH(3) * (t1**3 - fluidparam%tm1**3)
   
       ! B = f(T)
       this%b = ONE / (fluidparam%CoB - t1)
@@ -215,8 +212,6 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine ftp_refresh_thermal_properties_from_T_undim ( this )
-    use parameters_constant_mod, only : MINP, ONE, ZERO
-    implicit none
     type(t_fluidThermoProperty), intent(inout) :: this
 
     type(t_fluidThermoProperty) :: ftp0ref
@@ -277,11 +272,11 @@ contains
   
       ! H = entropy = f(T)
       dummy = fluidparam%Hm0 + &
-              fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%Tm0) + &
+              fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%tm1) + &
               fluidparam%CoH(0) + &
-              fluidparam%CoH(1) * (t1    - fluidparam%Tm0) + &
-              fluidparam%CoH(2) * (t1**2 - fluidparam%Tm0**2) + &
-              fluidparam%CoH(3) * (t1**3 - fluidparam%Tm0**3)
+              fluidparam%CoH(1) * (t1    - fluidparam%tm1) + &
+              fluidparam%CoH(2) * (t1**2 - fluidparam%tm1**2) + &
+              fluidparam%CoH(3) * (t1**3 - fluidparam%tm1**3)
       this%h = (dummy - ftp0ref%h) / (ftp0ref%cp * ftp0ref%t)
   
       ! B = f(T)
@@ -316,6 +311,22 @@ contains
     end if
     return
   end subroutine ftp_refresh_thermal_properties_from_T_undim
+  !==========================================================================================================
+!==========================================================================================================
+  subroutine ftp_refresh_thermal_properties_from_T_undim_3D ( ftp3d )
+    type(t_fluidThermoProperty), intent(inout) :: ftp3d(:, :, :)
+    integer :: i, j, k
+
+    do i = 1, size(ftp3d, 1)
+      do j = 1, size(ftp3d, 2)
+        do k = 1, size(ftp3d, 3)
+            call ftp_refresh_thermal_properties_from_T_undim(ftp3d(i, j, k))
+        end do
+      end do
+    end do 
+
+    return
+  end subroutine ftp_refresh_thermal_properties_from_T_undim_3D
 !==========================================================================================================
 !==========================================================================================================
 !> \brief Defination of a procedure in the type t_fluidThermoProperty.
@@ -332,7 +343,6 @@ contains
 !> \param[inout]  this          a cell element with udf property
 !_______________________________________________________________________________
   subroutine ftp_refresh_thermal_properties_from_H(this)
-    use parameters_constant_mod, only : MINP, ONE
     type(t_fluidThermoProperty), intent(inout) :: this
 
     integer :: i1, i2, im
@@ -381,7 +391,6 @@ contains
 !> \param[inout]  this          a cell element with udf property
 !_______________________________________________________________________________
   subroutine ftp_refresh_thermal_properties_from_DH(this)
-    use parameters_constant_mod, only : MINP, ONE
     type(t_fluidThermoProperty), intent(inout) :: this
 
     integer :: i1, i2, im
@@ -448,7 +457,6 @@ contains
 !> \param[inout]  iomsg         
 !_______________________________________________________________________________
   subroutine ftp_print(this, unit, iotype, v_list, iostat, iomsg)
-    !use iso_fortran_env, only : error_unit
     type(t_fluidThermoProperty), intent(in) :: this
     integer, intent(in)                 :: unit
     character(len = *), intent(in)      :: iotype
@@ -494,7 +502,6 @@ contains
 !> \param[inout]  list         the thermal table element array
 !==========================================================================================================
   subroutine ftplist_sort_t_small2big
-    implicit none
     integer :: i, n, k
     real(WP) :: buf
 
@@ -555,9 +562,6 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine ftplist_check_monotonicity_DH_of_HorT
-    use parameters_constant_mod, only : MINP
-    use mpi_mod
-    implicit none
     integer :: i
     real(WP) :: ddh1, dt1, dh1
     real(WP) :: ddh2, dt2, dh2
@@ -594,10 +598,6 @@ contains
 !> \param[in]     ref_T0          reference temperature
 !==========================================================================================================
   subroutine buildup_property_relations_from_table
-    use mpi_mod
-    use wtformat_mod
-    !use iso_fortran_env, only : ERROR_UNIT, IOSTAT_END
-
     integer, parameter :: IOMSG_LEN = 200
     character(len = IOMSG_LEN) :: iotxt
     integer :: ioerr, inputUnit
@@ -648,6 +648,7 @@ contains
     ! to update reference of thermal properties
     !----------------------------------------------------------------------------------------------------------
     call ftp_get_thermal_properties_dimensional_from_T(fluidparam%ftp0ref)
+    call ftp_get_thermal_properties_dimensional_from_T(fluidparam%ftpini)
     !----------------------------------------------------------------------------------------------------------
     ! to unify/undimensionalize the table of thermal property
     !----------------------------------------------------------------------------------------------------------
@@ -669,27 +670,12 @@ contains
     i = maxloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
     fluidparam%dhmax = ftplist(i)%dh
 
-    if (nrank == 0 ) then
-      call Print_debug_start_msg("The reference thermal properties are")
-      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
-      write (*, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
-      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
-      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
-      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
-      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
-      call Print_debug_mid_msg("The range of the property table (undim)")
-      write (*, wrtfmt2r) '  Temperature',            ftplist(1)%t, ftplist(fluidparam%nlist)%t
-      write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
-    end if
-
     is_ftplist_dim = .false.
 
     return
   end subroutine buildup_property_relations_from_table
 !==========================================================================================================
   subroutine ftp_convert_undim_to_dim(ftp_undim, ftp_dim)
-    implicit none
     type(t_fluidThermoProperty), intent(in) :: ftp_undim
     type(t_fluidThermoProperty), intent(out) :: ftp_dim
 
@@ -718,17 +704,15 @@ contains
 !> \param[inout]  none          NA
 !==========================================================================================================
   subroutine buildup_property_relations_from_function
-    use wtformat_mod
-    implicit none
-
     integer :: i
 
     call ftp_get_thermal_properties_dimensional_from_T(fluidparam%ftp0ref)
+    call ftp_get_thermal_properties_dimensional_from_T(fluidparam%ftpini)
     
     fluidparam%nlist = N_FUNC2TABLE
     allocate ( ftplist (fluidparam%nlist) )
     do i = 1, fluidparam%nlist
-      ftplist(i)%t = ( fluidparam%Tm0 + (fluidparam%Tb0 - fluidparam%Tm0) * real(i, WP) / real(fluidparam%nlist, WP) ) &
+      ftplist(i)%t = ( fluidparam%tm1 + (fluidparam%Tb0 - fluidparam%tm1) * real(i, WP) / real(fluidparam%nlist, WP) ) &
                      / fluidparam%ftp0ref%t ! undimensional
       call ftp_refresh_thermal_properties_from_T_undim(ftplist(i))
     end do
@@ -741,20 +725,6 @@ contains
     fluidparam%dhmax = ftplist(i)%dh
 
     is_ftplist_dim = .false.
-
-    if (nrank == 0 ) then
-      call Print_debug_start_msg("The reference thermal properties are")
-      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
-      write (*, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
-      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
-      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
-      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
-      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
-      call Print_debug_mid_msg("The range of the property table (undim)")
-      write (*, wrtfmt2r) '  Temperature',            ftplist(1)%t, ftplist(N_FUNC2TABLE)%t
-      write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
-    end if
 
     return
   end subroutine buildup_property_relations_from_function
@@ -772,10 +742,6 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Write_thermo_property
-    !use mpi_mod ! for test
-    use parameters_constant_mod
-    use decomp_2d
-    implicit none
     type(t_fluidThermoProperty) :: ftp
     type(t_fluidThermoProperty) :: ftp_dim
     integer :: n, i
@@ -799,7 +765,7 @@ contains
     !   call ftp_refresh_thermal_properties_from_T_undim(ftp)
     !   dhmin1 = ftp%dh
 
-    !   ftp%t  = fluidparam%TM0 / fluidparam%ftp0ref%t
+    !   ftp%t  = fluidparam%tm1 / fluidparam%ftp0ref%t
     !   call ftp_refresh_thermal_properties_from_T_undim(ftp)
     !   dhmax1 = ftp%dh
       
@@ -844,6 +810,28 @@ contains
     close (ftp_unit1)
     close (ftp_unit2)
 
+    if (nrank == 0 ) then
+      call Print_debug_start_msg("The reference thermal properties (dim) are")
+      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
+      write (*, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
+      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
+      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
+      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
+      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
+
+      call Print_debug_start_msg("The initial thermal properties (dim) are")
+      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftpini%t
+      write (*, wrtfmt1r) '  Density:',              fluidparam%ftpini%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftpini%m
+      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftpini%k
+      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftpini%cp
+      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftpini%h
+      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftpini%dh
+      call Print_debug_mid_msg("The range of the property table (undim)")
+      write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
+    end if
+
     return
   end subroutine Write_thermo_property
 !==========================================================================================================
@@ -859,17 +847,15 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]  none          NA
 !==========================================================================================================
-  subroutine Initialize_thermo_parameters(tm)
-    use mpi_mod
-    implicit none
+  subroutine Buildup_fluidparam(tm)
     type(t_thermo), intent(in) :: tm
 
     if(nrank == 0) call Print_debug_start_msg("Initializing thermal parameters ...")
 
     is_ftplist_dim = .true.
     fluidparam%ifluid    = tm%ifluid
-    fluidparam%ftp0ref%t = tm%ref_T0
-    fluidparam%ftpini%t  = tm%init_T0
+    fluidparam%ftp0ref%t = tm%ref_T0  ! dim
+    fluidparam%ftpini%t  = tm%init_T0 ! dim
 
     !----------------------------------------------------------------------------------------------------------
     ! get given file name or coefficients 
@@ -886,7 +872,7 @@ contains
     case (ILIQUID_SODIUM)
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%TM0 = TM0_Na
+      fluidparam%tm1 = tm1_Na
       fluidparam%TB0 = TB0_Na
       fluidparam%HM0 = HM0_Na
       fluidparam%CoD(0:1) = CoD_Na(0:1)
@@ -899,7 +885,7 @@ contains
     case (ILIQUID_LEAD)
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%TM0 = TM0_Pb
+      fluidparam%tm1 = tm1_Pb
       fluidparam%TB0 = TB0_Pb
       fluidparam%HM0 = HM0_Pb
       fluidparam%CoD(0:1) = CoD_Pb(0:1)
@@ -911,7 +897,7 @@ contains
 
     case (ILIQUID_BISMUTH)
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%TM0 = TM0_BI
+      fluidparam%tm1 = tm1_BI
       fluidparam%TB0 = TB0_BI
       fluidparam%HM0 = HM0_BI
       fluidparam%CoD(0:1) = CoD_BI(0:1)
@@ -924,7 +910,7 @@ contains
     case (ILIQUID_LBE)
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%TM0 = TM0_LBE
+      fluidparam%tm1 = tm1_LBE
       fluidparam%TB0 = TB0_LBE
       fluidparam%HM0 = HM0_LBE
       fluidparam%CoD(0:1) = CoD_LBE(0:1)
@@ -937,7 +923,7 @@ contains
     case default
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%TM0 = TM0_Na
+      fluidparam%tm1 = tm1_Na
       fluidparam%TB0 = TB0_Na
       fluidparam%HM0 = HM0_Na
       fluidparam%CoD(0:1) = CoD_Na(0:1)
@@ -951,19 +937,27 @@ contains
 
     if(nrank == 0) call Print_debug_end_msg
     return
-  end subroutine Initialize_thermo_parameters
+  end subroutine Buildup_fluidparam
 
 !==========================================================================================================
-!==========================================================================================================
-  subroutine Buildup_undim_thermo_bc(tm, dm)
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent(inout) :: dm
-    type(t_thermo), intent(inout) :: tm
+  subroutine Convert_thermal_input_2undim (tm, dm)
+    type(t_domain),   intent(inout) :: dm
+    type(t_thermo),   intent(inout) :: tm
 
-    integer :: i, j, k, n
+    character(16) :: filename1 = 'pf1d_T1y_dim.dat'
+    character(18) :: filename2 = 'pf1d_T1y_undim.dat'
+    integer :: n, i
+    integer, parameter :: IOMSG_LEN = 200
+    character(len = IOMSG_LEN) :: iotxt
+    integer :: ioerr, inputUnit, outputUnit
+    character(len = 80) :: str
+    
+    real(WP) :: rtmp1, rtmp2
 
+    
+    if(.not. dm%is_thermo) return
+
+    tm%init_T0 = tm%init_T0 / tm%ref_T0
     !----------------------------------------------------------------------------------------------------------
     !   for x-pencil
     !   scale the given thermo b.c. in dimensional to undimensional
@@ -971,81 +965,79 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! x-bc
     !----------------------------------------------------------------------------------------------------------
-    do k = 1, size(dm%ftpbcx_var, 3)
-      do j = 1, size(dm%ftpbcx_var, 2)
-        do n = 1, 2
-          if( dm%ibcx_Th(n) == IBC_DIRICHLET ) then
-            ! dimensional T --> undimensional T
-            dm%ftpbcx_var(n,   j, k)%t   = dm%fbcx_const(n, 5)/tm%ref_T0 
-            dm%ftpbcx_var(n+2, j, k)%t   = dm%fbcx_const(n, 5)/tm%ref_T0 
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcx_var(n,   j, k))
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcx_var(n+2, j, k))
-
-          else if (dm%ibcx_Th(n) == IBC_NEUMANN) then
-            ! check : dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%ftpbcx_var(n,   j, k)%t = dm%fbcx_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%ftpbcx_var(n+2, j, k)%t = dm%fbcx_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
-          else
-            ! do nothing !
-          end if
-
-        end do 
-      end do
+    do n = 1, 2
+      if( dm%ibcx_Th(n) == IBC_DIRICHLET ) then
+        dm%fbcx_const(n, 5) = dm%fbcx_const(n, 5)/tm%ref_T0  ! undim
+      end if
+      if (dm%ibcx_Th(n) == IBC_NEUMANN) then
+        dm%fbcx_const(n, 5) = dm%fbcx_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+      end if
     end do 
 
     !----------------------------------------------------------------------------------------------------------
     ! y-bc
     !----------------------------------------------------------------------------------------------------------
-    do k = 1, size(dm%ftpbcy_var, 3)
-      do i = 1, size(dm%ftpbcy_var, 1)
-        do n = 1, 2
-          if( dm%ibcy_Th(n) == IBC_DIRICHLET ) then
-            ! dimensional T --> undimensional T
-            dm%ftpbcy_var(i, n,   k)%t   = dm%fbcy_const(n, 5)/tm%ref_T0 
-            dm%ftpbcy_var(i, n+2, k)%t   = dm%fbcy_const(n, 5)/tm%ref_T0 
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcy_var(i, n,   k))
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcy_var(i, n+2, k))
-
-          else if (dm%ibcy_Th(n) == IBC_NEUMANN) then
-            ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%ftpbcy_var(i, n,   k)%t = dm%fbcy_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%ftpbcy_var(i, n+2, k)%t = dm%fbcy_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
-          else
-          ! do nothing
-          end if
-
-        end do 
-      end do
+    do n = 1, 2
+      if( dm%ibcy_Th(n) == IBC_DIRICHLET ) then
+        dm%fbcy_const(n, 5) = dm%fbcy_const(n, 5)/tm%ref_T0  ! undim
+      end if
+      if (dm%ibcy_Th(n) == IBC_NEUMANN) then
+        dm%fbcy_const(n, 5) = dm%fbcy_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+      end if
     end do 
-
     !----------------------------------------------------------------------------------------------------------
     ! z-bc
     !----------------------------------------------------------------------------------------------------------
-    do j = 1, size(dm%ftpbcz_var, 2)
-      do i = 1, size(dm%ftpbcz_var, 1)
-        do n = 1, 2
-          if( dm%ibcz_Th(n) == IBC_DIRICHLET ) then
-            ! dimensional T --> undimensional T
-            dm%ftpbcz_var(i, j, n  )%t   = dm%fbcz_const(n, 5)/tm%ref_T0 
-            dm%ftpbcz_var(i, j, n+2)%t   = dm%fbcz_const(n, 5)/tm%ref_T0 
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n  ))
-            call ftp_refresh_thermal_properties_from_T_undim(dm%ftpbcz_var(i, j, n+2))
-
-          else if (dm%ibcz_Th(n) == IBC_NEUMANN) then
-            ! dimensional heat flux (k*dT/dx) --> undimensional heat flux (k*dT/dx)
-            dm%ftpbcz_var(i, j, n  )%t = dm%fbcz_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
-            dm%ftpbcz_var(i, j, n+2)%t = dm%fbcz_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t
-          else
-           ! do nothing 
-          end if
-
-        end do 
-      end do
+    do n = 1, 2
+      if( dm%ibcz_Th(n) == IBC_DIRICHLET ) then
+        dm%fbcz_const(n, 5) = dm%fbcz_const(n, 5)/tm%ref_T0  ! undim
+      end if
+      if (dm%ibcz_Th(n) == IBC_NEUMANN) then
+        dm%fbcz_const(n, 5) = dm%fbcz_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
+      end if
     end do 
 
+    !
+    if(dm%ibcx_Th(1) == IBC_PROFILE1D .and. nrank == 0) then
+      open ( newunit = inputUnit,     &
+           file    = trim(filename1), &
+           status  = 'old',         &
+           action  = 'read',        &
+           iostat  = ioerr,         &
+           iomsg   = iotxt)
+      open ( newunit = outputUnit,     &
+           file    = trim(filename2), &
+           status  = 'new',         &
+           action  = 'write',        &
+           iostat  = ioerr,         &
+           iomsg   = iotxt)
+      if(ioerr /= 0) then
+        write (*, *) 'Problem openning : '//trim(filename1)
+        write (*, *) 'Message: ', trim (iotxt)
+        stop 4
+      end if
+
+      n = 0
+      read(inputUnit, *, iostat = ioerr) str
+
+      do
+        read(inputUnit, *, iostat = ioerr) rtmp1, rtmp2
+        if(ioerr /= 0) exit
+        n = n + 1
+      end do
+      rewind(inputUnit)
+
+      read(inputUnit, *, iostat = ioerr) str
+      do i = 1, n
+        read(inputUnit, *, iostat = ioerr)   rtmp1, rtmp2
+        write(outputUnit, *, iostat = ioerr) rtmp1, rtmp2/tm%ref_T0
+      end do
+      close(inputUnit)
+      close(outputUnit)
+    end if
+    
     return
   end subroutine
-
 
 !==========================================================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     
@@ -1061,42 +1053,38 @@ contains
 !> \param[inout]  tm   thermo type
 !==========================================================================================================
   subroutine Initialize_thermal_properties (fl, tm)
-    use parameters_constant_mod
-    use wtformat_mod
-    implicit none
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     
-
     if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
     !----------------------------------------------------------------------------------------------------------
     !   given initialisation temperature
     !----------------------------------------------------------------------------------------------------------
-    fluidparam%ftpini%t = tm%init_T0 / tm%ref_T0
+    tm%ftp_ini%t = tm%init_T0 ! already undim
     !----------------------------------------------------------------------------------------------------------
     !   update all initial properties based on given temperature
     !----------------------------------------------------------------------------------------------------------
-    call ftp_refresh_thermal_properties_from_T_undim(fluidparam%ftpini)
+    call ftp_refresh_thermal_properties_from_T_undim(tm%ftp_ini)
     !----------------------------------------------------------------------------------------------------------
     !   initialise thermal fields
     !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
       call Print_debug_start_msg("The initial thermal properties (undim) are")
-      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftpini%t
-      write (*, wrtfmt1r) '  Density:',              fluidparam%ftpini%d
-      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftpini%m
-      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftpini%k
-      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftpini%cp
-      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftpini%h
-      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftpini%dh
+      write (*, wrtfmt1r) '  Temperature:',          tm%ftp_ini%t
+      write (*, wrtfmt1r) '  Density:',              tm%ftp_ini%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity:',    tm%ftp_ini%m
+      write (*, wrtfmt1r) '  Thermal Conductivity:', tm%ftp_ini%k
+      write (*, wrtfmt1r) '  Cp:',                   tm%ftp_ini%cp
+      write (*, wrtfmt1r) '  Enthalphy:',            tm%ftp_ini%h
+      write (*, wrtfmt1r) '  mass enthaphy:',        tm%ftp_ini%dh
     end if
 
-    fl%dDens(:, :, :) = fluidparam%ftpini%d
-    fl%mVisc(:, :, :) = fluidparam%ftpini%m
-    tm%dh   (:, :, :) = fluidparam%ftpini%dh
-    tm%hEnth(:, :, :) = fluidparam%ftpini%h
-    tm%kCond(:, :, :) = fluidparam%ftpini%k
-    tm%tTemp(:, :, :) = fluidparam%ftpini%t
+    fl%dDens(:, :, :) = tm%ftp_ini%d
+    fl%mVisc(:, :, :) = tm%ftp_ini%m
+    tm%dh   (:, :, :) = tm%ftp_ini%dh
+    tm%hEnth(:, :, :) = tm%ftp_ini%h
+    tm%kCond(:, :, :) = tm%ftp_ini%k
+    tm%tTemp(:, :, :) = tm%ftp_ini%t
 
     fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
@@ -1163,15 +1151,13 @@ contains
 !> \param[inout]  none          NA
 !_______________________________________________________________________________
   subroutine Buildup_thermo_mapping_relations(tm)
-    implicit none
     type(t_thermo), intent(inout) :: tm
 
-    call Initialize_thermo_parameters(tm)
+    call Buildup_fluidparam(tm)
     if (fluidparam%ipropertyState == IPROPERTY_TABLE) call buildup_property_relations_from_table
     if (fluidparam%ipropertyState == IPROPERTY_FUNCS) call buildup_property_relations_from_function
-    call Write_thermo_property ! for test
+    call Write_thermo_property
   
-    
     return
   end subroutine Buildup_thermo_mapping_relations
 

@@ -1,3 +1,11 @@
+module print_msg_mod
+  public :: Print_error_msg
+  public :: Print_warning_msg
+  public :: Print_debug_start_msg
+  public :: Print_debug_mid_msg
+  public :: Print_debug_end_msg
+  public :: Print_3d_array
+contains
 !==========================================================================================================
   subroutine Print_error_msg(msg)
     !use iso_fortran_env
@@ -6,7 +14,7 @@
     
     write (*, *) 'ERROR: ' // msg
 
-    write (*, *) 'Code is terminated in processor = '
+    write (*, *) 'Code is terminated in progedit cessor = '
     STOP
 
     return
@@ -49,7 +57,6 @@
     write (*, *) "... done."
     return
   end subroutine Print_debug_end_msg
-
 !==========================================================================================================
   subroutine Print_3d_array(var, nx, ny, nz, str)
     use precision_mod
@@ -72,7 +79,8 @@
 
     return
   end subroutine Print_3d_array
-  
+end module
+
 !==========================================================================================================
 module decomp_operation_mod
   implicit none 
@@ -98,7 +106,10 @@ end module
 
 !==========================================================================================================
 module code_performance_mod
-  use precision_mod
+  use parameters_constant_mod
+  use typeconvert_mod
+  use mpi_mod
+  use print_msg_mod
   implicit none
   
   integer, parameter :: CPU_TIME_CODE_START = 1, &
@@ -122,9 +133,6 @@ module code_performance_mod
   contains
 
   subroutine Convert_sec_to_hms (s, hrs, mins, secs)
-    use precision_mod
-    use parameters_constant_mod
-    implicit none
     real(wp), intent(in) :: s
     integer, intent(out) :: hrs
     integer, intent(out) :: mins
@@ -142,11 +150,6 @@ module code_performance_mod
   end subroutine 
 
   subroutine call_cpu_time(itype, iterfrom, niter, iter)
-    use parameters_constant_mod
-    use typeconvert_mod
-    use mpi_mod
-    use decomp_2d
-    implicit none
     integer, intent(in) :: itype
     integer, intent(in) :: iterfrom, niter
     integer, intent(in), optional :: iter
@@ -156,11 +159,9 @@ module code_performance_mod
     real(WP) :: t_total0, t_elaspsed0,t_remaining0, t_aveiter0, t_this_iter0, t_preparation0, t_postprocessing0
 !----------------------------------------------------------------------------------------------------------
     if(itype == CPU_TIME_CODE_START) then
-      t_code_start = ZERO
       call cpu_time(t_code_start)
 !----------------------------------------------------------------------------------------------------------
     else if (itype == CPU_TIME_STEP_START) then
-      t_step_start = ZERO
       call cpu_time(t_step_start)
       t_preparation = t_step_start - t_code_start
       call mpi_barrier(MPI_COMM_WORLD, ierror)
@@ -170,7 +171,6 @@ module code_performance_mod
           trim(real2str(t_preparation0))//' s')
 !----------------------------------------------------------------------------------------------------------
     else if (itype == CPU_TIME_ITER_START) then
-      t_iter_start = ZERO
       call cpu_time(t_iter_start)
       if(nrank == 0) call Print_debug_start_msg ("Time Step = "//trim(int2str(iter))// &
           '/'//trim(int2str(niter))) !trim(int2str(niter-iterfrom)))
@@ -607,6 +607,7 @@ end module random_number_generation_mod
 subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
   use precision_mod
   use udf_type_mod
+  use print_msg_mod
   implicit none 
   type(DECOMP_INFO), intent(in) :: dtmp
   real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
@@ -665,21 +666,21 @@ return
 end subroutine
 
 !==========================================================================================================
-subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
+subroutine wrt_3d_all_debug(var, dtmp, iter, str)
   use precision_mod
   use udf_type_mod
+  use print_msg_mod
   implicit none 
   type(DECOMP_INFO), intent(in) :: dtmp
   real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
   character(*), intent(in) :: str
-  character(*), intent(in) :: loc
   
-  integer, intent(in) :: iter, irk
+  integer, intent(in) :: iter
   integer, parameter :: nfil = 20
 
   character(128) :: flnm
   logical :: file_exists
-  integer :: n, i, j, k, jj, kk
+  integer :: i, j, k, jj, kk
   character(1) :: pntim
 
   write(pntim,'(i1.1)') nrank
@@ -687,10 +688,10 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, irk, str, loc)
   inquire(file=trim(adjustl(flnm)), exist=file_exists) 
   if(file_exists) then
     open(nfil,file=trim(adjustl(flnm)), position='append')
-    !write(nfil+n,*) '# iter = ', iter
+    write(nfil,*) '# iter = ', iter
   else
     open(nfil,file=trim(adjustl(flnm)) )
-    !write(nfil+n,*) '# iter = ', iter
+    write(nfil,*) '# iter = ', iter
   end if
 
   do j = 1, dtmp%xsz(2)
@@ -711,6 +712,7 @@ end subroutine
 subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
     use udf_type_mod
     use parameters_constant_mod
+    use print_msg_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP), intent(inout) :: var(:, :, :)
@@ -757,6 +759,7 @@ subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
   subroutine multiple_cylindrical_rn_xx4(var, dtmp, r, n, pencil)
     use udf_type_mod
     use parameters_constant_mod
+    use print_msg_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP), intent(inout) :: var(:, :, :)
@@ -764,7 +767,7 @@ subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
     integer, intent(in) :: n
     integer, intent(in) :: pencil
 
-    integer :: i, j, k, jj, nx, ny, nz, nyst
+    integer :: i, j, jj, nx, ny, nz, nyst
  
     if(pencil == IPENCIL(1)) then
       call Print_warning_msg("Warning: This is for z-pencil only.")
@@ -806,6 +809,7 @@ subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
   subroutine multiple_cylindrical_rn_x4x(var, dtmp, r, n, pencil)
     use udf_type_mod
     use parameters_constant_mod
+    use print_msg_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP), intent(inout) :: var(:, :, :)
@@ -813,7 +817,7 @@ subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
     integer, intent(in) :: n
     integer, intent(in) :: pencil
 
-    integer :: i, j, k, jj, nx, ny, nz, nyst
+    integer :: i, k, jj, nx, ny, nz, nyst
  
     if(pencil == IPENCIL(1)) then
       call Print_warning_msg("Warning: This is for y-pencil only.")
@@ -851,5 +855,40 @@ subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
     end do 
   
     return 
+  end subroutine
+
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine profile_interpolation(nin, yin, uin, nout, ycase, ucase)
+    use cubic_spline_interpolation
+    use precision_mod
+    use print_msg_mod
+    implicit none
+    integer, intent(in) :: nin
+    real(WP), dimension(nin), intent(in) :: yin
+    real(WP), dimension(nin), intent(in) :: uin
+    integer, intent(in) :: nout
+    real(WP), dimension(nout), intent(in)  :: ycase
+    real(WP), dimension(nout), intent(out) :: ucase
+
+    integer :: i
+    real(WP), allocatable :: cs_b(:), cs_c(:), cs_d(:)
+
+    allocate(cs_b(nin))
+    allocate(cs_c(nin))
+    allocate(cs_d(nin))
+
+    call cubic_spline (nin, yin, uin, cs_b, cs_c, cs_d)
+
+    do i = 1, nout
+      ucase(i) = spline_interpolation(nin, uin, cs_b, cs_c, cs_d, ycase(i))
+    end do 
+
+    deallocate(cs_b)
+    deallocate(cs_c)
+    deallocate(cs_d)
+
+    return
   end subroutine
 

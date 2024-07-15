@@ -175,38 +175,6 @@ module parameters_constant_mod
   integer, parameter :: JBC_SELF = 1, &
                         JBC_GRAD = 2, &
                         JBC_PROD = 3
-
-  integer, save :: mbcx_cov1(2), &
-                   mbcy_cov1(2), &
-                   mbcz_cov1(2), &
-                   mbcx_tau1(2), &
-                   mbcy_tau1(2), &
-                   mbcz_tau1(2), &
-                   mbcx_cov2(2), &
-                   mbcy_cov2(2), &
-                   mbcz_cov2(2), &
-                   mbcr_cov2(2), &
-                   mbcy_tau2(2), &
-                   mbcx_tau2(2), &
-                   mbcz_tau2(2), &
-                   mbcr_tau2(2), &
-                   mbcx_cov3(2), &
-                   mbcy_cov3(2), &
-                   mbcz_cov3(2), &
-                   mbcr_cov3(2), &
-                   mbcy_tau3(2), &
-                   mbcx_tau3(2), &
-                   mbcz_tau3(2), &
-                   mbcr_tau3(2), &
-                   ebcx_conv(2), &
-                   ebcy_conv(2), &
-                   ebcz_conv(2), &
-                   ebcx_difu(2), &
-                   ebcy_difu(2), &
-                   ebcz_difu(2)
-  logical, save :: is_fbcx_velo_required, &
-                   is_fbcy_velo_required, &
-                   is_fbcz_velo_required
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -253,11 +221,11 @@ module parameters_constant_mod
   character(len = 64), parameter :: INPUT_SCP_WATER = 'NIST_WATER_23.5MP.DAT'
   character(len = 64), parameter :: INPUT_SCP_CO2   = 'NIST_CO2_8MP.DAT'
 
-  real(WP), parameter :: TM0_Na  = 371.0_WP  ! unit: K, melting temperature at 1 atm for Na
-  real(WP), parameter :: TM0_Pb  = 600.6_WP  ! unit: K, melting temperature at 1 atm for Lead
-  real(WP), parameter :: TM0_BI  = 544.6_WP  ! unit: K, melting temperature at 1 atm for Bismuth
-  real(WP), parameter :: TM0_LBE = 398.0_WP  ! unit: K, melting temperature at 1 atm for LBE
-  real(WP), parameter :: TM0_H2O = 273.15_WP ! unit: K, melting temperature at 1 atm for water
+  real(WP), parameter :: tm1_Na  = 371.0_WP  ! unit: K, melting temperature at 1 atm for Na
+  real(WP), parameter :: tm1_Pb  = 600.6_WP  ! unit: K, melting temperature at 1 atm for Lead
+  real(WP), parameter :: tm1_BI  = 544.6_WP  ! unit: K, melting temperature at 1 atm for Bismuth
+  real(WP), parameter :: tm1_LBE = 398.0_WP  ! unit: K, melting temperature at 1 atm for LBE
+  real(WP), parameter :: tm1_H2O = 273.15_WP ! unit: K, melting temperature at 1 atm for water
 
   real(WP), parameter :: TB0_Na  = 1155.0_WP ! unit: K, boling temperature at 1 atm for Na
   real(WP), parameter :: TB0_Pb  = 2021.0_WP ! unit: K, boling temperature at 1 atm for Lead
@@ -295,7 +263,7 @@ module parameters_constant_mod
   real(WP), parameter :: CoCp_Bi(-2:2) = (/ 7.183e6_WP, 0.0_WP,  118.2_WP,  5.934E-3_WP,      0.0_WP/)
   real(WP), parameter :: CoCp_LBE(-2:2)= (/-4.56e5_WP, 0.0_WP,  164.8_WP, - 3.94E-2_WP,  1.25E-5_WP/)
 
-  ! H = HM0 + CoH(-1) * (1 / T - 1 / Tm0) + CoH(0) + CoH(1) * (T - Tm0) +  CoH(2) * (T^2 - Tm0^2) +  CoH(3) * (T^3- Tm0^3)
+  ! H = HM0 + CoH(-1) * (1 / T - 1 / tm1) + CoH(0) + CoH(1) * (T - tm1) +  CoH(2) * (T^2 - tm1^2) +  CoH(3) * (T^3- tm1^3)
   real(WP), parameter :: CoH_Na(-1:3)  = (/  4.56e5_WP, 0.0_WP, 164.8_WP,   -1.97E-2_WP, 4.167E-4_WP/)
   real(WP), parameter :: CoH_Pb(-1:3)  = (/ 1.524e6_WP, 0.0_WP, 176.2_WP, -2.4615E-2_WP, 5.147E-6_WP/)
   real(WP), parameter :: CoH_Bi(-1:3)  = (/-7.183e6_WP, 0.0_WP, 118.2_WP,   2.967E-3_WP,      0.0_WP/)
@@ -312,17 +280,18 @@ module wtformat_mod
   !use iso_fortran_env
   implicit none
 
-  character(len = 17) :: wrtfmt1i   = '(2X, A48, 1I20.1)'
-  character(len = 17) :: wrtfmt2i   = '(2X, A48, 2I10.1)'
-  character(len = 17) :: wrtfmt3i   = '(2X, A48, 3I10.1)'
-  character(len = 17) :: wrtfmt4i   = '(2X, A48, 4I10.1)'
-  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F20.6)'
-  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F10.6)'
-  character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F23.15)'
+  character(len = 17) :: wrtfmt1i   = '(2X, A48, 1I8.1)'
+  character(len = 17) :: wrtfmt2i   = '(2X, A48, 2I8.1)'
+  character(len = 17) :: wrtfmt3i   = '(2X, A48, 3I8.1)'
+  character(len = 17) :: wrtfmt4i   = '(2X, A48, 4I8.1)'
+  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F12.2)'
+  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F12.2)'
+  character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F12.2)'
   character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
   character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES23.15, A24, 1ES23.15)'
-  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I10.1, 1F10.6)'
-  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I10.1, 2F10.6)'
+  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I8.1, 1F12.2)'
+  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I8.1, 2F12.2)'
+  character(len = 25) :: wrtfmt4i2r = '(2X, A48, 4I8.1, 2F12.2)'
   character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L3)'
   character(len = 14) :: wrtfmt1l   = '(2X, A48, 1L3)'
   character(len = 3)  :: wrtfmt1s   = '(A)'
@@ -354,7 +323,7 @@ module udf_type_mod
     integer :: ifluid
     integer :: ipropertyState
     integer :: nlist
-    real(WP) :: TM0
+    real(WP) :: tm1
     real(WP) :: TB0
     real(WP) :: HM0
     real(WP) :: CoD(0:1)
@@ -455,30 +424,56 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
+    real(wp), allocatable :: rci(:) ! reciprocal of raidus based on cell centre
+    real(wp), allocatable :: rpi(:) ! reciprocal of raidus based on node point
+    integer, allocatable :: ijnp_sym(:)
+    integer, allocatable :: ijnc_sym(:)
+    integer, allocatable :: knc_sym(:) ! knc_sym = knp_sym 
+
     real(wp), allocatable :: fbcx_qx(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_qx(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_qx(:, :, :) ! variable bc
+
     real(wp), allocatable :: fbcx_gx(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_gx(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_gx(:, :, :) ! variable bc
+
     real(wp), allocatable :: fbcx_qy(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_qy(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_qy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qyr(:, :, :) ! qy/r = ur bc at y dirction
+    real(wp), allocatable :: fbcz_qyr(:, :, :) ! qy/r = ur bc at z dirction
+
     real(wp), allocatable :: fbcx_gy(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_gy(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_gy(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gyr(:, :, :) ! gy/r = rho * ur bc at y dirction
+    real(wp), allocatable :: fbcz_gyr(:, :, :) ! gy/r = rho * ur bc at z dirction
+
     real(wp), allocatable :: fbcx_qz(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_qz(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_qz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_qzr(:, :, :) ! qz/r = u_theta bc at y dirction
+    real(wp), allocatable :: fbcz_qzr(:, :, :) ! qz/r = u_theta bc at z dirction
+
     real(wp), allocatable :: fbcx_gz(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_gz(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_gz(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcy_gzr(:, :, :) ! gz/r = rho * u_theta bc at y dirction
+    real(wp), allocatable :: fbcz_gzr(:, :, :) ! gz/r = rho * u_theta bc at z dirction
+
     real(wp), allocatable :: fbcx_pr(:, :, :) ! variable bc
     real(wp), allocatable :: fbcy_pr(:, :, :) ! variable bc
     real(wp), allocatable :: fbcz_pr(:, :, :) ! variable bc
-    type(t_fluidThermoProperty), allocatable :: ftpbcx_var(:, :, :)  ! undim, xbc state
-    type(t_fluidThermoProperty), allocatable :: ftpbcy_var(:, :, :)  ! undim, ybc state
-    type(t_fluidThermoProperty), allocatable :: ftpbcz_var(:, :, :)  ! undim, zbc state
+
+    real(wp), allocatable :: fbcx_qw(:, :, :) ! heat flux at wall x
+    real(wp), allocatable :: fbcy_qw(:, :, :) ! heat flux at wall y
+    real(wp), allocatable :: fbcz_qw(:, :, :) ! heat flux at wall z
+
+    type(t_fluidThermoProperty), allocatable :: fbcx_ftp(:, :, :)  ! undim, xbc state
+    type(t_fluidThermoProperty), allocatable :: fbcy_ftp(:, :, :)  ! undim, ybc state
+    type(t_fluidThermoProperty), allocatable :: fbcz_ftp(:, :, :)  ! undim, zbc state
+
     real(WP), allocatable :: probexyz(:, :) ! (1:3, xyz coord)
     logical,  allocatable :: probe_is_in(:)
     integer,  allocatable :: probexid(:, :) ! (1:3, local index)
@@ -505,7 +500,6 @@ module udf_type_mod
     real(WP) :: fgravity(NDIM)
 
     real(wp) :: noiselevel
-    real(wp) :: umax(1:3)
     real(wp) :: mcon
 
     real(WP), allocatable :: qx(:, :, :)  !
@@ -514,6 +508,9 @@ module udf_type_mod
     real(WP), allocatable :: gx(:, :, :)
     real(WP), allocatable :: gy(:, :, :)
     real(WP), allocatable :: gz(:, :, :)
+    real(WP), allocatable :: gx0(:, :, :)
+    real(WP), allocatable :: gy0(:, :, :)
+    real(WP), allocatable :: gz0(:, :, :)
 
     real(WP), allocatable :: pres(:, :, :)
     real(WP), allocatable :: pcor(:, :, :)
@@ -561,8 +558,9 @@ module udf_type_mod
 
     real(WP), allocatable :: t_mean(:, :, :)
     real(WP), allocatable :: tt_mean(:, :, :)
-
+    type(t_fluidThermoProperty) :: ftp_ini ! undimensional
   end type t_thermo
+  type(t_fluid_parameter) :: fluidparam ! dimensional
 
 
 end module
@@ -813,17 +811,17 @@ module flatten_index_mod
  
 contains
 
- function flatten_3d_to_1d(i, j, k, Nx, Ny, Nz) result(n)
-   integer, intent(in) :: i, j, k, Nx, Ny, Nz
+ function flatten_3d_to_1d(i, j, k, Nx, Ny) result(n)
+   integer, intent(in) :: i, j, k, Nx, Ny
    integer :: n
    n = i + Nx * (j - 1)  + Nx * Ny * (k - 1)
  end function
  
- function flatten_2d_to_1d(i, j, Nx, Ny) result(n)
-   integer, intent(in) :: i, j, Nx, Ny
+ function flatten_2d_to_1d(i, j, Nx) result(n)
+   integer, intent(in) :: i, j, Nx
    integer :: n
    n = i + Nx * (j - 1)
  end function
  
-end module
+end module flatten_index_mod
 

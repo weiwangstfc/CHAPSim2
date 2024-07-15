@@ -12,14 +12,13 @@ module solver_tools_mod
   public  :: Calculate_xz_mean_yprofile
   public  :: Adjust_to_xzmean_zero
   public  :: Get_volumetric_average_3d
+  public  :: Get_volumetric_average_3d_for_var_xcx
   public  :: Find_maximum_absvar3d
   public  :: Find_max_min_3d
   public  :: Find_max_min_absvar3d
 
   public  :: Calculate_massflux_from_velocity
   public  :: Calculate_velocity_from_massflux
-
-  public  :: update_g_rhou_bc
 
 contains
 !==========================================================================================================
@@ -72,7 +71,7 @@ contains
 !----------------------------------------------------------------------------------------------------------  
     u0 = ONE / fl%rre * fluidparam%ftp0ref%m / fluidparam%ftp0ref%d / tm%ref_l0
     rtmp = tm%ref_l0 / u0 / u0 * GRAVITY
-    fl%fgravity(:) = ZERO
+    fl%fgravity = ZERO
     if (fl%igravity == 1 ) then ! flow/gravity same dirction - x
       fl%fgravity(1) =  rtmp
     else if (fl%igravity == 2 ) then ! flow/gravity same dirction - y
@@ -86,7 +85,7 @@ contains
     else if (fl%igravity == -3 ) then ! flow/gravity opposite dirction - z
       fl%fgravity(3) =  - rtmp
     else ! no gravity
-      fl%fgravity(:) = ZERO
+      fl%fgravity = ZERO
     end if
     
     return
@@ -124,8 +123,8 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   Default X-pencil
     !----------------------------------------------------------------------------------------------------------
-    varxz(:) = ZERO
-    varxz_work(:) = ZERO
+    varxz = ZERO
+    varxz_work = ZERO
     do j = 1, dtmp%xsz(2)
       nk = 0
       ni = 0
@@ -145,7 +144,7 @@ contains
     !call mpi_allreduce(ni, ni_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
     !call mpi_allreduce(nk, nk_work, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varxz, varxz_work, n, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
-    varxz_work(:) = varxz_work(:) / real(p_col * p_col, wp)
+    varxz_work = varxz_work / real(p_col * p_col, wp)
     if(PRESENT(varxz_work1)) varxz_work1 = varxz_work
 
 #ifdef DEBUG_STEPS
@@ -226,6 +225,7 @@ contains
     !use iso_fortran_env
     use mpi_mod
     use wtformat_mod
+    use print_msg_mod
     implicit none
     real(WP), intent(in) :: x2r(3)
     real(WP), intent(in) :: rre
@@ -236,7 +236,7 @@ contains
     cfl_diff = sum(x2r) * TWO * dt * rre
     if(nrank == 0) then
       if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
-      write (*, wrtfmt1r) "  Diffusion number :", cfl_diff
+      write (*, wrtfmt1e) "  Diffusion number :", cfl_diff
     end if
     
     return
@@ -301,23 +301,23 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Initialisation
 !----------------------------------------------------------------------------------------------------------
-    var_xpencil(:, :, :) = ZERO
-    var_ypencil(:, :, :) = ZERO
-    var_zpencil(:, :, :) = ZERO
-    accc_xpencil(:, :, :) = ZERO
-    accc_ypencil(:, :, :) = ZERO
-    accc_zpencil(:, :, :) = ZERO
+    var_xpencil = ZERO
+    var_ypencil = ZERO
+    var_zpencil = ZERO
+    accc_xpencil = ZERO
+    accc_ypencil = ZERO
+    accc_zpencil = ZERO
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx)
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
+    call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy, dm%fbcy_qy)
     var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : \overline{w}^z/dz at cell centre
@@ -325,7 +325,7 @@ contains
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
+    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz)
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
@@ -365,7 +365,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Get_volumetric_average_3d(is_ynp, ibcy, fbcy, dm, dtmp, var, fo_work, str)
+  subroutine Get_volumetric_average_3d(is_ynp, ibcy, fbcy, dm, dtmp, var, fo_work)
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
@@ -380,7 +380,6 @@ contains
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
-    character(*), optional, intent(in) :: str
  
     real(WP), dimension( dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3) )  :: var_ypencil
     real(WP), allocatable   :: vcp_ypencil(:, :, :)
@@ -433,7 +432,7 @@ contains
         allocate( vcp_ypencil(dtmp%ysz(1), noy, dtmp%ysz(3)) )
         vcp_ypencil = ZERO
 
-        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, dm%iAccuracy, ibcy, dm%fbcy_qx)
+        call Get_y_midp_P2C_3D(var_ypencil, vcp_ypencil, dm, dm%iAccuracy, ibcy)
 
         fo = ZERO
         vol = ZERO
@@ -507,13 +506,69 @@ contains
     fo_work = fo_work / vol_work
 
 #ifdef DEBUG_STEPS  
-    if(nrank == 0 .and. present(str)) then
-      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+    if(nrank == 0 ) then
+      write (*, wrtfmt1e) " volumetric average of is ", fo_work
     end if
 #endif
 
     return 
   end subroutine Get_volumetric_average_3d
+!==========================================================================================================
+  subroutine Get_volumetric_average_3d_for_var_xcx(dm, dtmp, var, fo_work, str)
+    use mpi_mod
+    use udf_type_mod
+    use parameters_constant_mod
+    use operations
+    use decomp_2d
+    use wtformat_mod
+    implicit none
+    type(t_domain),  intent(in) :: dm
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP),          intent(in) :: var(:, :, :)
+    real(WP),          intent(out):: fo_work
+    character(*), optional, intent(in) :: str
+ 
+    real(WP) :: vol, fo, vol_work!
+#ifdef DEBUG_STEPS 
+    real(WP) :: vol_real
+#endif
+    integer :: i, j, k, jj
+
+    !----------------------------------------------------------------------------------------------------------
+    ! default: x-pencil
+    !----------------------------------------------------------------------------------------------------------
+      
+      vol = ZERO
+      fo  = ZERO
+      do k = 1, dtmp%xsz(3)
+        do j = 1, dtmp%xsz(2)
+          jj = j + dtmp%xst(2) - 1
+          do i = 1, dtmp%xsz(1)
+            fo = fo + var(i, j, k) * dm%h(1) * dm%h(2) * ( dm%h(3) / dm%rci(jj) ) 
+            vol = vol + dm%h(1) * dm%h(2) * ( dm%h(3) / dm%rci(jj) )
+          end do
+        end do
+      end do
+
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      call mpi_allreduce( fo,  fo_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+      fo_work = fo_work / vol_work
+
+#ifdef DEBUG_STEPS  
+      if(nrank == 0) then
+        if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
+        if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
+        write(*, *) ' Check real volume, numerical volume = ', vol_real, vol_work
+      end if
+#endif
+
+    if(nrank == 0 .and. present(str)) then
+      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+    end if
+
+    return
+  end subroutine 
 
 !==========================================================================================================
   subroutine Find_maximum_absvar3d(var,  varmax_work, str, fmt)
@@ -544,7 +599,7 @@ contains
       end do
     end do
 
-    !varmax = MAXVAL( abs_wp( var(:, :, :) ) ) 
+    !varmax = MAXVAL( abs_wp( var ) ) 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
@@ -709,27 +764,27 @@ contains
     
     if(.not. dm%is_thermo) return
 !----------------------------------------------------------------------------------------------------------
-! x-pencil : u1 -> g1
+! x-pencil : u1 -> g1 = u1_pcc * d_pcc
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%ftpbcx_var(:, 1:dm%dccc%xsz(2), 1:dm%dccc%xsz(3))%d)
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%d)
     fl%gx = fl%qx * d_pcc
 !----------------------------------------------------------------------------------------------------------
-! y-pencil : u2 -> g2
+! y-pencil : u2 -> g2 = u2_cpc * d_cpc
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
     call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%ftpbcy_var(1:dm%dccc%ysz(1), :, 1:dm%dccc%ysz(3))%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%d)
     gy_ypencil = qy_ypencil * d_cpc_ypencil
     call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
-! Z-pencil : u3 -> g3
+! Z-pencil : u3 -> g3 = u3_ccp * d_ccp
 !----------------------------------------------------------------------------------------------------------
     call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
     call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
     call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%ftpbcz_var(1:dm%dccc%zsz(1), 1:dm%dccc%zsz(2),:)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%d)
     gz_zpencil = qz_zpencil * d_ccp_zpencil
 
     call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
@@ -787,7 +842,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : g1 -> u1
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%ftpbcx_var(:, :, :)%d)
+    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%d)
     fl%qx = fl%gx / d_pcc
 !----------------------------------------------------------------------------------------------------------
 ! y-pencil : u2 -> g2
@@ -795,7 +850,7 @@ contains
     call transpose_x_to_y(fl%gy,    gy_ypencil, dm%dcpc)
     call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
 
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%ftpbcy_var(:, :, :)%d)
+    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%d)
     qy_ypencil = gy_ypencil / d_cpc_ypencil
     call transpose_y_to_x(qy_ypencil, fl%qy, dm%dcpc)
 !----------------------------------------------------------------------------------------------------------
@@ -805,59 +860,114 @@ contains
     call transpose_x_to_y(fl%gz,      gz_ypencil, dm%dccp)
     call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp)
 
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%ftpbcz_var(:, :, :)%d)
+    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%d)
     qz_zpencil = gz_zpencil / d_ccp_zpencil
 
     call transpose_z_to_y(qz_zpencil, qz_ypencil, dm%dccp)
     call transpose_y_to_x(qz_ypencil, fl%qz, dm%dccp)
 
+    fl%gx0 = fl%gx
+    fl%gy0 = fl%gy
+    fl%gz0 = fl%gz
+
     return
   end subroutine Calculate_velocity_from_massflux
 
-!==========================================================================================================
-!==========================================================================================================
-  subroutine update_g_rhou_bc (dm) ! 
-    use parameters_constant_mod
-    use udf_type_mod
-    implicit none
-    type(t_domain), intent( inout)   :: dm
+! !==========================================================================================================
+! !==========================================================================================================
+!   subroutine apply_gxgygz_bc (dm) ! 
+!     use parameters_constant_mod
+!     use udf_type_mod
+!     implicit none
+!     type(t_domain), intent( inout)   :: dm
 
-    integer :: m
+!     integer :: n
+!     real(WP) :: rci(2), rpi(2)
 
-    if(.not. dm%is_thermo) return
-!----------------------------------------------------------------------------------------------------------
-!   get bc gx, gy, gz (at bc not cell centre)
-!----------------------------------------------------------------------------------------------------------
+!     if(.not. dm%is_thermo) return
+! !----------------------------------------------------------------------------------------------------------
+! !   get bc gx, gy, gz (at bc not cell centre)
+! !----------------------------------------------------------------------------------------------------------
+!     ! below is for non-slip wall (v = 0) only. check
+!     dm%fbcx_gx = dm%fbcx_qx !* dm%fbcx_ftp%d 
+!     dm%fbcx_gy = dm%fbcx_qy !* dm%ftpbcx_4pc%d 
+!     dm%fbcx_gz = dm%fbcx_qz !* dm%ftpbcx_4cp%d 
+! !
+!     dm%fbcy_gx = dm%fbcy_qx !* dm%ftpbcy_p4c%d 
+!     dm%fbcy_gy = dm%fbcy_qy !* dm%fbcy_ftp%d 
+!     dm%fbcy_gz = dm%fbcy_qz !* dm%ftpbcy_c4p%d 
+! !
+!     dm%fbcz_gx = dm%fbcz_qx !* dm%ftpbcz_pc4%d
+!     dm%fbcz_gy = dm%fbcz_qy !* dm%ftpbcz_cp4%d
+!     dm%fbcz_gz = dm%fbcz_qz !* dm%fbcz_ftp%d
 
-    dm%fbcx_gx(1:4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) = &
-    dm%fbcx_qx(1:4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3)) * dm%ftpbcx_var(1:4, 1:dm%dpcc%xsz(2), 1:dm%dpcc%xsz(3))%d
+! !----------------------------------------------------------------------------------------------------------
+! ! -3-1-||||-2-4
+! ! gx
+! !----------------------------------------------------------------------------------------------------------
+!     do n = 1, 2
+!       dm%fbcx_gx(n, :, :) = dm%fbcx_const(n, 1)
+!       dm%fbcy_gx(:, n, :) = dm%fbcy_const(n, 1)
+!       dm%fbcz_gx(:, :, n) = dm%fbcz_const(n, 1)
+!     end do
+!     do n = 3, 4
+!       dm%fbcx_qx(n, :, :) = dm%fbcx_const(n - 2, 1)
+!       dm%fbcy_qx(:, n, :) = dm%fbcy_const(n - 2, 1)
+!       dm%fbcz_qx(:, :, n) = dm%fbcz_const(n - 2, 1)
+!     end do
+! !----------------------------------------------------------------------------------------------------------
+! ! -3-1-||||-2-4
+! ! gy
+! !----------------------------------------------------------------------------------------------------------
+!     do n = 1, 2
+!       dm%fbcx_qy(n, :, :) = dm%fbcx_const(n, 2)
+!       dm%fbcy_qy(:, n, :) = dm%fbcy_const(n, 2)
+!       dm%fbcz_qy(:, :, n) = dm%fbcz_const(n, 2)
+!     end do
+!     do n = 3, 4
+!       dm%fbcx_qy(n, :, :) = dm%fbcx_const(n - 2, 2)
+!       dm%fbcy_qy(:, n, :) = dm%fbcy_const(n - 2, 2)
+!       dm%fbcz_qy(:, :, n) = dm%fbcz_const(n - 2, 2)
+!     end do
+! !----------------------------------------------------------------------------------------------------------
+! ! -3-1-||||-2-4
+! ! gz
+! !----------------------------------------------------------------------------------------------------------
+!     do n = 1, 2
+!       dm%fbcx_qz(n, :, :) = dm%fbcx_const(n, 3)
+!       dm%fbcy_qz(:, n, :) = dm%fbcy_const(n, 3)
+!       dm%fbcz_qz(:, :, n) = dm%fbcz_const(n, 3)
+!     end do
+!     do n = 3, 4
+!       dm%fbcx_qz(n, :, :) = dm%fbcx_const(n - 2, 3)
+!       dm%fbcy_qz(:, n, :) = dm%fbcy_const(n - 2, 3)
+!       dm%fbcz_qz(:, :, n) = dm%fbcz_const(n - 2, 3)
+!     end do
+!     if(dm%icoordinate == ICYLINDRICAL) then
+! !    gyr = gx/r; gzr = gz/r 
+!       rpi(1) = dm%rpi(1)
+!       rpi(2) = dm%rpi(dm%np(2))
+!       rci(1) = dm%rci(1)
+!       rci(2) = dm%rci(dm%nc(2))
+      
+!       do n = 1, 2
+!         dm%fbcy_qyr(:, n, :) = dm%fbcy_qy(:, n, :) * rpi(n)
+!         dm%fbcz_qyr(:, :, n) = dm%fbcz_qy(:, n, :) * rci(n)
+!         dm%fbcy_qzr(:, n, :) = dm%fbcy_qz(:, n, :) * rpi(n)
+!         dm%fbcz_qzr(:, :, n) = dm%fbcz_qz(:, n, :) * rci(n)
+!       end do
+!       do n = 3, 4
+!         dm%fbcy_qyr(:, n, :) = dm%fbcy_qyr(:, n-2, :)
+!         dm%fbcz_qyr(:, :, n) = dm%fbcz_qyr(:, :, n-2)
+!         dm%fbcy_qzr(:, n, :) = dm%fbcy_qzr(:, n-2, :)
+!         dm%fbcz_qzr(:, :, n) = dm%fbcz_qzr(:, :, n-2)
+!       end do
+!     end if
 
-    dm%fbcy_gx(1:dm%dpcc%ysz(1), 1:4, 1:dm%dpcc%ysz(3)) = &
-    dm%fbcy_qx(1:dm%dpcc%ysz(1), 1:4, 1:dm%dpcc%ysz(3)) * dm%ftpbcy_var(1:dm%dpcc%ysz(1), 1:4, 1:dm%dpcc%ysz(3))%d
 
-    dm%fbcz_gx(1:dm%dpcc%zsz(1), 1:dm%dpcc%zsz(2), 1:4) = &
-    dm%fbcz_qx(1:dm%dpcc%zsz(1), 1:dm%dpcc%zsz(2), 1:4) * dm%ftpbcz_var(1:dm%dpcc%zsz(1), 1:dm%dpcc%zsz(2), 1:4)%d
 
-    dm%fbcx_gy(1:4, 1:dm%dcpc%xsz(2), 1:dm%dcpc%xsz(3)) = &
-    dm%fbcx_qy(1:4, 1:dm%dcpc%xsz(2), 1:dm%dcpc%xsz(3)) * dm%ftpbcx_var(1:4, 1:dm%dcpc%xsz(2), 1:dm%dcpc%xsz(3))%d
     
-    dm%fbcy_gy(1:dm%dcpc%ysz(1), 1:4, 1:dm%dcpc%ysz(3)) = &
-    dm%fbcy_qy(1:dm%dcpc%ysz(1), 1:4, 1:dm%dcpc%ysz(3)) * dm%ftpbcy_var(1:dm%dcpc%ysz(1), 1:4, 1:dm%dcpc%ysz(3))%d
-    
-    dm%fbcz_gy(1:dm%dcpc%zsz(1), 1:dm%dcpc%zsz(2), 1:4) = &
-    dm%fbcz_qy(1:dm%dcpc%zsz(1), 1:dm%dcpc%zsz(2), 1:4) * dm%ftpbcz_var(1:dm%dcpc%zsz(1), 1:dm%dcpc%zsz(2), 1:4)%d
-
-    dm%fbcx_gz(1:4, 1:dm%dccp%xsz(2), 1:dm%dccp%xsz(3)) = &
-    dm%fbcx_qz(1:4, 1:dm%dccp%xsz(2), 1:dm%dccp%xsz(3)) * dm%ftpbcx_var(1:4, 1:dm%dccp%xsz(2), 1:dm%dccp%xsz(3))%d
-
-    dm%fbcy_gz(1:dm%dccp%ysz(1), 1:4, 1:dm%dccp%ysz(3)) = &
-    dm%fbcy_qz(1:dm%dccp%ysz(1), 1:4, 1:dm%dccp%ysz(3)) * dm%ftpbcy_var(1:dm%dccp%ysz(1), 1:4, 1:dm%dccp%ysz(3))%d
-
-    dm%fbcz_gz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1:4) = &
-    dm%fbcz_qz(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1:4) * dm%ftpbcz_var(1:dm%dccp%zsz(1), 1:dm%dccp%zsz(2), 1:4)%d
-
-
-    return
-  end subroutine
+!     return
+!   end subroutine
 
 end module

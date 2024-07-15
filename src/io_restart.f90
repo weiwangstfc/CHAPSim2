@@ -1,16 +1,17 @@
 module io_restart_mod
+  use print_msg_mod
   implicit none 
 
   character(len=10), parameter :: io_name = "restart-io"
 
-  private :: read_instantanous_array
   private :: write_instantanous_array
-  public :: write_instantanous_flow
-  public :: write_instantanous_thermo
-  public :: read_instantanous_flow
-  public :: read_instantanous_thermo
-  public :: restore_flow_variables_from_restart
-  public :: restore_thermo_variables_from_restart
+  public  :: write_instantanous_flow
+  public  :: write_instantanous_thermo
+  private :: read_instantanous_array
+  public  :: read_instantanous_flow
+  public  :: read_instantanous_thermo
+  public  :: restore_flow_variables_from_restart
+  public  :: restore_thermo_variables_from_restart
 
 contains 
 !==========================================================================================================
@@ -150,7 +151,8 @@ contains
     real(WP) :: ubulk
     
 
-    call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, fl%qx, ubulk, "ux")
+    !call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, fl%qx, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx, ubulk, "ux")
     if(nrank == 0) then
         Call Print_debug_mid_msg("  The restarted mass flux is:")
         write (*, wrtfmt1e) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -158,9 +160,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! to check maximum velocity
     !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(fl%qx, fl%umax(1), "maximum ux:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qy, fl%umax(2), "maximum uy:", wrtfmt1e)
-    call Find_maximum_absvar3d(fl%qz, fl%umax(3), "maximum uz:", wrtfmt1e)
+    call Find_max_min_3d(fl%qx, "qx: ", wrtfmt1e)
+    call Find_max_min_3d(fl%qy, "qy: ", wrtfmt1e)
+    call Find_max_min_3d(fl%qz, "qz: ", wrtfmt1e)
     !----------------------------------------------------------------------------------------------------------
     ! to set up other parameters for flow only, which will be updated in thermo flow.
     !----------------------------------------------------------------------------------------------------------

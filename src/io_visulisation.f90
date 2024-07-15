@@ -1,6 +1,7 @@
 module io_visulisation_mod
   use io_tools_mod
   use precision_mod
+  use print_msg_mod
   implicit none 
 
   character(len=*), parameter :: io_name = "solution-io"
@@ -24,7 +25,7 @@ module io_visulisation_mod
 
   private :: write_visu_headerfooter
   private :: write_visu_field
-  private :: visu_average_periodic_flow
+  private :: visu_average_periodic_data
   private :: write_visu_profile
 
   public  :: write_visu_ini
@@ -173,7 +174,7 @@ contains
         end if
       end do
       do k = 1, nnd_visu(3, dm%idom)
-        zp(k) = real(k-1, WP) * dm%h(2) * dm%visu_nskip(3)
+        zp(k) = real(k-1, WP) * dm%h(3) * dm%visu_nskip(3)
       enddo
 
 
@@ -547,12 +548,11 @@ contains
     integer :: iter 
     character(120) :: visuname
 
-    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: a_xpencil
 !==========================================================================================================
 ! write time averaged 3d data
 !==========================================================================================================
     iter = fl%iteration
-    visuname = 'flow_time_averaged'
+    visuname = 'time_averaged_flow'
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -580,7 +580,7 @@ contains
     if( ANY(dm%is_periodic(:))) then
 
     iter = fl%iteration
-    visuname = 'flow_time_space_averaged'
+    visuname = 'time_space_averaged_flow'
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -589,16 +589,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call visu_average_periodic_flow(                    fl%pr_mean, dm%dccc, dm, "time_space_averaged_pr", trim(visuname), iter)
-    call visu_average_periodic_flow(  fl%u_vector_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_ux", trim(visuname), iter)
-    call visu_average_periodic_flow(  fl%u_vector_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_uy", trim(visuname), iter)
-    call visu_average_periodic_flow(  fl%u_vector_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_uz", trim(visuname), iter)
-    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_uu", trim(visuname), iter)
-    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_vv", trim(visuname), iter)
-    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_ww", trim(visuname), iter)
-    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, dm, "time_space_averaged_uv", trim(visuname), iter)
-    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, dm, "time_space_averaged_uw", trim(visuname), iter)
-    call visu_average_periodic_flow(fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, dm, "time_space_averaged_vw", trim(visuname), iter)
+    call visu_average_periodic_data(                    fl%pr_mean, dm%dccc, dm, "time_space_averaged_pr", trim(visuname), iter)
+    call visu_average_periodic_data(  fl%u_vector_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_ux", trim(visuname), iter)
+    call visu_average_periodic_data(  fl%u_vector_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_uy", trim(visuname), iter)
+    call visu_average_periodic_data(  fl%u_vector_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_uz", trim(visuname), iter)
+    call visu_average_periodic_data(fl%uu_tensor6_mean(:, :, :, 1), dm%dccc, dm, "time_space_averaged_uu", trim(visuname), iter)
+    call visu_average_periodic_data(fl%uu_tensor6_mean(:, :, :, 2), dm%dccc, dm, "time_space_averaged_vv", trim(visuname), iter)
+    call visu_average_periodic_data(fl%uu_tensor6_mean(:, :, :, 3), dm%dccc, dm, "time_space_averaged_ww", trim(visuname), iter)
+    call visu_average_periodic_data(fl%uu_tensor6_mean(:, :, :, 4), dm%dccc, dm, "time_space_averaged_uv", trim(visuname), iter)
+    call visu_average_periodic_data(fl%uu_tensor6_mean(:, :, :, 5), dm%dccc, dm, "time_space_averaged_uw", trim(visuname), iter)
+    call visu_average_periodic_data(fl%uu_tensor6_mean(:, :, :, 6), dm%dccc, dm, "time_space_averaged_vw", trim(visuname), iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
@@ -616,14 +616,18 @@ contains
     use precision_mod
     use operations
     implicit none 
+    
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(in) :: tm
 
     integer :: iter 
     character(120) :: visuname
     
+!==========================================================================================================
+! write time averaged 3d data
+!==========================================================================================================
     iter = tm%iteration
-    visuname = 'thermo_time_averaged'
+    visuname = 'time_averaged_thermo'
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -631,13 +635,36 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, 
 !----------------------------------------------------------------------------------------------------------
-    call write_visu_field(dm, tm%t_mean,  dm%dccc, "t",  trim(visuname), SCALAR, CELL, iter)
-    call write_visu_field(dm, tm%tt_mean, dm%dccc, "tt", trim(visuname), SCALAR, CELL, iter)
-
+    call write_visu_field(dm, tm%t_mean,  dm%dccc, "time_averaged_T",  trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%tt_mean, dm%dccc, "time_averaged_TT", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
     call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+!==========================================================================================================
+! write time averaged and space averaged 3d data (stored 2d or 1d data)
+!==========================================================================================================
+    if( ANY(dm%is_periodic(:))) then
+
+    iter = tm%iteration
+    visuname = 'time_space_averaged_thermo'
+!----------------------------------------------------------------------------------------------------------
+! write xdmf header
+!----------------------------------------------------------------------------------------------------------
+    if(.not. (dm%is_periodic(1) .and. dm%is_periodic(3))) &
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
+!----------------------------------------------------------------------------------------------------------
+! write data, 
+!----------------------------------------------------------------------------------------------------------
+    call visu_average_periodic_data(tm%t_mean,   dm%dccc, dm, "time_space_averaged_T",   trim(visuname), iter)
+    call visu_average_periodic_data(tm%tt_mean,  dm%dccc, dm, "time_space_averaged_TT",  trim(visuname), iter)
+!----------------------------------------------------------------------------------------------------------
+! write xdmf footer
+!----------------------------------------------------------------------------------------------------------
+    if(.not. (dm%is_periodic(1) .and. dm%is_periodic(3))) &
+    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+
+    end if
     
     return
   end subroutine
@@ -711,7 +738,7 @@ contains
 
 !==========================================================================================================
 !==========================================================================================================
-  subroutine visu_average_periodic_flow(data_in, dtmp, dm, str1, str2, iter)
+  subroutine visu_average_periodic_data(data_in, dtmp, dm, str1, str2, iter)
     use udf_type_mod
     use parameters_constant_mod
     implicit none

@@ -1,4 +1,6 @@
 module statistics_mod
+  use print_msg_mod
+  implicit none
 
   character(13), parameter :: io_name = "statistics-io"
   integer, allocatable :: ncl_stat(:, :)
