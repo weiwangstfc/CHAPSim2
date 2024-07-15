@@ -361,9 +361,9 @@ contains
     !----------------------------------------------------------------------------------------------------------
     call Generate_random_field(dm, ux, uy, uz, p, lnoise)
     if(nrank == 0) Call Print_debug_mid_msg(" Maximum velocity for generated random velocities (initial):")
-    call Find_max_min_absvar3d(ux, "ux:", wrtfmt2e)
-    call Find_max_min_absvar3d(uy, "uy:", wrtfmt2e)
-    call Find_max_min_absvar3d(uz, "uz:", wrtfmt2e)
+    call Find_max_min_3d(ux, "ux:", wrtfmt2e)
+    call Find_max_min_3d(uy, "uy:", wrtfmt2e)
+    call Find_max_min_3d(uz, "uz:", wrtfmt2e)
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !----------------------------------------------------------------------------------------------------------
@@ -412,9 +412,9 @@ contains
     end if
     if(nrank == 0) &
     call Print_debug_mid_msg(" Maximum velocity for real initial flow field:")
-    call Find_max_min_absvar3d(ux, "ux:", wrtfmt2e)
-    call Find_max_min_absvar3d(uy, "uy:", wrtfmt2e)
-    call Find_max_min_absvar3d(uz, "uz:", wrtfmt2e)
+    call Find_max_min_3d(ux, "ux:", wrtfmt2e)
+    call Find_max_min_3d(uy, "uy:", wrtfmt2e)
+    call Find_max_min_3d(uz, "uz:", wrtfmt2e)
     ! to do : to add a scaling for turbulence generator inlet scaling, u = u * m / rho
 
     !----------------------------------------------------------------------------------------------------------

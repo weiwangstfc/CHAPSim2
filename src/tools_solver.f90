@@ -330,7 +330,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(var_zpencil, dummy, "CFL (convection) :", wrtfmt1r)
+    call Find_maximum_absvar3d(var_zpencil, dummy, "CFL (convection) :", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")

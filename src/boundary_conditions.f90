@@ -64,7 +64,7 @@ module boundary_conditions_mod
   public  :: update_fbc_2dm_flow_halo   ! for multiple domains only, update every NS 
   public  :: update_fbc_2dm_thermo_halo ! for multiple domains only, update every NS
   
-  private :: reconstruct_symmetry_ibc    ! applied if necessary
+  public :: reconstruct_symmetry_ibc    ! applied if necessary
   public  :: config_calc_eqs_ibc
 
 contains
