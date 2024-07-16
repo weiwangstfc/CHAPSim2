@@ -428,11 +428,9 @@ contains
 
     call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc)!acpc_zpencil = qy_zpencil
     call Get_z_1der_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%iAccuracy, dm%ibcz_qy, dm%fbcz_qy) ! acpp_zpencil = qydz
+    call transpose_z_to_y(acpp_zpencil, qydz_cpp_ypencil, dm%dcpp)
     if(dm%icoordinate == ICARTESIAN) then
       qydz_cpp_zpencil = acpp_zpencil
-    end if
-    if(dm%icoordinate == ICYLINDRICAL) then
-      call transpose_z_to_y(acpp_zpencil, qydz_cpp_ypencil, dm%dcpp)
     end if
     call Get_z_midp_C2P_3D(acpc_zpencil, acpp_zpencil, dm, dm%iAccuracy, dm%ibcz_qy, dm%fbcz_qy) ! acpp_zpencil = qyiz
     if(dm%icoordinate == ICARTESIAN) then
@@ -949,7 +947,6 @@ contains
     call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
     call transpose_y_to_x (apcc_ypencil, apcc_xpencil, dm%dpcc)
     fl%mx_rhs =  fl%mx_rhs + apcc_xpencil
-    
 !==========================================================================================================
 ! the RHS of y-momentum equation
 ! d(gy)/dt = -        d(gxiy * qyix)/dx                               ! conv-x-m2         
@@ -1368,7 +1365,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisX@bf stepping') ! debug_ww
-    !write(*,*) 'fl%mx_rhs', fl%mx_rhs(:, 1, 1), fl%mx_rhs(:, 8, 8)
+
 #endif
     call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_pfc_xpencil, dm%dpcc, dm, isub)  
 #ifdef DEBUG_STEPS
@@ -1379,7 +1376,6 @@ contains
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY@bf stepping') ! debug_ww
-    !write(*,*) 'fl%my_rhs', fl%my_rhs(:, 1, 1), fl%my_rhs(:, 8, 8)
 #endif
     call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_pfc_xpencil, dm%dcpc, dm, isub)
 #ifdef DEBUG_STEPS
@@ -1390,7 +1386,6 @@ contains
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ@bf stepping') ! debug_ww
-    !write(*,*) 'fl%mz_rhs', fl%mz_rhs(:, 1, 1), fl%mz_rhs(:, 8, 8)
 #endif
     call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_pfc_xpencil, dm%dccp, dm, isub)
 #ifdef DEBUG_STEPS
@@ -1415,13 +1410,41 @@ contains
       fl%mz_rhs = fl%mz_rhs - rhsz_bulk
     else
     end if
+!==========================================================================================================
+! B.C. correction for rhs
+!==========================================================================================================
+    ! -mx_rhs-
+    if(dm%ibcx_qx(1) == IBC_DIRICHLET) fl%mx_rhs(1,              :, :) = ZERO
+    if(dm%ibcx_qx(2) == IBC_DIRICHLET) fl%mx_rhs(dm%dpcc%xsz(1), :, :) = ZERO
+    !-my_rhs-
+    if(dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
+       dm%ibcy_qy(2) == IBC_DIRICHLET) then
+      call transpose_x_to_y(fl%my_rhs, acpc_ypencil, dm%dcpc)
+      if(dm%ibcy_qy(1) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = ZERO
+      if(dm%ibcy_qy(2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = ZERO
+      call transpose_y_to_x(acpc_ypencil, fl%my_rhs, dm%dcpc)
+    end if
+    !-mz_rhs-
+    if(dm%ibcz_qz(1) == IBC_DIRICHLET .or. &
+       dm%ibcz_qz(2) == IBC_DIRICHLET) then
+      call transpose_x_to_y(fl%mz_rhs,    accp_ypencil, dm%dccp)
+      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
+      if(dm%ibcz_qz(1) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = ZERO
+      if(dm%ibcz_qz(2) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = ZERO
+      call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
+      call transpose_y_to_x(accp_ypencil, fl%mz_rhs,    dm%dccp)
+    end if
+    
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'RHSX@total') ! debug_ww
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dpcc, fl%iteration, isub, 'RHSY@total') ! debug_ww
     call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'RHSZ@total') ! debug_ww
 #endif
  
     return
   end subroutine Compute_momentum_rhs
+!==========================================================================================================
+!==========================================================================================================
 
 !==========================================================================================================
 !==========================================================================================================
