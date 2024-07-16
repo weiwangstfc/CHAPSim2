@@ -27,9 +27,61 @@
 module operations
   use precision_mod, only : WP
   use print_msg_mod
+  use parameters_constant_mod
   implicit none
 
   private
+
+  logical, save :: flg_wrn_xmidp_c2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_xmidp_c2p_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_xmidp_c2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_xmidp_p2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_xmidp_p2c_neumann   (2) = (/.false., .false./)
+ 
+  logical, save :: flg_wrn_ymidp_c2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_ymidp_c2p_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_ymidp_c2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_ymidp_p2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_ymidp_p2c_neumann   (2) = (/.false., .false./)
+ 
+  logical, save :: flg_wrn_zmidp_c2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_zmidp_c2p_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_zmidp_c2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_zmidp_p2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_zmidp_p2c_neumann   (2) = (/.false., .false./)
+ 
+  logical, save :: flg_wrn_x1der_c2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_c2c_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_c2c_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_p2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_p2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_c2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_c2p_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_c2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_p2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_x1der_p2c_neumann   (2) = (/.false., .false./)
+
+  logical, save :: flg_wrn_y1der_c2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_c2c_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_c2c_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_p2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_p2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_c2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_c2p_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_c2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_p2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_y1der_p2c_neumann   (2) = (/.false., .false./)
+
+  logical, save :: flg_wrn_z1der_c2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_c2c_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_c2c_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_p2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_p2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_c2p_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_c2p_dirichlet (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_c2p_neumann   (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_p2c_interior  (2) = (/.false., .false./)
+  logical, save :: flg_wrn_z1der_p2c_neumann   (2) = (/.false., .false./)
 !----------------------------------------------------------------------------------------------------------
 ! basic coefficients for TDMA of 1st deriviative  
 ! to store coefficients for TDMA
@@ -259,7 +311,25 @@ module operations
   public  :: Test_interpolation
   public  :: Test_1st_derivative
 
+  private :: degrade_bc_to_interp
+
 contains
+
+  subroutine degrade_bc_to_interp(ibc, flg, strbc, strcode)
+    use parameters_constant_mod
+    use mpi_mod
+    implicit none
+    integer, intent(inout) :: ibc
+    logical, intent(inout) :: flg
+    character(*), intent(in) :: strbc
+    character(*), intent(in) :: strcode
+    
+    if((.not. flg) .and. nrank==0) &
+    call Print_warning_msg('Lack of fbc for '//trim(strbc)//' degragded to IBC_INTRPL in subroutine: '//trim(strcode))
+    flg = .true.
+    ibc = IBC_INTRPL
+    return 
+  end subroutine 
 !==========================================================================================================
 !> \brief Assigned the cooefficients for the compact schemes     
 !> Scope:  mpi    called-freq    xdomain     module
@@ -1426,11 +1496,11 @@ contains
       fc(0 ) = -fi(1)
       fc(-1) = -fi(2)
     else if (ibc(1) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_C')
+      !if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_C')
       fc(0 ) = TWO * fbc(1) - fi(1)
       fc(-1) = TWO * fbc(1) - fi(2)
     else if (ibc(1) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C')
+      !if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C')
       fc(0 ) = fi(1) - fbc(1) * d1(1)
       fc(-1) = fi(2) - fbc(1) * ( TWO * d1(3) + d1(1) )
     else
@@ -1460,7 +1530,7 @@ contains
       fc(1) = TWO * fbc(2) - fi(nc)
       fc(2) = TWO * fbc(2) - fi(nc-1)
     else if (ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C2C')
+      !if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C2C')
       fc(1) = fi(nc)     + fbc(2) * d1(2)
       fc(2) = fi(nc - 1) + fbc(2) * ( TWO * d1(4) + d1(2) )
     else
@@ -2222,19 +2292,18 @@ contains
 
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @ Get_x_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @ Get_x_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @ Get_x_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_x_midp_C2P_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_midp_C2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_x_midp_C2P_1D')
+        end select
       end if
     end do
+    
 
     ixsub = dm%idom
     nsz = size(fo)
@@ -2278,15 +2347,16 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_x_midp_P2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_x_midp_P2C_1D')
+        end select
       end if
     end do
+    
 
     nsz = size(fo)
     fo = ZERO
@@ -2332,19 +2402,18 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_y_midp_C2P_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_midp_C2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_y_midp_C2P_1D')
+        end select
       end if
     end do
+    
 
     nsz = size(fo)
     fo = ZERO
@@ -2391,15 +2460,16 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_y_midp_P2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_y_midp_P2C_1D')
+        end select
       end if
     end do
+    
 
     nsz = size(fo)
     fo = ZERO
@@ -2446,19 +2516,18 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_midp_C2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_z_midp_C2P_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_midp_C2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_z_midp_C2P_1D')
+        end select
       end if
     end do
+    
 
     nsz = size(fo)
     fo = ZERO
@@ -2502,13 +2571,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_midp_P2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_z_midp_P2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_z_midp_P2C_1D')
+        end select
       end if
     end do
 
@@ -2572,20 +2641,18 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_x_1der_C2C_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_1der_C2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_C2C_1D')
+        end select
       end if
     end do
-
+    
     ixsub = dm%idom
     nsz = size(fo)
     fo = ZERO
@@ -2630,13 +2697,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1der_P2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1der_P2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_x_1der_P2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_P2P_1D')
+        end select
       end if
     end do
 
@@ -2682,17 +2749,15 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_x_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_x_1der_C2P_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_1der_C2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_C2P_1D')
+        end select
       end if
     end do
 
@@ -2739,13 +2804,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_x_1der_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_x_1der_P2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_x_1der_P2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_P2C_1D')
+        end select
       end if
     end do
 
@@ -2795,17 +2860,15 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_y_1der_C2C_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_1der_C2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_C2C_1D')
+        end select
       end if
     end do
 
@@ -2856,13 +2919,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1der_P2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1der_P2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_y_1der_P2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_P2P_1D')
+        end select
       end if
     end do
 
@@ -2913,17 +2976,15 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_y_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_y_1der_C2P_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_1der_C2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_C2P_1D')
+        end select
       end if
     end do
 
@@ -2974,13 +3035,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_y_1der_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_y_1der_P2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_y_1der_P2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_P2C_1D')
+        end select
       end if
     end do
 
@@ -3033,17 +3094,15 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1der_C2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_z_1der_C2C_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_1der_C2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_C2C_1D')
+        end select
       end if
     end do
 
@@ -3089,13 +3148,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1der_P2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1der_P2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_z_1der_P2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_P2P_1D')
+        end select
       end if
     end do
 
@@ -3141,17 +3200,15 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_DIRICHLET  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET, degragded to IBC_INTRPL. @Get_z_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1der_C2P_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_z_1der_C2P_1D')
+          case (IBC_DIRICHLET)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_1der_C2P_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_C2P_1D')
+        end select
       end if
     end do
 
@@ -3197,13 +3254,13 @@ contains
     
     ibc = ibc0
     do i = 1, 2
-      if (ibc(i) == IBC_INTERIOR  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_INTERIOR, degragded to IBC_INTRPL. @Get_z_1der_P2C_1D')
-        ibc(i) = IBC_INTRPL
-      end if
-      if (ibc(i) == IBC_NEUMANN  .and. (.not. present(fbc) )) then
-        call Print_warning_msg('Lack of fbc info for IBC_NEUMANN, degragded to IBC_INTRPL. @Get_z_1der_P2C_1D')
-        ibc(i) = IBC_INTRPL
+      if (.not. present(fbc)) then
+        select case (ibc(i))
+          case (IBC_INTERIOR)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_z_1der_P2C_1D')
+          case (IBC_NEUMANN)
+            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_P2C_1D')
+        end select
       end if
     end do
 

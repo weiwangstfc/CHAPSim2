@@ -1233,43 +1233,40 @@ contains
       mbcr_tau3(1:2) = mbc(1:2, JBC_PROD)
       if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom r-diffusion  is ", mbcr_tau3
     end if
-
 !----------------------------------------------------------------------------------------------------------
 !   energy-eqs
 !----------------------------------------------------------------------------------------------------------
-    if(dm%is_thermo) then
-      call reconstruct_symmetry_ibc(dm%ibcx_qx, mbc, dm%ibcx_Th)
-      ebcx_conv(1:2) = mbc(1:2, JBC_PROD)
-      if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-convection is ", ebcx_conv
+    if(dm%is_thermo)  then
+    call reconstruct_symmetry_ibc(dm%ibcx_qx, mbc, dm%ibcx_Th)
+    ebcx_conv(1:2) = mbc(1:2, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-convection is ", ebcx_conv
 
-      call reconstruct_symmetry_ibc(dm%ibcy_qy, mbc, dm%ibcy_Th)
-      ebcy_conv(1:2) = mbc(1:2, JBC_PROD)
-      if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-convection is ", ebcy_conv
+    call reconstruct_symmetry_ibc(dm%ibcy_qy, mbc, dm%ibcy_Th)
+    ebcy_conv(1:2) = mbc(1:2, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-convection is ", ebcy_conv
 
-      call reconstruct_symmetry_ibc(dm%ibcz_qz, mbc, dm%ibcz_Th)
-      ebcz_conv(1:2) = mbc(1:2, JBC_PROD)
-      if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-convection is ", ebcz_conv
+    call reconstruct_symmetry_ibc(dm%ibcz_qz, mbc, dm%ibcz_Th)
+    ebcz_conv(1:2) = mbc(1:2, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-convection is ", ebcz_conv
 
-      call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc)
-      bc(1:2) = mbc(1:2, JBC_GRAD)
-      call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc, bc)
-      ebcx_difu = mbc(1:2, JBC_PROD)
-      if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-diffusion is ", ebcx_difu
+    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc)
+    bc(1:2) = mbc(1:2, JBC_GRAD)
+    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc, bc)
+    ebcx_difu = mbc(1:2, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-diffusion  is ", ebcx_difu
 
-      call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc)
-      bc(1:2) = mbc(1:2, JBC_GRAD)
-      call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
-      ebcy_difu(1:2) = mbc(1:2, JBC_PROD)
-      if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-diffusion is ", ebcy_difu
+    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc)
+    bc(1:2) = mbc(1:2, JBC_GRAD)
+    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
+    ebcy_difu(1:2) = mbc(1:2, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-diffusion  is ", ebcy_difu
 
-      call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc)
-      bc(1:2) = mbc(1:2, JBC_GRAD)
-      call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc, bc)
-      ebcz_difu(1:2) = mbc(1:2, JBC_PROD)
-      if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-diffusion is ", ebcz_difu
-
+    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc)
+    bc(1:2) = mbc(1:2, JBC_GRAD)
+    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc, bc)
+    ebcz_difu(1:2) = mbc(1:2, JBC_PROD)
+    if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-diffusion  is ", ebcz_difu
     end if
-
 !----------------------------------------------------------------------------------------------------------
 ! preparation for b.c.
 !----------------------------------------------------------------------------------------------------------

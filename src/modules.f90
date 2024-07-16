@@ -164,7 +164,7 @@ module parameters_constant_mod
                         IBC_DIRICHLET   = 4, & ! basic and nominal, used in operations
                         IBC_NEUMANN     = 5, & ! basic and nominal, used in operations
                         IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
-                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_INTPRL
+                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_INTRPL
                         IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
                         IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
                         IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
@@ -284,14 +284,14 @@ module wtformat_mod
   character(len = 17) :: wrtfmt2i   = '(2X, A48, 2I8.1)'
   character(len = 17) :: wrtfmt3i   = '(2X, A48, 3I8.1)'
   character(len = 17) :: wrtfmt4i   = '(2X, A48, 4I8.1)'
-  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F12.2)'
-  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F12.2)'
-  character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F12.2)'
+  character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F14.4)'
+  character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F14.4)'
+  character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F14.4)'
   character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
   character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES23.15, A24, 1ES23.15)'
-  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I8.1, 1F12.2)'
-  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I8.1, 2F12.2)'
-  character(len = 25) :: wrtfmt4i2r = '(2X, A48, 4I8.1, 2F12.2)'
+  character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I8.1, 1F14.4)'
+  character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I8.1, 2F14.4)'
+  character(len = 25) :: wrtfmt4i2r = '(2X, A48, 4I8.1, 2F14.4)'
   character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L3)'
   character(len = 14) :: wrtfmt1l   = '(2X, A48, 1L3)'
   character(len = 3)  :: wrtfmt1s   = '(A)'
@@ -332,10 +332,10 @@ module udf_type_mod
     real(WP) :: CoCp(-2:2)
     real(WP) :: CoH(-1:3)
     real(WP) :: CoM(-1:1)
-    real(WP) :: dhmax
-    real(WP) :: dhmin
+    real(WP) :: dhmax ! undim
+    real(WP) :: dhmin ! undim
     type(t_fluidThermoProperty) :: ftp0ref    ! dim, reference state
-    type(t_fluidThermoProperty) :: ftpini     ! undim, initial state
+    type(t_fluidThermoProperty) :: ftpini     ! dim, initial state
   end type t_fluid_parameter
 !----------------------------------------------------------------------------------------------------------
 !  domain info
@@ -543,9 +543,9 @@ module udf_type_mod
     integer  :: iteration
     integer  :: nIterThermoStart
     integer  :: nIterThermoEnd
-    real(WP) :: ref_l0
-    real(WP) :: ref_T0 ! '0' means dimensional 
-    real(WP) :: init_T0
+    real(WP) :: ref_l0  ! dim
+    real(WP) :: ref_T0  ! '0' means dimensional 
+    real(WP) :: init_T0 ! dim
     real(WP) :: time
     real(WP) :: rPrRen
 

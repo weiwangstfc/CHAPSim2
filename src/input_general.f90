@@ -279,11 +279,6 @@ contains
               if(domain(i)%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This zBC IBC_PROFILE1D is not supported.")
             end do
           end do 
-          !----------------------------------------------------------------------------------------------------------
-          ! to get calc b.c.
-          !----------------------------------------------------------------------------------------------------------
-          call config_calc_basic_ibc(domain(i))
-          call config_calc_eqs_ibc(domain(i))
         end do
       !----------------------------------------------------------------------------------------------------------
       ! [mesh] 
@@ -577,6 +572,8 @@ contains
     ! convert the input dimensional temperature/heat flux into undimensional
     !----------------------------------------------------------------------------------------------------------
     do i = 1, nxdomain
+      call config_calc_basic_ibc(domain(i))
+      call config_calc_eqs_ibc(domain(i))
       if(domain(i)%is_thermo) call Convert_thermal_input_2undim(thermo(i), domain(i))
     end do 
     !----------------------------------------------------------------------------------------------------------

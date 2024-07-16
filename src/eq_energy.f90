@@ -281,9 +281,10 @@ contains
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: ene_rhs_ccc_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: ene_rhs_ccc_zpencil
     
-    ! real(WP) :: fbcx(4, dm%np(2), dm%np(3))
-    ! real(WP) :: fbcy(dm%np(1), 4, dm%np(3))
-    ! real(WP) :: fbcz(dm%np(1), dm%np(2), 4)
+    real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc 
+    real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c
+    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), 4 ) :: fbcz_cc4
+    
     integer  :: n
     integer  :: mbc(1:2, 1:3)
 !==========================================================================================================
@@ -297,21 +298,27 @@ contains
 !      --> h_ypencil --> h_cpc_ypencil
 !                    --> h_zpencil --> h_ccp_zpencil
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%hEnth, hEnth_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%fbcx_ftp%h ) ! for d(g_x h_pcc))/dy
-    call transpose_x_to_y (tm%hEnth, accc_ypencil, dm%dccc)                     !intermediate, accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%fbcy_ftp%h)! for d(g_y h_cpc)/dy
-    call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !intermediate, accc_zpencil = hEnth_zpencil
-    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%fbcz_ftp%h) ! for d(g_z h_ccp)/dz
+    fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%h
+    fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%h
+    fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%h
+    call Get_x_midp_C2P_3D(tm%hEnth, hEnth_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), fbcx_4cc ) ! for d(g_x h_pcc))/dy
+    call transpose_x_to_y (tm%hEnth, accc_ypencil, dm%dccc)                     !accc_ypencil = hEnth_ypencil
+    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), fbcy_c4c)! for d(g_y h_cpc)/dy
+    call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !ccc_zpencil = hEnth_zpencil
+    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), fbcz_cc4) ! for d(g_z h_ccp)/dz
 !----------------------------------------------------------------------------------------------------------
 !    k --> k_pcc
 !      --> k_ypencil --> k_cpc_ypencil
 !                    --> k_zpencil --> k_ccp_zpencil              
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_C2P_3D(tm%kCond, kCond_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), dm%fbcx_ftp%k) ! for d(k_pcc * (dT/dx) )/dx
+    fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%k
+    fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%k
+    fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%k
+    call Get_x_midp_C2P_3D(tm%kCond, kCond_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), fbcx_4cc) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond, accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), dm%fbcy_ftp%k)
+    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), fbcy_c4c)
     call transpose_y_to_z (accc_ypencil,  kCond_ccc_zpencil, dm%dccc) 
-    call Get_z_midp_C2P_3D(kCond_ccc_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), dm%fbcz_ftp%k)
+    call Get_z_midp_C2P_3D(kCond_ccc_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), fbcz_cc4)
 !----------------------------------------------------------------------------------------------------------
 !    T --> T_ypencil --> T_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -350,14 +357,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-x, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%t )
+    fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%t
+    call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc )
     apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
     call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu)
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-y, d ( r * k_cpc * d (T) / dy ) dy * 1/r
 !----------------------------------------------------------------------------------------------------------
-    call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%t )
+    fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%t
+    call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c)
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
@@ -365,7 +374,8 @@ contains
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-z, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
-    call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%t )
+    fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%t
+    call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, fbcz_cc4 )
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
     call Get_z_1der_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_difu)

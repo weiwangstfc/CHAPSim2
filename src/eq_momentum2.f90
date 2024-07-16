@@ -683,27 +683,41 @@ contains
 !              | -[ipy]-> muiy_cpc_ypencil(temp) -[y2z]-> muiy_cpc_zpencil(temp) -[ipz]-> muiyz_cpp_zpencil -[z2y]-> muiyz_cpp_ypencil
 !                     BCy:|->mu_c4c_ypencil                                           
 !----------------------------------------------------------------------------------------------------------
+! fbcy_c4c               ! fbcy_p4c
+! ^z_________________    ! ^z_________________
+! |   |   |   |   |      ! |   |   |   |   | 
+! | O | O | O | O |      ! O   O   O   O   O
+! |___|___|___|___|__    ! |___|___|___|___|__  
+! |   |   |   |   |      ! |   |   |   |   |    
+! | O | O | O | O |      ! O   O   O   O   O
+! |___|___|___|___|__>x  ! |___|___|___|___|__>x
+! the interpolation for constant value is exact same. ignore the warning message if pops up.
+!----------------------------------------------------------------------------------------------------------
+      fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%m
+      fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%m
+      fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%m
+
       mu_ccc_xpencil = fl%mVisc
       call transpose_x_to_y(mu_ccc_xpencil, mu_ccc_ypencil, dm%dccc)
       call transpose_y_to_z(mu_ccc_ypencil, mu_ccc_zpencil, dm%dccc)
 
-      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%m) ! muix_pcc_xpencil
-      call transpose_x_to_y(apcc_xpencil, apcc_ypencil, dm%dpcc) ! muix_pcc_ypencil
+      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc)
+      call transpose_x_to_y(apcc_xpencil, apcc_ypencil, dm%dpcc) ! apcc_ypencil = muix_pcc_ypencil
       
-      call Get_y_midp_C2P_3D(apcc_ypencil, muixy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%m)
+      call Get_y_midp_C2P_3D(apcc_ypencil, muixy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th)!, fbcy_p4c)
       call transpose_y_to_x(muixy_ppc_ypencil, muixy_ppc_xpencil, dm%dppc) 
 
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc) ! muix_pcc_zpencil
-      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%m)
+      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th)!, fbcz_pc4)
       call transpose_z_to_y(muixz_pcp_zpencil, apcp_zpencil, dm%dpcp)
       call transpose_y_to_x(apcp_zpencil, muixz_pcp_xpencil, dm%dpcp)
 
-      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%m) ! muiy_cpc_ypencil
+      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc) !muiy_cpc_zpencil
-      call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%m)
+      call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th)!, fbcz_cp4)
       call transpose_z_to_y(muiyz_cpp_zpencil, muiyz_cpp_ypencil, dm%dcpp)
 
-      call Get_z_midp_C2P_3D(mu_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%m)
+      call Get_z_midp_C2P_3D(mu_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, fbcz_cc4) ! accp_zpencil = muiz_ccp_zpencil
 
       if(is_fbcx_velo_required) then
         fbcx_mu_4cc(1, :, :) = apcc_xpencil(1, :, :)

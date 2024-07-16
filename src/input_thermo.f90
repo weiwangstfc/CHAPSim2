@@ -580,8 +580,19 @@ contains
         ddt = ddh1 / dt1 * ddh2 / dt2 
         ddh = ddh1 / dh1 * ddh2 / dh2
 
-        if (ddt < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (T) is not monotonicity. For fluids at supercritical conditons, please try to increase your reference temeprature.'
-        if (ddh < MINP) STOP 'Error. The relation (rho * h) = FUNCTION (H) is not monotonicity. For fluids at supercritical conditons, please try to increase your reference temeprature.'
+        if (ddt < MINP .and. nrank == 0) then
+          call Print_warning_msg('The relation (rho * h) = FUNCTION (T) is not monotonicity.') 
+          write(*, wrtfmt1r) ' This occurs around T(K) = ', ftplist(i)%t * fluidparam%ftp0ref%t
+          call Print_warning_msg('If this temperature occurs in-between your interested range, \
+          please try to increase your reference temeprature.')
+        end if
+        if (ddh < MINP .and. nrank == 0) then
+          call Print_warning_msg('The relation (rho * h) = FUNCTION (H) is not monotonicity.') 
+          write(*, wrtfmt1r) ' This occurs around H(J/KG) = ', \
+          ftplist(i)%h  * fluidparam%ftp0ref%t * fluidparam%ftp0ref%cp + fluidparam%ftp0ref%h
+          call Print_warning_msg('If this H occurs in-between your interested range, \
+          please try to increase your reference temeprature.')
+        end if
 
     end do
     return
@@ -605,7 +616,7 @@ contains
     real(WP) :: rtmp
     integer :: i
     !----------------------------------------------------------------------------------------------------------
-    ! to read given table of thermal properties
+    ! to read given table of thermal properties, dimensional
     !----------------------------------------------------------------------------------------------------------
     open ( newunit = inputUnit,     &
            file    = fluidparam%inputProperty, &
@@ -666,9 +677,9 @@ contains
     call ftplist_check_monotonicity_DH_of_HorT
 
     i = minloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
-    fluidparam%dhmin = ftplist(i)%dh
+    fluidparam%dhmin = ftplist(i)%dh ! undim
     i = maxloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
-    fluidparam%dhmax = ftplist(i)%dh
+    fluidparam%dhmax = ftplist(i)%dh ! undim
 
     is_ftplist_dim = .false.
 
@@ -817,8 +828,8 @@ contains
       write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
       write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
       write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
-      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftp0ref%dh
+      write (*, wrtfmt1e) '  Enthalphy:',            fluidparam%ftp0ref%h
+      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftp0ref%dh
 
       call Print_debug_start_msg("The initial thermal properties (dim) are")
       write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftpini%t
@@ -826,8 +837,8 @@ contains
       write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftpini%m
       write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftpini%k
       write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftpini%cp
-      write (*, wrtfmt1r) '  Enthalphy:',            fluidparam%ftpini%h
-      write (*, wrtfmt1r) '  mass enthaphy:',        fluidparam%ftpini%dh
+      write (*, wrtfmt1e) '  Enthalphy:',            fluidparam%ftpini%h
+      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftpini%dh
       call Print_debug_mid_msg("The range of the property table (undim)")
       write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
     end if
@@ -957,7 +968,6 @@ contains
     
     if(.not. dm%is_thermo) return
 
-    tm%init_T0 = tm%init_T0 / tm%ref_T0
     !----------------------------------------------------------------------------------------------------------
     !   for x-pencil
     !   scale the given thermo b.c. in dimensional to undimensional
@@ -1060,7 +1070,7 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   given initialisation temperature
     !----------------------------------------------------------------------------------------------------------
-    tm%ftp_ini%t = tm%init_T0 ! already undim
+    tm%ftp_ini%t = tm%init_T0 / tm%ref_T0 ! already undim
     !----------------------------------------------------------------------------------------------------------
     !   update all initial properties based on given temperature
     !----------------------------------------------------------------------------------------------------------
