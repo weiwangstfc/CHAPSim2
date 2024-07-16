@@ -48,7 +48,7 @@ contains
     else
       fl%rre = ONE / fl%ren
     end if
-    write(*,*) 're', one/fl%rre
+
     return
   end subroutine Update_Re
 
