@@ -23,7 +23,7 @@ ifeq ($(cfg), gnu)
    -finit-local-zero -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized\
    -Wno-unused -fallow-argument-mismatch		   
   FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
-  FDEBG= #-DDEBUG_STEPS -DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
+  FDEBG= -DDEBUG_STEPS #-DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
@@ -39,8 +39,8 @@ else ifeq ($(cfg), pg)
   FFLGS= -DDOUBLE_PREC 
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
-  FOPTS= -O3  -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
-	-ffpe-trap=invalid,zero,overflow -fall-intrinsics -fallow-argument-mismatch
+  FOPTS= -O3 -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
+   -finit-local-zero -ffree-line-length-512 -Wno-unused -fallow-argument-mismatch		
   FFLGS= -DDOUBLE_PREC
   FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
@@ -83,7 +83,7 @@ OBJS1= mpi_mod.o\
       poisson_1stderivcomp.o\
       eq_continuity.o\
       eq_energy.o\
-      eq_momentum.o\
+      eq_momentum2.o\
       io_restart.o\
       flow_initialization.o\
       chapsim.o

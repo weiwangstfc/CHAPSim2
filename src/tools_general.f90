@@ -604,14 +604,13 @@ end module random_number_generation_mod
 
 
 !==========================================================================================================
-subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
+subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, loc)
   use precision_mod
   use udf_type_mod
   use print_msg_mod
   implicit none 
   type(DECOMP_INFO), intent(in) :: dtmp
   real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
-  character(*), intent(in) :: str
   character(*), intent(in) :: loc
   
   integer, intent(in) :: iter, irk
@@ -633,7 +632,7 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
   nid = reshape(a, (/8, 3/))
   do n = 1, npt
       write(pntim,'(i1.1)') n
-      flnm = 'chapsim2_p'//pntim//trim(str)//'.dat'   
+      flnm = 'chapsim2_p'//pntim//'.dat'   
       do k =1, dtmp%xsz(3)
           kk = dtmp%xst(3) + k - 1
           if(kk == nid(n, 3)) then
@@ -650,8 +649,8 @@ subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, str, loc)
                             open(nfil+n,file=trim(adjustl(flnm)) )
                             !write(nfil+n,*) '# iter = ', iter
                           end if
-                          write(nfil+n, '(A2, A15, 2I2.1, 3I4.1, 1ES27.19)') &
-                          trim(str), trim(loc), iter, irk, i, jj, kk, var(i, j, k)
+                          write(nfil+n, '(A20, 2I2.1, 3I4.1, 1ES27.19)') &
+                          trim(loc), iter, irk, i, jj, kk, var(i, j, k)
                           close(nfil+n)
                         end if
                       end do
@@ -666,7 +665,7 @@ return
 end subroutine
 
 !==========================================================================================================
-subroutine wrt_3d_all_debug(var, dtmp, iter, str)
+subroutine wrt_3d_all_debug(var, dtmp, iter, str, loc)
   use precision_mod
   use udf_type_mod
   use print_msg_mod
@@ -674,6 +673,7 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, str)
   type(DECOMP_INFO), intent(in) :: dtmp
   real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
   character(*), intent(in) :: str
+  character(*), intent(in) :: loc
   
   integer, intent(in) :: iter
   integer, parameter :: nfil = 20
@@ -684,7 +684,7 @@ subroutine wrt_3d_all_debug(var, dtmp, iter, str)
   character(1) :: pntim
 
   write(pntim,'(i1.1)') nrank
-  flnm = 'chapsim2_'//trim(str)//'_myid'//pntim//'.dat'  
+  flnm = 'chapsim2_'//trim(str)//'_at_'//trim(loc)//'_myid'//pntim//'.dat'  
   inquire(file=trim(adjustl(flnm)), exist=file_exists) 
   if(file_exists) then
     open(nfil,file=trim(adjustl(flnm)), position='append')

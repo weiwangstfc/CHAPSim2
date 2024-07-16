@@ -48,6 +48,7 @@ contains
     else
       fl%rre = ONE / fl%ren
     end if
+    write(*,*) 're', one/fl%rre
     return
   end subroutine Update_Re
 
@@ -507,7 +508,7 @@ contains
 
 #ifdef DEBUG_STEPS  
     if(nrank == 0 ) then
-      write (*, wrtfmt1e) " volumetric average of is ", fo_work
+      write (*, wrtfmt1e) " volumetric average is ", fo_work
     end if
 #endif
 
@@ -533,6 +534,7 @@ contains
     real(WP) :: vol_real
 #endif
     integer :: i, j, k, jj
+    real(WP) :: dx, dy, dz
 
     !----------------------------------------------------------------------------------------------------------
     ! default: x-pencil
@@ -540,12 +542,15 @@ contains
       
       vol = ZERO
       fo  = ZERO
-      do k = 1, dtmp%xsz(3)
-        do j = 1, dtmp%xsz(2)
-          jj = j + dtmp%xst(2) - 1
+      do j = 1, dtmp%xsz(2)
+        jj = j + dtmp%xst(2) - 1
+        dy = dm%yp(jj+1) - dm%yp(jj)
+        do k = 1, dtmp%xsz(3)
+          dz = dm%h(3) / dm%rci(jj)
           do i = 1, dtmp%xsz(1)
-            fo = fo + var(i, j, k) * dm%h(1) * dm%h(2) * ( dm%h(3) / dm%rci(jj) ) 
-            vol = vol + dm%h(1) * dm%h(2) * ( dm%h(3) / dm%rci(jj) )
+            dx = dm%h(1)
+            fo = fo + var(i, j, k) * dx * dy * dz
+            vol = vol + dx * dy * dz
           end do
         end do
       end do
@@ -559,7 +564,7 @@ contains
       if(nrank == 0) then
         if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
         if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
-        write(*, *) ' Check real volume, numerical volume = ', vol_real, vol_work
+        write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
       end if
 #endif
 

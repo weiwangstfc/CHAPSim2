@@ -482,7 +482,7 @@ if(iconvection) then
     call transpose_z_to_y (mx_rhs_zpencil, apcc_ypencil, dm%dpcc)
     call transpose_y_to_x (apcc_ypencil, apcc, dm%dpcc)
     apcc_test =  apcc_test + apcc 
-    call wrt_3d_pt_debug(apcc_test,  dm%dpcc, fl%iteration, isub, '', 'ConX@bf st') ! debug_ww
+    call wrt_3d_pt_debug(apcc_test,  dm%dpcc, fl%iteration, isub, 'ConX@bf st') ! debug_ww
 #endif
 end if
 !----------------------------------------------------------------------------------------------------------
@@ -509,6 +509,7 @@ if(iviscous) then
     else
       fl%mx_rhs = fl%mx_rhs + m_pcc * fl%rre * apcc
     end if
+    write(*,*) 'visx-11', fl%rre * apcc(4,  1:4,  4)
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : X-mom diffusion term (x-v1-2/7), \mu^x * LL2(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
@@ -524,7 +525,7 @@ if(iviscous) then
     else
       mx_rhs_ypencil = mx_rhs_ypencil + m_pcc_ypencil * fl%rre * apcc_ypencil
     end if
-    !write(*,*) 'visx-22', fl%rre * apcc_ypencil(4,  1:4,  4)
+    write(*,*) 'visx-22', fl%rre * apcc_ypencil(4,  1:4,  4)
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : X-mom diffusion term (x-v1-3/7), \mu^x * LL3(ux) at (i', j, k)
 !----------------------------------------------------------------------------------------------------------
@@ -540,7 +541,7 @@ if(iviscous) then
     else
       mx_rhs_zpencil = mx_rhs_zpencil + m_pcc_zpencil * fl%rre * apcc_zpencil
     end if
-    !write(*,*) 'visx-33', fl%rre * apcc_zpencil(4, 1:4, 4)
+    write(*,*) 'visx-33', fl%rre * apcc_zpencil(4,  1:4,  4)
 
     if ( dm%is_thermo) then
 !----------------------------------------------------------------------------------------------------------
@@ -654,7 +655,7 @@ if(iconvection) then
     call transpose_z_to_y (my_rhs_zpencil, acpc_ypencil, dm%dcpc)
     call transpose_y_to_x (acpc_ypencil, acpc, dm%dcpc)
     acpc_test =  acpc_test + acpc 
-    call wrt_3d_pt_debug(acpc_test,  dm%dcpc, fl%iteration, isub, '', 'ConY@bf st') ! debug_ww
+    call wrt_3d_pt_debug(acpc_test,  dm%dcpc, fl%iteration, isub, 'ConY@bf st') ! debug_ww
 #endif
 end if
 if(ipressure)then
@@ -829,7 +830,7 @@ if(iconvection)then
     call transpose_z_to_y (mz_rhs_zpencil, accp_ypencil, dm%dccp)
     call transpose_y_to_x (accp_ypencil, accp, dm%dccp)
     accp_test =  accp_test + accp 
-    call wrt_3d_pt_debug(accp_test,  dm%dccp, fl%iteration, isub, '', 'ConZ@bf st') ! debug_ww
+    call wrt_3d_pt_debug(accp_test,  dm%dccp, fl%iteration, isub, 'ConZ@bf st') ! debug_ww
 #endif
 
 end if 
@@ -949,12 +950,12 @@ end if
 ! x-pencil : x-momentum
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%mx_rhs,            dm%dpcc, fl%iteration, isub, '', 'ConVisX@bf st') ! debug_ww
-    call wrt_3d_pt_debug(mx_rhs_pfc,           dm%dccc, fl%iteration, isub, '', 'presure@bf st') ! debug_ww
+    !call wrt_3d_pt_debug(mx_rhs_pfc, dm%dccc, fl%iteration, isub, 'presure@bf st') ! debug_ww
+    call wrt_3d_pt_debug(fl%mx_rhs,  dm%dpcc, fl%iteration, isub, 'ConVisX@bf st') ! debug_ww
 #endif
     call Calculate_momentum_fractional_step(fl%mx_rhs0, fl%mx_rhs, mx_rhs_pfc, dm%dpcc, dm, isub)  
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, '', 'ConVisPX@af st') ! debug_ww
+    call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'ConVisPX@af st') ! debug_ww
 #endif
 !   x-pencil : flow drive terms (source terms) in periodic Streamwise flow
     if (fl%idriven == IDRVF_X_MASSFLUX) then
@@ -968,28 +969,28 @@ end if
     else
     end if
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, '', 'RHSX@total') ! debug_ww
+  call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'RHSX@total') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : y-momentum
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%my_rhs,            dm%dcpc, fl%iteration, isub, '', 'ConVisY@bf st') ! debug_ww
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisY@bf st') ! debug_ww
 #endif
     call Calculate_momentum_fractional_step(fl%my_rhs0, fl%my_rhs, my_rhs_pfc, dm%dcpc, dm, isub)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, '', 'ConVisPY@af st') ! debug_ww
-    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, '', 'RHSY@total') ! debug_ww
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'ConVisPY@af st') ! debug_ww
+    call wrt_3d_pt_debug(fl%my_rhs, dm%dcpc, fl%iteration, isub, 'RHSY@total') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : z-momentum
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%mz_rhs,            dm%dccp, fl%iteration, isub, '', 'ConVisZ@bf st') ! debug_ww
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisZ@bf st') ! debug_ww
 #endif
     call Calculate_momentum_fractional_step(fl%mz_rhs0, fl%mz_rhs, mz_rhs_pfc, dm%dccp, dm, isub)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, '', 'ConVisPZ@af st') ! debug_ww
+    call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'ConVisPZ@af st') ! debug_ww
     
 #endif
 !   x-pencil : flow drive terms (source terms) in periodic Streamwise flow
@@ -1002,7 +1003,7 @@ end if
     else
     end if
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, '', 'RHSZ@total') ! debug_ww
+  call wrt_3d_pt_debug(fl%mz_rhs, dm%dccp, fl%iteration, isub, 'RHSZ@total') ! debug_ww
 #endif
 
     return
@@ -1135,9 +1136,9 @@ end if
     fl%pcor = fl%pcor * coeff
     
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'PhiRHS@bf fft') ! debug_ww
-    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phirhs', 'bf_fft') ! debug_ww
-    call write_visu_any3darray(fl%pcor, 'rhs'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+    !call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'PhiRHS@bf fft') ! debug_ww
+    !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phirhs', 'bf_fft') ! debug_ww
+    !call write_visu_any3darray(fl%pcor, 'rhs'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 
       ! write(pntim,'(i1.1)') nrank
       ! flnm = 'code1ww_phirhs_myid'//pntim//'.dat'  
@@ -1183,9 +1184,9 @@ end if
     call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
     call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, '', 'phi@af fft') ! debug_ww
-    call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', 'af_fft') ! debug_ww
-    call write_visu_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
+    !call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'phi@af fft') ! debug_ww
+    !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, isub, 'phi', 'af_fft') ! debug_ww
+    !call write_visu_any3darray(fl%pcor, 'pcor'//trim(int2str(isub)), 'debug', dm%dccc, dm, fl%iteration)
 #endif
     
 
@@ -1310,16 +1311,16 @@ end if
     end if
     !call update_flow_bc_1dm_halo(dm, fl)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, '', 'ux@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, '', 'uy@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, '', 'uz@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz@bf divg') ! debug_ww
     
-    call wrt_3d_all_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', 'bf_divg') ! debug_ww
-    call wrt_3d_all_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', 'bf_divg') ! debug_ww
-    call wrt_3d_all_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', 'bf_divg') ! debug_ww
-    call write_visu_any3darray(fl%qx, 'qx'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
-    call write_visu_any3darray(fl%qy, 'qy'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
-    call write_visu_any3darray(fl%qz, 'qz'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
+    !call wrt_3d_all_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', 'bf_divg') ! debug_ww
+    !call wrt_3d_all_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', 'bf_divg') ! debug_ww
+    !call wrt_3d_all_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', 'bf_divg') ! debug_ww
+    !call write_visu_any3darray(fl%qx, 'qx'//trim(int2str(isub)), 'debug', dm%dpcc, dm, fl%iteration)
+    !call write_visu_any3darray(fl%qy, 'qy'//trim(int2str(isub)), 'debug', dm%dcpc, dm, fl%iteration)
+    !call write_visu_any3darray(fl%qz, 'qz'//trim(int2str(isub)), 'debug', dm%dccp, dm, fl%iteration)
 #endif
     !in order for a high order spacial accuracy
     ! to use Alternating direction implicit method
@@ -1354,7 +1355,7 @@ end if
 #endif
     fl%pres(:, :, :) = fl%pres(:, :, :) + fl%pcor(:, :, :)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%pres, dm%dccc,   fl%iteration, isub, '', 'pr@updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%pres, dm%dccc,   fl%iteration, isub, 'pr@updated') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! to apply bc
@@ -1369,9 +1370,9 @@ end if
   end if
   
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, '', 'ux@updated') ! debug_ww
-  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, '', 'uy@updated') ! debug_ww
-  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, '', 'uz@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz@updated') ! debug_ww
 #endif    
 #ifdef DEBUG_STEPS
     ! call Find_maximum_absvar3d(fl%qx, "at isub = "//trim(int2str(isub))//" maximum ux:", wrtfmt1e)
