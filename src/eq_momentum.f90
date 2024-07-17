@@ -1311,10 +1311,15 @@ end if
     end if
     !call update_flow_bc_1dm_halo(dm, fl)
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz@bf divg') ! debug_ww
-    
+    if ( .not. dm%is_thermo) then
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz@bf divg') ! debug_ww
+    else
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz@bf divg') ! debug_ww
+    end if
     !call wrt_3d_all_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux', 'bf_divg') ! debug_ww
     !call wrt_3d_all_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy', 'bf_divg') ! debug_ww
     !call wrt_3d_all_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz', 'bf_divg') ! debug_ww

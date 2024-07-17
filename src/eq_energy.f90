@@ -336,6 +336,9 @@ contains
     apcc_xpencil = - fl%gx * hEnth_pcc_xpencil
     call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv) 
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'conx-e', accc_xpencil(1, 1:4, 1)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! convection-y, y-pencil : d (gy * h_cpc) / dy  * (1/r)
 !----------------------------------------------------------------------------------------------------------
@@ -343,6 +346,9 @@ contains
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_conv)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'cony-e', accc_ypencil(1, 1:4, 1)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! convection-z, z-pencil : d (gz/r * h_ccp) / dz   * (1/r)
 !----------------------------------------------------------------------------------------------------------
@@ -351,6 +357,9 @@ contains
     call Get_z_1der_P2C_3D( accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_conv)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
     ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'conz-e', accc_zpencil(1, 1:4, 1)
+#endif
 !==========================================================================================================
 ! the RHS of energy equation : diffusion terms
 !==========================================================================================================
@@ -362,6 +371,9 @@ contains
     apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
     call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu)
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'difx-e', accc_xpencil(1, 1:4, 1)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-y, d ( r * k_cpc * d (T) / dy ) dy * 1/r
 !----------------------------------------------------------------------------------------------------------
@@ -372,6 +384,9 @@ contains
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'dify-e', accc_ypencil(1, 1:4, 1)
+#endif
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-z, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
     fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%t
@@ -381,6 +396,9 @@ contains
     call Get_z_1der_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_difu)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
     ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'difz-e', accc_zpencil(1, 1:4, 1)
+#endif
 !==========================================================================================================
 ! all convert into x-pencil
 !==========================================================================================================
@@ -391,8 +409,11 @@ contains
 !==========================================================================================================
 ! time approaching
 !==========================================================================================================
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(tm%tTemp,   dm%dccc, fl%iteration, isub, 'T@bf stepping') ! debug_ww
+    call wrt_3d_pt_debug(tm%ene_rhs, dm%dccc, fl%iteration, isub, 'energy_rhs@bf stepping') ! debug_ww
+#endif
     call Calculate_energy_fractional_step(tm%ene_rhs0, tm%ene_rhs, dm%dccc, dm, isub)
-
     return
   end subroutine Compute_energy_rhs
 
@@ -423,6 +444,9 @@ contains
 !   update rho * h
 !----------------------------------------------------------------------------------------------------------
     tm%dh = tm%dh + tm%ene_rhs
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(tm%dh, dm%dccc, fl%iteration, isub, 'rhoh@af stepping') ! debug_ww
+#endif
 !----------------------------------------------------------------------------------------------------------
 !   update other properties from rho * h
 !----------------------------------------------------------------------------------------------------------
@@ -431,6 +455,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   No Need to apply b.c.
 !----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS
+    write(*,*) 'T-e', tm%tTemp(1, 1:4, 1)
+    call wrt_3d_pt_debug(tm%tTemp,   dm%dccc, fl%iteration, isub, 'T@af stepping') ! debug_ww
+#endif
+
   return
   end subroutine
 

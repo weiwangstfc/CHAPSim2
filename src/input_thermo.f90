@@ -582,16 +582,14 @@ contains
 
         if (ddt < MINP .and. nrank == 0) then
           call Print_warning_msg('The relation (rho * h) = FUNCTION (T) is not monotonicity.') 
-          write(*, wrtfmt1r) ' This occurs around T(K) = ', ftplist(i)%t * fluidparam%ftp0ref%t
-          call Print_warning_msg('If this temperature occurs in-between your interested range, \
-          please try to increase your reference temeprature.')
+          write(*, wrtfmt1r) ' This occurs from T(K) = ', ftplist(i)%t * fluidparam%ftp0ref%t
+          call Print_warning_msg('If this temperature occurs in-between your interested range, please try to increase your reference temeprature.')
         end if
         if (ddh < MINP .and. nrank == 0) then
           call Print_warning_msg('The relation (rho * h) = FUNCTION (H) is not monotonicity.') 
-          write(*, wrtfmt1r) ' This occurs around H(J/KG) = ', \
+          write(*, wrtfmt1r) ' This occurs from H(J/KG) = ', \
           ftplist(i)%h  * fluidparam%ftp0ref%t * fluidparam%ftp0ref%cp + fluidparam%ftp0ref%h
-          call Print_warning_msg('If this H occurs in-between your interested range, \
-          please try to increase your reference temeprature.')
+          call Print_warning_msg('If this H occurs in-between your interested range, please try to increase your reference temeprature.')
         end if
 
     end do
@@ -1098,6 +1096,8 @@ contains
 
     fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
+
+    
 
     if(nrank == 0) call Print_debug_end_msg
     return

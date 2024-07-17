@@ -1756,9 +1756,15 @@ contains
     end if
 
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz@bf divg') ! debug_ww
+    if ( .not. dm%is_thermo) then     
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz@bf divg') ! debug_ww
+    else
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz@bf divg') ! debug_ww
+    end if
     !write(*,*) 'qx', fl%qx(:, 1, 1), fl%qx(:, 8, 8)
     !write(*,*) 'qy', fl%qy(:, 1, 1), fl%qy(:, 8, 8)
     !write(*,*) 'qz', fl%qz(:, 1, 1), fl%qz(:, 8, 8)
@@ -1798,9 +1804,11 @@ contains
     !if(nrank == 0) call Print_debug_mid_msg("  Updating velocity/mass flux ...")
     call Correct_massflux(fl, fl%pcor, dm, isub)
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'ux@updated') ! debug_ww
-  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'uy@updated') ! debug_ww
-  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'uz@updated') ! debug_ww
+    if(dm%is_thermo) then
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx@updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy@updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz@updated') ! debug_ww
+    end if
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity from gx gy gz 
@@ -1808,6 +1816,12 @@ contains
   if(dm%is_thermo) then
     call Calculate_velocity_from_massflux(fl, dm)
   end if
+
+#ifdef DEBUG_STEPS
+  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz@updated') ! debug_ww
+#endif
 
     return
   end subroutine Solve_momentum_eq

@@ -166,7 +166,7 @@ module code_performance_mod
       t_preparation = t_step_start - t_code_start
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_preparation, t_preparation0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
-      if(nrank == 0) call Print_debug_start_msg ("  Code Performance Info :")
+      if(nrank == 0) call Print_debug_start_msg ("---------- Code Performance Info----------")
       if(nrank == 0) call Print_debug_mid_msg ("    Time for code preparation : " // &
           trim(real2str(t_preparation0))//' s')
 !----------------------------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ module code_performance_mod
       t_this_iter = t_iter_end - t_iter_start
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce(t_this_iter, t_this_iter0, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
-      if(nrank == 0) call Print_debug_mid_msg ("  Code Performance Info :")
+      if(nrank == 0) call Print_debug_mid_msg ("---------- Code Performance Info----------")
       if(nrank == 0) call Print_debug_mid_msg ("    Time for this time step : " // &
           trim(real2str(t_this_iter0))//' s')
 
@@ -224,7 +224,7 @@ module code_performance_mod
       
       call Convert_sec_to_hms (t_total0, hrs, mins, secs)
       if(nrank == 0) then
-        call Print_debug_start_msg ("  Code Performance Info :")
+        call Print_debug_start_msg ("---------- Code Performance Info----------")
         call Print_debug_mid_msg   ("    Averaged time per iteration  : "// &
            trim(real2str(t_aveiter0))//' s')
         call Print_debug_mid_msg ("    Wallclock time of all iterations : "// &
@@ -244,7 +244,7 @@ module code_performance_mod
       
       call Convert_sec_to_hms (t_total0, hrs, mins, secs)
       if(nrank == 0) then
-        call Print_debug_start_msg ("  Code Performance Info :")
+        call Print_debug_start_msg ("---------- Code Performance Info----------")
         call Print_debug_mid_msg    ("    Wallclock time for postprocessing : "// &
            trim(real2str(t_postprocessing0))//' s')
         call Print_debug_mid_msg ("    Total wallclock time of this run : "// &

@@ -629,9 +629,9 @@ contains
     ! write(*,*) 'init ux', fl%qx(:, 8, 8)!, fl%qx(:, 1, 8) !debug_test
     ! write(*,*) 'init uy', fl%qy(:, 8, 8)!, fl%qy(:, 1, 8) !debug_test
     ! write(*,*) 'init uz', fl%qz(:, 8, 8)!, fl%qz(:, 1, 8) !debug_test
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'ux@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'uy@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'uz@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'px@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'py@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'pz@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf solv') ! debug_ww
 #endif  
     if(nrank == 0) call Print_debug_end_msg
@@ -689,7 +689,11 @@ contains
 
     call Calculate_massflux_from_velocity (fl, dm)
     call write_visu_thermo(tm, fl, dm)
-
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, 0, 'gx@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, 0, 'gy@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, 0, 'gz@bf solv') ! debug_ww
+#endif  
     return
   end subroutine
 !==========================================================================================================
