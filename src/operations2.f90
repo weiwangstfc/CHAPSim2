@@ -311,11 +311,11 @@ module operations
   public  :: Test_interpolation
   public  :: Test_1st_derivative
 
-  private :: degrade_bc_to_interp
+  private :: reduce_bc_to_interp
 
 contains
 
-  subroutine degrade_bc_to_interp(ibc, flg, strbc, strcode)
+  subroutine reduce_bc_to_interp(ibc, flg, strbc, strcode)
     use parameters_constant_mod
     use mpi_mod
     implicit none
@@ -325,7 +325,7 @@ contains
     character(*), intent(in) :: strcode
     
     if((.not. flg) .and. nrank==0) &
-    call Print_warning_msg('Lack of fbc for '//trim(strbc)//' degragded to IBC_INTRPL in subroutine: '//trim(strcode))
+    call Print_warning_msg('Lack of fbc for '//trim(strbc)//' , which is reduced to IBC_INTRPL in subroutine: '//trim(strcode))
     flg = .true.
     ibc = IBC_INTRPL
     return 
@@ -2295,11 +2295,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_x_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_x_midp_C2P_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_midp_C2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_x_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_xmidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_x_midp_C2P_1D')
         end select
       end if
     end do
@@ -2350,9 +2350,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_x_midp_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_xmidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_x_midp_P2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_xmidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_x_midp_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_xmidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_x_midp_P2C_1D')
         end select
       end if
     end do
@@ -2405,11 +2405,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_y_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_y_midp_C2P_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_midp_C2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_y_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_ymidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_y_midp_C2P_1D')
         end select
       end if
     end do
@@ -2463,9 +2463,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_y_midp_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_ymidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_y_midp_P2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_ymidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_y_midp_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_ymidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_y_midp_P2C_1D')
         end select
       end if
     end do
@@ -2519,11 +2519,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_z_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_interior(i), 'IBC_INTERIOR', 'Get_z_midp_C2P_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_midp_C2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_z_midp_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_zmidp_c2p_neumann(i), 'IBC_NEUMANN', 'Get_z_midp_C2P_1D')
         end select
       end if
     end do
@@ -2574,9 +2574,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_z_midp_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_zmidp_p2c_interior(i), 'IBC_INTERIOR', 'Get_z_midp_P2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_zmidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_z_midp_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_zmidp_p2c_neumann(i), 'IBC_NEUMANN', 'Get_z_midp_P2C_1D')
         end select
       end if
     end do
@@ -2644,11 +2644,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_x_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_x_1der_C2C_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_1der_C2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_C2C_1D')
         end select
       end if
     end do
@@ -2700,9 +2700,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_x_1der_P2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_x_1der_P2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_P2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_P2P_1D')
         end select
       end if
     end do
@@ -2752,11 +2752,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_x_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_x_1der_C2P_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_x_1der_C2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_C2P_1D')
         end select
       end if
     end do
@@ -2807,9 +2807,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_x_1der_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_x_1der_P2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_x1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_x1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_x_1der_P2C_1D')
         end select
       end if
     end do
@@ -2863,11 +2863,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_y_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_y_1der_C2C_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_1der_C2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_C2C_1D')
         end select
       end if
     end do
@@ -2922,9 +2922,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_y_1der_P2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_y_1der_P2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_P2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_P2P_1D')
         end select
       end if
     end do
@@ -2979,11 +2979,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_y_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_y_1der_C2P_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_y_1der_C2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_C2P_1D')
         end select
       end if
     end do
@@ -3038,9 +3038,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_y_1der_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_y_1der_P2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_y1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_y1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_y_1der_P2C_1D')
         end select
       end if
     end do
@@ -3097,11 +3097,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_z_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_interior(i), 'IBC_INTERIOR', 'Get_z_1der_C2C_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_1der_C2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_C2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_c2c_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_C2C_1D')
         end select
       end if
     end do
@@ -3151,9 +3151,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_z_1der_P2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_p2p_interior(i), 'IBC_INTERIOR', 'Get_z_1der_P2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_P2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_p2p_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_P2P_1D')
         end select
       end if
     end do
@@ -3203,11 +3203,11 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_z_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_interior(i), 'IBC_INTERIOR', 'Get_z_1der_C2P_1D')
           case (IBC_DIRICHLET)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_dirichlet(i), 'IBC_DIRICHLET', 'Get_z_1der_C2P_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_C2P_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_c2p_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_C2P_1D')
         end select
       end if
     end do
@@ -3257,9 +3257,9 @@ contains
       if (.not. present(fbc)) then
         select case (ibc(i))
           case (IBC_INTERIOR)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_z_1der_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_p2c_interior(i), 'IBC_INTERIOR', 'Get_z_1der_P2C_1D')
           case (IBC_NEUMANN)
-            call degrade_bc_to_interp(ibc(i), flg_wrn_z1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_P2C_1D')
+            call reduce_bc_to_interp(ibc(i), flg_wrn_z1der_p2c_neumann(i), 'IBC_NEUMANN', 'Get_z_1der_P2C_1D')
         end select
       end if
     end do

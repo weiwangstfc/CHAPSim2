@@ -709,8 +709,8 @@ contains
 
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc) ! muix_pcc_zpencil
       call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th)!, fbcz_pc4)
-      call transpose_z_to_y(muixz_pcp_zpencil, apcp_zpencil, dm%dpcp)
-      call transpose_y_to_x(apcp_zpencil, muixz_pcp_xpencil, dm%dpcp)
+      call transpose_z_to_y(muixz_pcp_zpencil, apcp_ypencil, dm%dpcp)
+      call transpose_y_to_x(apcp_ypencil, muixz_pcp_xpencil, dm%dpcp)
 
       call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc) !muiy_cpc_zpencil
