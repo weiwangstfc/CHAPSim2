@@ -3,10 +3,11 @@ module io_monitor_mod
   use print_msg_mod
   implicit none
 
+  private
+  real(WP), save :: bulk_MKE0
   public :: write_monitor_ini
   public :: write_monitor_total
-  public :: write_monitor_flow
-  public :: write_monitor_thermo
+  public :: write_monitor_point
   
 contains
   subroutine write_monitor_ini(dm)
@@ -42,7 +43,7 @@ contains
       else
         open(newunit = myunit, file = trim(flname), status="new", action="write")
         write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
-        write(myunit, *) "# energy" ! to add more instantanous or statistics
+        write(myunit, *) "# MKE, dissipation, qx_b, gx_b, T_b" ! to add more instantanous or statistics
         close(myunit)
       end if
 
@@ -57,8 +58,8 @@ contains
         write(myunit, *) "# t, umax, vmax, wmax, mass-conservation" ! to add more instantanous or statistics
         close(myunit)
       end if
-
     end if
+    bulk_MKE0 = ZERO
 
 !----------------------------------------------------------------------------------------------------------
     if(dm%proben <= 0) return
@@ -142,40 +143,16 @@ contains
         open(newunit = myunit, file = trim(flname), status="new", action="write")
         write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
         write(myunit, *) "# probe pts location ",  dm%probexyz(1:3, i)
-        write(myunit, *) "# t, u, v, w" ! to add more instantanous or statistics
+        write(myunit, *) "# t, u, v, w, T" ! to add more instantanous or statistics
         close(myunit)
       end if
     end do
-!----------------------------------------------------------------------------------------------------------
-! create probe history file for thermo
-!----------------------------------------------------------------------------------------------------------
-    if(dm%is_thermo) then
-      do i = 1, dm%proben
-        if(.not. dm%probe_is_in(i)) cycle 
-  
-        keyword = "monitor_pt"//trim(int2str(i))//"_thermo"
-        call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
-  
-        inquire(file = trim(flname), exist = exist)
-        if (exist) then
-          !open(newunit = myunit, file = trim(flname), status="old", position="append", action="write")
-        else
-          open(newunit = myunit, file = trim(flname), status="new", action="write")
-          write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
-          write(myunit, *) "# probe pts location ",  dm%probexyz(1:3, i)
-          write(myunit, *) "# t, T" ! to add more instantanous or statistics
-          close(myunit)
-        end if
-      end do
-    end if
-
-
 
     if(nrank == 0) call Print_debug_end_msg
     return
   end subroutine
 !==========================================================================================================
-  subroutine write_monitor_total(fl, dm)
+  subroutine write_monitor_total(fl, dm, tm)
     use typeconvert_mod
     use parameters_constant_mod
     use wtformat_mod
@@ -188,13 +165,14 @@ contains
 
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(in) :: fl
+    type(t_thermo), optional, intent(in) :: tm
 
     character(len=120) :: flname
     character(len=120) :: keyword
     character(200) :: iotxt
     integer :: ioerr, myunit
 
-    real(WP) :: bulk_energy
+    real(WP) :: bulk_MKE, bulk_qx, bulk_gx, bulk_T
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc1
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc2
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc3
@@ -241,16 +219,24 @@ contains
 !   x-pencil, 1/2*(uu+vv+ww) - calculation
 !----------------------------------------------------------------------------------------------------------
     fenergy = HALF * (accc1 * accc1 + accc2 * accc2 + accc3 * accc3)
-    !call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:,:,:), dm, dm%dccc, fenergy, bulk_energy)
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, bulk_energy)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, bulk_MKE)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx,   bulk_qx)
+    if(dm%is_thermo .and. present(tm)) then
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%gx,    bulk_gx)
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, tm%tTemp, bulk_T)
+    end if
 !----------------------------------------------------------------------------------------------------------
 !   write data out
 !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
-      write(myunit, *) fl%time, bulk_energy
+      if(dm%is_thermo .and. present(tm)) then
+        write(myunit, *) fl%time, bulk_MKE, (bulk_MKE - bulk_MKE0)/dm%dt, bulk_qx, bulk_gx, bulk_T
+      else
+        write(myunit, *) fl%time, bulk_MKE, (bulk_MKE - bulk_MKE0)/dm%dt, bulk_qx
+      end if
       close(myunit)
     end if
-
+    bulk_MKE0 = bulk_MKE
 
     if(nrank == 0) then
       keyword = "monitor_mass_conservation_flow"
@@ -271,7 +257,7 @@ contains
   end subroutine
 
 !==========================================================================================================
-  subroutine write_monitor_flow(fl, dm)
+  subroutine write_monitor_point(fl, dm, tm)
     use typeconvert_mod
     use parameters_constant_mod
     use wtformat_mod
@@ -282,6 +268,7 @@ contains
 
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(in) :: fl
+    type(t_thermo), optional, intent(in) :: tm
 
     character(len=120) :: flname
     character(len=120) :: keyword
@@ -316,7 +303,11 @@ contains
         ix = dm%probexid(1, nplc)
         iy = dm%probexid(2, nplc)
         iz = dm%probexid(3, nplc)
-        write(myunit, *) fl%time, fl%qx(ix, iy, iz), fl%qy(ix, iy, iz), fl%qz(ix, iy, iz)
+        if(dm%is_thermo .and. present(tm)) then
+          write(myunit, *) fl%time, fl%qx(ix, iy, iz), fl%qy(ix, iy, iz), fl%qz(ix, iy, iz), tm%tTemp(ix, iy, iz)
+        else
+          write(myunit, *) fl%time, fl%qx(ix, iy, iz), fl%qy(ix, iy, iz), fl%qz(ix, iy, iz)
+        end if
         close(myunit)
       end if
       nplc = 0
@@ -324,60 +315,5 @@ contains
 
     return
   end subroutine 
-
-!==========================================================================================================
-  subroutine write_monitor_thermo(tm, dm)
-    use typeconvert_mod
-    use parameters_constant_mod
-    use wtformat_mod
-    use udf_type_mod
-    use files_io_mod
-    use io_tools_mod
-    implicit none 
-
-    type(t_domain),  intent(in) :: dm
-    type(t_thermo), intent(in) :: tm
-
-    character(len=120) :: flname
-    character(len=120) :: keyword
-    character(200) :: iotxt
-    integer :: ioerr, myunit
-    integer :: ix, iy, iz
-    integer :: i, j
-
-    if(dm%proben <= 0) return
-!----------------------------------------------------------------------------------------------------------
-! based on x-pencil
-!----------------------------------------------------------------------------------------------------------
-    j = 0
-    do i = 1, dm%proben
-      if( dm%probe_is_in(i) ) j = j + 1
-      if(j > 0) then
-!----------------------------------------------------------------------------------------------------------
-! open file
-!----------------------------------------------------------------------------------------------------------
-        keyword = "monitor_pt"//trim(int2str(i))//"_thermo"
-        call generate_pathfile_name(flname, dm%idom, keyword, dir_moni, 'dat')
-        open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
-            iostat = ioerr, iomsg = iotxt)
-        if(ioerr /= 0) then
-          write (*, *) 'Problem openning probing file'
-          write (*, *) 'Message: ', trim (iotxt)
-          stop
-        end if
-!----------------------------------------------------------------------------------------------------------
-! write out local data
-!----------------------------------------------------------------------------------------------------------
-        ix = dm%probexid(1, j)
-        iy = dm%probexid(2, j)
-        iz = dm%probexid(3, j)
-        write(myunit, *) tm%time, tm%tTemp(ix, iy, iz)
-        close(myunit)
-      end if
-    end do
-
-    return
-  end subroutine 
-
 !==========================================================================================================
 end module

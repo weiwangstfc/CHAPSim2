@@ -375,7 +375,7 @@ contains
     call write_visu_any3darray(div+fl%pcor, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif
 
-    call Find_maximum_absvar3d(div+fl%pcor, fl%mcon, trim(str)//" Check Mass Conservation:", wrtfmt1e)
+    call Find_maximum_absvar3d(div+fl%pcor, fl%mcon, trim(str)//" Mass Conservation:", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax

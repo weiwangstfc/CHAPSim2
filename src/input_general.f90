@@ -194,14 +194,23 @@ contains
 
         
         if(nrank == 0) then
+          write (*, wrtfmt1s) '  icase options:'
+          write (*, wrtfmt1s) '          0 = OTHERS'
+          write (*, wrtfmt1s) '          1 = CHANNEL'
+          write (*, wrtfmt1s) '          2 = PIPE'
+          write (*, wrtfmt1s) '          3 = ANNUAL'
+          write (*, wrtfmt1s) '          4 = TGV3D'
+          write (*, wrtfmt1s) '          5 = TGV2D'
+          write (*, wrtfmt1s) '          6 = BURGERS'
+          write (*, wrtfmt1s) '          7 = ALGTEST'
+          write (*, wrtfmt1s) '  coordinates system option :'
+          write (*, wrtfmt1s) '          1 = Cartesian'
+          write (*, wrtfmt1s) '          2 = Cylindrical'
+
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1s) '  icase option: 0 = OTHERS,  1 = CHANNEL, 2 = PIPE'
-            write (*, wrtfmt1s) '                3 = ANNUAL,  4 = TGV3D,   5 = TGV2D'
-            write (*, wrtfmt1s) '                6 = BURGERS, 7 = ALGTEST'
-            write (*, wrtfmt1i) '  current icase id : ', domain(i)%icase
-            write (*, wrtfmt1s) '  coordinates system option : 1 = Cartesian,  2 = Cylindrical'
-            write (*, wrtfmt1i) '  current coordinates system : ', domain(i)%icoordinate
+            write (*, wrtfmt1i) '  current icase id :', domain(i)%icase
+            write (*, wrtfmt1i) '  current coordinates system :', domain(i)%icoordinate
             write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
             write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
             if((domain(i)%lyt - domain(i)%lyb) < ZERO) call Print_error_msg("Y length is smaller than zero.")
@@ -331,14 +340,18 @@ contains
         end do
 
         if(nrank == 0) then
+          write (*, wrtfmt1s) '  mesh streching option '
+          write (*, wrtfmt1s) '          0 = ISTRET_NO'
+          write (*, wrtfmt1s) '          1 = ISTRET_CENTRE'
+          write (*, wrtfmt1s) '          2 = ISTRET_2SIDES'
+          write (*, wrtfmt1s) '          3 = ISTRET_BOTTOM'
+          write (*, wrtfmt1s) '          4 = ISTRET_TOP'
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  mesh cell number - x     :', domain(i)%nc(1)
-            write (*, wrtfmt1i) '  mesh cell number - y     :', domain(i)%nc(2)
-            write (*, wrtfmt1i) '  mesh cell number - z     :', domain(i)%nc(3)
-            write (*, wrtfmt1s) '  mesh streching option : 0 = ISTRET_NO, 1 = ISTRET_CENTRE, 2 = ISTRET_2SIDES, '
-            write (*, wrtfmt1s) '                          3 = ISTRET_BOTTOM, 4 = ISTRET_TOP'
-            write (*, wrtfmt3l) '  is mesh stretching in x, y, z : ', domain(i)%is_stretching(1:3)
+            write (*, wrtfmt1i) '  mesh cell number - x :', domain(i)%nc(1)
+            write (*, wrtfmt1i) '  mesh cell number - y :', domain(i)%nc(2)
+            write (*, wrtfmt1i) '  mesh cell number - z :', domain(i)%nc(3)
+            write (*, wrtfmt3l) '  is mesh stretching in x, y, z :', domain(i)%is_stretching(1:3)
             write (*, wrtfmt1i) '  mesh y-stretching type   :', domain(i)%istret
             write (*, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
           end do
@@ -384,10 +397,13 @@ contains
         
 
         if(nrank == 0) then
+          write (*, wrtfmt1s) '  spatial accuracy scheme options : '
+          write (*, wrtfmt1s) '    1 = IACCU_CD2'
+          write (*, wrtfmt1s) '    2 = IACCU_CD4'
+          write (*, wrtfmt1s) '    3 = IACCU_CP4'
+          write (*, wrtfmt1s) '    4 = IACCU_CP6'
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1s) '  spatial accuracy scheme options : '
-            write (*, wrtfmt1s) '    1 = IACCU_CD2, 2 = IACCU_CD4, 3 = IACCU_CP4, 4 = IACCU_CP6'
+            write (*, wrtfmt1i) '  For the domain-x  = ', i
             write (*, wrtfmt1i) '  current spatial accuracy scheme :', domain(i)%iAccuracy
             write (*, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do
@@ -427,6 +443,14 @@ contains
         end do
 
         if( nrank == 0) then
+          write (*, wrtfmt1s) '  Initialisation options:'
+          write (*, wrtfmt1s) '          INIT_RESTART    = 0'
+          write (*, wrtfmt1s) '          INIT_INTERPL    = 1'
+          write (*, wrtfmt1s) '          INIT_RANDOM     = 2'
+          write (*, wrtfmt1s) '          INIT_INLET      = 3'
+          write (*, wrtfmt1s) '          INIT_GVCONST    = 4'
+          write (*, wrtfmt1s) '          INIT_POISEUILLE = 5'
+          write (*, wrtfmt1s) '          INIT_FUNCTION   = 6'
           do i = 1, nxdomain
             write (*, wrtfmt1i) 'For the domain-x  = ', i
             write (*, wrtfmt1i) '  flow initial type                  :', flow(i)%inittype

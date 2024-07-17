@@ -97,7 +97,7 @@ contains
 
     if(.not. dm%is_thermo) return
 
-    if(nrank == 0) call Print_debug_mid_msg("Initialise thermo statistics ...")
+    if(nrank == 0) call Print_debug_start_msg("Initialise thermo statistics ...")
 
     allocate ( tm%t_mean  (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)) )
     allocate ( tm%tt_mean (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)) )
@@ -108,7 +108,8 @@ contains
       call read_statistics_array(tm%t_mean,  'time_averaged_t',  dm%idom, tm%iterfrom, dm%dccc)
       call read_statistics_array(tm%tt_mean, 'time_averaged_tt', dm%idom, tm%iterfrom, dm%dccc)
     end if
-
+    if(nrank == 0) call Print_debug_end_msg
+    
     return
   end subroutine
 !==========================================================================================================

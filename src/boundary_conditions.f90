@@ -149,17 +149,17 @@ contains
     if(nrank == 0) then
 
       write (*, wrtfmt1s) '  Boundary type options : '
-      write (*, wrtfmt1s) '   0  = IBC_INTERIOR'
-      write (*, wrtfmt1s) '   1  = IBC_PERIODIC'
-      write (*, wrtfmt1s) '   2  = IBC_SYMMETRIC'
-      write (*, wrtfmt1s) '   3  = IBC_ASYMMETRIC'
-      write (*, wrtfmt1s) '   4  = IBC_DIRICHLET'
-      write (*, wrtfmt1s) '   5  = IBC_NEUMANN'
-      write (*, wrtfmt1s) '   6  = IBC_INTRPL'
-      write (*, wrtfmt1s) '   7  = IBC_CONVECTIVE'
-      write (*, wrtfmt1s) '   8  = IBC_TURBGEN'
-      write (*, wrtfmt1s) '   9  = IBC_PROFILE1D'
-      write (*, wrtfmt1s) '   10 = IBC_DATABASE'
+      write (*, wrtfmt1s) '          0  = IBC_INTERIOR'
+      write (*, wrtfmt1s) '          1  = IBC_PERIODIC'
+      write (*, wrtfmt1s) '          2  = IBC_SYMMETRIC'
+      write (*, wrtfmt1s) '          3  = IBC_ASYMMETRIC'
+      write (*, wrtfmt1s) '          4  = IBC_DIRICHLET'
+      write (*, wrtfmt1s) '          5  = IBC_NEUMANN'
+      write (*, wrtfmt1s) '          6  = IBC_INTRPL'
+      write (*, wrtfmt1s) '          7  = IBC_CONVECTIVE'
+      write (*, wrtfmt1s) '          8  = IBC_TURBGEN'
+      write (*, wrtfmt1s) '          9  = IBC_PROFILE1D'
+      write (*, wrtfmt1s) '          10 = IBC_DATABASE'
 
       write (*, *) 'is periodic in xyz? ', dm%is_periodic(1:3)
       write (*, wrtfmt1s) 'BC in the X direction: norminal BC, calc BC'

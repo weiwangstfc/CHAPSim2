@@ -1086,7 +1086,7 @@ contains
       call Print_debug_start_msg("The initial thermal properties (undim) are")
       write (*, wrtfmt1r) '  Temperature:',          tm%ftp_ini%t
       write (*, wrtfmt1r) '  Density:',              tm%ftp_ini%d
-      write (*, wrtfmt1e) '  Dynamic Viscosity:',    tm%ftp_ini%m
+      write (*, wrtfmt1r) '  Dynamic Viscosity:',    tm%ftp_ini%m
       write (*, wrtfmt1r) '  Thermal Conductivity:', tm%ftp_ini%k
       write (*, wrtfmt1r) '  Cp:',                   tm%ftp_ini%cp
       write (*, wrtfmt1r) '  Enthalphy:',            tm%ftp_ini%h

@@ -222,29 +222,28 @@ subroutine Solve_eqs_iteration
       !      setting up 1/re, 1/re/prt, gravity, etc
       !----------------------------------------------------------------------------------------------------------
       call Update_Re(iter, flow(i))
-      if(domain(i)%is_thermo) &
-      call Update_PrGr(flow(i), thermo(i))
+      !----------------------------------------------------------------------------------------------------------
+      !     setting up thermo solver
+      !----------------------------------------------------------------------------------------------------------
+      if(domain(i)%is_thermo) then
+        call Update_PrGr(flow(i), thermo(i))
+        if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
+          is_thermo(i) = .true.
+          if (nrank == 0) write(*, wrtfmt1r) "thermal field physical time (s) = ", thermo(i)%time
+          thermo(i)%time = thermo(i)%time  + domain(i)%dt
+          thermo(i)%iteration = thermo(i)%iteration + 1
+        end if
+      end if
       !----------------------------------------------------------------------------------------------------------
       !      setting up flow solver
       !----------------------------------------------------------------------------------------------------------
       if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
         is_flow(i) = .true.
-        if (nrank == 0) write(*, wrtfmt1e) "flow field physical time (s) = ", flow(i)%time
+        if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
         call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
         call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
-      end if
-      !----------------------------------------------------------------------------------------------------------
-      !     setting up thermo solver
-      !----------------------------------------------------------------------------------------------------------
-      if(domain(i)%is_thermo) then
-        if ( (iter >= thermo(i)%nIterThermoStart) .and. (iter <= thermo(i)%nIterThermoEnd)) then
-          is_thermo(i) = .true.
-          if (nrank == 0) write(*, wrtfmt1r) "thermal field physical time = ", thermo(i)%time
-          thermo(i)%time = thermo(i)%time  + domain(i)%dt
-          thermo(i)%iteration = thermo(i)%iteration + 1
-        end if
       end if
     end do
     !==========================================================================================================
@@ -282,7 +281,7 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
-        if(is_thermo(i)) call Find_max_min_3d(thermo(i)%tTemp, "T: ", wrtfmt2e)
+        if(is_thermo(i)) call Find_max_min_3d(thermo(i)%tTemp, "T : ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qx, "qx: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qy, "qy: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qz, "qz: ", wrtfmt2e)
@@ -304,12 +303,13 @@ subroutine Solve_eqs_iteration
       !  monitoring 
       !----------------------------------------------------------------------------------------------------------
       !if(domain(i)%icase == ICASE_TGV2D) call Validate_TGV2D_error (flow(i), domain(i))
-      if(is_flow(i)) then
+      if((.not. domain(i)%is_thermo) .and. is_flow(i)) then
         call write_monitor_total(flow(i), domain(i))
-        call write_monitor_flow(flow(i), domain(i))
+        call write_monitor_point(flow(i), domain(i))
       end if
       if(domain(i)%is_thermo .and. is_thermo(i)) then
-        call write_monitor_thermo(thermo(i), domain(i))
+        call write_monitor_total(flow(i), domain(i), thermo(i))
+        call write_monitor_point(flow(i), domain(i), thermo(i))
       end if
       !----------------------------------------------------------------------------------------------------------
       !  write out check point data for restart

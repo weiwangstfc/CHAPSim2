@@ -566,12 +566,10 @@ contains
         if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
         write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
       end if
+      if(nrank == 0 .and. present(str)) then
+        write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
+      end if
 #endif
-
-    if(nrank == 0 .and. present(str)) then
-      write (*, wrtfmt1e) " volumetric average of "//trim(str)//" is ", fo_work
-    end if
-
     return
   end subroutine 
 

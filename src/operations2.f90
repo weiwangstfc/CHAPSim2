@@ -325,7 +325,7 @@ contains
     character(*), intent(in) :: strcode
     
     if((.not. flg) .and. nrank==0) &
-    call Print_warning_msg('Lack of fbc for '//trim(strbc)//' , which is reduced to IBC_INTRPL in subroutine: '//trim(strcode))
+    call Print_warning_msg('Lack of fbc for '//trim(strbc)//', which is reduced to IBC_INTRPL in subroutine: '//trim(strcode))
     flg = .true.
     ibc = IBC_INTRPL
     return 
