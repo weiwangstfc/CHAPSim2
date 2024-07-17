@@ -1065,8 +1065,12 @@ contains
           mbc(i, JBC_PROD) = IBC_SYMMETRIC
         else 
           if(ibc(i)/=jbc(i)) then
-            if(nrank==0) write(*, *) "BCs for the side ", i, " are ", ibc(i), jbc(i) 
-            call Print_warning_msg("The two operational variables have different boundary conditions.")
+            if(ibc(i) == IBC_DIRICHLET) mbc(i, :) = ibc(i)
+            if(jbc(i) == IBC_DIRICHLET) mbc(i, :) = jbc(i)
+            if(ibc(i) == IBC_PERIODIC .or. jbc(i) == IBC_PERIODIC) then
+              if(nrank==0) write(*, '(A20, I2.1, A5, I2.1)') "BCs for the side ", i, " are ", ibc(i), jbc(i) 
+              call Print_warning_msg("The two operational variables have different boundary conditions.")
+            end if
           else
             mbc(i, :) = ibc(i)
           end if
@@ -1099,7 +1103,7 @@ contains
     type(t_domain), intent(inout)   :: dm
     
     integer :: mbc(2, 3), mbc0(2, 3)
-    integer :: bc(2)
+    integer :: bc(2), n
 !----------------------------------------------------------------------------------------------------------
 !   x-mom
 !----------------------------------------------------------------------------------------------------------
@@ -1259,6 +1263,10 @@ contains
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
     ebcy_difu(1:2) = mbc(1:2, JBC_PROD)
+    do n = 1, 2
+      if(dm%ibcy_Th(n)==IBC_NEUMANN)   ebcy_difu(n) = IBC_DIRICHLET
+      if(dm%ibcy_Th(n)==IBC_DIRICHLET) ebcy_difu(n) = IBC_DIRICHLET
+    end do
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-diffusion  is ", ebcy_difu
 
     call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc)
