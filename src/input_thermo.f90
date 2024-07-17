@@ -401,11 +401,17 @@ contains
 
 
     if(this%dh < fluidparam%dhmin) then
+      if(nrank == 0) then 
+        write(*, wrtfmt2r) 'this%dh < fluidparam%dhmin', this%dh, fluidparam%dhmin
+        call Print_error_msg("rho*h is out of range.")
+      end if
       this%dh = fluidparam%dhmin
-      if(nrank == 0) call Print_warning_msg("rho*h is out of range.")
     else if(this%dh > fluidparam%dhmax) then
+      if(nrank == 0) then 
+        write(*, wrtfmt2r) 'this%dh > fluidparam%dhmax', this%dh, fluidparam%dhmax
+        call Print_error_msg("rho*h is out of range.")
+      end if
       this%dh = fluidparam%dhmax
-      if(nrank == 0) call Print_warning_msg("rho*h is out of range.")
     end if
 
     i1 = 1
