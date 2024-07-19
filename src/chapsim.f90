@@ -287,7 +287,7 @@ subroutine Solve_eqs_iteration
       if(is_flow(i)) then
         if(is_thermo(i)) then
           call Find_max_min_3d(thermo(i)%tTemp, "T : ", wrtfmt2e)
-          call Find_max_min_3d(thermo(i)%rhoh, "T : ", wrtfmt2e)
+          call Find_max_min_3d(thermo(i)%rhoh,  "rhoh:", wrtfmt2e)
         end if
         call Find_max_min_3d(flow(i)%qx, "qx: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qy, "qy: ", wrtfmt2e)

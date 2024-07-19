@@ -300,7 +300,7 @@ contains
     call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc )
     apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
     call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu)
-    tm%ene_rhs = tm%ene_rhs + accc_xpencil
+    tm%ene_rhs = tm%ene_rhs + accc_xpencil * tm%rPrRen
 #ifdef DEBUG_STEPS
     write(*,*) 'difx-e', accc_xpencil(4, 1:4, 4)
 #endif
@@ -317,7 +317,7 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
-    ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
+    ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil * tm%rPrRen
 #ifdef DEBUG_STEPS
     write(*,*) 'dify-e', accc_ypencil(4, 1:4, 4)
 #endif
@@ -329,7 +329,7 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
     call Get_z_1der_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_difu)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
-    ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
+    ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil * tm%rPrRen
 #ifdef DEBUG_STEPS
     write(*,*) 'difz-e', accc_zpencil(4, 1:4, 4)
 #endif
