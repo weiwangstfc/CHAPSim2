@@ -21,7 +21,9 @@ PROGRAM= CHAPSim
 ifeq ($(cfg), gnu)
   FOPTS= -O -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
   -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized \
-   -Wno-unused -fallow-argument-mismatch
+   -Wno-unused
+   # For gcc-10 and higher (comment out for older versions)
+  FOPTS += -fallow-argument-mismatch
   FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
   FDEBG= -DDEBUG_STEPS #-DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
@@ -40,7 +42,9 @@ else ifeq ($(cfg), pg)
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
   FOPTS= -O3 -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
-   -finit-local-zero -ffree-line-length-512 -Wno-unused -fallow-argument-mismatch		
+   -finit-local-zero -ffree-line-length-512 -Wno-unused
+  # For gcc-10 and higher (comment out for older versions)
+  FOPTS += -fallow-argument-mismatch	
   FFLGS= -DDOUBLE_PREC
   FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
