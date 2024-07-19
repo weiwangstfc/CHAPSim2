@@ -287,8 +287,8 @@ module wtformat_mod
   character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F13.4)'
   character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F13.4)'
   character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F13.4)'
-  character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
-  character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES23.15, A24, 1ES23.15)'
+  character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES28.15)'
+  character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES28.15, A24, 1ES28.15)'
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I8.1, 1F13.4)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I8.1, 2F13.4)'
   character(len = 25) :: wrtfmt4i2r = '(2X, A24, 4I8.1, 2F13.4)'
@@ -383,6 +383,9 @@ module udf_type_mod
     integer  :: ibcx_Th(2)
     integer  :: ibcy_Th(2)
     integer  :: ibcz_Th(2)
+    integer  :: ibcx_ftp(2)
+    integer  :: ibcy_ftp(2)
+    integer  :: ibcz_ftp(2)
     integer  :: ibcx_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides), u, v, w, p, T
     integer  :: ibcy_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)
     integer  :: ibcz_nominal(2, NBC) ! nominal (given) bc type, (5 variables, 2 sides)

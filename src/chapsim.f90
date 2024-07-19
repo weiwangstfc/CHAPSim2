@@ -52,6 +52,7 @@ subroutine Initialize_chapsim
   use solver_tools_mod
   use thermo_info_mod
   use io_visulisation_mod
+  use eq_momentum_mod
   implicit none
   integer :: i
 
@@ -109,6 +110,7 @@ subroutine Initialize_chapsim
 ! build up bounary condition
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
+    if(domain(i)%is_thermo) call Convert_thermal_input_2undim(thermo(i), domain(i))
     call allocate_fbc_flow(domain(i)) 
     call apply_fbc_given_flow(domain(i)) 
     if(domain(i)%is_thermo) then
@@ -122,7 +124,9 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain
     call Initialize_flow_fields(flow(i), domain(i))
     if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
-    call Check_mass_conservation(flow(i), domain(i), 0, 'initialization') 
+    call Check_mass_conservation(flow(i), domain(i), 0, 'init') 
+    call Solve_momentum_eq(flow(i), domain(i), 0)
+    call Check_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
     call write_visu_flow(flow(i), domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------

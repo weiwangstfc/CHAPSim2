@@ -598,7 +598,6 @@ contains
     do i = 1, nxdomain
       call config_calc_basic_ibc(domain(i))
       call config_calc_eqs_ibc(domain(i))
-      if(domain(i)%is_thermo) call Convert_thermal_input_2undim(thermo(i), domain(i))
     end do 
     !----------------------------------------------------------------------------------------------------------
     ! set up constant for time step marching 

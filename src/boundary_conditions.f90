@@ -67,6 +67,11 @@ module boundary_conditions_mod
   public :: reconstruct_symmetry_ibc    ! applied if necessary
   public  :: config_calc_eqs_ibc
 
+  public :: get_fbcx_iTh
+  public :: get_fbcy_iTh
+  public :: get_fbcz_iTh
+
+
 contains
 !==========================================================================================================
 !==========================================================================================================
@@ -144,6 +149,12 @@ contains
       dm%ibcz_qz(n) = ibcz(n, 3)
       dm%ibcz_pr(n) = ibcz(n, 4)
       dm%ibcz_Th(n) = ibcz(n, 5)
+      dm%ibcx_ftp(n) = dm%ibcx_Th(n)
+      dm%ibcy_ftp(n) = dm%ibcy_Th(n)
+      dm%ibcz_ftp(n) = dm%ibcz_Th(n)
+      if(dm%ibcx_Th(n) == IBC_NEUMANN) dm%ibcx_ftp(n) = IBC_DIRICHLET
+      if(dm%ibcy_Th(n) == IBC_NEUMANN) dm%ibcy_ftp(n) = IBC_DIRICHLET
+      if(dm%ibcz_Th(n) == IBC_NEUMANN) dm%ibcz_ftp(n) = IBC_DIRICHLET
     end do 
 
     if(nrank == 0) then
@@ -1121,22 +1132,22 @@ contains
 
     call reconstruct_symmetry_ibc(dm%ibcx_qx, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcx_ftp, mbc, bc)
     mbcx_tau1(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom x-diffusion  is ", mbcx_tau1
 
     call reconstruct_symmetry_ibc(dm%ibcy_qx, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
-    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc0, dm%ibcy_qy)
+    call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc0, dm%ibcy_qy)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau1 is wrong.")
     mbcy_tau1(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom y-diffusion  is ", mbcy_tau1
 
     call reconstruct_symmetry_ibc(dm%ibcz_qx, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc, bc)
-    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc0, dm%ibcz_qz)
+    call reconstruct_symmetry_ibc(dm%ibcz_ftp, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcz_ftp, mbc0, dm%ibcz_qz)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau1 is wrong.")
     mbcz_tau1(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for x-mom z-diffusion  is ", mbcz_tau1
@@ -1163,28 +1174,28 @@ contains
 
     call reconstruct_symmetry_ibc(dm%ibcx_qy, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc, bc)
-    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc0, dm%ibcx_qx)
+    call reconstruct_symmetry_ibc(dm%ibcx_ftp, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcx_ftp, mbc0, dm%ibcx_qx)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcx_tau2 is wrong.")
     mbcx_tau2(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom x-diffusion  is ", mbcx_tau2
 
     call reconstruct_symmetry_ibc(dm%ibcy_qy, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc, bc)
     mbcy_tau2(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom y-diffusion  is ", mbcy_tau2
 
     call reconstruct_symmetry_ibc(dm%ibcz_qy, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc, bc)
-    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc0, dm%ibcz_qz)
+    call reconstruct_symmetry_ibc(dm%ibcz_ftp, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcz_ftp, mbc0, dm%ibcz_qz)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcz_tau2 is wrong.")
     mbcz_tau2(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom z-diffusion  is ", mbcz_tau2
 
     if(dm%icoordinate == ICYLINDRICAL) then
-      call reconstruct_symmetry_ibc(dm%ibcy_qz, mbc, dm%ibcy_Th)
+      call reconstruct_symmetry_ibc(dm%ibcy_qz, mbc, dm%ibcy_ftp)
       mbcr_tau2(1:2) = mbc(1:2, JBC_PROD)
       if(nrank==0) write(*, wrtfmt2i) "The bc for y-mom r-diffusion  is ", mbcr_tau2
     end if
@@ -1211,28 +1222,28 @@ contains
 
     call reconstruct_symmetry_ibc(dm%ibcx_qz, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc, bc)
-    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc0, dm%ibcx_qx)
+    call reconstruct_symmetry_ibc(dm%ibcx_ftp, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcx_ftp, mbc0, dm%ibcx_qx)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcx_tau3 is wrong.")
     mbcx_tau3(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom x-diffusion  is ", mbcx_tau3
 
     call reconstruct_symmetry_ibc(dm%ibcy_qz, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
-    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc0, dm%ibcy_qy)
+    call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc0, dm%ibcy_qy)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
     mbcy_tau3(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom y-diffusion  is ", mbcy_tau3
 
     call reconstruct_symmetry_ibc(dm%ibcz_qz, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcz_ftp, mbc, bc)
     mbcz_tau3 = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom z-diffusion  is ", mbcz_tau3
 
     if(dm%icoordinate == ICYLINDRICAL) then
-      call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, dm%ibcy_qz)
+      call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc, dm%ibcy_qz)
       if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
       mbcr_tau3(1:2) = mbc(1:2, JBC_PROD)
       if(nrank==0) write(*, wrtfmt2i) "The bc for z-mom r-diffusion  is ", mbcr_tau3
@@ -1241,37 +1252,33 @@ contains
 !   energy-eqs
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo)  then
-    call reconstruct_symmetry_ibc(dm%ibcx_qx, mbc, dm%ibcx_Th)
+    call reconstruct_symmetry_ibc(dm%ibcx_qx, mbc, dm%ibcx_ftp)
     ebcx_conv(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-convection is ", ebcx_conv
 
-    call reconstruct_symmetry_ibc(dm%ibcy_qy, mbc, dm%ibcy_Th)
+    call reconstruct_symmetry_ibc(dm%ibcy_qy, mbc, dm%ibcy_ftp)
     ebcy_conv(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-convection is ", ebcy_conv
 
-    call reconstruct_symmetry_ibc(dm%ibcz_qz, mbc, dm%ibcz_Th)
+    call reconstruct_symmetry_ibc(dm%ibcz_qz, mbc, dm%ibcz_ftp)
     ebcz_conv(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-convection is ", ebcz_conv
 
     call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcx_Th, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcx_ftp, mbc, bc)
     ebcx_difu = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy x-diffusion  is ", ebcx_difu
 
     call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcy_Th, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcy_ftp, mbc, bc)
     ebcy_difu(1:2) = mbc(1:2, JBC_PROD)
-    do n = 1, 2
-      if(dm%ibcy_Th(n)==IBC_NEUMANN)   ebcy_difu(n) = IBC_DIRICHLET
-      if(dm%ibcy_Th(n)==IBC_DIRICHLET) ebcy_difu(n) = IBC_DIRICHLET
-    end do
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy y-diffusion  is ", ebcy_difu
 
     call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call reconstruct_symmetry_ibc(dm%ibcz_Th, mbc, bc)
+    call reconstruct_symmetry_ibc(dm%ibcz_ftp, mbc, bc)
     ebcz_difu(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt2i) "The bc for energy z-diffusion  is ", ebcz_difu
     end if
@@ -1311,6 +1318,75 @@ contains
 
     return 
   end subroutine
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine get_fbcx_iTh(ibc, dm, fbc)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    integer, intent(in) :: ibc(2)
+    type(t_domain), intent(in) :: dm
+    real(WP), intent(out) :: fbc(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3))
+
+    integer :: n
+
+    do n = 1, 2
+      if(ibc(n) == IBC_DIRICHLET) then    
+        fbc(n, :, :) = dm%fbcx_ftp(n, :, :)%t
+      else if(ibc(n) == IBC_NEUMANN) then
+        fbc(n, :, :) = dm%fbcx_qw(n, :, :)
+      else
+        fbc(n, :, :) = ZERO
+      end if
+    end do 
+    return
+  end subroutine 
+
+  subroutine get_fbcy_iTh(ibc, dm, fbc)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    integer, intent(in) :: ibc(2)
+    type(t_domain), intent(in) :: dm
+    real(WP), intent(out) :: fbc(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3))
+
+    integer :: n
+
+    do n = 1, 2
+      if(ibc(n) == IBC_DIRICHLET) then    
+        fbc(:, n, :) = dm%fbcy_ftp(:, n, :)%t
+      else if(ibc(n) == IBC_NEUMANN) then
+        fbc(:, n, :) = dm%fbcy_qw(:, n, :)
+      else
+        fbc(:, n, :) = ZERO
+      end if
+    end do 
+    return
+  end subroutine 
+
+  subroutine get_fbcz_iTh(ibc, dm, fbc)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    integer, intent(in) :: ibc(2)
+    type(t_domain), intent(in) :: dm
+    real(WP), intent(out) :: fbc(dm%dccp%zsz(1), dm%dccp%zsz(2), 4)
+
+    integer :: n
+
+    do n = 1, 2
+      if(ibc(n) == IBC_DIRICHLET) then    
+        fbc(:, :, n) = dm%fbcz_ftp(:, :, n)%t
+      else if(ibc(n) == IBC_NEUMANN) then
+        fbc(:, :, n) = dm%fbcz_qw(:, :, n)
+      else
+        fbc(:, :, n) = ZERO
+      end if
+    end do 
+    return
+  end subroutine 
+
 
 
 end module

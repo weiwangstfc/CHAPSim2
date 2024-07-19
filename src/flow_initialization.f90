@@ -395,7 +395,7 @@ contains
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       Call Print_debug_mid_msg("     The initial bulk velocity (original) is:")
-      write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
+      write (*, *) 'average[u(x,y,z)]_[x,y,z] = ', ubulk
     end if
 
     ux(:, :, :) = ux(:, :, :) / ubulk
@@ -408,7 +408,7 @@ contains
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, "ux")
     if(nrank == 0) then
       call Print_debug_mid_msg("     The initial bulk velocity (corrected) is:")
-      write (*, *) '               average[u(x,y,z)]_[x,y,z]: ', ubulk
+      write (*, *) 'average[u(x,y,z)]_[x,y,z] = ', ubulk
     end if
     if(nrank == 0) &
     call Print_debug_mid_msg(" Maximum velocity for real initial flow field:")
@@ -593,7 +593,7 @@ contains
       fl%time = real(fl%iterfrom, WP) * dm%dt 
       call read_instantanous_flow(fl, dm)
       call restore_flow_variables_from_restart(fl, dm)
-      call read_statistics_flow(fl, dm)
+      !call read_statistics_flow(fl, dm)
       
     else if (fl%inittype == INIT_INTERPL) then
 

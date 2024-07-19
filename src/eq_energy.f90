@@ -5,7 +5,6 @@ module eq_energy_mod
 
   private :: Compute_energy_rhs
   private :: Calculate_energy_fractional_step
-  private :: update_fbc_thermo      ! applied every time for constant heat flux (Neumann). due to using operations, stored here, not in boundary.f90
   public  :: Update_thermal_properties
   public  :: Solve_energy_eq
 contains
@@ -25,7 +24,7 @@ contains
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: dh_zpencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: dh_ccp_zpencil
     
-
+    real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c
     integer :: i, j, k
     type(t_fluidThermoProperty) :: ftp
 !----------------------------------------------------------------------------------------------------------
@@ -52,7 +51,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
   if( dm%ibcx_Th(1) == IBC_NEUMANN .or. &
       dm%ibcx_Th(2) == IBC_NEUMANN) then
-    call Get_x_midp_C2P_3D(tm%dh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%dh)
+    call Get_x_midp_C2P_3D(tm%dh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_ftp) ! exterpolation, check
     if(dm%ibcx_Th(1) == IBC_NEUMANN .and. &
        dm%dpcc%xst(1) == 1) then 
       do j = 1, size(dm%fbcx_ftp, 2)
@@ -83,7 +82,7 @@ contains
   if( dm%ibcy_Th(1) == IBC_NEUMANN .or. &
       dm%ibcy_Th(2) == IBC_NEUMANN) then
     call transpose_x_to_y(tm%dh, dh_ypencil, dm%dccc)
-    call Get_y_midp_C2P_3D(dh_ypencil, dh_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%dh)
+    call Get_y_midp_C2P_3D(dh_ypencil, dh_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp) ! exterpolation, check
     
     if(dm%ibcy_Th(1) == IBC_NEUMANN .and. &
        dm%dcpc%yst(2) == 1) then 
@@ -115,7 +114,7 @@ contains
       dm%ibcz_Th(2) == IBC_NEUMANN) then
     call transpose_x_to_y(tm%dh, dh_ypencil, dm%dccc)
     call transpose_y_to_z(dh_ypencil, dh_zpencil, dm%dccc)
-    call Get_z_midp_C2P_3D(dh_zpencil, dh_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%dh)
+    call Get_z_midp_C2P_3D(dh_zpencil, dh_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp) ! exterpolation, check
     
     if(dm%ibcz_Th(1) == IBC_NEUMANN .and. &
        dm%dccp%zst(1) == 1) then 
@@ -143,75 +142,6 @@ contains
 
   return
   end subroutine Update_thermal_properties
-
-!==========================================================================================================
-!==========================================================================================================
-  subroutine update_fbc_thermo(tm, dm)
-    use operations
-    use parameters_constant_mod
-    use udf_type_mod
-    use thermo_info_mod
-    implicit none 
-    type(t_thermo), intent(in) :: tm
-    type(t_domain), intent(inout) :: dm
-    integer :: ibc(2)
-    real(WP), DIMENSION(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)) :: apcc_xpencil
-    real(WP), DIMENSION(dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: acpc_ypencil
-    real(WP), DIMENSION(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3)) :: accc_ypencil
-    real(WP), DIMENSION(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3)) :: accc_zpencil
-    real(WP), DIMENSION(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: accp_zpencil
-    integer :: n
-!----------------------------------------------------------------------------------------------------------
-!   fbcx_ftp
-!----------------------------------------------------------------------------------------------------------
-    if (dm%ibcx_Th(1) == IBC_NEUMANN .or. dm%ibcx_Th(2) == IBC_NEUMANN) then
-      ibc(1:2) = IBC_INTRPL
-      call Get_x_midp_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, ibc)
-      if (dm%ibcx_Th(1) == IBC_NEUMANN) dm%fbcx_ftp(1, :, :)%t = apcc_xpencil(1, :, :)
-      if (dm%ibcx_Th(2) == IBC_NEUMANN) dm%fbcx_ftp(2, :, :)%t = apcc_xpencil(dm%dpcc%xsz(1), :, :)
-      call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcx_ftp(1:2, :, :))
-      do n = 1, 2
-        dm%fbcx_gx(n, :, :) = dm%fbcx_qx(n, :, :) * dm%fbcx_ftp(n, :, :)%d
-        dm%fbcx_gy(n, :, :) = dm%fbcx_qy(n, :, :) * dm%fbcx_ftp(n, :, :)%d
-        dm%fbcx_gz(n, :, :) = dm%fbcx_qz(n, :, :) * dm%fbcx_ftp(n, :, :)%d
-      end do
-    end if
-!----------------------------------------------------------------------------------------------------------
-!   fbcy_ftp
-!----------------------------------------------------------------------------------------------------------
-    if (dm%ibcy_Th(1) == IBC_NEUMANN .or. dm%ibcy_Th(2) == IBC_NEUMANN) then
-      ibc(1:2) = IBC_INTRPL
-      call transpose_x_to_y(tm%tTemp, accc_ypencil, dm%dccc)
-      call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, ibc)
-      if (dm%ibcy_Th(1) == IBC_NEUMANN) dm%fbcy_ftp(:, 1, :)%t = acpc_ypencil(:, 1, :)
-      if (dm%ibcy_Th(2) == IBC_NEUMANN) dm%fbcy_ftp(:, 2, :)%t = acpc_ypencil(:, dm%dcpc%ysz(2), :)
-      call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcy_ftp(:, 1:2, :))
-      do n = 1, 2
-        dm%fbcy_gx(:, n, :) = dm%fbcy_qx(:, n, :) * dm%fbcy_ftp(:, n, :)%d
-        dm%fbcy_gy(:, n, :) = dm%fbcy_qy(:, n, :) * dm%fbcy_ftp(:, n, :)%d
-        dm%fbcy_gz(:, n, :) = dm%fbcy_qz(:, n, :) * dm%fbcy_ftp(:, n, :)%d
-      end do
-    end if
-!----------------------------------------------------------------------------------------------------------
-!   fbcz_ftp
-!----------------------------------------------------------------------------------------------------------
-    if (dm%ibcz_Th(1) == IBC_NEUMANN .or. dm%ibcz_Th(2) == IBC_NEUMANN) then
-      ibc(1:2) = IBC_INTRPL
-      call transpose_x_to_y(tm%tTemp,     accc_ypencil, dm%dccc)
-      call transpose_y_to_z(accc_ypencil, accc_zpencil, dm%dccc)
-      call Get_z_midp_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%iAccuracy, ibc)
-      if (dm%ibcz_Th(1) == IBC_NEUMANN) dm%fbcz_ftp(:, :, 1)%t = accp_zpencil(:, :, 1)
-      if (dm%ibcz_Th(2) == IBC_NEUMANN) dm%fbcz_ftp(:, :, 2)%t = accp_zpencil(:, :, dm%dccp%zsz(3))
-      call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcz_ftp(:, :, 1:2))
-      do n = 1, 2
-        dm%fbcz_gx(:, :, n) = dm%fbcz_qx(:, :, n) * dm%fbcz_ftp(:, :, n)%d
-        dm%fbcz_gy(:, :, n) = dm%fbcz_qy(:, :, n) * dm%fbcz_ftp(:, :, n)%d
-        dm%fbcz_gz(:, :, n) = dm%fbcz_qz(:, :, n) * dm%fbcz_ftp(:, :, n)%d
-      end do
-    end if
-
-    return
-  end subroutine
 !==========================================================================================================
   subroutine Calculate_energy_fractional_step(rhs0, rhs1, dtmp, dm, isub)
     use parameters_constant_mod
@@ -285,7 +215,7 @@ contains
     real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), 4 ) :: fbcz_cc4
     
-    integer  :: n
+    integer  :: n, i, j, k
     integer  :: mbc(1:2, 1:3)
 !==========================================================================================================
 !   preparation
@@ -301,11 +231,11 @@ contains
     fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%h
     fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%h
     fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%h
-    call Get_x_midp_C2P_3D(tm%hEnth, hEnth_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), fbcx_4cc ) ! for d(g_x h_pcc))/dy
+    call Get_x_midp_C2P_3D(tm%hEnth, hEnth_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp(:), fbcx_4cc ) ! for d(g_x h_pcc))/dy
     call transpose_x_to_y (tm%hEnth, accc_ypencil, dm%dccc)                     !accc_ypencil = hEnth_ypencil
-    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), fbcy_c4c)! for d(g_y h_cpc)/dy
+    call Get_y_midp_C2P_3D(accc_ypencil, hEnth_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp(:), fbcy_c4c)! for d(g_y h_cpc)/dy
     call transpose_y_to_z (accc_ypencil, accc_zpencil, dm%dccc) !ccc_zpencil = hEnth_zpencil
-    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), fbcz_cc4) ! for d(g_z h_ccp)/dz
+    call Get_z_midp_C2P_3D(accc_zpencil, hEnth_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp(:), fbcz_cc4) ! for d(g_z h_ccp)/dz
 !----------------------------------------------------------------------------------------------------------
 !    k --> k_pcc
 !      --> k_ypencil --> k_cpc_ypencil
@@ -314,11 +244,11 @@ contains
     fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%k
     fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%k
     fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%k
-    call Get_x_midp_C2P_3D(tm%kCond, kCond_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th(:), fbcx_4cc) ! for d(k_pcc * (dT/dx) )/dx
+    call Get_x_midp_C2P_3D(tm%kCond, kCond_pcc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp(:), fbcx_4cc) ! for d(k_pcc * (dT/dx) )/dx
     call transpose_x_to_y (tm%kCond, accc_ypencil, dm%dccc)  ! for k d2(T)/dy^2
-    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th(:), fbcy_c4c)
+    call Get_y_midp_C2P_3D(accc_ypencil,  kCond_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp(:), fbcy_c4c)
     call transpose_y_to_z (accc_ypencil,  kCond_ccc_zpencil, dm%dccc) 
-    call Get_z_midp_C2P_3D(kCond_ccc_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th(:), fbcz_cc4)
+    call Get_z_midp_C2P_3D(kCond_ccc_zpencil, kCond_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp(:), fbcz_cc4)
 !----------------------------------------------------------------------------------------------------------
 !    T --> T_ypencil --> T_zpencil
 !----------------------------------------------------------------------------------------------------------
@@ -337,7 +267,7 @@ contains
     call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv) 
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
 #ifdef DEBUG_STEPS
-    write(*,*) 'conx-e', accc_xpencil(1, 1:4, 1)
+    write(*,*) 'conx-e', accc_xpencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! convection-y, y-pencil : d (gy * h_cpc) / dy  * (1/r)
@@ -347,7 +277,7 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
 #ifdef DEBUG_STEPS
-    write(*,*) 'cony-e', accc_ypencil(1, 1:4, 1)
+    write(*,*) 'cony-e', accc_ypencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! convection-z, z-pencil : d (gz/r * h_ccp) / dz   * (1/r)
@@ -358,7 +288,7 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
     ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
 #ifdef DEBUG_STEPS
-    write(*,*) 'conz-e', accc_zpencil(1, 1:4, 1)
+    write(*,*) 'conz-e', accc_zpencil(4, 1:4, 4)
 #endif
 !==========================================================================================================
 ! the RHS of energy equation : diffusion terms
@@ -366,18 +296,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-x, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
-    fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%t
+    call get_fbcx_iTh(dm%ibcx_Th, dm, fbcx_4cc)
     call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc )
     apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
     call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu)
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
 #ifdef DEBUG_STEPS
-    write(*,*) 'difx-e', accc_xpencil(1, 1:4, 1)
+    write(*,*) 'difx-e', accc_xpencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-y, d ( r * k_cpc * d (T) / dy ) dy * 1/r
 !----------------------------------------------------------------------------------------------------------
-    fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%t
+    call get_fbcy_iTh(dm%ibcy_Th, dm, fbcy_c4c)
     call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c)
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
@@ -385,11 +315,11 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
 #ifdef DEBUG_STEPS
-    write(*,*) 'dify-e', accc_ypencil(1, 1:4, 1)
+    write(*,*) 'dify-e', accc_ypencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-z, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
-    fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%t
+    call get_fbcz_iTh(dm%ibcz_Th, dm, fbcz_cc4)
     call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, fbcz_cc4 )
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
@@ -397,7 +327,7 @@ contains
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
     ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
 #ifdef DEBUG_STEPS
-    write(*,*) 'difz-e', accc_zpencil(1, 1:4, 1)
+    write(*,*) 'difz-e', accc_zpencil(4, 1:4, 4)
 #endif
 !==========================================================================================================
 ! all convert into x-pencil
@@ -412,6 +342,7 @@ contains
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(tm%tTemp,   dm%dccc, fl%iteration, isub, 'T@bf stepping') ! debug_ww
     call wrt_3d_pt_debug(tm%ene_rhs, dm%dccc, fl%iteration, isub, 'energy_rhs@bf stepping') ! debug_ww
+    write(*,*) 'rhs-e', tm%ene_rhs(1, 1:4, 1)
 #endif
     call Calculate_energy_fractional_step(tm%ene_rhs0, tm%ene_rhs, dm%dccc, dm, isub)
     return
@@ -443,15 +374,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !   update rho * h
 !----------------------------------------------------------------------------------------------------------
+#ifdef DEBUG_STEPS
+    write(*,*) 'rhoh-e-bf', tm%dh(1, 1:4, 1)
+#endif
     tm%dh = tm%dh + tm%ene_rhs
 #ifdef DEBUG_STEPS
+    write(*,*) 'rhoh-e-af', tm%dh(1, 1:4, 1)
     call wrt_3d_pt_debug(tm%dh, dm%dccc, fl%iteration, isub, 'rhoh@af stepping') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 !   update other properties from rho * h
 !----------------------------------------------------------------------------------------------------------
     call Update_thermal_properties(fl, tm, dm)
-    call update_fbc_thermo(tm, dm)
 !----------------------------------------------------------------------------------------------------------
 !   No Need to apply b.c.
 !----------------------------------------------------------------------------------------------------------

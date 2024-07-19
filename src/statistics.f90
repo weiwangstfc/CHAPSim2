@@ -31,20 +31,21 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("Initialise flow statistics ...")
 
-    allocate (ncl_stat(3, nxdomain))
-    ncl_stat = 0
+    if(.not. allocated(ncl_stat)) then
+      allocate (ncl_stat(3, nxdomain))
+      ncl_stat = 0
 
-    ! do i = 1, 3
-    !   if(dm%is_periodic(i)) then 
-    !     ncl_stat(i, dm%idom) = xszS(i)
-    !   else 
-    !     ncl_stat(i, dm%idom) = MAX(xszS(i) - 1, 1)
-    !   end if
-    ! end do
-    ncl_stat(1, dm%idom) = dm%dccc%xsz(1) ! default skip is 1.
-    ncl_stat(2, dm%idom) = dm%dccc%xsz(2) ! default skip is 1.
-    ncl_stat(3, dm%idom) = dm%dccc%xsz(3) ! default skip is 1.
-
+      ! do i = 1, 3
+      !   if(dm%is_periodic(i)) then 
+      !     ncl_stat(i, dm%idom) = xszS(i)
+      !   else 
+      !     ncl_stat(i, dm%idom) = MAX(xszS(i) - 1, 1)
+      !   end if
+      ! end do
+      ncl_stat(1, dm%idom) = dm%dccc%xsz(1) ! default skip is 1.
+      ncl_stat(2, dm%idom) = dm%dccc%xsz(2) ! default skip is 1.
+      ncl_stat(3, dm%idom) = dm%dccc%xsz(3) ! default skip is 1.
+    end if
 
     allocate ( fl%pr_mean        (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)   ) )
     allocate ( fl%u_vector_mean  (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom), 3) )
@@ -52,6 +53,10 @@ contains
     fl%u_vector_mean   = ZERO
     fl%pr_mean         = ZERO
     fl%uu_tensor6_mean = ZERO
+
+    if(fl%inittype == INIT_RESTART .and. fl%iteration > dm%stat_istart) then
+      call read_statistics_flow(fl, dm)
+    end if
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -97,6 +102,14 @@ contains
 
     if(.not. dm%is_thermo) return
 
+    if(.not. allocated(ncl_stat)) then
+      allocate (ncl_stat(3, nxdomain))
+      ncl_stat = 0
+      ncl_stat(1, dm%idom) = dm%dccc%xsz(1) ! default skip is 1.
+      ncl_stat(2, dm%idom) = dm%dccc%xsz(2) ! default skip is 1.
+      ncl_stat(3, dm%idom) = dm%dccc%xsz(3) ! default skip is 1.  
+    end if
+
     if(nrank == 0) call Print_debug_start_msg("Initialise thermo statistics ...")
 
     allocate ( tm%t_mean  (ncl_stat(1, dm%idom), ncl_stat(2, dm%idom), ncl_stat(3, dm%idom)) )
@@ -104,12 +117,13 @@ contains
     
     tm%t_mean  = ZERO
     tm%tt_mean = ZERO
+
     if(tm%inittype == INIT_RESTART .and. tm%iteration > dm%stat_istart) then
       call read_statistics_array(tm%t_mean,  'time_averaged_t',  dm%idom, tm%iterfrom, dm%dccc)
       call read_statistics_array(tm%tt_mean, 'time_averaged_tt', dm%idom, tm%iterfrom, dm%dccc)
     end if
     if(nrank == 0) call Print_debug_end_msg
-    
+
     return
   end subroutine
 !==========================================================================================================

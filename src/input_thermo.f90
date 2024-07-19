@@ -589,13 +589,13 @@ contains
         if (ddt < MINP .and. nrank == 0) then
           call Print_warning_msg('The relation (rho * h) = FUNCTION (T) is not monotonicity.') 
           write(*, wrtfmt1r) ' This occurs from T(K) = ', ftplist(i)%t * fluidparam%ftp0ref%t
-          call Print_warning_msg('If this temperature occurs in-between your interested range, please try to increase your reference temeprature.')
+          call Print_warning_msg('If this temperature locates in-between your interested range, please try to increase your reference temeprature.')
         end if
         if (ddh < MINP .and. nrank == 0) then
           call Print_warning_msg('The relation (rho * h) = FUNCTION (H) is not monotonicity.') 
           write(*, wrtfmt1r) ' This occurs from H(J/KG) = ', \
           ftplist(i)%h  * fluidparam%ftp0ref%t * fluidparam%ftp0ref%cp + fluidparam%ftp0ref%h
-          call Print_warning_msg('If this H occurs in-between your interested range, please try to increase your reference temeprature.')
+          call Print_warning_msg('If this H locates in-between your interested range, please try to increase your reference temeprature.')
         end if
 
     end do
@@ -1072,14 +1072,6 @@ contains
     
     if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
     !----------------------------------------------------------------------------------------------------------
-    !   given initialisation temperature
-    !----------------------------------------------------------------------------------------------------------
-    tm%ftp_ini%t = tm%init_T0 / tm%ref_T0 ! already undim
-    !----------------------------------------------------------------------------------------------------------
-    !   update all initial properties based on given temperature
-    !----------------------------------------------------------------------------------------------------------
-    call ftp_refresh_thermal_properties_from_T_undim(tm%ftp_ini)
-    !----------------------------------------------------------------------------------------------------------
     !   initialise thermal fields
     !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
@@ -1173,7 +1165,9 @@ contains
     if (fluidparam%ipropertyState == IPROPERTY_TABLE) call buildup_property_relations_from_table
     if (fluidparam%ipropertyState == IPROPERTY_FUNCS) call buildup_property_relations_from_function
     call Write_thermo_property
-  
+    tm%ftp_ini%t = tm%init_T0 / tm%ref_T0 ! already undim
+    call ftp_refresh_thermal_properties_from_T_undim(tm%ftp_ini)
+    
     return
   end subroutine Buildup_thermo_mapping_relations
 

@@ -696,28 +696,30 @@ contains
       fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%m
       fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%m
       fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%m
-
+#ifdef DEBUG_STEPS
+      write(*,*) 'fbcy_m', fbcy_c4c(1, 1:4, 1)
+#endif
       mu_ccc_xpencil = fl%mVisc
       call transpose_x_to_y(mu_ccc_xpencil, mu_ccc_ypencil, dm%dccc)
       call transpose_y_to_z(mu_ccc_ypencil, mu_ccc_zpencil, dm%dccc)
 
-      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc)
+      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp, fbcx_4cc)
       call transpose_x_to_y(apcc_xpencil, apcc_ypencil, dm%dpcc) ! apcc_ypencil = muix_pcc_ypencil
       
-      call Get_y_midp_C2P_3D(apcc_ypencil, muixy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th)!, fbcy_p4c)
+      call Get_y_midp_C2P_3D(apcc_ypencil, muixy_ppc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp)!, fbcy_p4c)
       call transpose_y_to_x(muixy_ppc_ypencil, muixy_ppc_xpencil, dm%dppc) 
 
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc) ! muix_pcc_zpencil
-      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th)!, fbcz_pc4)
+      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_pc4)
       call transpose_z_to_y(muixz_pcp_zpencil, apcp_ypencil, dm%dpcp)
       call transpose_y_to_x(apcp_ypencil, muixz_pcp_xpencil, dm%dpcp)
 
-      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
+      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc) !muiy_cpc_zpencil
-      call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th)!, fbcz_cp4)
+      call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_cp4)
       call transpose_z_to_y(muiyz_cpp_zpencil, muiyz_cpp_ypencil, dm%dcpp)
 
-      call Get_z_midp_C2P_3D(mu_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, fbcz_cc4) ! accp_zpencil = muiz_ccp_zpencil
+      call Get_z_midp_C2P_3D(mu_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp, fbcz_cc4) ! accp_zpencil = muiz_ccp_zpencil
 
       if(is_fbcx_velo_required) then
         fbcx_mu_4cc(1, :, :) = apcc_xpencil(1, :, :)
@@ -934,7 +936,8 @@ contains
 ! X-mom gravity in x direction, X-pencil
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo .and. (fl%igravity == i .or. fl%igravity == -i) )  then
-      call Get_x_midp_C2P_3D(fl%dDens, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, dm%fbcx_ftp%d )
+      fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%d
+      call Get_x_midp_C2P_3D(fl%dDens, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp, fbcx_4cc )
       mx_rhs_pfc_xpencil =  mx_rhs_pfc_xpencil + fl%fgravity(i) * apcc_xpencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -1108,7 +1111,8 @@ contains
 ! Y-mom gravity in y direction, Y-pencil
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo .and. (fl%igravity == i .or. fl%igravity == -i) )  then
-      call Get_y_midp_C2P_3D(dDens_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, dm%fbcy_ftp%d )
+      fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%d
+      call Get_y_midp_C2P_3D(dDens_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c )
       my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil + fl%fgravity(i) * acpc_ypencil
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -1320,7 +1324,8 @@ contains
 ! Z-mom gravity in z direction, Z-pencil
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo .and. (fl%igravity == i .or. fl%igravity == -i) )  then
-      call Get_z_midp_C2P_3D(dDens_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, dm%fbcz_ftp%d )
+      fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%d
+      call Get_z_midp_C2P_3D(dDens_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp, fbcz_cc4 )
       mz_rhs_pfc_zpencil =  mz_rhs_pfc_zpencil + fl%fgravity(i) * accp_zpencil
     end if
 !----------------------------------------------------------------------------------------------------------
