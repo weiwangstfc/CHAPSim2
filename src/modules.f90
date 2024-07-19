@@ -311,7 +311,7 @@ module udf_type_mod
     real(WP) :: m  ! dynviscosity
     real(WP) :: k  ! thermconductivity
     real(WP) :: h  ! enthalpy
-    real(WP) :: dh ! mass enthalpy
+    real(WP) :: rhoh ! mass enthalpy
     real(WP) :: cp ! specific heat capacity 
     real(WP) :: b  ! thermal expansion
   end type t_fluidThermoProperty
@@ -552,7 +552,7 @@ module udf_type_mod
     real(WP) :: time
     real(WP) :: rPrRen
 
-    real(WP), allocatable :: dh(:, :, :)
+    real(WP), allocatable :: rhoh(:, :, :)
     real(WP), allocatable :: hEnth(:, :, :)
     real(WP), allocatable :: kCond(:, :, :)
     real(WP), allocatable :: tTemp(:, :, :)

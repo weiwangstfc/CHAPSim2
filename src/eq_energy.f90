@@ -33,7 +33,7 @@ contains
     do k = 1, dm%dccc%xsz(3)
       do j = 1, dm%dccc%xsz(2)
         do i = 1, dm%dccc%xsz(1)
-          ftp%dh = tm%dh(i, j, k)
+          ftp%rhoh = tm%rhoh(i, j, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           tm%hEnth(i, j, k) = ftp%h
           tm%tTemp(i, j, k) = ftp%T
@@ -51,12 +51,12 @@ contains
 !----------------------------------------------------------------------------------------------------------
   if( dm%ibcx_Th(1) == IBC_NEUMANN .or. &
       dm%ibcx_Th(2) == IBC_NEUMANN) then
-    call Get_x_midp_C2P_3D(tm%dh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_ftp) ! exterpolation, check
+    call Get_x_midp_C2P_3D(tm%rhoh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_ftp) ! exterpolation, check
     if(dm%ibcx_Th(1) == IBC_NEUMANN .and. &
        dm%dpcc%xst(1) == 1) then 
       do j = 1, size(dm%fbcx_ftp, 2)
         do k = 1, size(dm%fbcx_ftp, 3)
-          ftp%dh = dh_pcc(1, j, k)
+          ftp%rhoh = dh_pcc(1, j, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           dm%fbcx_ftp(1, j, k) = ftp
           dm%fbcx_ftp(3, j, k) = ftp
@@ -67,7 +67,7 @@ contains
        dm%dpcc%xen(1) == dm%np(1)) then 
       do j = 1, size(dm%fbcx_ftp, 2)
         do k = 1, size(dm%fbcx_ftp, 3)
-          ftp%dh = dh_pcc(dm%np(1), j, k)
+          ftp%rhoh = dh_pcc(dm%np(1), j, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           dm%fbcx_ftp(2, j, k) = ftp
           dm%fbcx_ftp(4, j, k) = ftp
@@ -81,14 +81,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
   if( dm%ibcy_Th(1) == IBC_NEUMANN .or. &
       dm%ibcy_Th(2) == IBC_NEUMANN) then
-    call transpose_x_to_y(tm%dh, dh_ypencil, dm%dccc)
+    call transpose_x_to_y(tm%rhoh, dh_ypencil, dm%dccc)
     call Get_y_midp_C2P_3D(dh_ypencil, dh_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp) ! exterpolation, check
     
     if(dm%ibcy_Th(1) == IBC_NEUMANN .and. &
        dm%dcpc%yst(2) == 1) then 
       do i = 1, size(dm%fbcy_ftp, 1)
         do k = 1, size(dm%fbcy_ftp, 3)
-          ftp%dh = dh_cpc_ypencil(i, 1, k)
+          ftp%rhoh = dh_cpc_ypencil(i, 1, k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           dm%fbcy_ftp(i, 1, k) = ftp
           dm%fbcy_ftp(i, 3, k) = ftp
@@ -99,7 +99,7 @@ contains
        dm%dcpc%yen(2) == dm%np(2)) then 
       do i = 1, size(dm%fbcy_ftp, 1)
         do k = 1, size(dm%fbcy_ftp, 3)
-          ftp%dh = dh_cpc_ypencil(i, dm%np(1), k)
+          ftp%rhoh = dh_cpc_ypencil(i, dm%np(1), k)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           dm%fbcy_ftp(i, 2, k) = ftp
           dm%fbcy_ftp(i, 4, k) = ftp
@@ -112,7 +112,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
   if( dm%ibcz_Th(1) == IBC_NEUMANN .or. &
       dm%ibcz_Th(2) == IBC_NEUMANN) then
-    call transpose_x_to_y(tm%dh, dh_ypencil, dm%dccc)
+    call transpose_x_to_y(tm%rhoh, dh_ypencil, dm%dccc)
     call transpose_y_to_z(dh_ypencil, dh_zpencil, dm%dccc)
     call Get_z_midp_C2P_3D(dh_zpencil, dh_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp) ! exterpolation, check
     
@@ -120,7 +120,7 @@ contains
        dm%dccp%zst(1) == 1) then 
       do j = 1, size(dm%fbcz_ftp, 2)
         do i = 1, size(dm%fbcz_ftp, 1)
-          ftp%dh = dh_ccp_zpencil(i, j, 1)
+          ftp%rhoh = dh_ccp_zpencil(i, j, 1)
           call ftp_refresh_thermal_properties_from_DH(ftp)
           dm%fbcz_ftp(i, j, 1) = ftp
           dm%fbcz_ftp(i, j, 3) = ftp
@@ -131,7 +131,7 @@ contains
        dm%dccp%zen(1) == dm%np(3)) then 
       do j = 1, size(dm%fbcz_ftp, 2)
         do i = 1, size(dm%fbcz_ftp, 1)
-          ftp%dh = dh_ccp_zpencil(i, j, dm%np(3))
+          ftp%rhoh = dh_ccp_zpencil(i, j, dm%np(3))
           call ftp_refresh_thermal_properties_from_DH(ftp)
           dm%fbcz_ftp(i, j, 2) = ftp
           dm%fbcz_ftp(i, j, 4) = ftp
@@ -310,6 +310,10 @@ contains
     call get_fbcy_iTh(dm%ibcy_Th, dm, fbcy_c4c)
     call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c)
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
+#ifdef DEBUG_STEPS
+    write(*,*) 'diy-dT', acpc_ypencil(4, 1:4, 4)
+    write(*,*) 'dify-k', kCond_cpc_ypencil(4, 1:4, 4)
+#endif
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
@@ -375,12 +379,12 @@ contains
 !   update rho * h
 !----------------------------------------------------------------------------------------------------------
 #ifdef DEBUG_STEPS
-    write(*,*) 'rhoh-e-bf', tm%dh(1, 1:4, 1)
+    write(*,*) 'rhoh-e-bf', tm%rhoh(1, 1:4, 1)
 #endif
-    tm%dh = tm%dh + tm%ene_rhs
+    tm%rhoh = tm%rhoh + tm%ene_rhs
 #ifdef DEBUG_STEPS
-    write(*,*) 'rhoh-e-af', tm%dh(1, 1:4, 1)
-    call wrt_3d_pt_debug(tm%dh, dm%dccc, fl%iteration, isub, 'rhoh@af stepping') ! debug_ww
+    write(*,*) 'rhoh-e-af', tm%rhoh(1, 1:4, 1)
+    call wrt_3d_pt_debug(tm%rhoh, dm%dccc, fl%iteration, isub, 'rhoh@af stepping') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 !   update other properties from rho * h

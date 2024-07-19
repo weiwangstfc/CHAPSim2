@@ -84,7 +84,7 @@ contains
       if ( ( this%t < ftplist(1)%t     )  .OR. &
            ( this%t > ftplist(nlist)%t ) ) then
         write(*, wrtfmt3r) 'this T, low T, high T:', this%t, ftplist(1)%t, ftplist(nlist)%t
-        write(*, wrtfmt3r) 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
+        write(*, wrtfmt3r) 'this rhoh, low rhoh, high rhoh', this%rhoh, fluidparam%dhmin, fluidparam%dhmax
         stop 'temperature exceeds specified range.'
       end if
     end if
@@ -93,7 +93,7 @@ contains
       if ( ( this%t < ( fluidparam%tm1 / fluidparam%ftp0ref%t ) ) .OR. &
            ( this%t > ( fluidparam%TB0 / fluidparam%ftp0ref%t ) ) ) then 
         write(*, wrtfmt3r) 'this T, low T, high T:', this%t, fluidparam%tm1 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
-        write(*, wrtfmt3r) 'this dh, low dh, high dh', this%dh, fluidparam%dhmin, fluidparam%dhmax
+        write(*, wrtfmt3r) 'this rhoh, low rhoh, high rhoh', this%rhoh, fluidparam%dhmin, fluidparam%dhmax
         stop 'temperature exceeds specified range.'
       end if
     end if
@@ -151,7 +151,7 @@ contains
       this%h = w1 * ftplist(i1)%h + w2 * ftplist(i2)%h
       this%b = w1 * ftplist(i1)%b + w2 * ftplist(i2)%b
       this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
-      this%dh = this%d * this%h
+      this%rhoh = this%d * this%h
 
     else if(fluidparam%ipropertyState == IPROPERTY_FUNCS) then 
       
@@ -203,7 +203,7 @@ contains
                        CoM_Na(1) * LOG(t1) )
       end select
       this%m = dummy
-      this%dh = this%d * this%h
+      this%rhoh = this%d * this%h
     else
       call Print_error_msg ("Error.")
     end if
@@ -243,7 +243,7 @@ contains
       this%h = w1 * ftplist(i1)%h + w2 * ftplist(i2)%h
       this%b = w1 * ftplist(i1)%b + w2 * ftplist(i2)%b
       this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
-      this%dh = this%d * this%h
+      this%rhoh = this%d * this%h
 
     else if(fluidparam%ipropertyState == IPROPERTY_FUNCS) then 
       
@@ -298,7 +298,7 @@ contains
           dummy = EXP( CoM_Na(-1) / t1 + CoM_Na(0) + CoM_Na(1) * LOG(t1) )
       end select
       this%m = dummy / ftp0ref%m
-      this%dh = this%d * this%h
+      this%rhoh = this%d * this%h
     else
       this%t  = ONE
       this%d  = ONE
@@ -307,7 +307,7 @@ contains
       this%cp = ONE
       this%b  = ONE
       this%h  = ZERO
-      this%dh = ZERO
+      this%rhoh = ZERO
     end if
     return
   end subroutine ftp_refresh_thermal_properties_from_T_undim
@@ -372,7 +372,7 @@ contains
     this%t  = w1 * ftplist(i1)%t  + w2 * ftplist(i2)%t
     this%b  = w1 * ftplist(i1)%b  + w2 * ftplist(i2)%b
     this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
-    this%dh = this%d * this%h
+    this%rhoh = this%d * this%h
     return
   end subroutine ftp_refresh_thermal_properties_from_H
 !==========================================================================================================
@@ -400,18 +400,18 @@ contains
     if(is_ftplist_dim) call Print_error_msg("Error. Please provide undimentional variables.")
 
 
-    if(this%dh < fluidparam%dhmin) then
+    if(this%rhoh < fluidparam%dhmin) then
       if(nrank == 0) then 
-        write(*, wrtfmt2r) 'this%dh < fluidparam%dhmin', this%dh, fluidparam%dhmin
+        write(*, wrtfmt2r) 'this%rhoh < fluidparam%dhmin', this%rhoh, fluidparam%dhmin
         call Print_error_msg("rho*h is out of range.")
       end if
-      this%dh = fluidparam%dhmin
-    else if(this%dh > fluidparam%dhmax) then
+      this%rhoh = fluidparam%dhmin
+    else if(this%rhoh > fluidparam%dhmax) then
       if(nrank == 0) then 
-        write(*, wrtfmt2r) 'this%dh > fluidparam%dhmax', this%dh, fluidparam%dhmax
+        write(*, wrtfmt2r) 'this%rhoh > fluidparam%dhmax', this%rhoh, fluidparam%dhmax
         call Print_error_msg("rho*h is out of range.")
       end if
-      this%dh = fluidparam%dhmax
+      this%rhoh = fluidparam%dhmax
     end if
 
     i1 = 1
@@ -419,8 +419,8 @@ contains
 
     do while ( (i2 - i1) > 1)
       im = i1 + (i2 - i1) / 2
-      d1 = ftplist(i1)%dh - this%dh
-      dm = ftplist(im)%dh - this%dh
+      d1 = ftplist(i1)%rhoh - this%rhoh
+      dm = ftplist(im)%rhoh - this%rhoh
       if ( (d1 * dm) > MINP ) then
         i1 = im
       else
@@ -428,7 +428,7 @@ contains
       end if
     end do
 
-    w1 = (ftplist(i2)%dh - this%dh) / (ftplist(i2)%dh - ftplist(i1)%dh) 
+    w1 = (ftplist(i2)%rhoh - this%rhoh) / (ftplist(i2)%rhoh - ftplist(i1)%rhoh) 
     w2 = ONE - w1
     
     if(fluidparam%ipropertyState == IPROPERTY_TABLE) then 
@@ -483,7 +483,7 @@ contains
       if(iostat /= 0) exit
 
       write(unit, *, iostat = iostat, iomsg = iomsg) &
-      this%h, this%t, this%d, this%m, this%k, this%cp, this%b, this%dh
+      this%h, this%t, this%d, this%m, this%k, this%cp, this%b, this%rhoh
       
       if(iostat /= 0) exit
     end do 
@@ -544,9 +544,9 @@ contains
       ftplist(i)%h = ftplist(k)%h
       ftplist(k)%h = buf
 
-      buf = ftplist(i)%dh
-      ftplist(i)%dh = ftplist(k)%dh
-      ftplist(k)%dh = buf
+      buf = ftplist(i)%rhoh
+      ftplist(i)%rhoh = ftplist(k)%rhoh
+      ftplist(k)%rhoh = buf
 
     end do
 
@@ -575,11 +575,11 @@ contains
 
     if(nrank /= 0 ) return
     do i = 2, fluidparam%nlist - 1
-        ddh1 = ftplist(i)%dh - ftplist(i - 1)%dh
+        ddh1 = ftplist(i)%rhoh - ftplist(i - 1)%rhoh
         dt1  = ftplist(i)%t  - ftplist(i - 1)%t
         dh1  = ftplist(i)%h  - ftplist(i - 1)%h
 
-        ddh2 = ftplist(i + 1)%dh - ftplist(i)%dh
+        ddh2 = ftplist(i + 1)%rhoh - ftplist(i)%rhoh
         dt2  = ftplist(i + 1)%t  - ftplist(i)%t
         dh2  = ftplist(i + 1)%h  - ftplist(i)%h
 
@@ -652,7 +652,7 @@ contains
     do i = 1, fluidparam%nlist
       read(inputUnit, *, iostat = ioerr) rtmp, ftplist(i)%h, ftplist(i)%t, ftplist(i)%d, &
       ftplist(i)%m, ftplist(i)%k, ftplist(i)%cp, ftplist(i)%b
-      ftplist(i)%dh = ftplist(i)%d * ftplist(i)%h
+      ftplist(i)%rhoh = ftplist(i)%d * ftplist(i)%h
     end do
     close(inputUnit)
     !----------------------------------------------------------------------------------------------------------
@@ -675,15 +675,15 @@ contains
       ftplist(i)%b  = ftplist(i)%b  / fluidparam%ftp0ref%b
       ftplist(i)%cp = ftplist(i)%cp / fluidparam%ftp0ref%cp
       ftplist(i)%h  = (ftplist(i)%h - fluidparam%ftp0ref%h) / fluidparam%ftp0ref%t / fluidparam%ftp0ref%cp
-      ftplist(i)%dh = ftplist(i)%d * ftplist(i)%h
+      ftplist(i)%rhoh = ftplist(i)%d * ftplist(i)%h
     end do
 
     call ftplist_check_monotonicity_DH_of_HorT
 
-    i = minloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
-    fluidparam%dhmin = ftplist(i)%dh ! undim
-    i = maxloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
-    fluidparam%dhmax = ftplist(i)%dh ! undim
+    i = minloc( ftplist(1:fluidparam%nlist)%rhoh, dim = 1)
+    fluidparam%dhmin = ftplist(i)%rhoh ! undim
+    i = maxloc( ftplist(1:fluidparam%nlist)%rhoh, dim = 1)
+    fluidparam%dhmax = ftplist(i)%rhoh ! undim
 
     is_ftplist_dim = .false.
 
@@ -701,7 +701,7 @@ contains
     ftp_dim%b  = ftp_undim%b  * fluidparam%ftp0ref%b
     ftp_dim%cp = ftp_undim%cp * fluidparam%ftp0ref%cp
     ftp_dim%h  = ftp_undim%h  * fluidparam%ftp0ref%t * fluidparam%ftp0ref%cp + fluidparam%ftp0ref%h
-    ftp_dim%dh = ftp_dim%d    * ftp_dim%h
+    ftp_dim%rhoh = ftp_dim%d    * ftp_dim%h
     return
   end subroutine
 !==========================================================================================================
@@ -734,10 +734,10 @@ contains
 
     call ftplist_check_monotonicity_DH_of_HorT
 
-    i = minloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
-    fluidparam%dhmin = ftplist(i)%dh
-    i = maxloc( ftplist(1:fluidparam%nlist)%dh, dim = 1)
-    fluidparam%dhmax = ftplist(i)%dh
+    i = minloc( ftplist(1:fluidparam%nlist)%rhoh, dim = 1)
+    fluidparam%dhmin = ftplist(i)%rhoh
+    i = maxloc( ftplist(1:fluidparam%nlist)%rhoh, dim = 1)
+    fluidparam%dhmax = ftplist(i)%rhoh
 
     is_ftplist_dim = .false.
 
@@ -769,8 +769,8 @@ contains
     ! dhmax = MINP
     ! if(fluidparam%ipropertyState == IPROPERTY_TABLE) then
     !   do i = 1, fluidparam%nlist
-    !     if(ftplist(i)%dh < dhmin) dhmin = ftplist(i)%dh
-    !     if(ftplist(i)%dh > dhmax) dhmax = ftplist(i)%dh
+    !     if(ftplist(i)%rhoh < dhmin) dhmin = ftplist(i)%rhoh
+    !     if(ftplist(i)%rhoh > dhmax) dhmax = ftplist(i)%rhoh
     !   end do
     !   !dhmin = dhmin + TRUNCERR
     !   !dhmax = dhmax - TRUNCERR
@@ -778,11 +778,11 @@ contains
     ! else if(fluidparam%ipropertyState == IPROPERTY_FUNCS) then 
     !   ftp%t  = fluidparam%TB0 / fluidparam%ftp0ref%t
     !   call ftp_refresh_thermal_properties_from_T_undim(ftp)
-    !   dhmin1 = ftp%dh
+    !   dhmin1 = ftp%rhoh
 
     !   ftp%t  = fluidparam%tm1 / fluidparam%ftp0ref%t
     !   call ftp_refresh_thermal_properties_from_T_undim(ftp)
-    !   dhmax1 = ftp%dh
+    !   dhmax1 = ftp%rhoh
       
     !   dhmin = dmin1( dhmin1, dhmax1) + TRUNCERR
     !   dhmax = dmax1( dhmin1, dhmax1) - TRUNCERR
@@ -798,9 +798,9 @@ contains
     write(ftp_unit2, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
 
     do i = 1, fluidparam%nlist
-      write(ftp_unit1, '(8ES13.5)') ftplist(i)%h, ftplist(i)%t, ftplist(i)%d, ftplist(i)%m, ftplist(i)%k, ftplist(i)%cp, ftplist(i)%b, ftplist(i)%dh
+      write(ftp_unit1, '(8ES13.5)') ftplist(i)%h, ftplist(i)%t, ftplist(i)%d, ftplist(i)%m, ftplist(i)%k, ftplist(i)%cp, ftplist(i)%b, ftplist(i)%rhoh
       call ftp_convert_undim_to_dim(ftplist(i), ftp_dim)  
-      write(ftp_unit2, '(8ES13.5)') ftp_dim%h, ftp_dim%t, ftp_dim%d, ftp_dim%m, ftp_dim%k, ftp_dim%cp, ftp_dim%b, ftp_dim%dh
+      write(ftp_unit2, '(8ES13.5)') ftp_dim%h, ftp_dim%t, ftp_dim%d, ftp_dim%m, ftp_dim%k, ftp_dim%cp, ftp_dim%b, ftp_dim%rhoh
     end do
     close (ftp_unit1)
     close (ftp_unit2)
@@ -814,13 +814,13 @@ contains
     open (newunit = ftp_unit2, file = 'check_ftp_from_dh_dim.dat')
     write(ftp_unit2, *) '# Enthalpy H, Temperature T, Density D, DViscosity M, Tconductivity K, Cp, Texpansion B, rho*h'
     do i = 1, n
-      ftp%dh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
-      !write(*,*) ftp%dh
+      ftp%rhoh = dhmin + (dhmax - dhmin) * real(i - 1, WP) / real(n - 1, WP)
+      !write(*,*) ftp%rhoh
       call ftp_refresh_thermal_properties_from_DH(ftp)
       call ftp_is_T_in_scope(ftp)
-      write(ftp_unit1, '(8ES13.5)') ftp%h, ftp%t, ftp%d, ftp%m, ftp%k, ftp%cp, ftp%b, ftp%dh
+      write(ftp_unit1, '(8ES13.5)') ftp%h, ftp%t, ftp%d, ftp%m, ftp%k, ftp%cp, ftp%b, ftp%rhoh
       call ftp_convert_undim_to_dim(ftp, ftp_dim)  
-      write(ftp_unit2, '(8ES13.5)') ftp_dim%h, ftp_dim%t, ftp_dim%d, ftp_dim%m, ftp_dim%k, ftp_dim%cp, ftp_dim%b, ftp_dim%dh
+      write(ftp_unit2, '(8ES13.5)') ftp_dim%h, ftp_dim%t, ftp_dim%d, ftp_dim%m, ftp_dim%k, ftp_dim%cp, ftp_dim%b, ftp_dim%rhoh
     end do
     close (ftp_unit1)
     close (ftp_unit2)
@@ -833,7 +833,7 @@ contains
       write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
       write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
       write (*, wrtfmt1e) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftp0ref%dh
+      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftp0ref%rhoh
 
       call Print_debug_start_msg("The initial thermal properties (dim) are")
       write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftpini%t
@@ -842,7 +842,7 @@ contains
       write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftpini%k
       write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftpini%cp
       write (*, wrtfmt1e) '  Enthalphy:',            fluidparam%ftpini%h
-      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftpini%dh
+      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftpini%rhoh
       call Print_debug_mid_msg("The range of the property table (undim)")
       write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
     end if
@@ -1082,12 +1082,12 @@ contains
       write (*, wrtfmt1r) '  Thermal Conductivity:', tm%ftp_ini%k
       write (*, wrtfmt1r) '  Cp:',                   tm%ftp_ini%cp
       write (*, wrtfmt1r) '  Enthalphy:',            tm%ftp_ini%h
-      write (*, wrtfmt1r) '  mass enthaphy:',        tm%ftp_ini%dh
+      write (*, wrtfmt1r) '  mass enthaphy:',        tm%ftp_ini%rhoh
     end if
 
     fl%dDens(:, :, :) = tm%ftp_ini%d
     fl%mVisc(:, :, :) = tm%ftp_ini%m
-    tm%dh   (:, :, :) = tm%ftp_ini%dh
+    tm%rhoh   (:, :, :) = tm%ftp_ini%rhoh
     tm%hEnth(:, :, :) = tm%ftp_ini%h
     tm%kCond(:, :, :) = tm%ftp_ini%k
     tm%tTemp(:, :, :) = tm%ftp_ini%t
@@ -1167,7 +1167,7 @@ contains
     call Write_thermo_property
     tm%ftp_ini%t = tm%init_T0 / tm%ref_T0 ! already undim
     call ftp_refresh_thermal_properties_from_T_undim(tm%ftp_ini)
-    
+
     return
   end subroutine Buildup_thermo_mapping_relations
 

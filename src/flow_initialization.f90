@@ -117,7 +117,7 @@ contains
     ! default : x pencil. 
     ! varaible index is LOCAL. means 1:xsize(1)
     !----------------------------------------------------------------------------------------------------------
-    call alloc_x(tm%dh,       dm%dccc) ; tm%dh    = ZERO
+    call alloc_x(tm%rhoh,       dm%dccc) ; tm%rhoh    = ZERO
     call alloc_x(tm%hEnth,    dm%dccc) ; tm%hEnth = ZERO
     call alloc_x(tm%kCond,    dm%dccc) ; tm%kCond = ONE
     call alloc_x(tm%tTemp,    dm%dccc) ; tm%tTemp = ONE

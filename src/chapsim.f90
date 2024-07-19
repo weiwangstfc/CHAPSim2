@@ -285,7 +285,10 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if(nrank == 0) call Print_debug_mid_msg("For domain id = "//trim(int2str(i)))
       if(is_flow(i)) then
-        if(is_thermo(i)) call Find_max_min_3d(thermo(i)%tTemp, "T : ", wrtfmt2e)
+        if(is_thermo(i)) then
+          call Find_max_min_3d(thermo(i)%tTemp, "T : ", wrtfmt2e)
+          call Find_max_min_3d(thermo(i)%rhoh, "T : ", wrtfmt2e)
+        end if
         call Find_max_min_3d(flow(i)%qx, "qx: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qy, "qy: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qz, "qz: ", wrtfmt2e)

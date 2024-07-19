@@ -103,7 +103,7 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d thermo data ...")
 
-    call write_instantanous_array(tm%dh,    'rhoh', dm%idom, tm%iteration, dm%dccc)
+    call write_instantanous_array(tm%rhoh,    'rhoh', dm%idom, tm%iteration, dm%dccc)
     call write_instantanous_array(tm%tTemp, 'temp', dm%idom, tm%iteration, dm%dccc)
 
     if(nrank == 0) call Print_debug_end_msg
@@ -127,9 +127,9 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("read instantanous flow data ... ...")
 
-    call read_instantanous_array(fl%qx, 'ux', dm%idom, fl%iterfrom, dm%dpcc)
-    call read_instantanous_array(fl%qy, 'uy', dm%idom, fl%iterfrom, dm%dcpc)
-    call read_instantanous_array(fl%qz, 'uz', dm%idom, fl%iterfrom, dm%dccp)
+    call read_instantanous_array(fl%qx, 'qx', dm%idom, fl%iterfrom, dm%dpcc)
+    call read_instantanous_array(fl%qy, 'qy', dm%idom, fl%iterfrom, dm%dcpc)
+    call read_instantanous_array(fl%qz, 'qz', dm%idom, fl%iterfrom, dm%dccp)
     call read_instantanous_array(fl%pres, 'pr', dm%idom, fl%iterfrom, dm%dccc)
     
     if(nrank == 0) call Print_debug_end_msg
@@ -199,7 +199,7 @@ contains
 
     keyword = 'rhoh'
     call generate_file_name(data_flname, dm%idom, keyword, 'bin', tm%iteration)
-    call decomp_2d_read_one(X_PENCIL, tm%dh, trim(dir_data), trim(data_flname), io_name, dm%dccc, reduce_prec=.false.)
+    call decomp_2d_read_one(X_PENCIL, tm%rhoh, trim(dir_data), trim(data_flname), io_name, dm%dccc, reduce_prec=.false.)
 
     keyword = 'temp'
     call generate_file_name(data_flname, dm%idom, keyword, 'bin', tm%iteration)
