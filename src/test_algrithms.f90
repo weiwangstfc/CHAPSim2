@@ -574,7 +574,7 @@ subroutine Test_algorithms()
   implicit none
 
   logical :: is_TDMA = .false.
-  logical :: is_operations = .false.
+  logical :: is_operations = .true.
   logical :: is_burgers = .false.
   integer :: n
 

@@ -441,20 +441,21 @@ contains
       d1rC2C(:,   :, IBC_ASYMMETRIC, n) = d1rC2C(:,   :, IBC_PERIODIC  , n)
     end do 
 !----------------------------------------------------------------------------------------------------------
-! 1st-derivative, C2C, IBC_INTERIOR, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! 1st-derivative, C2C, IBC_INTERIOR, f unknowns only from only rhs could be reconstructed from bc, thus explicit
+! f' unknow is only first layer 
 !----------------------------------------------------------------------------------------------------------
     d1fC2C(:, :, IBC_INTERIOR, :) = d1fC2C(:, :, IBC_PERIODIC, :)
     d1rC2C(:, :, IBC_INTERIOR, :) = d1rC2C(:, :, IBC_PERIODIC, :)
 
-    d1fC2C(1:2, :, IBC_INTERIOR, IACCU_CP4) = d1fC2C(1:2, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    d1rC2C(1:2, :, IBC_INTERIOR, IACCU_CP4) = d1rC2C(1:2, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    d1fC2C(4:5, :, IBC_INTERIOR, IACCU_CP4) = d1fC2C(4:5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    d1rC2C(4:5, :, IBC_INTERIOR, IACCU_CP4) = d1rC2C(4:5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    d1fC2C(1, :, IBC_INTERIOR, IACCU_CP4) = d1fC2C(1, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    d1rC2C(1, :, IBC_INTERIOR, IACCU_CP4) = d1rC2C(1, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    d1fC2C(5, :, IBC_INTERIOR, IACCU_CP4) = d1fC2C(5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    d1rC2C(5, :, IBC_INTERIOR, IACCU_CP4) = d1rC2C(5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
 
-    d1fC2C(1:2, :, IBC_INTERIOR, IACCU_CP6) = d1fC2C(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    d1rC2C(1:2, :, IBC_INTERIOR, IACCU_CP6) = d1rC2C(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    d1fC2C(4:5, :, IBC_INTERIOR, IACCU_CP6) = d1fC2C(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    d1rC2C(4:5, :, IBC_INTERIOR, IACCU_CP6) = d1rC2C(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    d1fC2C(1, :, IBC_INTERIOR, IACCU_CP6) = d1fC2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    d1rC2C(1, :, IBC_INTERIOR, IACCU_CP6) = d1rC2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    d1fC2C(5, :, IBC_INTERIOR, IACCU_CP6) = d1fC2C(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    d1rC2C(5, :, IBC_INTERIOR, IACCU_CP6) = d1rC2C(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
@@ -967,15 +968,15 @@ contains
     m1fC2P(:,   :, IBC_INTERIOR, :) = m1fC2P(:,   :, IBC_PERIODIC, :)
     m1rC2P(:,   :, IBC_INTERIOR, :) = m1rC2P(:,   :, IBC_PERIODIC, :)
 
-    m1fC2P(1:2, :, IBC_INTERIOR, IACCU_CP4) = m1fC2P(1:2, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1rC2P(1:2, :, IBC_INTERIOR, IACCU_CP4) = m1rC2P(1:2, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1fC2P(4:5, :, IBC_INTERIOR, IACCU_CP4) = m1fC2P(4:5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
-    m1rC2P(4:5, :, IBC_INTERIOR, IACCU_CP4) = m1rC2P(4:5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1fC2P(1, :, IBC_INTERIOR, IACCU_CP4) = m1fC2P(1, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1rC2P(1, :, IBC_INTERIOR, IACCU_CP4) = m1rC2P(1, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1fC2P(5, :, IBC_INTERIOR, IACCU_CP4) = m1fC2P(5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
+    m1rC2P(5, :, IBC_INTERIOR, IACCU_CP4) = m1rC2P(5, :, IBC_PERIODIC, IACCU_CD2) ! 3 cell stencil, 4th CP --> 2nd CD
 
-    m1fC2P(1:2, :, IBC_INTERIOR, IACCU_CP6) = m1fC2P(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    m1rC2P(1:2, :, IBC_INTERIOR, IACCU_CP6) = m1rC2P(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    m1fC2P(4:5, :, IBC_INTERIOR, IACCU_CP6) = m1fC2P(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-    m1rC2P(4:5, :, IBC_INTERIOR, IACCU_CP6) = m1rC2P(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1fC2P(1, :, IBC_INTERIOR, IACCU_CP6) = m1fC2P(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1rC2P(1, :, IBC_INTERIOR, IACCU_CP6) = m1rC2P(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1fC2P(5, :, IBC_INTERIOR, IACCU_CP6) = m1fC2P(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+    m1rC2P(5, :, IBC_INTERIOR, IACCU_CP6) = m1rC2P(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : C2P for IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
@@ -4028,6 +4029,7 @@ contains
     use parameters_constant_mod
     use math_mod
     use udf_type_mod
+    use typeconvert_mod
     implicit none
     integer, intent(in) :: nc
     integer, intent(in) :: np
@@ -4047,9 +4049,9 @@ contains
     integer  :: wrt_unit(2)
     real(WP) :: fgxp(np), fxc(nc)
 
-    open (newunit = wrt_unit(1), file = 'test_interp.dat', position="append")
-    open (newunit = wrt_unit(2), file = 'test_interp_'//trim(str)//'.dat', position="append")
-    
+    open (newunit = wrt_unit(1), file = 'test_interp_'//trim(int2str(nc))//'.dat', position="append")
+    open (newunit = wrt_unit(2), file = 'test_interp_'//trim(str)//'_'//trim(int2str(nc))//'.dat', position="append")
+
   ! x direction, xc
     do i = 1, nc
       xc = dd * (real(i - 1, WP) + HALF)
@@ -4078,9 +4080,8 @@ contains
       err_L2 = err_L2 + err**2
     end do
     err_L2 = sqrt_wp(err_L2 / np) 
-    write(wrt_unit(1), *) '# interp-c2p-'//trim(str), &
-                           ', iacc=', iacc, ', np=', np, &
-                           ', ibc=', ibc, ', eInf=', err_Linf, ', eL2=', err_L2
+    write(wrt_unit(1), '(A, 2I2, 1I5, 2ES15.7)') &
+      '# interp-c2p-'//trim(str)//', iacc, ibc, np, eInf, eL2: ', iacc, ibc(1), np, err_Linf, err_L2
     
     close(wrt_unit(1))
     close(wrt_unit(2))
@@ -4091,6 +4092,7 @@ contains
     use parameters_constant_mod
     use math_mod
     use udf_type_mod
+    use typeconvert_mod
     implicit none
     integer, intent(in) :: nc
     integer, intent(in) :: np
@@ -4111,8 +4113,9 @@ contains
     real(WP) :: fgxc(nc)
     real(WP) :: fxp(np)
 
-    open (newunit = wrt_unit(1), file = 'test_interp.dat', position="append")
-    open (newunit = wrt_unit(2), file = 'test_interp_'//trim(str)//'.dat', position="append")
+    open (newunit = wrt_unit(1), file = 'test_interp_'//trim(int2str(nc))//'.dat', position="append")
+    open (newunit = wrt_unit(2), file = 'test_interp_'//trim(str)//'_'//trim(int2str(nc))//'.dat', position="append")
+
 
     ! x direction, xp
     do i = 1, np
@@ -4142,10 +4145,8 @@ contains
       err_L2 = err_L2 + err**2
     end do
     err_L2 = sqrt_wp(err_L2 / nc) 
-    write(wrt_unit(1), *) '# interp-p2c-'//trim(str), &
-                           ', iacc=', iacc, ', nc=', nc, &
-                           ', ibc=', ibc, ', eInf=', err_Linf, ', eL2=', err_L2
-    
+    write(wrt_unit(1), '(A, 2I2, 1I5, 2ES15.7)') &
+      '# interp-p2c-'//trim(str)//', iacc, ibc, nc, eInf, eL2: ', iacc, ibc(1), nc, err_Linf, err_L2
     close(wrt_unit(1))
     close(wrt_unit(2))
     return
@@ -4179,15 +4180,12 @@ contains
     do i = 1, 3
       if (i == 1) then
         ibc(:) = ibcx(:)
-        fbc(:) = fbcx(:)
         str = 'x'
       else if (i == 2) then
         ibc(:) = ibcy(:)
-        fbc(:) = fbcy(:)
         str = 'y'
       else if (i == 3) then
         ibc(:) = ibcz(:)
-        fbc(:) = fbcz(:)
         str = 'z'
       else 
       end if
@@ -4223,6 +4221,7 @@ contains
     use parameters_constant_mod
     use math_mod
     use udf_type_mod
+    use typeconvert_mod
     implicit none
     integer, intent(in) :: nc
     integer, intent(in) :: np
@@ -4243,8 +4242,8 @@ contains
     real(WP) :: fgxc(nc)
     real(WP) :: fxp(np)
 
-    open (newunit = wrt_unit(1), file = 'test_1stder.dat', position="append")
-    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'.dat', position="append")
+    open (newunit = wrt_unit(1), file = 'test_1stder_'//trim(int2str(nc))//'.dat', position="append")
+    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'_'//trim(int2str(nc))//'.dat', position="append")
 
     do i = 1, np
       xp = dd * real(i - 1, WP)
@@ -4273,9 +4272,8 @@ contains
       err_L2 = err_L2 + err**2
     end do
     err_L2 = sqrt_wp(err_L2 / nc) 
-    write(wrt_unit(1), *) '# 1stder-p2c-'//trim(str), &
-                           ', iacc=', iacc, ', nc=', nc, &
-                           ', ibc=', ibc, ', eInf=', err_Linf, ', eL2=', err_L2
+    write(wrt_unit(1), '(A, 2I2, 1I5, 2ES15.7)') &
+      '# 1stder-p2c-'//trim(str)//', iacc, ibc, nc, eInf, eL2: ', iacc, ibc(1), nc, err_Linf, err_L2
 
     close(wrt_unit(1))
     close(wrt_unit(2))
@@ -4287,6 +4285,7 @@ contains
     use parameters_constant_mod
     use math_mod
     use udf_type_mod
+    use typeconvert_mod
     implicit none
     integer, intent(in) :: nc
     integer, intent(in) :: np
@@ -4307,9 +4306,8 @@ contains
     real(WP) :: fgxp(np)
     real(WP) :: fxp(np)
 
-    open (newunit = wrt_unit(1), file = 'test_1stder.dat', position="append")
-    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'.dat', position="append")
-
+    open (newunit = wrt_unit(1), file = 'test_1stder_'//trim(int2str(nc))//'.dat', position="append")
+    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'_'//trim(int2str(nc))//'.dat', position="append")
 
     do i = 1, np
       xp = dd * real(i - 1, WP)
@@ -4338,10 +4336,8 @@ contains
       err_L2 = err_L2 + err**2
     end do
     err_L2 = sqrt_wp(err_L2 / nc) 
-    write(wrt_unit(1), *) '# 1stder-p2p-'//trim(str), &
-                           ', iacc=', iacc, ', np=', np, &
-                           ', ibc=', ibc, ', eInf=', err_Linf, ', eL2=', err_L2
-    
+    write(wrt_unit(1), '(A, 2I2, 1I5, 2ES15.7)') &
+      '# 1stder-p2p-'//trim(str)//', iacc, ibc, np, eInf, eL2: ', iacc, ibc(1), np, err_Linf, err_L2
     close(wrt_unit(1))
     close(wrt_unit(2))
 
@@ -4352,6 +4348,7 @@ contains
     use parameters_constant_mod
     use math_mod
     use udf_type_mod
+    use typeconvert_mod
     implicit none
     integer, intent(in) :: nc
     integer, intent(in) :: np
@@ -4372,8 +4369,8 @@ contains
     real(WP) :: fgxp(np)
     real(WP) :: fxc(nc)
 
-    open (newunit = wrt_unit(1), file = 'test_1stder.dat', position="append")
-    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'.dat', position="append")
+    open (newunit = wrt_unit(1), file = 'test_1stder_'//trim(int2str(nc))//'.dat', position="append")
+    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'_'//trim(int2str(nc))//'.dat', position="append")
 
     do i = 1, nc
       xc =  dm%h(1) * (real(i - 1, WP) + HALF)
@@ -4403,10 +4400,8 @@ contains
       err_L2 = err_L2 + err**2
     end do
     err_L2 = sqrt_wp(err_L2 / nc) 
-    write(wrt_unit(1), *) '# 1stder-c2p-'//trim(str), &
-                           ', iacc=', iacc, ', np=', np, &
-                           ', ibc=', ibc, ', eInf=', err_Linf, ', eL2=', err_L2
-    
+    write(wrt_unit(1), '(A, 2I2, 1I5, 2ES15.7)') &
+      '# 1stder-c2p-'//trim(str)//', iacc, ibc, np, eInf, eL2: ', iacc, ibc(1), np, err_Linf, err_L2
     close(wrt_unit(1))
     close(wrt_unit(2))
 
@@ -4417,6 +4412,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
+    use typeconvert_mod
     implicit none
     integer, intent(in) :: nc
     integer, intent(in) :: np
@@ -4437,9 +4433,8 @@ contains
     real(WP) :: fgxc(nc)
     real(WP) :: fxc(nc)
 
-    open (newunit = wrt_unit(1), file = 'test_1stder.dat', position="append")
-    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'.dat', position="append")
-
+    open (newunit = wrt_unit(1), file = 'test_1stder_'//trim(int2str(nc))//'.dat', position="append")
+    open (newunit = wrt_unit(2), file = 'test_1stder_'//trim(str)//'_'//trim(int2str(nc))//'.dat', position="append")
 
     do i = 1, nc
       xc =  dd * (real(i - 1, WP) + HALF)
@@ -4470,10 +4465,8 @@ contains
       err_L2 = err_L2 + err**2
     end do
     err_L2 = sqrt_wp(err_L2 / nc) 
-    write(wrt_unit(1), *) '# 1stder-c2c-'//trim(str), &
-                           ', iacc=', iacc, ', nc=', nc, &
-                           ', ibc=', ibc, ', eInf=', err_Linf, ', eL2=', err_L2
-    
+    write(wrt_unit(1), '(A, 2I2, 1I5, 2ES15.7)') &
+      '# 1stder-c2c-'//trim(str)//', iacc, ibc, nc, eInf, eL2: ', iacc, ibc(1), nc, err_Linf, err_L2
     close(wrt_unit(1))
     close(wrt_unit(2))
     
@@ -4504,15 +4497,12 @@ contains
     do i = 1, 3
       if (i == 1) then
         ibc(:) = ibcx(:)
-        fbc(:) = fbcx(:)
         str = 'x'
       else if (i == 2) then
         ibc(:) = ibcy(:)
-        fbc(:) = fbcy(:)
         str = 'y'
       else if (i == 3) then
         ibc(:) = ibcz(:)
-        fbc(:) = fbcz(:)
         str = 'z'
       else 
       end if
