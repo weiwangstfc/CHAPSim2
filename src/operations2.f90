@@ -118,26 +118,26 @@ module operations
 ! for 1st derivative
 !----------------------------------------------------------------------------------------------------------
   ! collocated C2C
-  real(WP), save, public :: d1fC2C(NL, NS, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rC2C(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fC2C(NL,   NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rC2C(NL, 2*NS, NBCS:NBCE, NACC)
   ! collocated P2P
-  real(WP), save, public :: d1fP2P(NL, NS, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rP2P(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fP2P(NL,   NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rP2P(NL, 2*NS, NBCS:NBCE, NACC)
   ! staggered C2P
-  real(WP), save, public :: d1fC2P(NL, NS, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rC2P(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fC2P(NL,   NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rC2P(NL, 2*NS, NBCS:NBCE, NACC)
   ! staggered P2C
-  real(WP), save, public :: d1fP2C(NL, NS, NBCS:NBCE, NACC)
-  real(WP), save, public :: d1rP2C(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1fP2C(NL,   NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: d1rP2C(NL, 2*NS, NBCS:NBCE, NACC)
 !----------------------------------------------------------------------------------------------------------
 ! for iterpolation
 !----------------------------------------------------------------------------------------------------------
   ! interpolation P2C
-  real(WP), save, public :: m1fP2C(NL, NS, NBCS:NBCE, NACC)
-  real(WP), save, public :: m1rP2C(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1fP2C(NL,   NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1rP2C(NL, 2*NS, NBCS:NBCE, NACC)
   ! interpolation C2P
-  real(WP), save, public :: m1fC2P(NL, NS, NBCS:NBCE, NACC)
-  real(WP), save, public :: m1rC2P(NL, NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1fC2P(NL,   NS, NBCS:NBCE, NACC)
+  real(WP), save, public :: m1rC2P(NL, 2*NS, NBCS:NBCE, NACC)
 
 !----------------------------------------------------------------------------------------------------------
 ! coefficients array for TDMA of 1st deriviative  
@@ -333,8 +333,10 @@ contains
 !==========================================================================================================
 !> \brief Assigned the cooefficients for the compact schemes     
 !> Scope:  mpi    called-freq    xdomain     module
-!>         all    once           specified   private
-!>
+!>         all    once           specified   privatee
+!> reference: 
+!> [Gaitonde1998] Gaitonde, D.V. and Visbal, M., 1998. High-order schemes for Navier-Stokes quations: algorithm 
+!> and implementation into FDL3DI. Air Vehicles Directorte, Air Force Research Laboratory, Air Force Materiel Command.
 !----------------------------------------------------------------------------------------------------------
 ! Arguments
 !----------------------------------------------------------------------------------------------------------
@@ -389,6 +391,7 @@ contains
 ! when i=nc-1, need:                 RHS: f_{nc+1}
 ! when i=nc,   need: LHS: f'_{nc+1}; RHS: f_{nc+1}, f_{nc+2}
 !==========================================================================================================
+    ! below ref: Table 2.1 in [Gaitonde1998]
     alpha(IACCU_CD2) = ZERO
         a(IACCU_CD2) = ONE
         b(IACCU_CD2) = ZERO
@@ -459,82 +462,123 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    d1fC2C(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_INTERIOR, :)
-    d1rC2C(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_INTERIOR, :)
+    ! d1fC2C(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_INTERIOR, :)
+    ! d1rC2C(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_INTERIOR, :)
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    d1fC2C(:, :, IBC_NEUMANN,   :) = d1fC2C(:, :, IBC_INTERIOR, :)
-    d1rC2C(:, :, IBC_NEUMANN,   :) = d1rC2C(:, :, IBC_INTERIOR, :)
+    ! d1fC2C(:, :, IBC_NEUMANN,   :) = d1fC2C(:, :, IBC_INTERIOR, :)
+    ! d1rC2C(:, :, IBC_NEUMANN,   :) = d1rC2C(:, :, IBC_INTERIOR, :)
 !----------------------------------------------------------------------------------------------------------
-! 1st-derivative, C2C, IBC_INTRPL, no bc, no reconstuction. exterpolation only. 
+! 1st-derivative, C2C, IBC_INTRPL, no bc, no reconstuction. exterpolation only. for the first point
 !                    f'_1 + alpha * f'_{2}   = a1 * f_1 + b1 * f_2 + c1 * f-3
 ! alpha * f'_{1}   + f'_2 + alpha * f'_{3}   = a/(2h) * ( f_{i+1} - f_{i-1} ) 
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
 !----------------------------------------------------------------------------------------------------------
-    alpha1(IACCU_CD2) = ZERO
-        a1(IACCU_CD2) = - ONE
-        b1(IACCU_CD2) = ONE 
-        c1(IACCU_CD2) = ZERO
-
-    alpha1(IACCU_CD4) = ZERO
-        a1(IACCU_CD4) = -ONEPFIVE
-        b1(IACCU_CD4) = TWO
-        c1(IACCU_CD4) = -HALF
-
-    alpha1(IACCU_CP4) = ONE
-        a1(IACCU_CP4) = - TWO
-        b1(IACCU_CP4) = TWO
-        c1(IACCU_CP4) = ZERO
-
-    alpha1(IACCU_CP6) = TWO
-        a1(IACCU_CP6) = -TWOPFIVE
-        b1(IACCU_CP6) = TWO
-        c1(IACCU_CP6) = HALF
-
     do n = 1, NACC
-      d1fC2C(1, 1,   IBC_INTRPL, n) = ZERO ! not used
-      d1fC2C(1, 2,   IBC_INTRPL, n) = ONE
-      d1fC2C(1, 3,   IBC_INTRPL, n) = alpha1(n)
-      d1rC2C(1, 1,   IBC_INTRPL, n) = a1(n)
-      d1rC2C(1, 2,   IBC_INTRPL, n) = b1(n)
-      d1rC2C(1, 3,   IBC_INTRPL, n) = c1(n)
-
-      d1fC2C(5, 1,   IBC_INTRPL, n) =   d1fC2C(1, 3, IBC_INTRPL, n)
-      d1fC2C(5, 2,   IBC_INTRPL, n) =   d1fC2C(1, 2, IBC_INTRPL, n)
-      d1fC2C(5, 3,   IBC_INTRPL, n) =   d1fC2C(1, 1, IBC_INTRPL, n)
-      d1rC2C(5, 1,   IBC_INTRPL, n) = - d1rC2C(1, 1, IBC_INTRPL, n)
-      d1rC2C(5, 2,   IBC_INTRPL, n) = - d1rC2C(1, 2, IBC_INTRPL, n)
-      d1rC2C(5, 3,   IBC_INTRPL, n) = - d1rC2C(1, 3, IBC_INTRPL, n)
-
       d1fC2C(3, 1:3, IBC_INTRPL, n) = d1fC2C(3, 1:3, IBC_PERIODIC, n)
       d1rC2C(3, 1:3, IBC_INTRPL, n) = d1rC2C(3, 1:3, IBC_PERIODIC, n)
     end do
-    ! check which below method works good! 
-    do n = 1, 2
-     !d1fC2C(2, 1:3, IBC_INTRPL, n) = d1fC2C(1, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
-     !d1rC2C(2, 1:3, IBC_INTRPL, n) = d1rC2C(1, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
-     !d1fC2C(4, 1:3, IBC_INTRPL, n) = d1fC2C(5, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
-     !d1rC2C(4, 1:3, IBC_INTRPL, n) = d1rC2C(5, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
+    ! below ref: Table 2.2 in [Gaitonde1998]
+    d1fC2C(1, 1, IBC_INTRPL, IACCU_CD2) = ZERO ! not used
+    d1fC2C(1, 2, IBC_INTRPL, IACCU_CD2) = ONE
+    d1fC2C(1, 3, IBC_INTRPL, IACCU_CD2) = ZERO
+    d1rC2C(1, :, IBC_INTRPL, IACCU_CD2) = ZERO
+    d1rC2C(1, 1, IBC_INTRPL, IACCU_CD2) = -3.0_WP/2.0_WP
+    d1rC2C(1, 2, IBC_INTRPL, IACCU_CD2) = 2.0_WP
+    d1rC2C(1, 3, IBC_INTRPL, IACCU_CD2) = -1.0_WP/2.0_WP
+    
+    d1fC2C(1, 1, IBC_INTRPL, IACCU_CD4) = ZERO ! not used
+    d1fC2C(1, 2, IBC_INTRPL, IACCU_CD4) = ONE
+    d1fC2C(1, 3, IBC_INTRPL, IACCU_CD4) = ZERO
+    d1rC2C(1, :, IBC_INTRPL, IACCU_CD4) = ZERO
+    d1rC2C(1, 1, IBC_INTRPL, IACCU_CD4) = -25.0_WP/12.0_WP
+    d1rC2C(1, 2, IBC_INTRPL, IACCU_CD4) = 4.0_WP
+    d1rC2C(1, 3, IBC_INTRPL, IACCU_CD4) = -3.0_WP
+    d1rC2C(1, 4, IBC_INTRPL, IACCU_CD4) = 4.0_WP/3.0_WP
+    d1rC2C(1, 5, IBC_INTRPL, IACCU_CD4) = -1.0_WP/4.0_WP
 
-      d1fC2C(2, 1:3, IBC_INTRPL, n) = d1fC2C(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      d1rC2C(2, 1:3, IBC_INTRPL, n) = d1rC2C(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      d1fC2C(4, 1:3, IBC_INTRPL, n) = d1fC2C(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      d1rC2C(4, 1:3, IBC_INTRPL, n) = d1rC2C(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    d1fC2C(1, 1, IBC_INTRPL, IACCU_CP4) = ZERO ! not used
+    d1fC2C(1, 2, IBC_INTRPL, IACCU_CP4) = ONE
+    d1fC2C(1, 3, IBC_INTRPL, IACCU_CP4) = THREE
+    d1rC2C(1, :, IBC_INTRPL, IACCU_CP4) = ZERO
+    d1rC2C(1, 1, IBC_INTRPL, IACCU_CP4) = -17.0_WP/6.0_WP
+    d1rC2C(1, 2, IBC_INTRPL, IACCU_CP4) = 3.0_WP/2.0_WP
+    d1rC2C(1, 3, IBC_INTRPL, IACCU_CP4) = 3.0_WP/2.0_WP
+    d1rC2C(1, 4, IBC_INTRPL, IACCU_CP4) = -1.0_WP/6.0_WP
+
+
+    d1fC2C(1, 1, IBC_INTRPL, IACCU_CP6) = ZERO ! not used
+    d1fC2C(1, 2, IBC_INTRPL, IACCU_CP6) = ONE
+    d1fC2C(1, 3, IBC_INTRPL, IACCU_CP6) = FIVE
+    d1rC2C(1, :, IBC_INTRPL, IACCU_CP6) = ZERO
+    d1rC2C(1, 1, IBC_INTRPL, IACCU_CP6) = -197.0_WP/60.0_WP
+    d1rC2C(1, 2, IBC_INTRPL, IACCU_CP6) = -5.0_WP/12.0_WP
+    d1rC2C(1, 3, IBC_INTRPL, IACCU_CP6) = 5.0_WP
+    d1rC2C(1, 4, IBC_INTRPL, IACCU_CP6) = -5.0_WP/3.0_WP
+    d1rC2C(1, 5, IBC_INTRPL, IACCU_CP6) = 5.0_WP/12.0_WP
+    d1rC2C(1, 6, IBC_INTRPL, IACCU_CP6) = -1.0_WP/20.0_WP
+    
+    do n = 1, NACC
+      d1fC2C(5, 1,   IBC_INTRPL, n) =   d1fC2C(1, 3, IBC_INTRPL, n)
+      d1fC2C(5, 2,   IBC_INTRPL, n) =   d1fC2C(1, 2, IBC_INTRPL, n)
+      d1fC2C(5, 3,   IBC_INTRPL, n) =   d1fC2C(1, 1, IBC_INTRPL, n)
+      d1rC2C(5, :,   IBC_INTRPL, n) = - d1rC2C(1, :, IBC_INTRPL, n)
     end do
 
-    do n = 3, 4
-      !d1fC2C(2, 1:3, IBC_INTRPL, n) = d1fC2C(1, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
-      !d1rC2C(2, 1:3, IBC_INTRPL, n) = d1rC2C(1, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
-      !d1fC2C(4, 1:3, IBC_INTRPL, n) = d1fC2C(5, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
-      !d1rC2C(4, 1:3, IBC_INTRPL, n) = d1rC2C(5, 1:3, IBC_INTRPL, n) ! exterpolation, following Line 1
+    ! below ref: Table 2.6 in [Gaitonde1998]
+    d1fC2C(2, 1, IBC_INTRPL, IACCU_CD2) = ZERO 
+    d1fC2C(2, 2, IBC_INTRPL, IACCU_CD2) = ONE
+    d1fC2C(2, 3, IBC_INTRPL, IACCU_CD2) = ZERO
+    d1rC2C(2, :, IBC_INTRPL, IACCU_CD2) = ZERO
+    d1rC2C(2, 1, IBC_INTRPL, IACCU_CD2) = -1.0_WP/2.0_WP
+    d1rC2C(2, 2, IBC_INTRPL, IACCU_CD2) = 0.0_WP
+    d1rC2C(2, 3, IBC_INTRPL, IACCU_CD2) = 1.0_WP/2.0_WP
+    
+    d1fC2C(2, 1, IBC_INTRPL, IACCU_CD4) = ZERO 
+    d1fC2C(2, 2, IBC_INTRPL, IACCU_CD4) = ONE
+    d1fC2C(2, 3, IBC_INTRPL, IACCU_CD4) = ZERO
+    d1rC2C(2, :, IBC_INTRPL, IACCU_CD4) = ZERO
+    d1rC2C(2, 1, IBC_INTRPL, IACCU_CD4) = -1.0_WP/4.0_WP
+    d1rC2C(2, 2, IBC_INTRPL, IACCU_CD4) = -5.0_WP/6.0_WP
+    d1rC2C(2, 3, IBC_INTRPL, IACCU_CD4) = 3.0_WP/2.0_WP
+    d1rC2C(2, 4, IBC_INTRPL, IACCU_CD4) = -1.0_WP/2.0_WP
+    d1rC2C(2, 5, IBC_INTRPL, IACCU_CD4) = 1.0_WP/12.0_WP
 
-      d1fC2C(2, 1:3, IBC_INTRPL, n) = d1fC2C(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      d1rC2C(2, 1:3, IBC_INTRPL, n) = d1rC2C(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      d1fC2C(4, 1:3, IBC_INTRPL, n) = d1fC2C(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      d1rC2C(4, 1:3, IBC_INTRPL, n) = d1rC2C(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    ! below ref: Table 2.3 in [Gaitonde1998]
+    d1fC2C(2, 1, IBC_INTRPL, IACCU_CP4) = QUARTER
+    d1fC2C(2, 2, IBC_INTRPL, IACCU_CP4) = ONE
+    d1fC2C(2, 3, IBC_INTRPL, IACCU_CP4) = QUARTER
+    d1rC2C(2, :, IBC_INTRPL, IACCU_CP4) = ZERO
+    d1rC2C(2, 1, IBC_INTRPL, IACCU_CP4) = -3.0_WP/4.0_WP
+    d1rC2C(2, 2, IBC_INTRPL, IACCU_CP4) = 0.0_WP
+    d1rC2C(2, 3, IBC_INTRPL, IACCU_CP4) = 3.0_WP/4.0_WP
+
+    d1fC2C(2, 1, IBC_INTRPL, IACCU_CP6) = TWO / ELEVEN
+    d1fC2C(2, 2, IBC_INTRPL, IACCU_CP6) = ONE
+    d1fC2C(2, 3, IBC_INTRPL, IACCU_CP6) = TWO / ELEVEN
+    d1rC2C(2, :, IBC_INTRPL, IACCU_CP6) = ZERO
+    d1rC2C(2, 1, IBC_INTRPL, IACCU_CP6) = -20.0_WP/33.0_WP
+    d1rC2C(2, 2, IBC_INTRPL, IACCU_CP6) = -35.0_WP/132.0_WP
+    d1rC2C(2, 3, IBC_INTRPL, IACCU_CP6) = 34.0_WP/33.0_WP
+    d1rC2C(2, 4, IBC_INTRPL, IACCU_CP6) = -7.0_WP/33.0_WP
+    d1rC2C(2, 5, IBC_INTRPL, IACCU_CP6) = 2.0_WP/33.0_WP
+    d1rC2C(2, 6, IBC_INTRPL, IACCU_CP6) = -1.0_WP/132.0_WP
+
+    do n = 1, NACC
+      d1fC2C(4, 1, IBC_INTRPL, n) =   d1fC2C(2, 3, IBC_INTRPL, n)
+      d1fC2C(4, 2, IBC_INTRPL, n) =   d1fC2C(2, 2, IBC_INTRPL, n)
+      d1fC2C(4, 3, IBC_INTRPL, n) =   d1fC2C(2, 1, IBC_INTRPL, n)
+      d1rC2C(4, :, IBC_INTRPL, n) = - d1rC2C(2, :, IBC_INTRPL, n)
     end do
+
+    d1fC2C(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_INTRPL, :)
+    d1rC2C(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_INTRPL, :)
+
+    d1fC2C(:, :, IBC_NEUMANN,   :) = d1fC2C(:, :, IBC_INTERIOR, :)
+    d1rC2C(:, :, IBC_NEUMANN,   :) = d1rC2C(:, :, IBC_INTERIOR, :)
+
 !==========================================================================================================
 ! 1st-derivative, P2P :
 ! d1fP2P : "d1"=first deriviative, "f"=f'  side, "P2P"= point(node) 2 point 
@@ -584,6 +628,18 @@ contains
     d1fP2P(:, :, IBC_INTERIOR,  :) = d1fC2C(:, :, IBC_INTERIOR,  :)
     d1rP2P(:, :, IBC_INTERIOR,  :) = d1rC2C(:, :, IBC_INTERIOR,  :)
 !----------------------------------------------------------------------------------------------------------
+! 1st-derivative, P2P : exterpolation
+! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(2h) * ( f_{i'+1} - f_{i'-1} ) + &
+!                                                 b/(4h) * ( f_{i'+2} - f_{i'-2} )
+! 1st-derivative, C2C, IBC_INTRPL, no bc, no reconstuction. exterpolation only. 
+!                     f'_1' + alpha * f'_{2'}   = a1 * f_1' + b1 * f_2' + c1 * f_3'
+! alpha * f'_{1'}   + f'_2' + alpha * f'_{3'}   = a/(2h) * ( f_{i'+1} - f_{i'-1} ) 
+! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(2h) * ( f_{i'+1} - f_{i'-1} ) + &
+!                                                 b/(4h) * ( f_{i'+2} - f_{i'-2} )
+!----------------------------------------------------------------------------------------------------------
+    d1fP2P(:, :, IBC_INTRPL,    :) = d1fC2C(:, :, IBC_INTRPL, :)
+    d1rP2P(:, :, IBC_INTRPL,    :) = d1rC2C(:, :, IBC_INTRPL, :)
+!----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
     d1fP2P(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_DIRICHLET, :)
@@ -602,21 +658,9 @@ contains
       d1fP2P(5, 3,   IBC_NEUMANN, n) = ZERO
       d1rP2P(5, 1:3, IBC_NEUMANN, n) = ZERO
 
-      d1fP2P(2:4, 1:3, IBC_NEUMANN, n) = d1fP2P(2:4, 1:3, IBC_INTERIOR, n)
-      d1rP2P(2:4, 1:3, IBC_NEUMANN, n) = d1rP2P(2:4, 1:3, IBC_INTERIOR, n)
+      d1fP2P(2:4, 1:3, IBC_NEUMANN, n) = d1fC2C(2:4, 1:3, IBC_NEUMANN, n)
+      d1rP2P(2:4, 1:3, IBC_NEUMANN, n) = d1rC2C(2:4, 1:3, IBC_NEUMANN, n)
     end do
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative, P2P : exterpolation
-! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(2h) * ( f_{i'+1} - f_{i'-1} ) + &
-!                                                 b/(4h) * ( f_{i'+2} - f_{i'-2} )
-! 1st-derivative, C2C, IBC_INTRPL, no bc, no reconstuction. exterpolation only. 
-!                     f'_1' + alpha * f'_{2'}   = a1 * f_1' + b1 * f_2' + c1 * f_3'
-! alpha * f'_{1'}   + f'_2' + alpha * f'_{3'}   = a/(2h) * ( f_{i'+1} - f_{i'-1} ) 
-! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(2h) * ( f_{i'+1} - f_{i'-1} ) + &
-!                                                 b/(4h) * ( f_{i'+2} - f_{i'-2} )
-!----------------------------------------------------------------------------------------------------------
-    d1fP2P(:, :, IBC_INTRPL,    :) = d1fC2C(:, :, IBC_INTRPL, :)
-    d1rP2P(:, :, IBC_INTRPL,    :) = d1rC2C(:, :, IBC_INTRPL, :)
 !==========================================================================================================
 ! 1st derivative on staggered grids C2P
 ! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
@@ -1645,7 +1689,7 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
+    real(WP), intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     integer,  intent(in ) :: ibc(2)
     real(WP), intent(in ) :: d1(4)
     real(WP), optional, intent(in ) :: fbc(4)
@@ -1736,7 +1780,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
+    real(WP),           intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     real(WP),           intent(in ) :: d1(4)
     integer,            intent(in ) :: ibc(2)
     real(WP), optional, intent(in)  :: fbc(4) ! used for Dirichlet B.C. (1||2) & interior (3, 1,|| 2, 4)
@@ -1861,7 +1905,7 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
+    real(WP), intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     real(WP), intent(in ) :: d1(4)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
@@ -1890,9 +1934,7 @@ contains
       is_bc(i) = (ibc(i) == IBC_INTERIOR   .or. &
                   ibc(i) == IBC_PERIODIC   .or. &
                   ibc(i) == IBC_SYMMETRIC  .or. &
-                  ibc(i) == IBC_ASYMMETRIC .or. &
-                  ibc(i) == IBC_NEUMANN    .or. &
-                  ibc(i) == IBC_DIRICHLET )
+                  ibc(i) == IBC_ASYMMETRIC)
     end do
 !----------------------------------------------------------------------------------------------------------
     i = 1
@@ -1903,7 +1945,10 @@ contains
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
+              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 1, 5, IBC_INTRPL) * fi(i + 4) + &
+              coeff( 1, 6, IBC_INTRPL) * fi(i + 5)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = 2
@@ -1911,7 +1956,12 @@ contains
       fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( 2, 2, ibc(1) ) * ( fi(i + 2) - fc(0)     )
     else
-      fo(i) = coeff( 2, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
+      fo(i) = coeff( 2, 1, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 2, 2, IBC_INTRPL) * fi(i    ) + &
+              coeff( 2, 3, IBC_INTRPL) * fi(i + 1) + &
+              coeff( 2, 4, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 2, 5, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 2, 6, IBC_INTRPL) * fi(i + 4)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc  
@@ -1921,7 +1971,11 @@ contains
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( 5, 3, IBC_INTRPL) * fi(i - 2) 
+              coeff( 5, 3, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 5, 4, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 5, 5, IBC_INTRPL) * fi(i - 4) + &
+              coeff( 5, 6, IBC_INTRPL) * fi(i - 5)
+
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc - 1  
@@ -1929,7 +1983,12 @@ contains
       fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( 4, 2, ibc(2) ) * ( fc(1)     - fi(i - 2) )
     else
-      fo(i) = coeff( 4, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
+      fo(i) = coeff( 4, 1, IBC_INTRPL) * fi(i + 1) + &
+              coeff( 4, 2, IBC_INTRPL) * fi(i    ) + &
+              coeff( 4, 3, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 4, 4, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 4, 5, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 4, 6, IBC_INTRPL) * fi(i - 4)
     end if
 !----------------------------------------------------------------------------------------------------------
 !   mesh-based scaling
@@ -1962,7 +2021,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
+    real(WP),           intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     real(WP),           intent(in ) :: d1(4)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -1991,10 +2050,9 @@ contains
       is_bc_main(i) = (ibc(i) == IBC_INTERIOR   .or. &
                    ibc(i) == IBC_PERIODIC   .or. &
                    ibc(i) == IBC_SYMMETRIC  .or. &
-                   ibc(i) == IBC_ASYMMETRIC .or. &
-                   ibc(i) == IBC_DIRICHLET )
-      is_bc_extd(i) = (is_bc_main(i) .or. &
-                   ibc(i) == IBC_NEUMANN)
+                   ibc(i) == IBC_ASYMMETRIC)
+      !is_bc_extd(i) = (is_bc_main(i) .or. &
+      !             ibc(i) == IBC_NEUMANN)
     end do
 !----------------------------------------------------------------------------------------------------------
     i = 1
@@ -2006,16 +2064,24 @@ contains
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
+              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 1, 5, IBC_INTRPL) * fi(i + 4) + &
+              coeff( 1, 6, IBC_INTRPL) * fi(i + 5) 
     end if
 
 !----------------------------------------------------------------------------------------------------------    
     i = 2
-    if(is_bc_extd(1)) then
+    if(is_bc_main(1)) then
       fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( 2, 2, ibc(1) ) * ( fi(i + 2) - fp(0)     )
     else
-      fo(i) = coeff( 2, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
+      fo(i) = coeff( 2, 1, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 2, 2, IBC_INTRPL) * fi(i    ) + &
+              coeff( 2, 3, IBC_INTRPL) * fi(i + 1) + &
+              coeff( 2, 4, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 2, 5, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 2, 6, IBC_INTRPL) * fi(i + 4)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
@@ -2027,15 +2093,23 @@ contains
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
-              coeff( 5, 3, IBC_INTRPL) * fi(i - 2) 
+              coeff( 5, 3, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 5, 4, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 5, 5, IBC_INTRPL) * fi(i - 4) + &
+              coeff( 5, 6, IBC_INTRPL) * fi(i - 5)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
-    if(is_bc_extd(2)) then
+    if(is_bc_main(2)) then
       fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( 4, 2, ibc(2) ) * ( fp(1)     - fi(i - 2) )
     else
-      fo(i) = coeff( 4, 1, IBC_INTRPL ) * ( fi(i + 1) - fi(i - 1) )
+      fo(i) = coeff( 4, 1, IBC_INTRPL) * fi(i + 1) + &
+              coeff( 4, 2, IBC_INTRPL) * fi(i    ) + &
+              coeff( 4, 3, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 4, 4, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 4, 5, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 4, 6, IBC_INTRPL) * fi(i - 4)
     end if
 !----------------------------------------------------------------------------------------------------------
 !   mesh-based scaling
@@ -2069,7 +2143,7 @@ contains
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
-    real(WP),           intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
+    real(WP),           intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     real(WP),           intent(in ) :: d1(4)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
@@ -2177,7 +2251,7 @@ contains
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers, nc
     real(WP), intent(out) :: fo(nc)
-    real(WP), intent(in ) :: coeff(1:NL, 1:NS, NBCS:NBCE)
+    real(WP), intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     real(WP), intent(in ) :: dd
     real(WP), intent(in ) :: d1(4)
     integer,  intent(in ) :: ibc(2)
@@ -2364,7 +2438,7 @@ contains
     ixsub = dm%idom
     d1(:) = dm%h(1)
 
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1, ibc(:), fbc)
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1, ibc(:), fbc)
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2422,7 +2496,7 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2)  ) - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2478,7 +2552,7 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:) )
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2533,7 +2607,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) =  dm%h(3)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2585,7 +2659,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:))
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2659,13 +2733,15 @@ contains
     fo = ZERO
     d1(:) = dm%h(1)
 
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
       else
         is_periodic = .false.
       end if
+
       call Solve_TDMA(is_periodic, fo(:), &
             xtdma_lhs(ixsub)%ad1x_C2C(:, ibc(1), ibc(2), iacc), &
             xtdma_lhs(ixsub)%bd1x_C2C(:, ibc(1), ibc(2), iacc), &
@@ -2712,7 +2788,7 @@ contains
     fo = ZERO
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2767,7 +2843,7 @@ contains
 
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2820,7 +2896,7 @@ contains
 
     ixsub = dm%idom
     d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:) )
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2879,7 +2955,7 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2936,7 +3012,7 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2995,7 +3071,7 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:) )
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3052,7 +3128,7 @@ contains
     d1(3) = dm%yp(3) - dm%yp(2)
     d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
     d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3110,7 +3186,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3162,7 +3238,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3216,7 +3292,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:) )
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3268,7 +3344,7 @@ contains
     nsz = size(fo)
     fo = ZERO
     d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
