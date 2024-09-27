@@ -109,8 +109,8 @@ module operations
 !                    3 = IACCU_CP4
 !                    4 = IACCU_CP6
 !----------------------------------------------------------------------------------------------------------
-  integer, parameter :: NL = 5 ! rows/line types
-  integer, parameter :: NS = 3 ! how many coefficients
+  integer, parameter :: NL = 5   ! rows/line types
+  integer, parameter :: NS = 3   ! how many coefficients
   integer, parameter :: NBCS = 0 ! bc index, start
   integer, parameter :: NBCE = 6 ! bc index, end
   integer, parameter :: NACC = 4 ! accuracy types
@@ -350,8 +350,8 @@ contains
     use mpi_mod
     implicit none
 
-    real(WP) :: alpha (4),  a(4),  b(4)
-    real(WP) :: alpha1(4), a1(4), b1(4), c1(4)
+    real(WP) :: alpha (4),  a(4),  b(4), c(4)
+    real(WP) :: alpha1(4), a1(4), b1(4), c1(4), d1(4), e1(4), f1(4)
 
     integer :: n
 
@@ -737,26 +737,26 @@ contains
     d1rC2P(1:2, :, IBC_INTERIOR, IACCU_CP6) = d1rC2P(1:2, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
     d1fC2P(4:5, :, IBC_INTERIOR, IACCU_CP6) = d1fC2P(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
     d1rC2P(4:5, :, IBC_INTERIOR, IACCU_CP6) = d1rC2P(4:5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative, C2P, IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    d1fC2P(:, :, IBC_DIRICHLET, :) = d1fC2P(:, :, IBC_INTERIOR, :)
-    d1rC2P(:, :, IBC_DIRICHLET, :) = d1rC2P(:, :, IBC_INTERIOR, :)
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative, C2P : IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    do n = 1, NACC
-      d1fC2P(1, 1,   IBC_NEUMANN, n) = ZERO ! not used
-      d1fC2P(1, 2,   IBC_NEUMANN, n) = ONE
-      d1fC2P(1, 3,   IBC_NEUMANN, n) = ZERO
-      d1rC2P(1, 1:3, IBC_NEUMANN, n) = ZERO ! not used
-      d1fC2P(5, 1,   IBC_NEUMANN, n) = ZERO
-      d1fC2P(5, 2,   IBC_NEUMANN, n) = ONE
-      d1fC2P(5, 3,   IBC_NEUMANN, n) = ZERO
-      d1rC2P(5, 1:3, IBC_NEUMANN, n) = ZERO
-      d1fC2P(2:4, :, IBC_NEUMANN, n) = d1fC2P(2:4, :, IBC_INTERIOR, n)
-      d1rC2P(2:4, :, IBC_NEUMANN, n) = d1rC2P(2:4, :, IBC_INTERIOR, n)
-    end do
+! !----------------------------------------------------------------------------------------------------------
+! ! 1st-derivative, C2P, IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! !----------------------------------------------------------------------------------------------------------
+!     d1fC2P(:, :, IBC_DIRICHLET, :) = d1fC2P(:, :, IBC_INTERIOR, :)
+!     d1rC2P(:, :, IBC_DIRICHLET, :) = d1rC2P(:, :, IBC_INTERIOR, :)
+! !----------------------------------------------------------------------------------------------------------
+! ! 1st-derivative, C2P : IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! !----------------------------------------------------------------------------------------------------------
+!     do n = 1, NACC
+!       d1fC2P(1, 1,   IBC_NEUMANN, n) = ZERO ! not used
+!       d1fC2P(1, 2,   IBC_NEUMANN, n) = ONE
+!       d1fC2P(1, 3,   IBC_NEUMANN, n) = ZERO
+!       d1rC2P(1, 1:3, IBC_NEUMANN, n) = ZERO ! not used
+!       d1fC2P(5, 1,   IBC_NEUMANN, n) = ZERO
+!       d1fC2P(5, 2,   IBC_NEUMANN, n) = ONE
+!       d1fC2P(5, 3,   IBC_NEUMANN, n) = ZERO
+!       d1rC2P(5, 1:3, IBC_NEUMANN, n) = ZERO
+!       d1fC2P(2:4, :, IBC_NEUMANN, n) = d1fC2P(2:4, :, IBC_INTERIOR, n)
+!       d1rC2P(2:4, :, IBC_NEUMANN, n) = d1rC2P(2:4, :, IBC_INTERIOR, n)
+!     end do
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : C2P, IBC_INTRPL, no bc, no reconstuction. exterpolation only. 
 ! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
@@ -772,25 +772,54 @@ contains
 ! [                            alpha1 1     ][f'_5'] [-a1 * f_{n-1}/h  - b1 * f_{n-2}/h - c1 * f_{n-3}/h]
 ! tested: low accuracy at the line 2 and 4.
 !----------------------------------------------------------------------------------------------------------
-    alpha1(IACCU_CD2) = ZERO
-        a1(IACCU_CD2) = -ONE
-        b1(IACCU_CD2) = ONE
-        c1(IACCU_CD2) = ZERO
+    do n = 1, NACC
+      d1fC2P(3, :, IBC_INTRPL, n) = d1fC2P(3, :, IBC_PERIODIC, n)
+      d1rC2P(3, :, IBC_INTRPL, n) = d1rC2P(3, :, IBC_PERIODIC, n)
+    end do
 
-    alpha1(IACCU_CD4) = alpha1(IACCU_CD2)
-        a1(IACCU_CD4) =     a1(IACCU_CD2)
-        b1(IACCU_CD4) =     b1(IACCU_CD2)
-        c1(IACCU_CD4) =     c1(IACCU_CD2)
+!    ref: [Gaitonde1998] Table 2.12
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO 
+        c1 = ZERO
+        d1 = ZERO
+        e1 = ZERO
+        f1 = ZERO 
 
-    alpha1(IACCU_CP4) = alpha1(IACCU_CD2)!TWENTYTHREE
-        a1(IACCU_CP4) =     a1(IACCU_CD2)!-TWENTYFIVE
-        b1(IACCU_CP4) =     b1(IACCU_CD2)!TWENTYSIX
-        c1(IACCU_CP4) =     c1(IACCU_CD2)!-ONE, need to be zero to keep compact scheme
+    do n = 1, NACC
+      select case (n)
+        case (IACCU_CD2)  
+          alpha1(n) = ZERO
+              a1(n) = -2.0_WP - alpha1(n)
+              b1(n) =  3.0_WP + alpha1(n)
+              c1(n) = -1.0_WP
+        case (IACCU_CD4, IACCU_CP4)
+          alpha1(n) = ZERO ! 22.0_WP invalids TDMA
+              a1(n) = (-93.0_WP - 22.0_WP * alpha1(n)) / 24.0_WP
+              b1(n) = (229.0_WP + 17.0_WP * alpha1(n)) / 24.0_WP
+              c1(n) = (-75.0_WP +  3.0_WP * alpha1(n)) / 8.0_WP
+              d1(n) = (111.0_WP -  5.0_WP * alpha1(n)) / 24.0_WP
+              e1(n) = (-22.0_WP +  1.0_WP * alpha1(n)) / 24.0_WP
+        case (IACCU_CP6) 
+          alpha1(n) = 1689.0_WP / 71.0_WP  ! this is 5th order Compact
+              a1(n) = ( -3043.0_WP - 563.0_WP * alpha1(n)) /  640.0_WP
+              b1(n) = (  5353.0_WP + 201.0_WP * alpha1(n)) /  384.0_WP
+              c1(n) = ( -3489.0_WP + 143.0_WP * alpha1(n)) /  192.0_WP
+              d1(n) = (   859.0_WP -  37.0_WP * alpha1(n)) /  64.0_WP
+              e1(n) = ( -2041.0_WP +  87.0_WP * alpha1(n)) /  384.0_WP
+              f1(n) = (  1689.0_WP -  71.0_WP * alpha1(n)) / 1920.0_WP
 
-    alpha1(IACCU_CP6) = alpha1(IACCU_CD2)
-        a1(IACCU_CP6) =     a1(IACCU_CD2) 
-        b1(IACCU_CP6) =     b1(IACCU_CD2) 
-        c1(IACCU_CP6) =     c1(IACCU_CD2) 
+              ! alpha1(n) =     1627.0_WP /     62.0_WP
+              !     a1(n) = -1104667.0_WP /  39680.0_WP     
+              !     b1(n) =   658913.0_WP /  23808.0_WP  
+              !     c1(n) =    16343.0_WP /  11904.0_WP    
+              !     d1(n) =    -6941.0_WP /   3968.0_WP 
+              !     e1(n) =    15007.0_WP /  23808.0_WP 
+              !     f1(n) =   -10799.0_WP / 119040.0_WP 
+        case default
+            print*, "Invalid accuracy" 
+      end select
+    end do
 
     do n = 1, NACC
       d1fC2P(1, 1,   IBC_INTRPL, n) = ZERO ! not used
@@ -799,44 +828,114 @@ contains
       d1rC2P(1, 1,   IBC_INTRPL, n) = a1(n)
       d1rC2P(1, 2,   IBC_INTRPL, n) = b1(n)
       d1rC2P(1, 3,   IBC_INTRPL, n) = c1(n)
+      d1rC2P(1, 4,   IBC_INTRPL, n) = d1(n)
+      d1rC2P(1, 5,   IBC_INTRPL, n) = e1(n)
+      d1rC2P(1, 6,   IBC_INTRPL, n) = f1(n)
 
       d1fC2P(5, 1,   IBC_INTRPL, n) =   d1fC2P(1, 3, IBC_INTRPL, n)
       d1fC2P(5, 2,   IBC_INTRPL, n) =   d1fC2P(1, 2, IBC_INTRPL, n)
       d1fC2P(5, 3,   IBC_INTRPL, n) =   d1fC2P(1, 1, IBC_INTRPL, n)
-      d1rC2P(5, 1,   IBC_INTRPL, n) = - d1rC2P(1, 1, IBC_INTRPL, n)
-      d1rC2P(5, 2,   IBC_INTRPL, n) = - d1rC2P(1, 2, IBC_INTRPL, n)
-      d1rC2P(5, 3,   IBC_INTRPL, n) = - d1rC2P(1, 3, IBC_INTRPL, n)
-
-      d1fC2P(3, 1:3, IBC_INTRPL, n) = d1fC2P(3, 1:3, IBC_PERIODIC, n)
-      d1rC2P(3, 1:3, IBC_INTRPL, n) = d1rC2P(3, 1:3, IBC_PERIODIC, n)
-    end do
-    ! check which below method works good! 
-    do n = 1, 2
-      ! 
-      ! method 1: exterpolation, following Line 1
-      !d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      ! method 2: CD2/4 -> CD2
-      d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+      d1rC2P(5, :,   IBC_INTRPL, n) = - d1rC2P(1, :, IBC_INTRPL, n)
     end do
 
-    do n = 3, 4
-      ! method 1: exterpolation, following Line 1
-      !d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      ! method 2: CP4/6 -> CP4
-      d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+!    ref: [Gaitonde1998] Table 2.13
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO 
+        c1 = ZERO
+        d1 = ZERO
+        e1 = ZERO
+        f1 = ZERO 
+
+    alpha1(IACCU_CD2) = ZERO
+        a1(IACCU_CD2) = -1.0_WP
+        b1(IACCU_CD2) =  1.0_WP
+
+    alpha1(IACCU_CD4) = ZERO
+        a1(IACCU_CD4) = (-11.0_WP -  46.0_WP * alpha1(IACCU_CD4)) / 12.0_WP
+        b1(IACCU_CD4) = ( 17.0_WP + 202.0_WP * alpha1(IACCU_CD4)) / 24.0_WP
+        c1(IACCU_CD4) = (  3.0_WP -  66.0_WP * alpha1(IACCU_CD4)) / 8.0_WP
+        d1(IACCU_CD4) = ( -5.0_WP + 110.0_WP * alpha1(IACCU_CD4)) / 24.0_WP
+        e1(IACCU_CD4) = (  1.0_WP -  22.0_WP * alpha1(IACCU_CD4)) / 24.0_WP
+
+    alpha1(IACCU_CP4) = 1.0_WP / 22.0_WP
+        a1(IACCU_CP4) = (-11.0_WP -  46.0_WP * alpha1(IACCU_CP4)) / 12.0_WP
+        b1(IACCU_CP4) = ( 17.0_WP + 202.0_WP * alpha1(IACCU_CP4)) / 24.0_WP
+        c1(IACCU_CP4) = (  3.0_WP -  66.0_WP * alpha1(IACCU_CP4)) / 8.0_WP
+        d1(IACCU_CP4) = ( -5.0_WP + 110.0_WP * alpha1(IACCU_CP4)) / 24.0_WP
+        e1(IACCU_CP4) = (  1.0_WP -  22.0_WP * alpha1(IACCU_CP4)) / 24.0_WP
+
+    alpha1(IACCU_CP6) =    31.0_WP / 818.0_WP
+        a1(IACCU_CP6) = -5195.0_WP / 4908.0_WP     
+        b1(IACCU_CP6) =  4957.0_WP / 4908.0_WP  
+        c1(IACCU_CP6) =   119.0_WP / 1227.0_WP    
+        d1(IACCU_CP6) =   -85.0_WP / 1227.0_WP 
+        e1(IACCU_CP6) =   119.0_WP / 4908.0_WP 
+        f1(IACCU_CP6) =   -17.0_WP / 4908.0_WP 
+
+    do n = 1, NACC
+      d1fC2P(2, 1,   IBC_INTRPL, n) = alpha1(n)
+      d1fC2P(2, 2,   IBC_INTRPL, n) = ONE
+      d1fC2P(2, 3,   IBC_INTRPL, n) = alpha1(n)
+      d1rC2P(2, 1,   IBC_INTRPL, n) = a1(n)
+      d1rC2P(2, 2,   IBC_INTRPL, n) = b1(n)
+      d1rC2P(2, 3,   IBC_INTRPL, n) = c1(n)
+      d1rC2P(2, 4,   IBC_INTRPL, n) = d1(n)
+      d1rC2P(2, 5,   IBC_INTRPL, n) = e1(n)
+      d1rC2P(2, 6,   IBC_INTRPL, n) = f1(n)
+
+      d1fC2P(4, 1,   IBC_INTRPL, n) =   d1fC2P(2, 3, IBC_INTRPL, n)
+      d1fC2P(4, 2,   IBC_INTRPL, n) =   d1fC2P(2, 2, IBC_INTRPL, n)
+      d1fC2P(4, 3,   IBC_INTRPL, n) =   d1fC2P(2, 1, IBC_INTRPL, n)
+      d1rC2P(4, :,   IBC_INTRPL, n) = - d1rC2P(2, :, IBC_INTRPL, n)
     end do
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, C2P, IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
+!----------------------------------------------------------------------------------------------------------
+    d1fC2P(:, :, IBC_DIRICHLET, :) = d1fC2P(:, :, IBC_INTRPL, :)
+    d1rC2P(:, :, IBC_DIRICHLET, :) = d1rC2P(:, :, IBC_INTRPL, :)
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, C2P : IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
+!----------------------------------------------------------------------------------------------------------
+    do n = 1, NACC
+      d1fC2P(1, 1,   IBC_NEUMANN, n) = ZERO ! not used
+      d1fC2P(1, 2,   IBC_NEUMANN, n) = ONE
+      d1fC2P(1, 3,   IBC_NEUMANN, n) = ZERO
+      d1rC2P(1, 1:3, IBC_NEUMANN, n) = ZERO ! not used
+      d1fC2P(5, 1,   IBC_NEUMANN, n) = ZERO
+      d1fC2P(5, 2,   IBC_NEUMANN, n) = ONE
+      d1fC2P(5, 3,   IBC_NEUMANN, n) = ZERO
+      d1rC2P(5, 1:3, IBC_NEUMANN, n) = ZERO
+      d1fC2P(2:4, :, IBC_NEUMANN, n) = d1fC2P(2:4, :, IBC_INTRPL, n)
+      d1rC2P(2:4, :, IBC_NEUMANN, n) = d1rC2P(2:4, :, IBC_INTRPL, n)
+    end do
+    ! ! check which below method works good! 
+    ! do n = 1, 2
+    !   ! 
+    !   ! method 1: exterpolation, following Line 1
+    !   !d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   ! method 2: CD2/4 -> CD2
+    !   d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    !   d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    !   d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    !   d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    ! end do
+
+    ! do n = 3, 4
+    !   ! method 1: exterpolation, following Line 1
+    !   !d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   ! method 2: CP4/6 -> CP4
+    !   d1fC2P(2, 1:3, IBC_INTRPL, n) = d1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    !   d1rC2P(2, 1:3, IBC_INTRPL, n) = d1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    !   d1fC2P(4, 1:3, IBC_INTRPL, n) = d1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    !   d1rC2P(4, 1:3, IBC_INTRPL, n) = d1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    ! end do
 !==========================================================================================================
 ! 1st derivative on staggered grids P2C
 ! alpha * f'_{i-1} +  f'_i +  alpha * f'_{i+1}  = a/(h ) * ( f_{i'+1} - f_{i'} ) + &
@@ -894,16 +993,16 @@ contains
     d1rP2C(1, :, IBC_INTERIOR, IACCU_CP6) = d1rP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
     d1fP2C(5, :, IBC_INTERIOR, IACCU_CP6) = d1fP2C(4, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
     d1rP2C(5, :, IBC_INTERIOR, IACCU_CP6) = d1rP2C(4, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative, P2C, Dirichlet, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    d1fP2C(:, :, IBC_DIRICHLET, :) = d1fP2C(:, :, IBC_INTERIOR, :)
-    d1rP2C(:, :, IBC_DIRICHLET, :) = d1rP2C(:, :, IBC_INTERIOR, :)
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative, P2C, Neumann, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    d1fP2C(:, :, IBC_NEUMANN, :) = d1fP2C(:, :, IBC_INTERIOR, :)
-    d1rP2C(:, :, IBC_NEUMANN, :) = d1rP2C(:, :, IBC_INTERIOR, :)
+! !----------------------------------------------------------------------------------------------------------
+! ! 1st-derivative, P2C, Dirichlet, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! !----------------------------------------------------------------------------------------------------------
+!     d1fP2C(:, :, IBC_DIRICHLET, :) = d1fP2C(:, :, IBC_INTERIOR, :)
+!     d1rP2C(:, :, IBC_DIRICHLET, :) = d1rP2C(:, :, IBC_INTERIOR, :)
+! !----------------------------------------------------------------------------------------------------------
+! ! 1st-derivative, P2C, Neumann, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! !----------------------------------------------------------------------------------------------------------
+!     d1fP2C(:, :, IBC_NEUMANN, :) = d1fP2C(:, :, IBC_INTERIOR, :)
+!     d1rP2C(:, :, IBC_NEUMANN, :) = d1rP2C(:, :, IBC_INTERIOR, :)
 
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative : ! P2C : exterpolation, no bc, no reconstuction. exterpolation only. 
@@ -913,41 +1012,74 @@ contains
 ! [                     alpha2 1      alpha2][f'_4] [a2 * (f_{n'} - f_{n'-1})/h]
 ! [                            alpha1 1     ][f'_5] [-a1 * f_{n'+1}/h  - b1 * f_{n'}/h - c1 * f_{n'-1}/h]
 !----------------------------------------------------------------------------------------------------------
-    alpha1(IACCU_CD2) = ZERO
-        a1(IACCU_CD2) = -ONE
-        b1(IACCU_CD2) = ONE
-        c1(IACCU_CD2) = ZERO
-    alpha1(IACCU_CD4) = alpha1(IACCU_CD2)
-        a1(IACCU_CD4) =     a1(IACCU_CD2)
-        b1(IACCU_CD4) =     b1(IACCU_CD2)
-        c1(IACCU_CD4) =     c1(IACCU_CD2)
-    alpha1(IACCU_CP4) = alpha1(IACCU_CD2) !ZERO
-        a1(IACCU_CP4) =     a1(IACCU_CD2) !-ONE
-        b1(IACCU_CP4) =     b1(IACCU_CD2) !ONE
-        c1(IACCU_CP4) =     c1(IACCU_CD2) !ZERO
-    alpha1(IACCU_CP6) = -ONE
-        a1(IACCU_CP6) = -ONE
-        b1(IACCU_CP6) = TWO
-        c1(IACCU_CP6) = -ONE
+!    ref: [Gaitonde1998] Table 2.11
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO 
+        c1 = ZERO
+        d1 = ZERO
+        e1 = ZERO
+        f1 = ZERO 
+    do n = 1, NACC
+      select case (n)
+        case (IACCU_CD2)  
+          alpha1(n) = ZERO
+              a1(n) = -ONE
+              b1(n) = ONE
+        case (IACCU_CD4, IACCU_CP4)
+          alpha1(n) = ZERO
+              a1(n) = (-22.0_WP +           alpha1(n)) / 24.0_WP
+              b1(n) = ( 17.0_WP - 27.0_WP * alpha1(n)) / 24.0_WP
+              c1(n) = (  3.0_WP +  9.0_WP * alpha1(n)) / 8.0_WP
+              d1(n) = ( -5.0_WP -           alpha1(n)) / 24.0_WP
+              e1(n) = 1.0_WP / 24.0_WP
+        case (IACCU_CP6) 
+          
+          alpha1(n) = 71.0_WP / 9.0_WP  ! this is 5th order Compact
+              a1(n) = ( -1689.0_WP +  71.0_WP * alpha1(n)) / 1920.0_WP
+              b1(n) = (    67.0_WP - 141.0_WP * alpha1(n)) /  128.0_WP
+              c1(n) = (   143.0_WP + 207.0_WP * alpha1(n)) /  192.0_WP
+              d1(n) = (  -111.0_WP +   1.0_WP * alpha1(n)) /  192.0_WP
+              e1(n) = (    29.0_WP -   3.0_WP * alpha1(n)) /  128.0_WP
+              f1(n) = (   -71.0_WP +   9.0_WP * alpha1(n)) / 1920.0_WP
+
+          ! alpha1(n) =     62.0_WP /     9.0_WP
+          !     a1(n) = -10799.0_WP / 17280.0_WP
+          !     b1(n) =  -2713.0_WP /   384.0_WP
+          !     c1(n) =    523.0_WP /    64.0_WP
+          !     d1(n) =   -937.0_WP /  1728.0_WP
+          !     e1(n) =     25.0_WP /   384.0_WP
+          !     f1(n) =     -3.0_WP /   640.0_WP
+        case default
+           print*, "Invalid accuracy" 
+      end select
+    end do
 
     do n = 1, NACC
-      d1fP2C(1, 1,   IBC_INTRPL, n) = ZERO ! not used
-      d1fP2C(1, 2,   IBC_INTRPL, n) = ONE
-      d1fP2C(1, 3,   IBC_INTRPL, n) = alpha1(n)
-      d1rP2C(1, 1,   IBC_INTRPL, n) = a1(n)
-      d1rP2C(1, 2,   IBC_INTRPL, n) = b1(n)
-      d1rP2C(1, 3,   IBC_INTRPL, n) = c1(n)
+      d1fP2C(1, 1, IBC_INTRPL, n) = ZERO ! not used
+      d1fP2C(1, 2, IBC_INTRPL, n) = ONE
+      d1fP2C(1, 3, IBC_INTRPL, n) = alpha1(n)
+      d1rP2C(1, 1, IBC_INTRPL, n) = a1(n)
+      d1rP2C(1, 2, IBC_INTRPL, n) = b1(n)
+      d1rP2C(1, 3, IBC_INTRPL, n) = c1(n)
+      d1rP2C(1, 4, IBC_INTRPL, n) = d1(n)
+      d1rP2C(1, 5, IBC_INTRPL, n) = e1(n)
+      d1rP2C(1, 6, IBC_INTRPL, n) = f1(n)
 
-      d1fP2C(5, 1,   IBC_INTRPL, n) =   d1fP2C(1, 3, IBC_INTRPL, n)
-      d1fP2C(5, 2,   IBC_INTRPL, n) =   d1fP2C(1, 2, IBC_INTRPL, n)
-      d1fP2C(5, 3,   IBC_INTRPL, n) =   d1fP2C(1, 1, IBC_INTRPL, n)
-      d1rP2C(5, 1,   IBC_INTRPL, n) = - d1rP2C(1, 1, IBC_INTRPL, n)
-      d1rP2C(5, 2,   IBC_INTRPL, n) = - d1rP2C(1, 2, IBC_INTRPL, n)
-      d1rP2C(5, 3,   IBC_INTRPL, n) = - d1rP2C(1, 3, IBC_INTRPL, n)
+      d1fP2C(5, 1, IBC_INTRPL, n) =   d1fP2C(1, 3, IBC_INTRPL, n)
+      d1fP2C(5, 2, IBC_INTRPL, n) =   d1fP2C(1, 2, IBC_INTRPL, n)
+      d1fP2C(5, 3, IBC_INTRPL, n) =   d1fP2C(1, 1, IBC_INTRPL, n)
+      d1rP2C(5, :, IBC_INTRPL, n) = - d1rP2C(1, :, IBC_INTRPL, n)
 
-      d1fP2C(2:4, 1:3, IBC_INTRPL, n) = d1fP2C(2:4, 1:3, IBC_PERIODIC, n)
-      d1rP2C(2:4, 1:3, IBC_INTRPL, n) = d1rP2C(2:4, 1:3, IBC_PERIODIC, n)
+      d1fP2C(2:4, :, IBC_INTRPL, n) = d1fP2C(2:4, :, IBC_PERIODIC, n)
+      d1rP2C(2:4, :, IBC_INTRPL, n) = d1rP2C(2:4, :, IBC_PERIODIC, n)
     end do
+    
+    d1fP2C(:, :, IBC_DIRICHLET, :) = d1fP2C(:, :, IBC_INTRPL, :)
+    d1rP2C(:, :, IBC_DIRICHLET, :) = d1rP2C(:, :, IBC_INTRPL, :)
+
+    d1fP2C(:, :, IBC_NEUMANN, :) = d1fP2C(:, :, IBC_INTRPL, :)
+    d1rP2C(:, :, IBC_NEUMANN, :) = d1rP2C(:, :, IBC_INTRPL, :)
 !==========================================================================================================
 !interpolation. C2P 
 ! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
@@ -957,18 +1089,29 @@ contains
 ! when i' = np-1, need:         f_{np'}
 ! when i' = np,   need: f_{np'+1}, f_{np'}, f_{np'+1}
 !==========================================================================================================
+!    ref: [Gaitonde1998] Table 2.7
+
+      alpha = ZERO
+          a = ZERO
+          b = ZERO
+          c = ZERO 
+
       alpha(IACCU_CD2) = ZERO
           a(IACCU_CD2) = ONE
           b(IACCU_CD2) = ZERO
+
       alpha(IACCU_CD4) = ZERO
-          a(IACCU_CD4) = NINE * EIGHTH
-          b(IACCU_CD4) = -ONE * EIGHTH
+          a(IACCU_CD4) =  9.0_WP / 8.0_WP + 5.0_WP / 4.0_WP * alpha(IACCU_CD4)
+          b(IACCU_CD4) = -1.0_WP / 8.0_WP + 3.0_WP / 4.0_WP * alpha(IACCU_CD4)
+
       alpha(IACCU_CP4) = ONE / SIX
-          a(IACCU_CP4) = FOUR * ONE_THIRD
-          b(IACCU_CP4) = ZERO
+          a(IACCU_CP4) =  9.0_WP / 8.0_WP + 5.0_WP / 4.0_WP * alpha(IACCU_CP4)
+          b(IACCU_CP4) = -1.0_WP / 8.0_WP + 3.0_WP / 4.0_WP * alpha(IACCU_CP4)
+
       alpha(IACCU_CP6) = THREE * ZPONE
-          a(IACCU_CP6) = ONEPFIVE
-          b(IACCU_CP6) = ONE * ZPONE
+          a(IACCU_CP6) = 5.0_WP * (15.0_WP + 14.0_WP * alpha(IACCU_CP6)) / 64.0_WP
+          b(IACCU_CP6) = (-25.0_WP + 126.0_WP * alpha(IACCU_CP6)) / 128.0_WP
+          c(IACCU_CP6) = (3.0_WP - 10.0_WP * alpha(IACCU_CP6))/128.0_WP
 !----------------------------------------------------------------------------------------------------------
 !interpolation : C2P for IBC_PERIODIC, unknowns from both lhs and rhs could be reconstructed from bc.
 !----------------------------------------------------------------------------------------------------------
@@ -1024,11 +1167,134 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : C2P for IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    m1fC2P(:, :, IBC_NEUMANN, :) = m1fC2P(:, :, IBC_INTERIOR, :)
-    m1rC2P(:, :, IBC_NEUMANN, :) = m1rC2P(:, :, IBC_INTERIOR, :)
+    !m1fC2P(:, :, IBC_NEUMANN, :) = m1fC2P(:, :, IBC_INTERIOR, :)
+    !m1rC2P(:, :, IBC_NEUMANN, :) = m1rC2P(:, :, IBC_INTERIOR, :)
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : C2P for IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
+    ! do n = 1, NACC
+    !   m1fC2P(1, 1,   IBC_DIRICHLET, n) = ZERO ! not used
+    !   m1fC2P(1, 2,   IBC_DIRICHLET, n) = ONE
+    !   m1fC2P(1, 3,   IBC_DIRICHLET, n) = ZERO
+    !   m1rC2P(1, 1:3, IBC_DIRICHLET, n) = ZERO ! not used
+    !   m1fC2P(5, 1,   IBC_DIRICHLET, n) = ZERO
+    !   m1fC2P(5, 2,   IBC_DIRICHLET, n) = ONE
+    !   m1fC2P(5, 3,   IBC_DIRICHLET, n) = ZERO
+    !   m1rC2P(5, 1:3, IBC_DIRICHLET, n) = ZERO
+    !   m1fC2P(2:4, :, IBC_DIRICHLET, n) = m1fC2P(2:4, :, IBC_INTERIOR, n)
+    !   m1rC2P(2:4, :, IBC_DIRICHLET, n) = m1rC2P(2:4, :, IBC_INTERIOR, n)
+    ! end do
+!----------------------------------------------------------------------------------------------------------
+!interpolation. C2P, exterpolation
+!----------------------------------------------------------------------------------------------------------
+    do n = 1, NACC
+      m1fC2P(3, 1:3, IBC_INTRPL, n) = m1fC2P(3, 1:3, IBC_PERIODIC, n)
+      m1rC2P(3, 1:3, IBC_INTRPL, n) = m1rC2P(3, 1:3, IBC_PERIODIC, n)
+    end do
+
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO 
+        c1 = ZERO
+        d1 = ZERO
+        e1 = ZERO
+        f1 = ZERO 
+
+    alpha1(IACCU_CD2) = ZERO
+        a1(IACCU_CD2) = ( 3.0_WP + alpha1(IACCU_CD2)) / 2.0_WP
+        b1(IACCU_CD2) = (-1.0_WP + alpha1(IACCU_CD2)) / 2.0_WP
+
+    alpha1(IACCU_CD4) = ZERO
+        a1(IACCU_CD4) = ( 35.0_WP +  5.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        b1(IACCU_CD4) = (-35.0_WP + 15.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        c1(IACCU_CD4) = ( 21.0_WP -  5.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        d1(IACCU_CD4) = ( -5.0_WP +           alpha1(IACCU_CD4)) / 16.0_WP
+
+    alpha1(IACCU_CP4) = FIVE
+        a1(IACCU_CP4) = ( 35.0_WP +  5.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        b1(IACCU_CP4) = (-35.0_WP + 15.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        c1(IACCU_CP4) = ( 21.0_WP -  5.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        d1(IACCU_CP4) = ( -5.0_WP +           alpha1(IACCU_CP4)) / 16.0_WP
+
+    alpha1(IACCU_CP6) = NINE 
+        a1(IACCU_CP6) = (  693.0_WP +  63.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        b1(IACCU_CP6) = (-1155.0_WP + 315.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        c1(IACCU_CP6) = (  693.0_WP - 105.0_WP * alpha1(IACCU_CP6)) / 128.0_WP
+        d1(IACCU_CP6) = ( -495.0_WP +  63.0_WP * alpha1(IACCU_CP6)) / 128.0_WP
+        e1(IACCU_CP6) = (  385.0_WP -  45.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        f1(IACCU_CP6) = (  -63.0_WP +   7.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+
+    do n = 1, NACC
+      m1fC2P(1, 1,   IBC_INTRPL, n) = ZERO ! not used
+      m1fC2P(1, 2,   IBC_INTRPL, n) = ONE
+      m1fC2P(1, 3,   IBC_INTRPL, n) = alpha1(n)
+      m1rC2P(1, 1,   IBC_INTRPL, n) = a1(n)
+      m1rC2P(1, 2,   IBC_INTRPL, n) = b1(n)
+      m1rC2P(1, 3,   IBC_INTRPL, n) = c1(n)
+      m1rC2P(1, 4,   IBC_INTRPL, n) = d1(n)
+      m1rC2P(1, 5,   IBC_INTRPL, n) = e1(n)
+      m1rC2P(1, 6,   IBC_INTRPL, n) = f1(n)
+
+      m1fC2P(5, 1,   IBC_INTRPL, n) = m1fC2P(1, 3, IBC_INTRPL, n)
+      m1fC2P(5, 2,   IBC_INTRPL, n) = m1fC2P(1, 2, IBC_INTRPL, n)
+      m1fC2P(5, 3,   IBC_INTRPL, n) = m1fC2P(1, 1, IBC_INTRPL, n)
+      m1rC2P(5, :,   IBC_INTRPL, n) = m1rC2P(1, :, IBC_INTRPL, n)
+    end do
+    
+
+    alpha1 = ZERO
+        a1 = ZERO
+        b1 = ZERO 
+        c1 = ZERO
+        d1 = ZERO
+        e1 = ZERO
+        f1 = ZERO 
+
+    alpha1(IACCU_CD2) = ZERO
+        a1(IACCU_CD2) = (1.0_WP + 2.0_WP * alpha1(IACCU_CD2)) / 2.0_WP
+        b1(IACCU_CD2) = (1.0_WP + 2.0_WP * alpha1(IACCU_CD2)) / 2.0_WP
+
+    alpha1(IACCU_CD4) = ZERO
+        a1(IACCU_CD4) = ( 5.0_WP + 34.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        b1(IACCU_CD4) = (15.0_WP - 26.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        c1(IACCU_CD4) = (-5.0_WP + 30.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        d1(IACCU_CD4) = ( 1.0_WP -  6.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+
+    alpha1(IACCU_CP4) = 1.0_WP/6.0_WP
+        a1(IACCU_CP4) = ( 5.0_WP + 34.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        b1(IACCU_CP4) = (15.0_WP - 26.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        c1(IACCU_CP4) = (-5.0_WP + 30.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        d1(IACCU_CP4) = ( 1.0_WP -  6.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+
+    alpha1(IACCU_CP6) = NINE 
+        a1(IACCU_CP6) = (  63.0_WP +  686.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        b1(IACCU_CP6) = ( 315.0_WP - 1050.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        c1(IACCU_CP6) = (-105.0_WP +  798.0_WP * alpha1(IACCU_CP6)) / 128.0_WP
+        d1(IACCU_CP6) = (  63.0_WP -  530.0_WP * alpha1(IACCU_CP6)) / 128.0_WP
+        e1(IACCU_CP6) = ( -45.0_WP +  406.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        f1(IACCU_CP6) = (   7.0_WP -   66.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+
+    do n = 1, NACC
+      m1fC2P(2, 1,   IBC_INTRPL, n) = alpha1(n)
+      m1fC2P(2, 2,   IBC_INTRPL, n) = ONE
+      m1fC2P(2, 3,   IBC_INTRPL, n) = alpha1(n)
+      m1rC2P(2, 1,   IBC_INTRPL, n) = a1(n)
+      m1rC2P(2, 2,   IBC_INTRPL, n) = b1(n)
+      m1rC2P(2, 3,   IBC_INTRPL, n) = c1(n)
+      m1rC2P(2, 4,   IBC_INTRPL, n) = d1(n)
+      m1rC2P(2, 5,   IBC_INTRPL, n) = e1(n)
+      m1rC2P(2, 6,   IBC_INTRPL, n) = f1(n)
+
+      m1fC2P(4, 1,   IBC_INTRPL, n) = m1fC2P(2, 3, IBC_INTRPL, n)
+      m1fC2P(4, 2,   IBC_INTRPL, n) = m1fC2P(2, 2, IBC_INTRPL, n)
+      m1fC2P(4, 3,   IBC_INTRPL, n) = m1fC2P(2, 1, IBC_INTRPL, n)
+      m1rC2P(4, :,   IBC_INTRPL, n) = m1rC2P(2, :, IBC_INTRPL, n)
+    end do
+
+    m1fC2P(:, :, IBC_NEUMANN, :) = m1fC2P(:, :, IBC_INTRPL, :)
+    m1rC2P(:, :, IBC_NEUMANN, :) = m1rC2P(:, :, IBC_INTRPL, :)
+
+    
     do n = 1, NACC
       m1fC2P(1, 1,   IBC_DIRICHLET, n) = ZERO ! not used
       m1fC2P(1, 2,   IBC_DIRICHLET, n) = ONE
@@ -1038,73 +1304,37 @@ contains
       m1fC2P(5, 2,   IBC_DIRICHLET, n) = ONE
       m1fC2P(5, 3,   IBC_DIRICHLET, n) = ZERO
       m1rC2P(5, 1:3, IBC_DIRICHLET, n) = ZERO
-      m1fC2P(2:4, :, IBC_DIRICHLET, n) = m1fC2P(2:4, :, IBC_INTERIOR, n)
-      m1rC2P(2:4, :, IBC_DIRICHLET, n) = m1rC2P(2:4, :, IBC_INTERIOR, n)
-    end do
-!----------------------------------------------------------------------------------------------------------
-!interpolation. C2P, exterpolation
-!-----------------------------------------------------------------------------
-    alpha1(IACCU_CD2) = ZERO
-        a1(IACCU_CD2) = ONEPFIVE
-        b1(IACCU_CD2) = -HALF
-        c1(IACCU_CD2) = ZERO
-    alpha1(IACCU_CD4) = ZERO
-        a1(IACCU_CD4) = FIFTEEN * EIGHTH
-        b1(IACCU_CD4) = - FIVE * QUARTER
-        c1(IACCU_CD4) = THREE * EIGHTH
-    alpha1(IACCU_CP4) = THREE
-        a1(IACCU_CP4) = THREE
-        b1(IACCU_CP4) = ONE
-        c1(IACCU_CP4) = ZERO
-    alpha1(IACCU_CP6) = FIVE 
-        a1(IACCU_CP6) = FIFTEEN * QUARTER
-        b1(IACCU_CP6) = TWOPFIVE
-        c1(IACCU_CP6) = -QUARTER
-
-    do n = 1, NACC
-      m1fC2P(1, 1,   IBC_INTRPL, n) = ZERO ! not used
-      m1fC2P(1, 2,   IBC_INTRPL, n) = ONE
-      m1fC2P(1, 3,   IBC_INTRPL, n) = alpha1(n)
-      m1rC2P(1, 1,   IBC_INTRPL, n) = a1(n)
-      m1rC2P(1, 2,   IBC_INTRPL, n) = b1(n)
-      m1rC2P(1, 3,   IBC_INTRPL, n) = c1(n)
-
-      m1fC2P(5, 1,   IBC_INTRPL, n) = m1fC2P(1, 3, IBC_INTRPL, n)
-      m1fC2P(5, 2,   IBC_INTRPL, n) = m1fC2P(1, 2, IBC_INTRPL, n)
-      m1fC2P(5, 3,   IBC_INTRPL, n) = m1fC2P(1, 1, IBC_INTRPL, n)
-      m1rC2P(5, 1,   IBC_INTRPL, n) = m1rC2P(1, 1, IBC_INTRPL, n)
-      m1rC2P(5, 2,   IBC_INTRPL, n) = m1rC2P(1, 2, IBC_INTRPL, n)
-      m1rC2P(5, 3,   IBC_INTRPL, n) = m1rC2P(1, 3, IBC_INTRPL, n)
-
-      m1fC2P(3, 1:3, IBC_INTRPL, n) = m1fC2P(3, 1:3, IBC_PERIODIC, n)
-      m1rC2P(3, 1:3, IBC_INTRPL, n) = m1rC2P(3, 1:3, IBC_PERIODIC, n)
-    end do
-    ! check which below method works good! 
-    do n = 1, 2
-      ! method 1: exterpolation, following Line 1
-      !m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      ! method 2: CD2/4 -> CD2
-      m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
-      m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+      m1fC2P(2:4, :, IBC_DIRICHLET, n) = m1fC2P(2:4, :, IBC_INTRPL, n)
+      m1rC2P(2:4, :, IBC_DIRICHLET, n) = m1rC2P(2:4, :, IBC_INTRPL, n)
     end do
 
-    do n = 3, 4
-      ! method 1: exterpolation, following Line 1
-      !m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      !m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
-      ! method 2: CP4/6 -> CP4
-      m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-      m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
-    end do
+    
+    ! ! check which below method works good! 
+    ! do n = 1, 2
+    !   ! method 1: exterpolation, following Line 1
+    !   !m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   ! method 2: CD2/4 -> CD2
+    !   m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    !   m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    !   m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    !   m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(4, 1:3, IBC_PERIODIC, IACCU_CD2) ! CD2/4 -> CD2
+    ! end do
+
+    ! do n = 3, 4
+    !   ! method 1: exterpolation, following Line 1
+    !   !m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(1, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   !m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(5, 1:3, IBC_INTRPL,   n) ! exterpolation, following Line 1
+    !   ! method 2: CP4/6 -> CP4
+    !   m1fC2P(2, 1:3, IBC_INTRPL, n) = m1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    !   m1rC2P(2, 1:3, IBC_INTRPL, n) = m1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    !   m1fC2P(4, 1:3, IBC_INTRPL, n) = m1fC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    !   m1rC2P(4, 1:3, IBC_INTRPL, n) = m1rC2P(2, 1:3, IBC_PERIODIC, IACCU_CP4) ! CP4/6 -> CP4
+    ! end do
 !==========================================================================================================
 !interpolation. P2C 
 ! P2C : i_max = nc
@@ -1164,13 +1394,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C. IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    m1fP2C(1:NL, 1:NS, IBC_DIRICHLET, 1:NACC) = m1fP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC)
-    m1rP2C(1:NL, 1:NS, IBC_DIRICHLET, 1:NACC) = m1rP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC)
+    !m1fP2C(1:NL, 1:NS, IBC_DIRICHLET, 1:NACC) = m1fP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC)
+    !m1rP2C(1:NL, 1:NS, IBC_DIRICHLET, 1:NACC) = m1rP2C(1:NL, 1:NS, IBC_INTERIOR, 1:NACC)
 !----------------------------------------------------------------------------------------------------------
 !interpolation. P2C. IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    m1fP2C(:, :, IBC_NEUMANN, :) = m1fP2C(:, :, IBC_INTERIOR, :)
-    m1rP2C(:, :, IBC_NEUMANN, :) = m1rP2C(:, :, IBC_INTERIOR, :)
+    !m1fP2C(:, :, IBC_NEUMANN, :) = m1fP2C(:, :, IBC_INTERIOR, :)
+    !m1rP2C(:, :, IBC_NEUMANN, :) = m1rP2C(:, :, IBC_INTERIOR, :)
 !----------------------------------------------------------------------------------------------------------
 ! interpolation. P2C: exterpolation
 ! [ 1    alpha1                          ][f_1']=[a1 * f_{1'} + b1 * f_{2'} + c1 * f_{3'}  ]
@@ -1179,22 +1409,40 @@ contains
 ! [                   alpha2 1     alpha2][f_4'] [a2/2 * (f_{n'-1}   + f_{n'})]
 ! [                          alpha1 1    ][f_5'] [a1   * f_{n'+1} + b1 * f_{n'} + c1 * f_{n'-1}]
 !-----------------------------------------------------------------------------
+!    ref: [Gaitonde1998] Table 2.8
+    alpha1 = ZERO
+    a1 = ZERO
+    b1 = ZERO
+    c1 = ZERO
+    d1 = ZERO
+    e1 = ZERO
+    f1 = ZERO
+
     alpha1(IACCU_CD2) = ZERO
         a1(IACCU_CD2) = HALF
         b1(IACCU_CD2) = HALF
         c1(IACCU_CD2) = ZERO
+
     alpha1(IACCU_CD4) = ZERO
-        a1(IACCU_CD4) = THREE * EIGHTH
-        b1(IACCU_CD4) = THREE * QUARTER
-        c1(IACCU_CD4) = -ONE * EIGHTH
-    alpha1(IACCU_CP4) = ONE_THIRD
-        a1(IACCU_CP4) = ONE_THIRD
-        b1(IACCU_CP4) = ONE
-        c1(IACCU_CP4) = ZERO
-    alpha1(IACCU_CP6) = ONE
-        a1(IACCU_CP6) = QUARTER
-        b1(IACCU_CP6) = ONEPFIVE
-        c1(IACCU_CP6) = QUARTER
+        a1(IACCU_CD4) = ( 5.0_WP -          alpha1(IACCU_CD4)) / 16.0_WP
+        b1(IACCU_CD4) = (15.0_WP + 9.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        c1(IACCU_CD4) = (-5.0_WP + 9.0_WP * alpha1(IACCU_CD4)) / 16.0_WP
+        d1(IACCU_CD4) = ( 1.0_WP -          alpha1(IACCU_CD4)) / 16.0_WP
+
+    alpha1(IACCU_CP4) = ONE
+        a1(IACCU_CP4) = ( 5.0_WP -          alpha1(IACCU_CP4)) / 16.0_WP
+        b1(IACCU_CP4) = (15.0_WP + 9.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        c1(IACCU_CP4) = (-5.0_WP + 9.0_WP * alpha1(IACCU_CP4)) / 16.0_WP
+        d1(IACCU_CP4) = ( 1.0_WP -          alpha1(IACCU_CP4)) / 16.0_WP
+
+    alpha1(IACCU_CP6) = SEVEN / THREE
+        a1(IACCU_CP6) = ( 63.0_WP -   7.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        b1(IACCU_CP6) = (315.0_WP + 105.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+        c1(IACCU_CP6) = ( -7.0_WP +   7.0_WP * alpha1(IACCU_CP6)) * 15.0_WP / 128.0_WP
+        d1(IACCU_CP6) = ( 63.0_WP -  35.0_WP * alpha1(IACCU_CP6)) / 128.0_WP
+        e1(IACCU_CP6) = (-15.0_WP +   7.0_WP * alpha1(IACCU_CP6)) * 3.0_WP / 256.0_WP
+        f1(IACCU_CP6) = (  7.0_WP -   3.0_WP * alpha1(IACCU_CP6)) / 256.0_WP
+
     do n = 1, NACC
       m1fP2C(1, 1,   IBC_INTRPL, n) = ZERO ! not used
       m1fP2C(1, 2,   IBC_INTRPL, n) = ONE
@@ -1202,17 +1450,29 @@ contains
       m1rP2C(1, 1,   IBC_INTRPL, n) = a1(n)
       m1rP2C(1, 2,   IBC_INTRPL, n) = b1(n)
       m1rP2C(1, 3,   IBC_INTRPL, n) = c1(n)
+      m1rP2C(1, 4,   IBC_INTRPL, n) = d1(n)
+      m1rP2C(1, 5,   IBC_INTRPL, n) = e1(n)
+      m1rP2C(1, 6,   IBC_INTRPL, n) = f1(n)
 
       m1fP2C(5, 1,   IBC_INTRPL, n) = m1fP2C(1, 3, IBC_INTRPL, n)
       m1fP2C(5, 2,   IBC_INTRPL, n) = m1fP2C(1, 2, IBC_INTRPL, n)
       m1fP2C(5, 3,   IBC_INTRPL, n) = m1fP2C(1, 1, IBC_INTRPL, n)
-      m1rP2C(5, 1,   IBC_INTRPL, n) = m1rP2C(1, 1, IBC_INTRPL, n)
-      m1rP2C(5, 2,   IBC_INTRPL, n) = m1rP2C(1, 2, IBC_INTRPL, n)
-      m1rP2C(5, 3,   IBC_INTRPL, n) = m1rP2C(1, 3, IBC_INTRPL, n)
+      m1rP2C(5, :,   IBC_INTRPL, n) = m1rP2C(1, :, IBC_INTRPL, n)
 
       m1fP2C(2:4, 1:3, IBC_INTRPL, n) = m1fP2C(2:4, 1:3, IBC_PERIODIC, n)
       m1rP2C(2:4, 1:3, IBC_INTRPL, n) = m1rP2C(2:4, 1:3, IBC_PERIODIC, n)
     end do
+
+!----------------------------------------------------------------------------------------------------------
+!interpolation. P2C. IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
+!----------------------------------------------------------------------------------------------------------
+    m1fP2C(:, :, IBC_DIRICHLET, :) = m1fP2C(:, :, IBC_INTRPL, :)
+    m1rP2C(:, :, IBC_DIRICHLET, :) = m1rP2C(:, :, IBC_INTRPL, :)
+!----------------------------------------------------------------------------------------------------------
+!interpolation. P2C. IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
+!----------------------------------------------------------------------------------------------------------
+    m1fP2C(:, :, IBC_NEUMANN, :) = m1fP2C(:, :, IBC_INTRPL, :)
+    m1rP2C(:, :, IBC_NEUMANN, :) = m1rP2C(:, :, IBC_INTRPL, :)
     
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -1717,9 +1977,7 @@ contains
     do i = 1, 2
       is_bc_main(i) = (ibc(i) == IBC_INTERIOR   .or. &
                    ibc(i) == IBC_SYMMETRIC  .or. &
-                   ibc(i) == IBC_ASYMMETRIC .or. &
-                   ibc(i) == IBC_DIRICHLET  .or. &
-                   ibc(i) == IBC_NEUMANN )
+                   ibc(i) == IBC_ASYMMETRIC)
       is_bc_extd(i) = (is_bc_main(i) .or. &
                    ibc(i) == IBC_PERIODIC )
     end do 
@@ -1731,7 +1989,11 @@ contains
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
+              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 1, 5, IBC_INTRPL) * fi(i + 4) + &
+              coeff( 1, 6, IBC_INTRPL) * fi(i + 5)
+
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc
@@ -1744,7 +2006,10 @@ contains
     else
       fo(nc) = coeff( 5, 1, IBC_INTRPL) * fi(i + 1) + &
                coeff( 5, 2, IBC_INTRPL) * fi(i    ) + &
-               coeff( 5, 3, IBC_INTRPL) * fi(i - 1) 
+               coeff( 5, 3, IBC_INTRPL) * fi(i - 1) + &
+               coeff( 5, 4, IBC_INTRPL) * fi(i - 2) + &
+               coeff( 5, 5, IBC_INTRPL) * fi(i - 3) + &
+               coeff( 5, 6, IBC_INTRPL) * fi(i - 4)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc - 1
@@ -1814,14 +2079,12 @@ contains
     is_bc_main(1) = (ibc(1) == IBC_INTERIOR   .or. &
                      ibc(1) == IBC_PERIODIC   .or. &
                      ibc(1) == IBC_SYMMETRIC  .or. &
-                     ibc(1) == IBC_ASYMMETRIC .or. &
-                     ibc(1) == IBC_NEUMANN )
+                     ibc(1) == IBC_ASYMMETRIC)
     is_bc_extd(1) = (is_bc_main(1) .or. &
                      ibc(1) == IBC_DIRICHLET)
     is_bc_main(2) = (ibc(2) == IBC_INTERIOR   .or. &
                      ibc(2) == IBC_SYMMETRIC  .or. &
-                     ibc(2) == IBC_ASYMMETRIC .or. &
-                     ibc(2) == IBC_NEUMANN )
+                     ibc(2) == IBC_ASYMMETRIC)
     is_bc_extd(2) = (is_bc_main(2) .or. &
                      ibc(2) == IBC_DIRICHLET)
 !----------------------------------------------------------------------------------------------------------
@@ -1834,18 +2097,23 @@ contains
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
+              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 1, 5, IBC_INTRPL) * fi(i + 4) + &
+              coeff( 1, 6, IBC_INTRPL) * fi(i + 5)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = 2 
     if(is_bc_main(1)) then
       fo(i) = coeff( 2, 1, ibc(1)) * ( fi(i    ) + fi(i - 1) ) + &
               coeff( 2, 2, ibc(1)) * ( fi(i + 1) + fc(0)     )
-    else if (ibc(1) == IBC_DIRICHLET) then
-      fo(i) = coeff( 2, 1, IBC_DIRICHLET) * ( fi(i    ) + fi(i - 1) ) + &
-              coeff( 2, 2, IBC_DIRICHLET) * ( fi(i + 1) + fc(0)     )
-    else
-      fo(i) = coeff( 2, 1, IBC_INTRPL ) * ( fi(i    ) + fi(i - 1) )
+    else 
+      fo(i) = coeff( 2, 1, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 2, 2, IBC_INTRPL) * fi(i    ) + &
+              coeff( 2, 3, IBC_INTRPL) * fi(i + 1) + &
+              coeff( 2, 4, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 2, 5, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 2, 6, IBC_INTRPL) * fi(i + 4)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
@@ -1858,9 +2126,12 @@ contains
     else if (ibc(2) == IBC_DIRICHLET) then
       fo(i) = fbc(2)
     else
-      fo(i)   = coeff( 5, 1, IBC_INTRPL) * fi(i - 1) + &
-                coeff( 5, 2, IBC_INTRPL) * fi(i - 2) + &
-                coeff( 5, 3, IBC_INTRPL) * fi(i - 3) 
+      fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 5, 2, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 5, 3, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 5, 4, IBC_INTRPL) * fi(i - 4) + &
+              coeff( 5, 5, IBC_INTRPL) * fi(i - 5) + &
+              coeff( 5, 6, IBC_INTRPL) * fi(i - 6)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
@@ -1870,11 +2141,13 @@ contains
     else if (ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i    ) + fi(i - 1) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fi(i + 1) + fi(i - 2) )
-    else if (ibc(2) == IBC_DIRICHLET) then
-      fo(i) = coeff( 4, 1, IBC_DIRICHLET ) * ( fi(i) + fi(i - 1) ) + &
-              coeff( 4, 2, IBC_DIRICHLET ) * ( fc(1) + fi(i - 2) )
-    else
-      fo(i) = coeff( 4, 1, IBC_INTRPL ) * ( fi(i) + fi(i - 1) )
+    else 
+      fo(i) = coeff( 4, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( 4, 2, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 4, 3, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 4, 4, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 4, 5, IBC_INTRPL) * fi(i - 4) + &
+              coeff( 4, 6, IBC_INTRPL) * fi(i - 5)
     end if
 !----------------------------------------------------------------------------------------------------------
 !   mesh-based scaling
@@ -2170,14 +2443,12 @@ contains
     is_bc_main(1) = (ibc(1) == IBC_INTERIOR   .or. &
                      ibc(1) == IBC_PERIODIC   .or. &
                      ibc(1) == IBC_SYMMETRIC  .or. &
-                     ibc(1) == IBC_ASYMMETRIC .or. &
-                     ibc(1) == IBC_DIRICHLET )
+                     ibc(1) == IBC_ASYMMETRIC)
     is_bc_extd(1) = (is_bc_main(1) .or. &
                      ibc(1) == IBC_NEUMANN)
     is_bc_main(2) = (ibc(2) == IBC_INTERIOR   .or. &
                      ibc(2) == IBC_SYMMETRIC  .or. &
-                     ibc(2) == IBC_ASYMMETRIC .or. &
-                     ibc(2) == IBC_DIRICHLET )
+                     ibc(2) == IBC_ASYMMETRIC)
     is_bc_extd(2) = (is_bc_main(2) .or. &
                      ibc(2) == IBC_NEUMANN)
 !----------------------------------------------------------------------------------------------------------
@@ -2190,15 +2461,23 @@ contains
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
+              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 1, 5, IBC_INTRPL) * fi(i + 4) + &
+              coeff( 1, 6, IBC_INTRPL) * fi(i + 5)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = 2
-    if(is_bc_extd(1)) then
+    if(is_bc_main(1)) then
       fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i    ) - fi(i - 1) ) + &
               coeff( 2, 2, ibc(1) ) * ( fi(i + 1) - fc(0)     )
     else
-      fo(i) = coeff( 2, 1, IBC_PERIODIC ) * ( fi(i    ) - fi(i - 1) )
+      fo(i) = coeff( 2, 1, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 2, 2, IBC_INTRPL) * fi(i    ) + &
+              coeff( 2, 3, IBC_INTRPL) * fi(i + 1) + &
+              coeff( 2, 4, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 2, 5, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 2, 6, IBC_INTRPL) * fi(i + 4)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
@@ -2213,18 +2492,26 @@ contains
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i - 1) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 2) + &
-              coeff( 5, 3, IBC_INTRPL) * fi(i - 3) 
+              coeff( 5, 3, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 5, 4, IBC_INTRPL) * fi(i - 4) + &
+              coeff( 5, 5, IBC_INTRPL) * fi(i - 5) + &
+              coeff( 5, 6, IBC_INTRPL) * fi(i - 6)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
-    if(is_bc_extd(2)) then
+    if(is_bc_main(2)) then
       fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i) - fi(i - 1) ) + &
               coeff( 4, 2, ibc(2) ) * ( fc(1) - fi(i - 2) )
     else if(ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i)   - fi(i - 1) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fi(i+1) - fi(i - 2) )
     else
-      fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i) - fi(i - 1) )
+      fo(i) = coeff( 4, 1, IBC_INTRPL) * fi(i    ) + &
+              coeff( 4, 2, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 4, 3, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 4, 4, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 4, 5, IBC_INTRPL) * fi(i - 4) + &
+              coeff( 4, 6, IBC_INTRPL) * fi(i - 5)
     end if
 !----------------------------------------------------------------------------------------------------------
 !   mesh-based scaling
@@ -2279,9 +2566,7 @@ contains
     do i = 1, 2
       is_bc_main(i) = (ibc(i) == IBC_INTERIOR   .or. &
                        ibc(i) == IBC_SYMMETRIC  .or. &
-                       ibc(i) == IBC_ASYMMETRIC .or. &
-                       ibc(i) == IBC_NEUMANN    .or. &
-                       ibc(i) == IBC_DIRICHLET )
+                       ibc(i) == IBC_ASYMMETRIC)
       is_bc_extd(i) = (is_bc_main(i) .or. &
                        ibc(i) == IBC_PERIODIC )
     end do
@@ -2293,7 +2578,10 @@ contains
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
-              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) 
+              coeff( 1, 3, IBC_INTRPL) * fi(i + 2) + &
+              coeff( 1, 4, IBC_INTRPL) * fi(i + 3) + &
+              coeff( 1, 5, IBC_INTRPL) * fi(i + 4) + &
+              coeff( 1, 6, IBC_INTRPL) * fi(i + 5)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc
@@ -2306,14 +2594,14 @@ contains
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i + 1) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i    ) + &
-              coeff( 5, 3, IBC_INTRPL) * fi(i - 1) 
+              coeff( 5, 3, IBC_INTRPL) * fi(i - 1) + &
+              coeff( 5, 4, IBC_INTRPL) * fi(i - 2) + &
+              coeff( 5, 5, IBC_INTRPL) * fi(i - 3) + &
+              coeff( 5, 6, IBC_INTRPL) * fi(i - 4)
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc - 1
-    if(is_bc_main(2)) then
-      fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i    ) ) + &
-              coeff( 4, 2, ibc(2) ) * ( fi(i + 2) - fi(i - 1) )
-    else if(ibc(2) == IBC_PERIODIC) then
+    if(ibc(2) == IBC_PERIODIC) then
       fo(i) = coeff( 4, 1, IBC_PERIODIC ) * ( fi(i + 1) - fi(i    ) ) + &
               coeff( 4, 2, IBC_PERIODIC ) * ( fp(1)     - fi(i - 1) )
     else
