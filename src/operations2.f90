@@ -32,6 +32,9 @@ module operations
 
   private
 
+  logical, save :: bc_ghost_cd = .true.
+  logical, save :: bc_intp_upw = .false.
+
   logical, save :: flg_wrn_xmidp_c2p_interior  (2) = (/.false., .false./)
   logical, save :: flg_wrn_xmidp_c2p_dirichlet (2) = (/.false., .false./)
   logical, save :: flg_wrn_xmidp_c2p_neumann   (2) = (/.false., .false./)
@@ -350,9 +353,9 @@ contains
     use mpi_mod
     implicit none
 
-    real(WP) :: alpha (4),  a(4),  b(4), c(4)
-    real(WP) :: alpha1(4), a1(4), b1(4), c1(4), d1(4), e1(4), f1(4)
-    real(WP) :: alpha2(4), a2(4), b2(4), c2(4), d2(4), e2(4), f2(4)
+    real(WP) :: alpha (NACC),  a(NACC),  b(NACC),  c(NACC)
+    real(WP) :: alpha1(NACC), a1(NACC), b1(NACC), c1(NACC), d1(NACC), e1(NACC), f1(NACC)
+    real(WP) :: alpha2(NACC), a2(NACC), b2(NACC), c2(NACC), d2(NACC), e2(NACC), f2(NACC)
 
     integer :: n
 
@@ -361,6 +364,8 @@ contains
          ("Assigning coefficient matrix for the compact schemes ...")
        !write(*, *) "The given numerical accuracy =", iaccu
     end if
+
+    if(bc_ghost_cd .and. bc_intp_upw) call Print_error_msg("Please choose a boundary treatment method correctly.")
 
 !----------------------------------------------------------------------------------------------------------
 !   initialisation
@@ -457,7 +462,7 @@ contains
       d1rC2C(:,   :, IBC_ASYMMETRIC, n) = d1rC2C(:,   :, IBC_PERIODIC  , n)
     end do 
 !----------------------------------------------------------------------------------------------------------
-! 1st-derivative, C2C, IBC_INTERIOR, f unknowns only from only rhs could be reconstructed from bc, thus explicit
+! 1st-derivative, C2C, IBC_INTERIOR, f unknowns only from rhs could be reconstructed from bc, thus explicit
 ! f' unknow is only first layer 
 !----------------------------------------------------------------------------------------------------------
     d1fC2C(:, :, IBC_INTERIOR, :) = d1fC2C(:, :, IBC_PERIODIC, :)
@@ -472,8 +477,8 @@ contains
     end do
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C, IBC_INTRPL, no bc, no reconstuction. exterpolation only. for the first point
-!                    f'_1 + alpha * f'_{2}   = a1 * f_1 + b1 * f_2 + c1 * f-3
-! alpha * f'_{1}   + f'_2 + alpha * f'_{3}   = a/(2h) * ( f_{i+1} - f_{i-1} ) 
+!                    f'_1 + alpha * f'_{2}   = a1 * f_1 + b1 * f_2 + c1 * f-3 + ...
+! alpha * f'_{1}   + f'_2 + alpha * f'_{3}   = a2 * f_1 + b2 * f_2 + c2 * f-3 + ...
 ! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
 !                                              b/(4h) * ( f_{i+2} - f_{i-2} )
 !----------------------------------------------------------------------------------------------------------
@@ -599,13 +604,21 @@ contains
       d1fC2C(4, 3, IBC_INTRPL, n) =   d1fC2C(2, 1, IBC_INTRPL, n)
       d1rC2C(4, :, IBC_INTRPL, n) = - d1rC2C(2, :, IBC_INTRPL, n)
     end do
-
-    d1fC2C(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_INTRPL, :)
-    d1rC2C(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_INTRPL, :)
-
-    d1fC2C(:, :, IBC_NEUMANN,   :) = d1fC2C(:, :, IBC_INTERIOR, :)
-    d1rC2C(:, :, IBC_NEUMANN,   :) = d1rC2C(:, :, IBC_INTERIOR, :)
-
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, C2C: IBC_DIRICHLET, IBC_NEUMANN
+!----------------------------------------------------------------------------------------------------------
+    if(bc_ghost_cd) then 
+      d1fC2C(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_INTERIOR, :)
+      d1rC2C(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_INTERIOR, :)
+      d1fC2C(:, :, IBC_NEUMANN,   :) = d1fC2C(:, :, IBC_INTERIOR, :)
+      d1rC2C(:, :, IBC_NEUMANN,   :) = d1rC2C(:, :, IBC_INTERIOR, :)
+    end if
+    if(bc_intp_upw) then 
+      d1fC2C(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_INTRPL, :)
+      d1rC2C(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_INTRPL, :)
+      d1fC2C(:, :, IBC_NEUMANN,   :) = d1fC2C(:, :, IBC_INTRPL, :)
+      d1rC2C(:, :, IBC_NEUMANN,   :) = d1rC2C(:, :, IBC_INTRPL, :)
+    end if
 !==========================================================================================================
 ! 1st-derivative, P2P :
 ! d1fP2P : "d1"=first deriviative, "f"=f'  side, "P2P"= point(node) 2 point 
@@ -667,11 +680,6 @@ contains
     d1fP2P(:, :, IBC_INTRPL,    :) = d1fC2C(:, :, IBC_INTRPL, :)
     d1rP2P(:, :, IBC_INTRPL,    :) = d1rC2C(:, :, IBC_INTRPL, :)
 !----------------------------------------------------------------------------------------------------------
-! 1st-derivative, P2P : IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    d1fP2P(:, :, IBC_DIRICHLET, :) = d1fC2C(:, :, IBC_DIRICHLET, :)
-    d1rP2P(:, :, IBC_DIRICHLET, :) = d1rC2C(:, :, IBC_DIRICHLET, :)
-!----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
     do n = 1, NACC
@@ -684,10 +692,22 @@ contains
       d1fP2P(5, 2, IBC_NEUMANN, n) = ONE
       d1fP2P(5, 3, IBC_NEUMANN, n) = ZERO
       d1rP2P(5, :, IBC_NEUMANN, n) = ZERO
-
-      d1fP2P(2:4, :, IBC_NEUMANN, n) = d1fC2C(2:4, :, IBC_NEUMANN, n)
-      d1rP2P(2:4, :, IBC_NEUMANN, n) = d1rC2C(2:4, :, IBC_NEUMANN, n)
     end do
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, P2P : IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
+!----------------------------------------------------------------------------------------------------------
+    if(bc_intp_upw) then
+      d1fP2P(:,   :, IBC_DIRICHLET, :) = d1fP2P(:,   :, IBC_INTRPL, :)
+      d1rP2P(:,   :, IBC_DIRICHLET, :) = d1rP2P(:,   :, IBC_INTRPL, :)
+      d1fP2P(2:4, :, IBC_NEUMANN,   :) = d1fP2P(2:4, :, IBC_INTRPL, :)
+      d1rP2P(2:4, :, IBC_NEUMANN,   :) = d1rP2P(2:4, :, IBC_INTRPL, :)
+    end if
+    if(bc_ghost_cd) then
+      d1fP2P(:,   :, IBC_DIRICHLET, :) = d1fP2P(:,   :, IBC_INTERIOR, :)
+      d1rP2P(:,   :, IBC_DIRICHLET, :) = d1rP2P(:,   :, IBC_INTERIOR, :)
+      d1fP2P(2:4, :, IBC_NEUMANN,   :) = d1fP2P(2:4, :, IBC_INTERIOR, :)
+      d1rP2P(2:4, :, IBC_NEUMANN,   :) = d1rP2P(2:4, :, IBC_INTERIOR, :)
+    end if
 !==========================================================================================================
 ! 1st derivative on staggered grids C2P
 ! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(h ) * ( f_{i}   - f_{i-1} ) + &
@@ -914,13 +934,10 @@ contains
       d1fC2P(4, 3, IBC_INTRPL, n) =   d1fC2P(2, 1, IBC_INTRPL, n)
       d1rC2P(4, :, IBC_INTRPL, n) = - d1rC2P(2, :, IBC_INTRPL, n)
     end do
-!----------------------------------------------------------------------------------------------------------
-! 1st-derivative, C2P, IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    d1fC2P(:, :, IBC_DIRICHLET, :) = d1fC2P(:, :, IBC_INTRPL, :)
-    d1rC2P(:, :, IBC_DIRICHLET, :) = d1rC2P(:, :, IBC_INTRPL, :)
+
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2P : IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! 1st-derivative, C2P : IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
     do n = 1, NACC
       d1fC2P(1, 1,   IBC_NEUMANN, n) = ZERO ! not used
@@ -931,9 +948,20 @@ contains
       d1fC2P(5, 2,   IBC_NEUMANN, n) = ONE
       d1fC2P(5, 3,   IBC_NEUMANN, n) = ZERO
       d1rC2P(5, :,   IBC_NEUMANN, n) = ZERO
-      d1fC2P(2:4, :, IBC_NEUMANN, n) = d1fC2P(2:4, :, IBC_INTRPL, n)
-      d1rC2P(2:4, :, IBC_NEUMANN, n) = d1rC2P(2:4, :, IBC_INTRPL, n)
     end do
+
+    if(bc_intp_upw) then 
+      d1fC2P(:,   :, IBC_DIRICHLET, :) = d1fC2P(:,   :, IBC_INTRPL, :)
+      d1rC2P(:,   :, IBC_DIRICHLET, :) = d1rC2P(:,   :, IBC_INTRPL, :)
+      d1fC2P(2:4, :, IBC_NEUMANN,   :) = d1fC2P(2:4, :, IBC_INTRPL, :)
+      d1rC2P(2:4, :, IBC_NEUMANN,   :) = d1rC2P(2:4, :, IBC_INTRPL, :)
+    end if
+    if(bc_ghost_cd) then 
+      d1fC2P(:,   :, IBC_DIRICHLET, :) = d1fC2P(:,   :, IBC_INTERIOR, :)
+      d1rC2P(:,   :, IBC_DIRICHLET, :) = d1rC2P(:,   :, IBC_INTERIOR, :)
+      d1fC2P(2:4, :, IBC_NEUMANN,   :) = d1fC2P(2:4, :, IBC_INTERIOR, :)
+      d1rC2P(2:4, :, IBC_NEUMANN,   :) = d1rC2P(2:4, :, IBC_INTERIOR, :)
+    end if
 !==========================================================================================================
 ! 1st derivative on staggered grids P2C
 ! alpha * f'_{i-1} +  f'_i +  alpha * f'_{i+1}  = a/(h ) * ( f_{i'+1} - f_{i'} ) + &
@@ -986,8 +1014,8 @@ contains
       if(n == IACCU_CP4 .or. n == IACCU_CP6) then
         d1fP2C(1, :, IBC_INTERIOR, n) = d1fP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
         d1rP2C(1, :, IBC_INTERIOR, n) = d1rP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-        d1fP2C(5, :, IBC_INTERIOR, n) = d1fP2C(4, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
-        d1rP2C(5, :, IBC_INTERIOR, n) = d1rP2C(4, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        d1fP2C(5, :, IBC_INTERIOR, n) = d1fP2C(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        d1rP2C(5, :, IBC_INTERIOR, n) = d1rP2C(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
       end if
     end do
 !----------------------------------------------------------------------------------------------------------
@@ -1061,12 +1089,21 @@ contains
       d1fP2C(2:4, :, IBC_INTRPL, n) = d1fP2C(2:4, :, IBC_PERIODIC, n)
       d1rP2C(2:4, :, IBC_INTRPL, n) = d1rP2C(2:4, :, IBC_PERIODIC, n)
     end do
-    
-    d1fP2C(:, :, IBC_DIRICHLET, :) = d1fP2C(:, :, IBC_INTRPL, :)
-    d1rP2C(:, :, IBC_DIRICHLET, :) = d1rP2C(:, :, IBC_INTRPL, :)
-
-    d1fP2C(:, :, IBC_NEUMANN, :) = d1fP2C(:, :, IBC_INTRPL, :)
-    d1rP2C(:, :, IBC_NEUMANN, :) = d1rP2C(:, :, IBC_INTRPL, :)
+!----------------------------------------------------------------------------------------------------------
+! 1st-derivative, P2C, IBC_DIRICHLET, IBC_NEUMANN
+!----------------------------------------------------------------------------------------------------------
+    if(bc_intp_upw) then
+      d1fP2C(:, :, IBC_DIRICHLET, :) = d1fP2C(:, :, IBC_INTRPL, :)
+      d1rP2C(:, :, IBC_DIRICHLET, :) = d1rP2C(:, :, IBC_INTRPL, :)
+      d1fP2C(:, :, IBC_NEUMANN,   :) = d1fP2C(:, :, IBC_INTRPL, :)
+      d1rP2C(:, :, IBC_NEUMANN,   :) = d1rP2C(:, :, IBC_INTRPL, :)
+    end if
+    if(bc_ghost_cd) then
+      d1fP2C(:, :, IBC_DIRICHLET, :) = d1fP2C(:, :, IBC_INTERIOR, :)
+      d1rP2C(:, :, IBC_DIRICHLET, :) = d1rP2C(:, :, IBC_INTERIOR, :)
+      d1fP2C(:, :, IBC_NEUMANN,   :) = d1fP2C(:, :, IBC_INTERIOR, :)
+      d1rP2C(:, :, IBC_NEUMANN,   :) = d1rP2C(:, :, IBC_INTERIOR, :)
+    end if
 !==========================================================================================================
 !interpolation. C2P 
 ! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
@@ -1146,10 +1183,19 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! interpolation : C2P for IBC_INTERIOR, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    m1fC2P(:,   :, IBC_INTERIOR, :) = m1fC2P(:,   :, IBC_PERIODIC, :)
-    m1rC2P(:,   :, IBC_INTERIOR, :) = m1rC2P(:,   :, IBC_PERIODIC, :)
+    m1fC2P(:, :, IBC_INTERIOR, :) = m1fC2P(:, :, IBC_PERIODIC, :)
+    m1rC2P(:, :, IBC_INTERIOR, :) = m1rC2P(:, :, IBC_PERIODIC, :)
+
+    do n = 1, NACC
+      if(n == IACCU_CP4 .or. n == IACCU_CP6) then
+        m1fC2P(1, :, IBC_INTERIOR, n) = m1fC2P(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        m1rC2P(1, :, IBC_INTERIOR, n) = m1rC2P(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        m1fC2P(5, :, IBC_INTERIOR, n) = m1fC2P(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        m1rC2P(5, :, IBC_INTERIOR, n) = m1rC2P(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+      end if
+    end do
 !----------------------------------------------------------------------------------------------------------
-!interpolation. C2P, exterpolation
+! interpolation. C2P, exterpolation
 !----------------------------------------------------------------------------------------------------------
     alpha1 = ZERO
         a1 = ZERO
@@ -1267,10 +1313,9 @@ contains
       m1fC2P(4, 3,   IBC_INTRPL, n) = m1fC2P(2, 1, IBC_INTRPL, n)
       m1rC2P(4, :,   IBC_INTRPL, n) = m1rC2P(2, :, IBC_INTRPL, n)
     end do
-
-    m1fC2P(:, :, IBC_NEUMANN, :) = m1fC2P(:, :, IBC_INTRPL, :)
-    m1rC2P(:, :, IBC_NEUMANN, :) = m1rC2P(:, :, IBC_INTRPL, :)
-
+!----------------------------------------------------------------------------------------------------------
+! interpolation : C2P, IBC_DIRICHLET, IBC_NEUMANN
+!----------------------------------------------------------------------------------------------------------
     do n = 1, NACC
       m1fC2P(1, 1,   IBC_DIRICHLET, n) = ZERO ! not used
       m1fC2P(1, 2,   IBC_DIRICHLET, n) = ONE
@@ -1280,9 +1325,21 @@ contains
       m1fC2P(5, 2,   IBC_DIRICHLET, n) = ONE
       m1fC2P(5, 3,   IBC_DIRICHLET, n) = ZERO
       m1rC2P(5, :,   IBC_DIRICHLET, n) = ZERO
-      m1fC2P(2:4, :, IBC_DIRICHLET, n) = m1fC2P(2:4, :, IBC_INTRPL, n)
-      m1rC2P(2:4, :, IBC_DIRICHLET, n) = m1rC2P(2:4, :, IBC_INTRPL, n)
     end do
+
+    if(bc_intp_upw) then
+      m1fC2P(:,   :, IBC_NEUMANN,   :) = m1fC2P(:,   :, IBC_INTRPL, :)
+      m1rC2P(:,   :, IBC_NEUMANN,   :) = m1rC2P(:,   :, IBC_INTRPL, :)
+      m1fC2P(2:4, :, IBC_DIRICHLET, :) = m1fC2P(2:4, :, IBC_INTRPL, :)
+      m1rC2P(2:4, :, IBC_DIRICHLET, :) = m1rC2P(2:4, :, IBC_INTRPL, :)
+    end if
+
+    if(bc_ghost_cd) then
+      m1fC2P(:,   :, IBC_NEUMANN,   :) = m1fC2P(:,   :, IBC_INTERIOR, :)
+      m1rC2P(:,   :, IBC_NEUMANN,   :) = m1rC2P(:,   :, IBC_INTERIOR, :)
+      m1fC2P(2:4, :, IBC_DIRICHLET, :) = m1fC2P(2:4, :, IBC_INTERIOR, :)
+      m1rC2P(2:4, :, IBC_DIRICHLET, :) = m1rC2P(2:4, :, IBC_INTERIOR, :)
+    end if
 
 !==========================================================================================================
 !interpolation. P2C 
@@ -1326,10 +1383,19 @@ contains
       m1rP2C(:,   :, IBC_ASYMMETRIC, n) = m1rP2C(:,   :, IBC_PERIODIC  , n)
     end do
 !----------------------------------------------------------------------------------------------------------
-! interpolation : P2C, IBC_INTERIOR, unknowns only from only rhs could be reconstructed from bc, thus explicit
+! interpolation : P2C, IBC_INTERIOR
 !----------------------------------------------------------------------------------------------------------
     m1fP2C(:, :, IBC_INTERIOR, :) = m1fP2C(:, :, IBC_PERIODIC, :)
     m1rP2C(:, :, IBC_INTERIOR, :) = m1rP2C(:, :, IBC_PERIODIC, :)
+
+    do n = 1, NACC
+      if(n == IACCU_CP4 .or. n == IACCU_CP6) then
+        m1fP2C(1, :, IBC_INTERIOR, n) = m1fP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        m1rP2C(1, :, IBC_INTERIOR, n) = m1rP2C(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        m1fP2C(5, :, IBC_INTERIOR, n) = m1fP2C(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+        m1rP2C(5, :, IBC_INTERIOR, n) = m1rP2C(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+      end if
+    end do
 !----------------------------------------------------------------------------------------------------------
 ! interpolation. P2C: exterpolation
 ! [ 1    alpha1                          ][f_1']=[a1 * f_{1'} + b1 * f_{2'} + c1 * f_{3'}  ]
@@ -1400,15 +1466,21 @@ contains
       m1rP2C(2:4, :, IBC_INTRPL, n) = m1rP2C(2:4, :, IBC_PERIODIC, n)
     end do
 !----------------------------------------------------------------------------------------------------------
-!interpolation. P2C. IBC_DIRICHLET, unknowns only from only rhs could be reconstructed from bc, thus explicit
+!interpolation. P2C. IBC_DIRICHLET, IBC_NEUMANN
 !----------------------------------------------------------------------------------------------------------
-    m1fP2C(:, :, IBC_DIRICHLET, :) = m1fP2C(:, :, IBC_INTRPL, :)
-    m1rP2C(:, :, IBC_DIRICHLET, :) = m1rP2C(:, :, IBC_INTRPL, :)
-!----------------------------------------------------------------------------------------------------------
-!interpolation. P2C. IBC_NEUMANN, unknowns only from only rhs could be reconstructed from bc, thus explicit
-!----------------------------------------------------------------------------------------------------------
-    m1fP2C(:, :, IBC_NEUMANN, :) = m1fP2C(:, :, IBC_INTRPL, :)
-    m1rP2C(:, :, IBC_NEUMANN, :) = m1rP2C(:, :, IBC_INTRPL, :)
+    if(bc_intp_upw) then
+      m1fP2C(:, :, IBC_NEUMANN,   :) = m1fP2C(:, :, IBC_INTRPL, :)
+      m1rP2C(:, :, IBC_NEUMANN,   :) = m1rP2C(:, :, IBC_INTRPL, :)
+      m1fP2C(:, :, IBC_DIRICHLET, :) = m1fP2C(:, :, IBC_INTRPL, :)
+      m1rP2C(:, :, IBC_DIRICHLET, :) = m1rP2C(:, :, IBC_INTRPL, :)
+    end if
+
+    if(bc_ghost_cd) then
+      m1fP2C(:, :, IBC_NEUMANN,   :) = m1fP2C(:, :, IBC_INTERIOR, :)
+      m1rP2C(:, :, IBC_NEUMANN,   :) = m1rP2C(:, :, IBC_INTERIOR, :)
+      m1fP2C(:, :, IBC_DIRICHLET, :) = m1fP2C(:, :, IBC_INTERIOR, :)
+      m1rP2C(:, :, IBC_DIRICHLET, :) = m1rP2C(:, :, IBC_INTERIOR, :)
+    end if
     
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -1892,7 +1964,7 @@ contains
 
     integer :: i!, m, l
     real(WP) :: fp(-1:2)
-    logical :: is_bc_main(2), is_bc_extd(2)
+    logical :: is_bc1, is_bc5
 
     fo(:) = ZERO
 !----------------------------------------------------------------------------------------------------------
@@ -1910,16 +1982,26 @@ contains
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
 !----------------------------------------------------------------------------------------------------------
     call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
-    do i = 1, 2
-      is_bc_main(i) = (ibc(i) == IBC_INTERIOR   .or. &
-                   ibc(i) == IBC_SYMMETRIC  .or. &
-                   ibc(i) == IBC_ASYMMETRIC)
-      is_bc_extd(i) = (is_bc_main(i) .or. &
-                   ibc(i) == IBC_PERIODIC )
-    end do 
+    is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
+              ibc(1) == IBC_PERIODIC   .or. &
+              ibc(1) == IBC_SYMMETRIC  .or. &
+              ibc(1) == IBC_ASYMMETRIC )
+    if(bc_ghost_cd) then
+      is_bc1 =(is_bc1 .or. &
+               ibc(1) == IBC_DIRICHLET .or. &
+               ibc(1) == IBC_NEUMANN)
+    end if
+    is_bc5 = (ibc(2) == IBC_INTERIOR   .or. &
+              ibc(2) == IBC_SYMMETRIC  .or. &
+              ibc(2) == IBC_ASYMMETRIC )
+    if(bc_ghost_cd) then
+      is_bc5 =(is_bc5 .or. &
+               ibc(2) == IBC_DIRICHLET .or. &
+               ibc(2) == IBC_NEUMANN)
+    end if 
 !----------------------------------------------------------------------------------------------------------
     i = 1
-    if(is_bc_extd(1)) then
+    if(is_bc1) then
       fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i) + fi(i + 1) ) + &
               coeff( 1, 2, ibc(1) ) * ( fp(0) + fi(i + 2) )
     else
@@ -1932,7 +2014,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc
-    if(is_bc_main(2)) then
+    if(is_bc5) then
       fo(i) = coeff( 5, 1, ibc(2) ) * ( fi(i    ) + fi(i + 1) ) + &
               coeff( 5, 2, ibc(2) ) * ( fi(i - 1) + fp(1) )
     else if( ibc(2) == IBC_PERIODIC ) then
@@ -1987,7 +2069,7 @@ contains
 
     integer :: i
     real(WP) :: fc(-1:2)
-    logical :: is_bc_main(2), is_bc_extd(2)
+    logical :: is_bc1, is_bc2, is_bc4, is_bc5
 !==========================================================================================================
 !interpolation. C2P 
 ! alpha * f_{i'-1} + f_i' + alpha * f_{i'+1} = a/2 * ( f_{i}   + f_{i-1} ) + &
@@ -2011,20 +2093,38 @@ contains
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
     call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
-    is_bc_main(1) = (ibc(1) == IBC_INTERIOR   .or. &
-                     ibc(1) == IBC_PERIODIC   .or. &
-                     ibc(1) == IBC_SYMMETRIC  .or. &
-                     ibc(1) == IBC_ASYMMETRIC)
-    is_bc_extd(1) = (is_bc_main(1) .or. &
-                     ibc(1) == IBC_DIRICHLET)
-    is_bc_main(2) = (ibc(2) == IBC_INTERIOR   .or. &
-                     ibc(2) == IBC_SYMMETRIC  .or. &
-                     ibc(2) == IBC_ASYMMETRIC)
-    is_bc_extd(2) = (is_bc_main(2) .or. &
-                     ibc(2) == IBC_DIRICHLET)
+    
+    is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
+              ibc(1) == IBC_PERIODIC   .or. &
+              ibc(1) == IBC_SYMMETRIC  .or. &
+              ibc(1) == IBC_ASYMMETRIC)
+    if(bc_ghost_cd) then
+      is_bc1 = (is_bc1 .or. &
+              ibc(1) == IBC_NEUMANN)
+    end if
+
+    is_bc5 = (ibc(2) == IBC_INTERIOR   .or. &
+              ibc(2) == IBC_SYMMETRIC  .or. &
+              ibc(2) == IBC_ASYMMETRIC)
+    if(bc_ghost_cd) then
+      is_bc5 = (is_bc5 .or. &
+              ibc(2) == IBC_NEUMANN)
+    end if
+
+    is_bc2 = is_bc1
+    if(bc_ghost_cd) then
+        is_bc2 = (is_bc2 .or. &
+            ibc(1) == IBC_DIRICHLET)
+    end if
+
+    is_bc4 = is_bc5
+    if(bc_ghost_cd) then
+      is_bc4 = (is_bc4 .or. &
+            ibc(2) == IBC_DIRICHLET)
+    end if
 !----------------------------------------------------------------------------------------------------------
     i = 1    
-    if(is_bc_main(1)) then
+    if(is_bc1) then
       fo(i) = coeff( 1, 1, ibc(1)) * ( fi(i    ) + fc( 0) )+ &
               coeff( 1, 2, ibc(1)) * ( fi(i + 1) + fc(-1) )
     else if (ibc(1) == IBC_DIRICHLET) then
@@ -2039,7 +2139,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = 2 
-    if(is_bc_main(1)) then
+    if(is_bc2) then
       fo(i) = coeff( 2, 1, ibc(1)) * ( fi(i    ) + fi(i - 1) ) + &
               coeff( 2, 2, ibc(1)) * ( fi(i + 1) + fc(0)     )
     else 
@@ -2052,7 +2152,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
-    if(is_bc_main(2)) then
+    if(is_bc5) then
       fo(i) = coeff( 5, 1, ibc(2) ) * ( fc(1) + fi(i - 1) ) + &
               coeff( 5, 2, ibc(2) ) * ( fc(2) + fi(i - 2) )
     else if (ibc(2) == IBC_PERIODIC) then
@@ -2070,7 +2170,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
-    if(is_bc_main(2)) then
+    if(is_bc4) then
       fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i) + fi(i - 1) ) + &
               coeff( 4, 2, ibc(2) ) * ( fc(1) + fi(i - 2) )
     else if (ibc(2) == IBC_PERIODIC) then
@@ -2143,6 +2243,11 @@ contains
                   ibc(i) == IBC_PERIODIC   .or. &
                   ibc(i) == IBC_SYMMETRIC  .or. &
                   ibc(i) == IBC_ASYMMETRIC)
+      if(bc_ghost_cd) then
+          is_bc(i) = (is_bc(i)             .or. &
+                  ibc(i) == IBC_DIRICHLET  .or. &
+                  ibc(i) == IBC_NEUMANN)
+      end if
     end do
 !----------------------------------------------------------------------------------------------------------
     i = 1
@@ -2237,7 +2342,7 @@ contains
 
     integer :: i
     real(WP) :: fp(-1:2)
-    logical  :: is_bc_main(2), is_bc_extd(2)
+    logical  :: is_bc1(2), is_bc2(2)
 
     fo(:) = ZERO
 !----------------------------------------------------------------------------------------------------------
@@ -2255,16 +2360,25 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
     do i = 1, 2
-      is_bc_main(i) = (ibc(i) == IBC_INTERIOR   .or. &
+      is_bc1(i) = (ibc(i) == IBC_INTERIOR   .or. &
                    ibc(i) == IBC_PERIODIC   .or. &
                    ibc(i) == IBC_SYMMETRIC  .or. &
                    ibc(i) == IBC_ASYMMETRIC)
-      !is_bc_extd(i) = (is_bc_main(i) .or. &
-      !             ibc(i) == IBC_NEUMANN)
+      if(bc_ghost_cd) then
+        is_bc1(i) = (is_bc1(i) .or. &
+                   ibc(i) == IBC_DIRICHLET)
+      end if
+      is_bc2(i) = is_bc1(i)
+      if(bc_ghost_cd) then
+        is_bc2(i) = (is_bc2(i) .or. &
+                   ibc(i) == IBC_DIRICHLET .or. &
+                   ibc(i) == IBC_NEUMANN)
+      end if
     end do
+    
 !----------------------------------------------------------------------------------------------------------
     i = 1
-    if(is_bc_main(1)) then
+    if(is_bc1(1)) then
       fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i + 1) - fp( 0) ) + &
               coeff( 1, 2, ibc(1) ) * ( fi(i + 2) - fp(-1) )
     else if(ibc(1) == IBC_NEUMANN) then
@@ -2280,7 +2394,7 @@ contains
 
 !----------------------------------------------------------------------------------------------------------    
     i = 2
-    if(is_bc_main(1)) then
+    if(is_bc2(1)) then
       fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( 2, 2, ibc(1) ) * ( fi(i + 2) - fp(0)     )
     else
@@ -2293,7 +2407,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
-    if(is_bc_main(2)) then
+    if(is_bc1(2)) then
       fo(i) = coeff( 5, 1, ibc(2) ) * ( fp(1) - fi(i - 1) ) + &
               coeff( 5, 2, ibc(2) ) * ( fp(2) - fi(i - 2) )
     else if(ibc(2) == IBC_NEUMANN) then
@@ -2308,7 +2422,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
-    if(is_bc_main(2)) then
+    if(is_bc2(2)) then
       fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i + 1) - fi(i - 1) ) + &
               coeff( 4, 2, ibc(2) ) * ( fp(1)     - fi(i - 2) )
     else
@@ -2359,7 +2473,7 @@ contains
 
     integer :: i!, m, l
     real(WP) :: fc(-1:2)
-    logical  :: is_bc_main(2), is_bc_extd(2)
+    logical  :: is_bc1, is_bc2, is_bc4, is_bc5
 
     fo(:) = ZERO
 !----------------------------------------------------------------------------------------------------------
@@ -2375,20 +2489,36 @@ contains
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
     call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
-    is_bc_main(1) = (ibc(1) == IBC_INTERIOR   .or. &
-                     ibc(1) == IBC_PERIODIC   .or. &
-                     ibc(1) == IBC_SYMMETRIC  .or. &
-                     ibc(1) == IBC_ASYMMETRIC)
-    is_bc_extd(1) = (is_bc_main(1) .or. &
-                     ibc(1) == IBC_NEUMANN)
-    is_bc_main(2) = (ibc(2) == IBC_INTERIOR   .or. &
-                     ibc(2) == IBC_SYMMETRIC  .or. &
-                     ibc(2) == IBC_ASYMMETRIC)
-    is_bc_extd(2) = (is_bc_main(2) .or. &
-                     ibc(2) == IBC_NEUMANN)
+    is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
+              ibc(1) == IBC_PERIODIC   .or. &
+              ibc(1) == IBC_SYMMETRIC  .or. &
+              ibc(1) == IBC_ASYMMETRIC)
+    if(bc_ghost_cd) then
+      is_bc1 = (is_bc1 .or. &
+              ibc(1) == IBC_DIRICHLET)
+    end if
+    is_bc2 = is_bc1
+    if(bc_ghost_cd) then
+        is_bc2 = (is_bc2 .or. &
+            ibc(1) == IBC_DIRICHLET .or. &
+            ibc(1) == IBC_NEUMANN)
+    end if
+    is_bc5 = (ibc(2) == IBC_INTERIOR   .or. &
+              ibc(2) == IBC_SYMMETRIC  .or. &
+              ibc(2) == IBC_ASYMMETRIC)
+    if(bc_ghost_cd) then
+      is_bc5 = (is_bc5 .or. &
+              ibc(2) == IBC_DIRICHLET)
+    end if
+    is_bc4 = is_bc5
+    if(bc_ghost_cd) then
+      is_bc4 = (is_bc4 .or. &
+            ibc(1) == IBC_DIRICHLET .or. &
+            ibc(1) == IBC_NEUMANN)
+    end if
 !----------------------------------------------------------------------------------------------------------
     i = 1
-    if(is_bc_main(1)) then
+    if(is_bc1) then
       fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i    ) - fc( 0) ) + &
               coeff( 1, 2, ibc(1) ) * ( fi(i + 1) - fc(-1) )
     else if(ibc(1) == IBC_NEUMANN) then
@@ -2403,7 +2533,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = 2
-    if(is_bc_main(1)) then
+    if(is_bc2) then
       fo(i) = coeff( 2, 1, ibc(1) ) * ( fi(i    ) - fi(i - 1) ) + &
               coeff( 2, 2, ibc(1) ) * ( fi(i + 1) - fc(0)     )
     else
@@ -2416,7 +2546,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np
-    if(is_bc_main(2)) then
+    if(is_bc5) then
       fo(i) = coeff( 5, 1, ibc(2) ) * ( fc(1) - fi(i - 1) ) + &
               coeff( 5, 2, ibc(2) ) * ( fc(2) - fi(i - 2) )
     else if(ibc(2) == IBC_PERIODIC) then
@@ -2434,7 +2564,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = np - 1
-    if(is_bc_main(2)) then
+    if(is_bc4) then
       fo(i) = coeff( 4, 1, ibc(2) ) * ( fi(i) - fi(i - 1) ) + &
               coeff( 4, 2, ibc(2) ) * ( fc(1) - fi(i - 2) )
     else if(ibc(2) == IBC_PERIODIC) then
@@ -2481,7 +2611,7 @@ contains
 
     integer :: i!, l, m
     real(WP) :: fp(-1:2)
-    logical :: is_bc_main(2), is_bc_extd(2)
+    logical :: is_bc1, is_bc5
 
     fo(:) = ZERO
 !----------------------------------------------------------------------------------------------------------
@@ -2498,16 +2628,27 @@ contains
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
 !----------------------------------------------------------------------------------------------------------
     call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
-    do i = 1, 2
-      is_bc_main(i) = (ibc(i) == IBC_INTERIOR   .or. &
-                       ibc(i) == IBC_SYMMETRIC  .or. &
-                       ibc(i) == IBC_ASYMMETRIC)
-      is_bc_extd(i) = (is_bc_main(i) .or. &
-                       ibc(i) == IBC_PERIODIC )
-    end do
+
+    is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
+              ibc(1) == IBC_PERIODIC   .or. &
+              ibc(1) == IBC_SYMMETRIC  .or. &
+              ibc(1) == IBC_ASYMMETRIC )
+    if(bc_ghost_cd) then
+      is_bc1 =(is_bc1 .or. &
+               ibc(1) == IBC_DIRICHLET .or. &
+               ibc(1) == IBC_NEUMANN)
+    end if
+    is_bc5 = (ibc(2) == IBC_INTERIOR   .or. &
+              ibc(2) == IBC_SYMMETRIC  .or. &
+              ibc(2) == IBC_ASYMMETRIC )
+    if(bc_ghost_cd) then
+      is_bc5 =(is_bc5 .or. &
+               ibc(2) == IBC_DIRICHLET .or. &
+               ibc(2) == IBC_NEUMANN)
+    end if
 !----------------------------------------------------------------------------------------------------------
     i = 1
-    if(is_bc_extd(1)) then
+    if(is_bc1) then
       fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i + 1) - fi(i) ) + &
               coeff( 1, 2, ibc(1) ) * ( fi(i + 2) - fp(0) )
     else
@@ -2520,7 +2661,7 @@ contains
     end if
 !----------------------------------------------------------------------------------------------------------
     i = nc
-    if(is_bc_main(2)) then
+    if(is_bc5) then
       fo(i) = coeff( 5, 1, ibc(2) ) * ( fi(i + 1) - fi(i    ) ) + &
               coeff( 5, 2, ibc(2) ) * ( fp(1)     - fi(i - 1) )
     else if(ibc(2) == IBC_PERIODIC) then
