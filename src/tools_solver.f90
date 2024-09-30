@@ -698,7 +698,7 @@ contains
     call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, fmt) 'maximum '//str, varmax_work, ' minimum '//str, varmin_work
+      write (*, fmt) 'maximum |'//str//'|', varmax_work, ' minimum |'//str//'|', varmin_work
     end if
 #ifdef DEBUG_FFT
     if(varmax_work >   MAXVELO) stop

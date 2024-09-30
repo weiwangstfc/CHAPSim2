@@ -827,24 +827,24 @@ contains
 
     if (nrank == 0 ) then
       call Print_debug_start_msg("The reference thermal properties (dim) are")
-      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftp0ref%t
-      write (*, wrtfmt1r) '  Density:',              fluidparam%ftp0ref%d
-      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftp0ref%m
-      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftp0ref%k
-      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftp0ref%cp
-      write (*, wrtfmt1e) '  Enthalphy:',            fluidparam%ftp0ref%h
-      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftp0ref%rhoh
+      write (*, wrtfmt1r) '  Temperature(K):',              fluidparam%ftp0ref%t
+      write (*, wrtfmt1r) '  Density(Kg/m3):',              fluidparam%ftp0ref%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity(Pa-s):',     fluidparam%ftp0ref%m
+      write (*, wrtfmt1r) '  Thermal Conductivity(W/m-K):', fluidparam%ftp0ref%k
+      write (*, wrtfmt1r) '  Cp(J/Kg/K):',                  fluidparam%ftp0ref%cp
+      write (*, wrtfmt1e) '  Enthalphy(J):',                fluidparam%ftp0ref%h
+      write (*, wrtfmt1e) '  mass enthaphy(Kg J/m3):',      fluidparam%ftp0ref%rhoh
 
       call Print_debug_start_msg("The initial thermal properties (dim) are")
-      write (*, wrtfmt1r) '  Temperature:',          fluidparam%ftpini%t
-      write (*, wrtfmt1r) '  Density:',              fluidparam%ftpini%d
-      write (*, wrtfmt1e) '  Dynamic Viscosity:',    fluidparam%ftpini%m
-      write (*, wrtfmt1r) '  Thermal Conductivity:', fluidparam%ftpini%k
-      write (*, wrtfmt1r) '  Cp:',                   fluidparam%ftpini%cp
-      write (*, wrtfmt1e) '  Enthalphy:',            fluidparam%ftpini%h
-      write (*, wrtfmt1e) '  mass enthaphy:',        fluidparam%ftpini%rhoh
+      write (*, wrtfmt1r) '  Temperature(K):',              fluidparam%ftpini%t
+      write (*, wrtfmt1r) '  Density(Kg/m3):',              fluidparam%ftpini%d
+      write (*, wrtfmt1e) '  Dynamic Viscosity(Pa-s):',     fluidparam%ftpini%m
+      write (*, wrtfmt1r) '  Thermal Conductivity(W/m-K):', fluidparam%ftpini%k
+      write (*, wrtfmt1r) '  Cp(J/Kg/K):',                  fluidparam%ftpini%cp
+      write (*, wrtfmt1e) '  Enthalphy(J):',                fluidparam%ftpini%h
+      write (*, wrtfmt1e) '  mass enthaphy(Kg J/m3):',      fluidparam%ftpini%rhoh
       call Print_debug_mid_msg("The range of the property table (undim)")
-      write (*, wrtfmt2r) '  rho*h',                  fluidparam%dhmin, fluidparam%dhmax
+      write (*, wrtfmt2r) '  rho*h(Kg J/m3)',                  fluidparam%dhmin, fluidparam%dhmax
     end if
 
     return
