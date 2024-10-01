@@ -122,12 +122,17 @@ subroutine Initialize_chapsim
 ! Initialize flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
+    call Allocate_flow_variables (flow(i), domain(i))
+    if(domain(i)%is_thermo) then
+      call Allocate_thermo_variables (thermo(i), domain(i))
+      call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
+    end if
     call Initialize_flow_fields(flow(i), domain(i))
-    if(domain(i)%is_thermo) call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
     call Check_mass_conservation(flow(i), domain(i), 0, 'init') 
     call Solve_momentum_eq(flow(i), domain(i), 0)
     call Check_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
     call write_visu_flow(flow(i), domain(i))
+    if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain

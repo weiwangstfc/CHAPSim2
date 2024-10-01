@@ -578,7 +578,7 @@ contains
       if(dm%ibcy_nominal(n, 5) == IBC_DIRICHLET) then
         dm%fbcy_ftp(:, n, :)%t   = dm%fbcy_const(n, 5)
         call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcy_ftp)
-        write(*,*) 'test, bc-T', dm%fbcy_const(n, 5), dm%fbcy_ftp(4, n, 4)%t
+        !write(*,*) 'test, bc-T', dm%fbcy_const(n, 5), dm%fbcy_ftp(4, n, 4)%t
         density = dm%fbcy_ftp(1, n, 1)%d
       else if (dm%ibcy_nominal(n, 5) == IBC_NEUMANN) then
         dm%fbcy_qw(:, n, :) = dm%fbcy_const(n, 5) 
