@@ -25,7 +25,7 @@ ifeq ($(cfg), gnu)
    # For gcc-10 and higher (comment out for older versions)
   FOPTS += -fallow-argument-mismatch
   FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
-  FDEBG= # -DDEBUG_STEPS #-DDEBUG_STEPS #-DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
+  FDEBG= -DDEBUG_STEPS #-DDEBUG_STEPS #-DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
 	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused

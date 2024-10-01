@@ -77,7 +77,7 @@ contains
 
     if(nrank == 0) call Print_debug_start_msg("writing out instantanous 3d flow data ...")
 
-    call write_instantanous_array(fl%qx, 'ux', dm%idom, fl%iteration, dm%dpcc)
+    call write_instantanous_array(fl%qx, 'qx', dm%idom, fl%iteration, dm%dpcc)
     call write_instantanous_array(fl%qy, 'qy', dm%idom, fl%iteration, dm%dcpc)
     call write_instantanous_array(fl%qz, 'qz', dm%idom, fl%iteration, dm%dccp)
     call write_instantanous_array(fl%pres, 'pr', dm%idom, fl%iteration, dm%dccc)
