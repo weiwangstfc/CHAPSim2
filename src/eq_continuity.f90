@@ -6,7 +6,8 @@ module continuity_eq_mod
   public :: Get_divergence_vel
   public :: Get_divergence
   public :: Get_divergence_vel_x2z
-  public :: Check_mass_conservation
+  public :: Check_domain_mass_conservation
+  public :: Check_element_mass_conservation
 contains
 
 !==========================================================================================================
@@ -60,7 +61,7 @@ contains
     !   ! default, Euler 1st order 
       fl%pcor(:, :, :) = fl%dDens(:, :, :) - fl%dDensm1(:, :, :)
       fl%pcor(:, :, :) = fl%pcor(:, :, :) / dm%dt
-
+      fl%drhodt = fl%pcor
     ! end if
 
 !  method 2
@@ -328,7 +329,7 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Check_mass_conservation(fl, dm, iter, str0)
+  subroutine Check_element_mass_conservation(fl, dm, iter, str0)
     use precision_mod
     use udf_type_mod
     use input_general_mod    
@@ -375,13 +376,13 @@ contains
     call write_visu_any3darray(div+fl%pcor, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif
 
-    call Find_maximum_absvar3d(div+fl%pcor, fl%mcon, trim(str)//" Mass Conservation:", wrtfmt1e)
+    call Find_maximum_absvar3d(div+fl%pcor, fl%mcon, dm%dccc, trim(str)//" Mass Conservation:", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax
     ! end if
 
     return
-  end subroutine Check_mass_conservation 
+  end subroutine Check_element_mass_conservation 
 
 end module continuity_eq_mod

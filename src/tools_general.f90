@@ -86,7 +86,7 @@ module decomp_operation_mod
   implicit none 
 contains
     
-  function is_decomp_same ( a, b ) result(f)
+  function is_same_decomp ( a, b ) result(f)
     use decomp_2d
     type(DECOMP_INFO), intent(in) :: a, b
     logical :: f
@@ -413,21 +413,21 @@ module random_number_generation_mod
   use precision_mod
   implicit none
   private
-  public :: Initialize_random_number
+  public :: initialise_random_number
   public :: Generate_rvec_random
   public :: Generate_r_random
 
 contains
-  subroutine Initialize_random_number ( seed )
+  subroutine initialise_random_number ( seed )
     !*******************************************************************************
     !
-    !! random_initialize initializes the FORTRAN 90 random number seed.
+    !! random_initialise initialises the FORTRAN 90 random number seed.
     !
     !
     !  Discussion:
     !
-    !    If you don't initialize the random number generator, its behavior
-    !    is not specified.  If you initialize it simply by:
+    !    If you don't initialise the random number generator, its behavior
+    !    is not specified.  If you initialise it simply by:
     !
     !      CALL random_seed
     !
@@ -452,7 +452,7 @@ contains
     !    IF seed is zero on input, THEN you're asking this routine to come up
     !    with a seed value, whICh is RETURNed as output.
     !    IF seed is nonzero on input, THEN you're asking this routine to
-    !    USE the input value of seed to initialize the random number generator,
+    !    USE the input value of seed to initialise the random number generator,
     !    and seed is not changed on output.
     !
     implicit none
@@ -467,7 +467,7 @@ contains
     integer :: seed_size
     real(wp) :: t
     !
-    !  Initialize the random number seed.
+    !  initialise the random number seed.
     !
     call random_seed
     !
@@ -483,8 +483,8 @@ contains
 
         if ( debug ) then
             write ( *, '(a)' ) ' '
-            write ( *, '(a)' ) 'random_initialize'
-            write ( *, '(a, i20)' ) '  initialize random_number, user seed = ', seed
+            write ( *, '(a)' ) 'random_initialise'
+            write ( *, '(a, i20)' ) '  initialise random_number, user seed = ', seed
         end if
 
     else
@@ -495,8 +495,8 @@ contains
 
         if ( debug ) then
             write ( *, '(a)' ) ' '
-            write ( *, '(a)' ) 'random_initialize'
-            write ( *, '(a, i20)' ) '  initialize random_number, arbitrary seed = ', &
+            write ( *, '(a)' ) 'random_initialise'
+            write ( *, '(a, i20)' ) '  initialise random_number, arbitrary seed = ', &
             seed
         end if
 
@@ -513,13 +513,13 @@ contains
     deallocate ( seed_vector )
     !
     !  call the random number routine a bunch of times.
-    !random_initialize
+    !random_initialise
     do i = 1, 100
         call random_number ( harvest = t )
     end do
 
     return
-  end subroutine Initialize_random_number
+  end subroutine initialise_random_number
 
   !**********************************************************************************************************************************
   subroutine Generate_rvec_random ( alo, ahi, n, a )

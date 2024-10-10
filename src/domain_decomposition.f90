@@ -4,7 +4,7 @@ module domain_decomposition_mod
   use decomp_2d
   implicit none
 
-  private :: Initialize_domain_decomposition
+  private :: initialise_domain_decomposition
   public  :: Buildup_mpi_domain_decomposition
 
 contains
@@ -21,7 +21,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[in]     d          domain type
 !==========================================================================================================
-  subroutine Initialize_domain_decomposition (dm)
+  subroutine initialise_domain_decomposition (dm)
     use udf_type_mod
     !use iso_fortran_env
     use wtformat_mod
@@ -52,7 +52,7 @@ contains
 !   process owns the plane if global index is used).
 !----------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------
-! initialize decomp 
+! initialise decomp 
 !----------------------------------------------------------------------------------------------------------
     call decomp_info_init(dm%np(1), dm%nc(2), dm%nc(3), dm%dpcc) ! for ux, gx
     call decomp_info_init(dm%nc(1), dm%np(2), dm%nc(3), dm%dcpc) ! for uy, gy
@@ -110,7 +110,7 @@ contains
 #endif
 
     return
-  end subroutine Initialize_domain_decomposition
+  end subroutine initialise_domain_decomposition
 !==========================================================================================================
 !> \brief domain decompistion.  
 !---------------------------------------------------------------------------------------------------------- 
@@ -136,10 +136,10 @@ contains
     real(WP), allocatable :: id(:, :, :)
 #endif
 
+    call decomp_2d_init(domain(1)%np(1), domain(1)%np(2), domain(1)%np(3), p_row, p_col)
     do i = 1, nxdomain
-      call decomp_2d_init(domain(i)%np(1), domain(i)%np(2), domain(i)%np(3), p_row, p_col)
-      call Initialize_domain_decomposition(domain(i))
-      call initialize_decomp_io(domain(i))
+      call initialise_domain_decomposition(domain(i))
+      call initialise_decomp_io(domain(i))
       call write_monitor_ini(domain(i))
       call write_visu_ini(domain(i))
       call init_statistics_flow(flow(i), domain(i))

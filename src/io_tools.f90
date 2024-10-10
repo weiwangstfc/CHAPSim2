@@ -9,17 +9,14 @@ module io_tools_mod
                         Ivisudim_2D_Ya = 2, & ! y averaged
                         Ivisudim_2D_Za = 3, & ! z averaged
                         Ivisudim_1D_XZa= 4    ! xz averaged
-  integer, parameter :: X_PENCIL = 1, & ! x-pencil
-                        Y_PENCIL = 2, & ! y-pencil
-                        Z_PENCIL = 3    ! z-pencil
 
-  public :: initialize_decomp_io
+  public :: initialise_decomp_io
   public :: generate_file_name
   public :: generate_pathfile_name
   
 contains
 !==========================================================================================================
-  subroutine initialize_decomp_io(dm)
+  subroutine initialise_decomp_io(dm)
     use udf_type_mod
     use decomp_2d_io
     implicit none 

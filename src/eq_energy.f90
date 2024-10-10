@@ -5,6 +5,7 @@ module eq_energy_mod
 
   private :: Compute_energy_rhs
   private :: Calculate_energy_fractional_step
+
   public  :: Update_thermal_properties
   public  :: Solve_energy_eq
 contains
@@ -364,13 +365,21 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     integer,        intent(in)    :: isub
+    real(WP) :: uxdx
+    integer :: j, k
 
     if(isub==3) then
       fl%dDensm2(:, :, :) = fl%dDensm1(:, :, :)
       fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     end if
-
+!----------------------------------------------------------------------------------------------------------
+! to set up halo b.c. for cylindrical pipe
+!----------------------------------------------------------------------------------------------------------
     call update_fbcy_cc_thermo_halo(fl, tm, dm)
+!----------------------------------------------------------------------------------------------------------
+! to set up convective outlet b.c. assume x direction
+!----------------------------------------------------------------------------------------------------------
+    call update_fbcx_convective_outlet_thermo(fl, tm, dm, isub)
 !----------------------------------------------------------------------------------------------------------
 !   calculate rhs of energy equation
 !----------------------------------------------------------------------------------------------------------

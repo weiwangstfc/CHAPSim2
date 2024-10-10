@@ -27,7 +27,7 @@
 program chapsim
   implicit none
 
-  call Initialize_chapsim
+  call initialise_chapsim
   call Solve_eqs_iteration
   call Finalise_chapsim
   
@@ -36,7 +36,7 @@ end program
 !> \brief Initialisation and preprocessing of geometry, mesh and tools
 !> This subroutine is called at beginning of the main program
 !==========================================================================================================
-subroutine Initialize_chapsim
+subroutine initialise_chapsim
   use boundary_conditions_mod
   use code_performance_mod
   use continuity_eq_mod
@@ -61,7 +61,7 @@ subroutine Initialize_chapsim
 !----------------------------------------------------------------------------------------------------------
   call create_directory
   call call_cpu_time(CPU_TIME_CODE_START, 0, 0)
-  call Initialize_mpi
+  call initialise_mpi
 !----------------------------------------------------------------------------------------------------------
 ! reading input parameters
 !----------------------------------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ subroutine Initialize_chapsim
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call build_up_poisson_interface(domain(i))
-    if(nrank == 0 ) call Print_debug_start_msg("Initializing Poisson solver ...")
+    if(nrank == 0 ) call Print_debug_start_msg("initialising Poisson solver ...")
     call decomp_2d_poisson_init()
     if(nrank == 0 ) call Print_debug_end_msg
   end do
@@ -112,25 +112,25 @@ subroutine Initialize_chapsim
   do i = 1, nxdomain
     if(domain(i)%is_thermo) call Convert_thermal_input_2undim(thermo(i), domain(i))
     call allocate_fbc_flow(domain(i)) 
-    call apply_fbc_given_flow(domain(i)) 
+    call initialise_fbc_flow_given(domain(i)) 
     if(domain(i)%is_thermo) then
       call allocate_fbc_thermo(domain(i)) 
-      call apply_fbc_given_thermo(thermo(i), domain(i)) 
+      call initialise_fbc_thermo_given(thermo(i), domain(i)) 
     end if
   end do
 !----------------------------------------------------------------------------------------------------------
-! Initialize flow and thermo fields
+! initialise flow and thermo fields
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     call Allocate_flow_variables (flow(i), domain(i))
     if(domain(i)%is_thermo) then
       call Allocate_thermo_variables (thermo(i), domain(i))
-      call Initialize_thermo_fields(thermo(i), flow(i), domain(i))
+      call initialise_thermo_fields(thermo(i), flow(i), domain(i))
     end if
-    call Initialize_flow_fields(flow(i), domain(i))
-    call Check_mass_conservation(flow(i), domain(i), 0, 'init') 
+    call initialise_flow_fields(flow(i), domain(i))
+    call Check_element_mass_conservation(flow(i), domain(i), 0, 'init') 
     call Solve_momentum_eq(flow(i), domain(i), 0)
-    call Check_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
+    call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
     call write_visu_flow(flow(i), domain(i))
     if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
   end do
@@ -149,7 +149,7 @@ subroutine Initialize_chapsim
 #endif
 
   return
-end subroutine Initialize_chapsim
+end subroutine initialise_chapsim
 
 !==========================================================================================================
 !==========================================================================================================
@@ -297,7 +297,7 @@ subroutine Solve_eqs_iteration
         call Find_max_min_3d(flow(i)%qx, "qx: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qy, "qy: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qz, "qz: ", wrtfmt2e)
-        call Check_mass_conservation(flow(i), domain(i), iter) 
+        call Check_element_mass_conservation(flow(i), domain(i), iter) 
       end if
 
       !----------------------------------------------------------------------------------------------------------

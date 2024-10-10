@@ -1462,14 +1462,14 @@ contains
 ! x-pencil : flow drive terms (source terms) in periodic Streamwise flow
 !==========================================================================================================
     if (fl%idriven == IDRVF_X_MASSFLUX) then
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, LF3D_VOL_AVE, "mx_rhs")
       !call Get_volumetric_average_3d(.false., dm%ibcy(:, 1), dm%fbcy_var(:, :, :, 1), dm, dm%dpcc, fl%mx_rhs, rhsx_bulk, "mx_rhs")
       fl%mx_rhs = fl%mx_rhs - rhsx_bulk
     else if (fl%idriven == IDRVF_X_Cf) then
       rhsx_bulk = - HALF * fl%drvfc * dm%tAlpha(isub) * dm%dt
       fl%mx_rhs = fl%mx_rhs - rhsx_bulk
     else if (fl%idriven == IDRVF_Z_MASSFLUX) then
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccp, fl%mz_rhs, rhsz_bulk, LF3D_VOL_AVE, "mz_rhs")
       !call Get_volumetric_average_3d(.false., dm%ibcy(:, 3), dm%fbcy_var(:, :, :, 3), dm, dm%dccp, fl%mz_rhs, rhsz_bulk, "mz_rhs")
       fl%mz_rhs = fl%mz_rhs - rhsz_bulk
     else if (fl%idriven == IDRVF_Z_Cf) then
@@ -1480,27 +1480,7 @@ contains
 !==========================================================================================================
 ! B.C. correction for rhs
 !==========================================================================================================
-    ! -mx_rhs-
-    if(dm%ibcx_qx(1) == IBC_DIRICHLET) fl%mx_rhs(1,              :, :) = ZERO
-    if(dm%ibcx_qx(2) == IBC_DIRICHLET) fl%mx_rhs(dm%dpcc%xsz(1), :, :) = ZERO
-    !-my_rhs-
-    if(dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
-       dm%ibcy_qy(2) == IBC_DIRICHLET) then
-      call transpose_x_to_y(fl%my_rhs, acpc_ypencil, dm%dcpc)
-      if(dm%ibcy_qy(1) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = ZERO
-      if(dm%ibcy_qy(2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = ZERO
-      call transpose_y_to_x(acpc_ypencil, fl%my_rhs, dm%dcpc)
-    end if
-    !-mz_rhs-
-    if(dm%ibcz_qz(1) == IBC_DIRICHLET .or. &
-       dm%ibcz_qz(2) == IBC_DIRICHLET) then
-      call transpose_x_to_y(fl%mz_rhs,    accp_ypencil, dm%dccp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      if(dm%ibcz_qz(1) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = ZERO
-      if(dm%ibcz_qz(2) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = ZERO
-      call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
-      call transpose_y_to_x(accp_ypencil, fl%mz_rhs,    dm%dccp)
-    end if
+    call update_flow_from_bc(dm, fl%mx_rhs, fl%my_rhs, fl%mz_rhs, (/ZERO, ZERO, ZERO, ZERO, ZERO, ZERO/))
     
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'RHSX@total') ! debug_ww
@@ -1777,6 +1757,7 @@ contains
     use parameters_constant_mod
     use mpi_mod
     use solver_tools_mod
+    use convert_primary_conservative_mod
 #ifdef DEBUG_STEPS
     use io_tools_mod
     use typeconvert_mod
@@ -1787,8 +1768,17 @@ contains
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(inout) :: dm
     integer,        intent(in)    :: isub
-
+    
+    logical :: flg_bc_conv
+    integer :: i
+!----------------------------------------------------------------------------------------------------------
+! to set up halo b.c. for cylindrical pipe
+!----------------------------------------------------------------------------------------------------------
     call update_fbcy_cc_flow_halo(fl, dm)
+!----------------------------------------------------------------------------------------------------------
+! to set up convective outlet b.c. assume x direction
+!----------------------------------------------------------------------------------------------------------
+    call update_fbcx_convective_outlet_flow(fl, dm, isub)
 !----------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !----------------------------------------------------------------------------------------------------------
@@ -1810,13 +1800,13 @@ contains
 
 #ifdef DEBUG_STEPS
     if ( .not. dm%is_thermo) then     
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz_bf divg') ! debug_ww
     else
-    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy@bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz@bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz_bf divg') ! debug_ww
     end if
     !write(*,*) 'qx', fl%qx(:, 1, 1), fl%qx(:, 8, 8)
     !write(*,*) 'qy', fl%qy(:, 1, 1), fl%qy(:, 8, 8)
@@ -1849,7 +1839,7 @@ contains
 #endif
     fl%pres = fl%pres + fl%pcor
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%pres, dm%dccc,   fl%iteration, isub, 'pr@updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%pres, dm%dccc,   fl%iteration, isub, 'pr_updated') ! debug_ww
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity/massflux correction
@@ -1858,22 +1848,25 @@ contains
     call Correct_massflux(fl, fl%pcor, dm, isub)
 #ifdef DEBUG_STEPS
     if(dm%is_thermo) then
-    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx@updated') ! debug_ww
-    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy@updated') ! debug_ww
-    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz@updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx_updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy_updated') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz_updated') ! debug_ww
     end if
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! to update velocity from gx gy gz 
 !----------------------------------------------------------------------------------------------------------
   if(dm%is_thermo) then
-    call Calculate_velocity_from_massflux(fl, dm)
+    call update_dyn_fbc_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcy_gy, dm%fbcz_gz)
+    call calcuate_velo_from_mflux_domain(fl, dm)
   end if
 
+  call update_dyn_fbc_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
+
 #ifdef DEBUG_STEPS
-  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx@updated') ! debug_ww
-  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy@updated') ! debug_ww
-  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz@updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx_updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy_updated') ! debug_ww
+  call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz_updated') ! debug_ww
 #endif
 
     return

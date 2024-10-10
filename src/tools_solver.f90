@@ -17,13 +17,12 @@ module solver_tools_mod
   public  :: Find_max_min_3d
   public  :: Find_max_min_absvar3d
 
-  public  :: Calculate_massflux_from_velocity
-  public  :: Calculate_velocity_from_massflux
+  
 
 contains
 !==========================================================================================================
-!> \brief The main code for initializing flow variables
-!> This subroutine is called once in \ref Initialize_chapsim.
+!> \brief The main code for initialising flow variables
+!> This subroutine is called once in \ref initialise_chapsim.
 !>
 !----------------------------------------------------------------------------------------------------------
 ! Arguments
@@ -91,7 +90,7 @@ contains
     return
   end subroutine Update_PrGr
 !==========================================================================================================
-!> \brief The main code for initializing flow variables
+!> \brief The main code for initialising flow variables
 !>
 !> not changing storage position, exclude b.c. values, for example, developing
 !> flow.
@@ -330,7 +329,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(var_zpencil, dummy, "CFL (convection) :", wrtfmt1e)
+    call Find_maximum_absvar3d(var_zpencil, dummy, dm%dccc, "CFL (convection) :", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
@@ -514,7 +513,7 @@ contains
     return 
   end subroutine Get_volumetric_average_3d
 !==========================================================================================================
-  subroutine Get_volumetric_average_3d_for_var_xcx(dm, dtmp, var, fo_work, str)
+  subroutine Get_volumetric_average_3d_for_var_xcx(dm, dtmp, var, fo_work, is_ave, str)
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
@@ -526,6 +525,7 @@ contains
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP),          intent(in) :: var(:, :, :)
     real(WP),          intent(out):: fo_work
+    logical,           intent(in) :: is_ave
     character(*), optional, intent(in) :: str
  
     real(WP) :: vol, fo, vol_work!
@@ -557,7 +557,9 @@ contains
       call mpi_barrier(MPI_COMM_WORLD, ierror)
       call mpi_allreduce( fo,  fo_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
       call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
-      fo_work = fo_work / vol_work
+      if(is_ave) then
+        fo_work = fo_work / vol_work
+      end if
 
 #ifdef DEBUG_STEPS  
       if(nrank == 0) then
@@ -567,14 +569,66 @@ contains
         write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
       end if
       if(nrank == 0 .and. present(str)) then
-        write (*, wrtfmt1e) " volumetric average of "//trim(str)//" = ", fo_work
+        if(is_ave) then
+          write (*, wrtfmt1e) " volumetric average of "//trim(str)//" = ", fo_work
+        else 
+          write (*, wrtfmt1e) " volumetric integeral of "//trim(str)//" = ", fo_work
+        end if
       end if
 #endif
     return
   end subroutine 
+!==========================================================================================================
+  function which_pencil(dtmp) result(a)
+    use parameters_constant_mod
+    use decomp_2d
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer :: a
+
+    if(dtmp%xst(1) == 1) then
+      a = X_PENCIL
+    else if(dtmp%yst(1) == 1) then 
+      a = Y_PENCIL
+    else if(dtmp%zst(1) == 1) then 
+      a = Z_PENCIL
+    else
+      call Print_error_msg("Error in finding which pencil.")
+    end if
+
+  end function
 
 !==========================================================================================================
-  subroutine Find_maximum_absvar3d(var,  varmax_work, str, fmt)
+  function local2global_3indices(a, dtmp) result(b)
+    use decomp_2d
+    use parameters_constant_mod
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer, intent(in)  :: a(3)
+    integer :: b(3)
+
+    if(which_pencil(dtmp) == X_PENCIL) then
+      b(1) = dtmp%xst(1) + a(1)
+      b(2) = dtmp%xst(2) + a(2)
+      b(3) = dtmp%xst(3) + a(3)
+    else if (which_pencil(dtmp) == Y_PENCIL) then
+      b(1) = dtmp%yst(1) + a(1)
+      b(2) = dtmp%yst(2) + a(2)
+      b(3) = dtmp%yst(3) + a(3)
+    else if (which_pencil(dtmp) == Z_PENCIL) then
+      b(1) = dtmp%zst(1) + a(1)
+      b(2) = dtmp%zst(2) + a(2)
+      b(3) = dtmp%zst(3) + a(3)
+    else 
+      call Print_error_msg("Error in local to global index conversion.")
+    end if
+
+  end function
+
+!==========================================================================================================
+  subroutine Find_maximum_absvar3d(var,  varmax_work, dtmp, str, fmt)
     use precision_mod
     use math_mod
     use mpi_mod
@@ -582,13 +636,15 @@ contains
     implicit none
 
     real(WP), intent(in)  :: var(:, :, :)
+    type(DECOMP_INFO), intent(in) :: dtmp
     character(len = *), intent(in) :: str
     character(len = *), intent(in) :: fmt
     real(WP), intent(out) :: varmax_work
 
     real(WP)   :: varmax
-
+    integer :: idg(3), idl(3), idg_work(3)
     integer :: i, j, k, nx, ny, nz
+
     nx = size(var, 1)
     ny = size(var, 2)
     nz = size(var, 3)
@@ -597,7 +653,11 @@ contains
     do k = 1, nz
       do j = 1, ny
         do i = 1, nx
-          if(abs_wp(var(i, j, k)) > varmax) varmax = abs_wp(var(i, j, k))
+          if(abs_wp(var(i, j, k)) > varmax) then
+            varmax = abs_wp(var(i, j, k))
+            idl(1:3) = (/i, j, k/)
+            idg = local2global_3indices(idl, dtmp)
+          end if
         end do
       end do
     end do
@@ -606,8 +666,13 @@ contains
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
 
+    if(varmax_work == varmax) then
+      call mpi_send(idg, 3, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, ierror)
+    end if
+
     if(nrank == 0) then
-      write (*, fmt) 'maximum '//str, varmax_work
+      call mpi_recv(idg_work, 3, MPI_INTEGER, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror)
+      write (*, *) 'maximum '//str, varmax_work, 'at global index', idg_work(1:3)
     end if
 #ifdef DEBUG_FFT
     if(varmax_work > MAXVELO) stop ! test
@@ -707,279 +772,4 @@ contains
 
     return
   end subroutine
-!==========================================================================================================
-!> \brief Calculate the conservative variables from primary variable.     
-!> This subroutine is called to update $\rho u_i$ from $u_i$.
-!---------------------------------------------------------------------------------------------------------- 
-!> Scope:  mpi    called-freq    xdomain     module
-!>         all    needed         specified   pubic
-!----------------------------------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------------------------------
-! Arguments
-!______________________________________________________________________________.
-!  mode           name          role                                           !
-!______________________________________________________________________________!
-!> \param[in]     dm             domain
-!> \param[in]     fm             flow
-!==========================================================================================================
-  subroutine Calculate_massflux_from_velocity(fl, dm)
-    use udf_type_mod
-    use operations
-    use decomp_2d
-    use parameters_constant_mod
-    implicit none
-    type(t_domain), intent(in )   :: dm
-    type(t_flow  ), intent(inout) :: fl
-
-    real(WP), dimension( dm%dpcc%xsz(1), &
-                         dm%dpcc%xsz(2), &
-                         dm%dpcc%xsz(3)) :: d_pcc
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: d_cpc_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: d_ccp_zpencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: qy_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: gy_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: qz_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: gz_ypencil
-    real(WP), dimension( dm%dccc%ysz(1), &
-                         dm%dccc%ysz(2), &
-                         dm%dccc%ysz(3)) ::  d_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: qz_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: gz_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), &
-                         dm%dccc%zsz(2), &
-                         dm%dccc%zsz(3)) ::  d_zpencil
-
-    real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc 
-    real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), 4 ) :: fbcz_cc4
-    
-    if(.not. dm%is_thermo) return
-!----------------------------------------------------------------------------------------------------------
-! x-pencil : u1 -> g1 = u1_pcc * d_pcc
-!----------------------------------------------------------------------------------------------------------
-    fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%d
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%iAccuracy, dm%ibcx_ftp, fbcx_4cc)
-    fl%gx = fl%qx * d_pcc
-!----------------------------------------------------------------------------------------------------------
-! y-pencil : u2 -> g2 = u2_cpc * d_cpc
-!----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y(fl%qy,    qy_ypencil, dm%dcpc)
-    call transpose_x_to_y(fl%dDens,  d_ypencil, dm%dccc)
-    fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%d
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c)
-    gy_ypencil = qy_ypencil * d_cpc_ypencil
-    call transpose_y_to_x(gy_ypencil, fl%gy, dm%dcpc)
-!----------------------------------------------------------------------------------------------------------
-! Z-pencil : u3 -> g3 = u3_ccp * d_ccp
-!----------------------------------------------------------------------------------------------------------
-    call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
-    call transpose_x_to_y(fl%qz,      qz_ypencil, dm%dccp)
-    call transpose_y_to_z(qz_ypencil, qz_zpencil, dm%dccp)
-    fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%d
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp, fbcz_cc4)
-    gz_zpencil = qz_zpencil * d_ccp_zpencil
-
-    call transpose_z_to_y(gz_zpencil, gz_ypencil, dm%dccp)
-    call transpose_y_to_x(gz_ypencil, fl%gz,      dm%dccp)
-
-    return
-  end subroutine Calculate_massflux_from_velocity
-
-
-  !==========================================================================================================
-  subroutine Calculate_velocity_from_massflux(fl, dm)
-    use udf_type_mod
-    use operations
-    use decomp_2d
-    use parameters_constant_mod
-    implicit none
-    type(t_domain), intent(in )   :: dm
-    type(t_flow  ), intent(inout) :: fl
-
-    real(WP), dimension( dm%dpcc%xsz(1), &
-                         dm%dpcc%xsz(2), &
-                         dm%dpcc%xsz(3)) :: d_pcc
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: d_cpc_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: d_ccp_zpencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: qy_ypencil
-    real(WP), dimension( dm%dcpc%ysz(1), &
-                         dm%dcpc%ysz(2), &
-                         dm%dcpc%ysz(3)) :: gy_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: qz_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), &
-                         dm%dccp%ysz(2), &
-                         dm%dccp%ysz(3)) :: gz_ypencil
-    real(WP), dimension( dm%dccc%ysz(1), &
-                         dm%dccc%ysz(2), &
-                         dm%dccc%ysz(3)) ::  d_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: qz_zpencil
-    real(WP), dimension( dm%dccp%zsz(1), &
-                         dm%dccp%zsz(2), &
-                         dm%dccp%zsz(3)) :: gz_zpencil
-    real(WP), dimension( dm%dccc%zsz(1), &
-                         dm%dccc%zsz(2), &
-                         dm%dccc%zsz(3)) ::  d_zpencil
-
-    real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc 
-    real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), 4 ) :: fbcz_cc4
-    
-    if(.not. dm%is_thermo) return
-!----------------------------------------------------------------------------------------------------------
-! x-pencil : g1 -> u1
-!----------------------------------------------------------------------------------------------------------
-    fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%d
-    call Get_x_midp_C2P_3D (fl%dDens, d_pcc, dm, dm%iAccuracy, dm%ibcx_ftp, fbcx_4cc)
-    fl%qx = fl%gx / d_pcc
-!----------------------------------------------------------------------------------------------------------
-! y-pencil : u2 -> g2
-!----------------------------------------------------------------------------------------------------------
-    fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%d
-    call transpose_x_to_y(fl%gy,   gy_ypencil, dm%dcpc)
-    call transpose_x_to_y(fl%dDens, d_ypencil, dm%dccc)
-    call Get_y_midp_C2P_3D (d_ypencil, d_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c)
-    qy_ypencil = gy_ypencil / d_cpc_ypencil
-    call transpose_y_to_x(qy_ypencil, fl%qy, dm%dcpc)
-!----------------------------------------------------------------------------------------------------------
-! Z-pencil : u3 -> g3
-!----------------------------------------------------------------------------------------------------------
-    fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%d
-    call transpose_y_to_z( d_ypencil,  d_zpencil, dm%dccc)
-    call transpose_x_to_y(fl%gz,      gz_ypencil, dm%dccp)
-    call transpose_y_to_z(gz_ypencil, gz_zpencil, dm%dccp)
-    call Get_z_midp_C2P_3D (d_zpencil, d_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp, fbcz_cc4)
-    qz_zpencil = gz_zpencil / d_ccp_zpencil
-    call transpose_z_to_y(qz_zpencil, qz_ypencil, dm%dccp)
-    call transpose_y_to_x(qz_ypencil, fl%qz, dm%dccp)
-
-    fl%gx0 = fl%gx
-    fl%gy0 = fl%gy
-    fl%gz0 = fl%gz
-
-    return
-  end subroutine Calculate_velocity_from_massflux
-
-! !==========================================================================================================
-! !==========================================================================================================
-!   subroutine apply_gxgygz_bc (dm) ! 
-!     use parameters_constant_mod
-!     use udf_type_mod
-!     implicit none
-!     type(t_domain), intent( inout)   :: dm
-
-!     integer :: n
-!     real(WP) :: rci(2), rpi(2)
-
-!     if(.not. dm%is_thermo) return
-! !----------------------------------------------------------------------------------------------------------
-! !   get bc gx, gy, gz (at bc not cell centre)
-! !----------------------------------------------------------------------------------------------------------
-!     ! below is for non-slip wall (v = 0) only. check
-!     dm%fbcx_gx = dm%fbcx_qx !* dm%fbcx_ftp%d 
-!     dm%fbcx_gy = dm%fbcx_qy !* dm%ftpbcx_4pc%d 
-!     dm%fbcx_gz = dm%fbcx_qz !* dm%ftpbcx_4cp%d 
-! !
-!     dm%fbcy_gx = dm%fbcy_qx !* dm%ftpbcy_p4c%d 
-!     dm%fbcy_gy = dm%fbcy_qy !* dm%fbcy_ftp%d 
-!     dm%fbcy_gz = dm%fbcy_qz !* dm%ftpbcy_c4p%d 
-! !
-!     dm%fbcz_gx = dm%fbcz_qx !* dm%ftpbcz_pc4%d
-!     dm%fbcz_gy = dm%fbcz_qy !* dm%ftpbcz_cp4%d
-!     dm%fbcz_gz = dm%fbcz_qz !* dm%fbcz_ftp%d
-
-! !----------------------------------------------------------------------------------------------------------
-! ! -3-1-||||-2-4
-! ! gx
-! !----------------------------------------------------------------------------------------------------------
-!     do n = 1, 2
-!       dm%fbcx_gx(n, :, :) = dm%fbcx_const(n, 1)
-!       dm%fbcy_gx(:, n, :) = dm%fbcy_const(n, 1)
-!       dm%fbcz_gx(:, :, n) = dm%fbcz_const(n, 1)
-!     end do
-!     do n = 3, 4
-!       dm%fbcx_qx(n, :, :) = dm%fbcx_const(n - 2, 1)
-!       dm%fbcy_qx(:, n, :) = dm%fbcy_const(n - 2, 1)
-!       dm%fbcz_qx(:, :, n) = dm%fbcz_const(n - 2, 1)
-!     end do
-! !----------------------------------------------------------------------------------------------------------
-! ! -3-1-||||-2-4
-! ! gy
-! !----------------------------------------------------------------------------------------------------------
-!     do n = 1, 2
-!       dm%fbcx_qy(n, :, :) = dm%fbcx_const(n, 2)
-!       dm%fbcy_qy(:, n, :) = dm%fbcy_const(n, 2)
-!       dm%fbcz_qy(:, :, n) = dm%fbcz_const(n, 2)
-!     end do
-!     do n = 3, 4
-!       dm%fbcx_qy(n, :, :) = dm%fbcx_const(n - 2, 2)
-!       dm%fbcy_qy(:, n, :) = dm%fbcy_const(n - 2, 2)
-!       dm%fbcz_qy(:, :, n) = dm%fbcz_const(n - 2, 2)
-!     end do
-! !----------------------------------------------------------------------------------------------------------
-! ! -3-1-||||-2-4
-! ! gz
-! !----------------------------------------------------------------------------------------------------------
-!     do n = 1, 2
-!       dm%fbcx_qz(n, :, :) = dm%fbcx_const(n, 3)
-!       dm%fbcy_qz(:, n, :) = dm%fbcy_const(n, 3)
-!       dm%fbcz_qz(:, :, n) = dm%fbcz_const(n, 3)
-!     end do
-!     do n = 3, 4
-!       dm%fbcx_qz(n, :, :) = dm%fbcx_const(n - 2, 3)
-!       dm%fbcy_qz(:, n, :) = dm%fbcy_const(n - 2, 3)
-!       dm%fbcz_qz(:, :, n) = dm%fbcz_const(n - 2, 3)
-!     end do
-!     if(dm%icoordinate == ICYLINDRICAL) then
-! !    gyr = gx/r; gzr = gz/r 
-!       rpi(1) = dm%rpi(1)
-!       rpi(2) = dm%rpi(dm%np(2))
-!       rci(1) = dm%rci(1)
-!       rci(2) = dm%rci(dm%nc(2))
-      
-!       do n = 1, 2
-!         dm%fbcy_qyr(:, n, :) = dm%fbcy_qy(:, n, :) * rpi(n)
-!         dm%fbcz_qyr(:, :, n) = dm%fbcz_qy(:, n, :) * rci(n)
-!         dm%fbcy_qzr(:, n, :) = dm%fbcy_qz(:, n, :) * rpi(n)
-!         dm%fbcz_qzr(:, :, n) = dm%fbcz_qz(:, n, :) * rci(n)
-!       end do
-!       do n = 3, 4
-!         dm%fbcy_qyr(:, n, :) = dm%fbcy_qyr(:, n-2, :)
-!         dm%fbcz_qyr(:, :, n) = dm%fbcz_qyr(:, :, n-2)
-!         dm%fbcy_qzr(:, n, :) = dm%fbcy_qzr(:, n-2, :)
-!         dm%fbcz_qzr(:, :, n) = dm%fbcz_qzr(:, :, n-2)
-!       end do
-!     end if
-
-
-
-    
-!     return
-!   end subroutine
-
 end module

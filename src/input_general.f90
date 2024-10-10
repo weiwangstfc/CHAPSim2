@@ -122,12 +122,9 @@ contains
         end do
 
         if(nrank == 0) then
-          do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
-            write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
-            write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
-            write (*, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
-          end do
+          write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
+          write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
+          write (*, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [domain]
@@ -208,7 +205,7 @@ contains
           write (*, wrtfmt1s) '          2 = Cylindrical'
 
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  current icase id :', domain(i)%icase
             write (*, wrtfmt1i) '  current coordinates system :', domain(i)%icoordinate
             write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
@@ -278,6 +275,7 @@ contains
           !----------------------------------------------------------------------------------------------------------
           ! to exclude non-resonable input
           !----------------------------------------------------------------------------------------------------------
+          domain(i)%is_conv_outlet = .false.
           do m = 1, NBC
             if(domain(i)%ibcx_nominal(2, m) == IBC_PROFILE1D) call Print_error_msg(" This BC IBC_PROFILE1D is not supported.")
             do n = 1, 2
@@ -287,6 +285,7 @@ contains
               if(domain(i)%ibcy_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This yBC IBC_PROFILE1D is not supported.")
               if(domain(i)%ibcz_nominal(n, m) == IBC_PROFILE1D) call Print_error_msg(" This zBC IBC_PROFILE1D is not supported.")
             end do
+            if(domain(i)%ibcx_nominal(2, m) == IBC_CONVECTIVE) domain(i)%is_conv_outlet = .true.
           end do 
         end do
       !----------------------------------------------------------------------------------------------------------
@@ -347,7 +346,7 @@ contains
           write (*, wrtfmt1s) '          3 = ISTRET_BOTTOM'
           write (*, wrtfmt1s) '          4 = ISTRET_TOP'
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  mesh cell number - x :', domain(i)%nc(1)
             write (*, wrtfmt1i) '  mesh cell number - y :', domain(i)%nc(2)
             write (*, wrtfmt1i) '  mesh cell number - z :', domain(i)%nc(3)
@@ -367,7 +366,7 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1e) '  physical time step(dt, unit = second) :', domain(i)%dt
             write (*, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
           end do
@@ -403,7 +402,7 @@ contains
           write (*, wrtfmt1s) '    3 = IACCU_CP4'
           write (*, wrtfmt1s) '    4 = IACCU_CP6'
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '  For the domain-x  = ', i
+            write (*, wrtfmt1i) '  ------For the domain-x------ ', i
             write (*, wrtfmt1i) '  current spatial accuracy scheme :', domain(i)%iAccuracy
             write (*, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do
@@ -452,7 +451,7 @@ contains
           write (*, wrtfmt1s) '          INIT_POISEUILLE = 5'
           write (*, wrtfmt1s) '          INIT_FUNCTION   = 6'
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  flow initial type                  :', flow(i)%inittype
             write (*, wrtfmt1i) '  iteration starting from            :', flow(i)%iterfrom
             if(flow(i)%inittype == INIT_GVCONST) then
@@ -496,7 +495,7 @@ contains
         
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1l) '  is thermal field solved   ?', domain(i)%is_thermo
             write (*, wrtfmt1l) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
@@ -507,6 +506,8 @@ contains
             write (*, wrtfmt1i) '  iteration starting from   :', thermo(i)%iterfrom
             write (*, wrtfmt1r) '  initial temperature (K)   :', thermo(i)%init_T0
           end do
+        else if(nrank == 0) then
+          write(*, *) ' Note: Thermal field is not considered. '
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [simcontrol]
@@ -521,7 +522,7 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  flow simulation starting from iteration    :', flow(i)%nIterFlowStart
             write (*, wrtfmt1i) '  flow simulation ending   at   iteration    :', flow(i)%nIterFlowEnd
             if(is_any_energyeq) then
@@ -551,7 +552,7 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) 'For the domain-x  = ', i
+            write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  data check freqency  :', domain(i)%ckpt_nfre
             write (*, wrtfmt1i) '  visu data dimensions        :', domain(i)%visu_idim
             write (*, wrtfmt1i) '  visu data written freqency  :', domain(i)%visu_nfre
@@ -569,7 +570,7 @@ contains
           domain(i)%proben = itmp
           if(domain(i)%proben > 0) then
             allocate( domain(i)%probexyz(3, itmp))
-            if( nrank == 0) write (*, wrtfmt1i) 'For the domain-x  = ', i
+            if( nrank == 0) write (*, wrtfmt1i) '------For the domain-x------ ', i
             do j = 1, domain(i)%proben
               read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
               

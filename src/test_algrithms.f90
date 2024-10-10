@@ -18,12 +18,12 @@ module burgers_eq_mod
 
   private :: Compute_burgers_rhs
   private :: Validate_burgers_error
-  public  :: Initialize_burgers_flow
+  public  :: initialise_burgers_flow
   public  :: Solve_burgers_eq_iteration
   public  :: Plot_burgers_profile
 
 contains
-  subroutine  Initialize_burgers_flow(dm, ux, uy, uz, p)
+  subroutine  initialise_burgers_flow(dm, ux, uy, uz, p)
     use udf_type_mod, only : t_domain, t_flow
     use math_mod, only : sin_wp
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
@@ -121,7 +121,7 @@ contains
     
     
     return
-  end subroutine Initialize_burgers_flow
+  end subroutine initialise_burgers_flow
 
   subroutine Compute_burgers_rhs(fl, dm, isub)
     use udf_type_mod
@@ -164,14 +164,14 @@ contains
       ! for x-mom convection term : d(qx * qx)/dx at (i', j, k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
         call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc, dm%ibcx_qx(:))
+        call build_bc_symm_operation(dm%ibcx_qx(:), mbc, dm%ibcx_qx(:))
         call Get_x_1der_C2P_3D(-qx_ccc * qx_ccc * HALF, mx_rhs, dm, dm%iAccuracy, mbc(:, 1), dm%fbcx_qx(:, :, :) * dm%fbcx_qx(:, :, :) * HALF)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
         call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc)
+        call build_bc_symm_operation(dm%ibcx_qx(:), mbc)
         call Get_x_1der_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :)* nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
@@ -181,14 +181,14 @@ contains
       if(icase == ICASE_BURGERS1D_VISCOUS) then
         !call Get_x_2der_P2P_3D( fl%qx, mx_rhs, dm, dm%iAccuracy, dm%ibcx(:, 1) )
         call Get_x_1der_P2C_3D( fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc)
+        call build_bc_symm_operation(dm%ibcx_qx(:), mbc)
         call Get_x_1der_C2P_3D( qx_ccc, mx_rhs, dm, dm%iAccuracy, mbc(:, 2))
         fl%mx_rhs = fl%mx_rhs + fl%rre * mx_rhs
       end if
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
         call Get_x_midp_P2C_3D         (fl%qx, qx_ccc, dm, dm%iAccuracy, dm%ibcx_qx(:))
-        call reconstruct_symmetry_ibc(dm%ibcx_qx(:), mbc)
+        call build_bc_symm_operation(dm%ibcx_qx(:), mbc)
         call Get_x_1der_C2P_3D(-qx_ccc * nu, mx_rhs, dm, dm%iAccuracy, mbc(:, 2), dm%fbcx_qx(:, :, :) * nu)
         fl%mx_rhs = fl%mx_rhs + mx_rhs
 
@@ -216,7 +216,7 @@ contains
       ! for y-mom convection term : d(qy * qy)/dy at (i, j', k)
       if(icase == ICASE_BURGERS1D_INVISCID) then
         call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
-        call reconstruct_symmetry_ibc(dm%ibcy_qy(:), mbc, dm%ibcy_qy(:))
+        call build_bc_symm_operation(dm%ibcy_qy(:), mbc, dm%ibcy_qy(:))
         call Get_y_1der_C2P_3D(-qy_ccc_ypencil * qy_ccc_ypencil * HALF, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 1), dm%fbcy_qy(:, :, :) * dm%fbcy_qy(:, :, :) * HALF)
 
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
@@ -232,7 +232,7 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
       if(icase == ICASE_BURGERS1D_WAVEPROPAGATION) then
         call Get_y_midp_P2C_3D         (qy_ypencil, qy_ccc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:))
-        call reconstruct_symmetry_ibc(dm%ibcy_qy(:), mbc)
+        call build_bc_symm_operation(dm%ibcy_qy(:), mbc)
         call Get_y_1der_C2P_3D(-qy_ccc_ypencil * nu, my_rhs_ypencil, dm, dm%iAccuracy, mbc(:, 2), dm%fbcy_qy(:, :, :) * nu)
         call transpose_y_to_x (my_rhs_ypencil,  my_rhs)     
         fl%my_rhs = fl%my_rhs + my_rhs
@@ -681,7 +681,7 @@ subroutine test_poisson(dm)
   dm%fbcx_pr(3, :, :) = dm%fbcx_pr(1, :, :)
   dm%fbcx_pr(4, :, :) = dm%fbcx_pr(2, :, :)
   call Get_x_1der_C2P_3D(phi, rhs_pcc, dm, dm%iAccuracy, dm%ibcx_pr(:), dm%fbcx_pr)
-  call reconstruct_symmetry_ibc(dm%ibcx_pr(:), mbc)
+  call build_bc_symm_operation(dm%ibcx_pr(:), mbc)
   call Get_x_1der_P2C_3D(rhs_pcc, rhs, dm, dm%iAccuracy, mbc(:, 2))
   if(nrank == 0) then
     do i = 1, dm%dccc%xsz(1)

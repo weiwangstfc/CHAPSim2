@@ -219,11 +219,11 @@ contains
 !   x-pencil, 1/2*(uu+vv+ww) - calculation
 !----------------------------------------------------------------------------------------------------------
     fenergy = HALF * (accc1 * accc1 + accc2 * accc2 + accc3 * accc3)
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, bulk_MKE)
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx,   bulk_qx)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, LF3D_VOL_AVE, bulk_MKE)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx,   LF3D_VOL_AVE, bulk_qx)
     if(dm%is_thermo .and. present(tm)) then
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%gx,    bulk_gx)
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, tm%tTemp, bulk_T)
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%gx,    LF3D_VOL_AVE, bulk_gx)
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, tm%tTemp, LF3D_VOL_AVE, bulk_T)
     end if
 !----------------------------------------------------------------------------------------------------------
 !   write data out

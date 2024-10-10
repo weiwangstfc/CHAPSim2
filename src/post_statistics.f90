@@ -1,5 +1,6 @@
 module statistics_mod
   use print_msg_mod
+  use parameters_constant_mod
   implicit none
 
   character(13), parameter :: io_name = "statistics-io"

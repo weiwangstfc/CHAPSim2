@@ -28,14 +28,14 @@ module flow_thermo_initialiasation
   private :: Generate_poiseuille_flow_profile
   private :: Generate_random_field
 
-  private :: Initialize_poiseuille_flow
-  private :: Initialize_flow_from_given_values
-  private :: Initialize_vortexgreen_2dflow
-  private :: Initialize_vortexgreen_3dflow
+  private :: initialise_poiseuille_flow
+  private :: initialise_flow_from_given_values
+  private :: initialise_vortexgreen_2dflow
+  private :: initialise_vortexgreen_3dflow
 
   public  :: Validate_TGV2D_error
-  public  :: Initialize_flow_fields
-  public  :: Initialize_thermo_fields
+  public  :: initialise_flow_fields
+  public  :: initialise_thermo_fields
 
 contains
 !==========================================================================================================
@@ -80,12 +80,19 @@ contains
     call alloc_x(fl%my_rhs0, dm%dcpc) ; fl%my_rhs0 = ZERO
     call alloc_x(fl%mz_rhs0, dm%dccp) ; fl%mz_rhs0 = ZERO
 
+    if(dm%is_conv_outlet) then 
+      allocate (fl%fbcx_qx_rhs0(dm%dpcc%xsz(2), dm%dpcc%xsz(3))); fl%fbcx_qx_rhs0 = ZERO
+      allocate (fl%fbcx_qy_rhs0(dm%dcpc%xsz(2), dm%dcpc%xsz(3))); fl%fbcx_qy_rhs0 = ZERO
+      allocate (fl%fbcx_qz_rhs0(dm%dccp%xsz(2), dm%dccp%xsz(3))); fl%fbcx_qz_rhs0 = ZERO
+    end if
+
     if(dm%is_thermo) then
       call alloc_x(fl%gx,      dm%dpcc) ; fl%gx = ZERO
       call alloc_x(fl%gy,      dm%dcpc) ; fl%gy = ZERO
       call alloc_x(fl%gz,      dm%dccp) ; fl%gz = ZERO
       call alloc_x(fl%dDens,   dm%dccc) ; fl%dDens = ONE
       call alloc_x(fl%mVisc,   dm%dccc) ; fl%mVisc = ONE
+      call alloc_x(fl%drhodt,  dm%dccc) ; fl%drhodt = ZERO
 
       call alloc_x(fl%dDensm1, dm%dccc) ; fl%dDensm1 = ONE
       call alloc_x(fl%dDensm2, dm%dccc) ; fl%dDensm2 = ONE
@@ -93,6 +100,12 @@ contains
       call alloc_x(fl%gx0,      dm%dpcc) ; fl%gx0 = ZERO
       call alloc_x(fl%gy0,      dm%dcpc) ; fl%gy0 = ZERO
       call alloc_x(fl%gz0,      dm%dccp) ; fl%gz0 = ZERO
+
+      if(dm%is_conv_outlet) then 
+        allocate (fl%fbcx_gx_rhs0(dm%dpcc%xsz(2), dm%dpcc%xsz(3))); fl%fbcx_gx_rhs0 = ZERO
+        allocate (fl%fbcx_gy_rhs0(dm%dcpc%xsz(2), dm%dcpc%xsz(3))); fl%fbcx_gy_rhs0 = ZERO
+        allocate (fl%fbcx_gz_rhs0(dm%dccp%xsz(2), dm%dccp%xsz(3))); fl%fbcx_gz_rhs0 = ZERO
+      end if
 
     end if
 
@@ -123,6 +136,10 @@ contains
     call alloc_x(tm%tTemp,    dm%dccc) ; tm%tTemp = ONE
     call alloc_x(tm%ene_rhs,  dm%dccc) ; tm%ene_rhs = ZERO
     call alloc_x(tm%ene_rhs0, dm%dccc) ; tm%ene_rhs0 = ZERO
+
+    if(dm%is_conv_outlet) then 
+      allocate (tm%fbcx_rhoh_rhs0(dm%dccc%xsz(2), dm%dccc%xsz(3))); tm%fbcx_rhoh_rhs0 = ZERO
+    end if
 
     if(nrank == 0) call Print_debug_end_msg
     return
@@ -197,7 +214,7 @@ contains
           do i = 1, dtmp%xsz(1)
             ii = i
             seed = flatten_index(ii, jj, kk, dtmp%xsz(1), dtmp%ysz(2)) + seed0 * n
-            call Initialize_random_number ( seed )
+            call initialise_random_number ( seed )
             call Generate_r_random( -ONE, ONE, rd)
             if(n == 1) fl%qx(i, j, k) = lownoise * rd
             if(n == 2) fl%qy(i, j, k) = lownoise * rd / dm%rpi(jj)
@@ -205,37 +222,11 @@ contains
           end do
         end do
       end do
-!     for dirichelt, the perturbation velocity should be zero.
-      if(n == 1) then
-        if(dm%ibcx_qx(1) == IBC_DIRICHLET) fl%qx(          1, :, :) = ZERO
-        if(dm%ibcx_qx(2) == IBC_DIRICHLET) fl%qx(dtmp%xsz(1), :, :) = ZERO
-      end if
-      if(n == 2) then
-        if( dm%ibcy_qy(1) == IBC_DIRICHLET ) then
-          if(dtmp%xst(2) == 1) then
-            fl%qy(:,           1, :) = ZERO
-          end if
-        end if
-        if( dm%ibcy_qy(2) == IBC_DIRICHLET ) then
-          if(dtmp%xen(2) == dtmp%ysz(2)) then
-            fl%qy(:, dtmp%xsz(2), :) = ZERO
-          end if
-        end if
-      end if
-      if(n == 3) then
-        if( dm%ibcz_qz(1) == IBC_DIRICHLET ) then
-          if(dtmp%xst(3) == 1) then
-            fl%qz(:, :, 1) = ZERO
-          end if
-        end if
-        if( dm%ibcz_qz(2) == IBC_DIRICHLET ) then
-          if(dtmp%xen(3) == dtmp%zsz(3)) then
-            fl%qz(:, :, dtmp%xsz(3)) = ZERO
-          end if
-        end if
-      end if
 
     end do
+
+    !     for dirichelt, the perturbation velocity should be zero.
+    call update_flow_from_bc(dm, fl%qx, fl%qy, fl%qz, (/ZERO, ZERO, ZERO, ZERO, ZERO, ZERO/))
 
     if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated random velocities:")
     call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
@@ -246,9 +237,9 @@ contains
     ! write(*,*) 'random ux', ux(:, 8, 8)
     ! write(*,*) 'random uy', uy(:, 8, 8)
     ! write(*,*) 'random uz', uz(:, 8, 8)
-    !call write_visu_any3darray(ux, 'ux_random_init', 'debug', dm%dpcc, dm, 0)
-    !call write_visu_any3darray(uy, 'uy_random_init', 'debug', dm%dcpc, dm, 0)
-    !call write_visu_any3darray(uz, 'uz_random_init', 'debug', dm%dccp, dm, 0)
+    call write_visu_any3darray(fl%qx, 'qx_random_init', 'debug', dm%dpcc, dm, 0)
+    call write_visu_any3darray(fl%qy, 'qy_random_init', 'debug', dm%dcpc, dm, 0)
+    call write_visu_any3darray(fl%qz, 'qz_random_init', 'debug', dm%dccp, dm, 0)
 #endif
 
 
@@ -313,7 +304,7 @@ contains
   end subroutine Generate_poiseuille_flow_profile
 
   !==========================================================================================================
-  !> \brief Initialize Poiseuille flow in channel or pipe.     
+  !> \brief initialise Poiseuille flow in channel or pipe.     
   !---------------------------------------------------------------------------------------------------------- 
   !> Scope:  mpi    called-freq    xdomain     module
   !>         all    once           specified   private
@@ -325,15 +316,16 @@ contains
   !> \param[in]     d             domain
   !> \param[out]    f             flow
   !==========================================================================================================
-  subroutine Initialize_poiseuille_flow(dm, fl)
+  subroutine initialise_poiseuille_flow(dm, fl)
     use input_general_mod
     use udf_type_mod
     use boundary_conditions_mod
     use parameters_constant_mod
     use wtformat_mod
     use files_io_mod
+    use convert_primary_conservative_mod
     implicit none
-    type(t_domain),  intent(in) :: dm
+    type(t_domain),intent(inout) :: dm
     type(t_flow), intent(inout) :: fl
     integer :: pf_unit
     integer :: i, j, k, jj
@@ -346,7 +338,7 @@ contains
 
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_start_msg("Initializing Poiseuille flow field ...")
+    if(nrank == 0) call Print_debug_start_msg("initialising Poiseuille flow field ...")
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to get Poiseuille profile for all ranks
     !----------------------------------------------------------------------------------------------------------
@@ -368,7 +360,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
-      call Calculate_massflux_from_velocity (fl, dm)
+      call calculate_mflux_from_velo_domain_domain (fl, dm)
       ux = fl%gx
       str = 'gx'
     else
@@ -376,7 +368,7 @@ contains
       str = 'qx'
     end if
 
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, str)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, LF3D_VOL_AVE, str)
     if(nrank == 0) then
       write(*, wrtfmt1e) "The initial, original bulk "//str//" = ", ubulk
     end if
@@ -384,12 +376,12 @@ contains
     ux(:, :, :) = ux(:, :, :) / ubulk
     if(dm%is_thermo) then
       fl%gx = ux
-      call Calculate_velocity_from_massflux(fl, dm)
+      call calcuate_velo_from_mflux_domain(fl, dm)
     else
       fl%qx = ux
     end if
 
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, str)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, LF3D_VOL_AVE, str)
     if(nrank == 0) then
       write(*, wrtfmt1e) "The initial, unified bulk "//str//" = ", ubulk
     end if
@@ -411,6 +403,9 @@ contains
     !   some checking
     !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(ux, ux_ypencil, dm%dpcc)
+    if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D) then
+      call initialise_fbcx_given_profile(dm%fbcx_qx, ux_1c1, dm%dpcc%xst(2), 'qx')
+    end if
     !----------------------------------------------------------------------------------------------------------
     !   Y-pencil : write out velocity profile
     !----------------------------------------------------------------------------------------------------------
@@ -429,10 +424,10 @@ contains
     if(nrank == 0) call Print_debug_end_msg
 
     return
-  end subroutine  Initialize_poiseuille_flow
+  end subroutine  initialise_poiseuille_flow
   !==========================================================================================================
   !==========================================================================================================
-  subroutine Initialize_flow_from_given_values(dm, fl)
+  subroutine initialise_flow_from_given_values(dm, fl)
     use udf_type_mod, only: t_domain
     use precision_mod, only: WP
     use parameters_constant_mod, only: ZERO
@@ -441,7 +436,7 @@ contains
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(inout) :: fl
     
-    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field with given values...")
+    if(nrank == 0) call Print_debug_mid_msg("initialising flow field with given values...")
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : update values
     !----------------------------------------------------------------------------------------------------------
@@ -458,7 +453,7 @@ contains
 
 !==========================================================================================================
   !==========================================================================================================
-  subroutine Initialize_flow_from_given_inlet(dm, fl)
+  subroutine initialise_flow_from_given_inlet(dm, fl)
     use udf_type_mod, only: t_domain
     use precision_mod, only: WP
     use parameters_constant_mod, only: ZERO
@@ -469,7 +464,7 @@ contains
 
     integer :: i, j, k, ii, jj, kk
     
-    if(nrank == 0) call Print_debug_mid_msg("Initializing flow field with given profile...")
+    if(nrank == 0) call Print_debug_mid_msg("initialising flow field with given profile...")
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : update values
     !----------------------------------------------------------------------------------------------------------
@@ -514,7 +509,7 @@ contains
   end subroutine
 
   !==========================================================================================================
-  subroutine Initialize_flow_fields(fl, dm)
+  subroutine initialise_flow_fields(fl, dm)
     use udf_type_mod
     use parameters_constant_mod
     use io_restart_mod
@@ -524,6 +519,7 @@ contains
     use continuity_eq_mod
     use boundary_conditions_mod
     use statistics_mod
+    use calculate_mflux_from_velo_domain
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -531,13 +527,13 @@ contains
 
     real(WP) :: velo(3)
 
-    if(nrank == 0) call Print_debug_start_msg("Initialize flow fields ...")
+    if(nrank == 0) call Print_debug_start_msg("initialise flow fields ...")
   !----------------------------------------------------------------------------------------------------------
   ! to set up Re
   !----------------------------------------------------------------------------------------------------------
     call Update_Re(fl%iterfrom, fl)
   !----------------------------------------------------------------------------------------------------------
-  ! initialize primary variables
+  ! initialise primary variables
   !----------------------------------------------------------------------------------------------------------
     fl%time = ZERO
     fl%iteration = 0
@@ -556,32 +552,32 @@ contains
 
     else if (fl%inittype == INIT_INLET) then
       call Generate_random_field(dm, fl)
-      call Initialize_flow_from_given_inlet(dm, fl)
+      call initialise_flow_from_given_inlet(dm, fl)
 
     else if (fl%inittype == INIT_GVCONST) then
       call Generate_random_field(dm, fl)
-      call Initialize_flow_from_given_values(dm, fl)
+      call initialise_flow_from_given_values(dm, fl)
 
     else if (fl%inittype == INIT_POISEUILLE) then
       call Generate_random_field(dm, fl)
-      call Initialize_poiseuille_flow(dm, fl)
+      call initialise_poiseuille_flow(dm, fl)
 
     else if (fl%inittype == INIT_FUNCTION) then
       if (dm%icase == ICASE_TGV2D) then
-        call Initialize_vortexgreen_2dflow (dm, fl)
+        call initialise_vortexgreen_2dflow (dm, fl)
       else if (dm%icase == ICASE_TGV3D) then
-        call Initialize_vortexgreen_3dflow (dm, fl)
+        call initialise_vortexgreen_3dflow (dm, fl)
       else if (dm%icase == ICASE_BURGERS) then
-        !call Initialize_burgers_flow      (dm, fl)
+        !call initialise_burgers_flow      (dm, fl)
       else
       end if
     else
     end if
 !----------------------------------------------------------------------------------------------------------
-! to initialize pressure correction term
+! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO    
-    call Calculate_massflux_from_velocity (fl, dm)
+    call calculate_mflux_from_velo_domain_domain (fl, dm)
 #ifdef DEBUG_STEPS
     if(dm%is_thermo) then
       call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, 0, 'gx@bf solv') ! debug_ww
@@ -594,13 +590,16 @@ contains
     call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'pz@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf solv') ! debug_ww
 #endif  
+
+    call write_visu_flow(fl, dm, 'init')
+
     if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine
 
   !==========================================================================================================
-  subroutine Initialize_thermo_fields(tm, fl, dm)
+  subroutine initialise_thermo_fields(tm, fl, dm)
     use udf_type_mod
     use parameters_constant_mod
     use eq_energy_mod
@@ -617,14 +616,14 @@ contains
     integer :: i
 
     if(.not. dm%is_thermo) return
-    if(nrank == 0) call Print_debug_start_msg("Initialize thermo fields ...")  
+    if(nrank == 0) call Print_debug_start_msg("initialise thermo fields ...")  
 !----------------------------------------------------------------------------------------------------------
 ! to set up Fr etc, require update flow Re first
 !----------------------------------------------------------------------------------------------------------
     call Update_Re(fl%iterfrom, fl)
     call Update_PrGr(fl, tm) 
 !----------------------------------------------------------------------------------------------------------
-! initialize primary variables
+! initialise primary variables
 !----------------------------------------------------------------------------------------------------------
     if(tm%inittype == INIT_RESTART) then
       tm%iteration = tm%iterfrom
@@ -634,7 +633,7 @@ contains
       call read_statistics_thermo(tm, dm)
     else if (tm%inittype == INIT_INTERPL) then
     else
-      call Initialize_thermal_properties (fl, tm)
+      call initialise_thermal_properties (fl, tm)
       tm%time = ZERO
       tm%iteration = 0
     end if
@@ -642,11 +641,13 @@ contains
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
  
+    call write_visu_thermo(tm, fl, dm, 'init')
+
     return
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-!> \brief Initialize Vortex Green flow
+!> \brief initialise Vortex Green flow
 !>
 !> This subroutine is called locally once.
 !>
@@ -658,7 +659,7 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_2dflow(dm, fl)
+  subroutine  initialise_vortexgreen_2dflow(dm, fl)
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
@@ -670,7 +671,7 @@ contains
     integer :: i, j, ii, jj
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Initializing vortexgreen 2dflow ...")
+    if(nrank == 0) call Print_debug_mid_msg("initialising vortexgreen 2dflow ...")
 !----------------------------------------------------------------------------------------------------------
 !   ux in x-pencil
 !----------------------------------------------------------------------------------------------------------
@@ -718,7 +719,7 @@ contains
     
     if(nrank == 0) call Print_debug_end_msg
     return
-  end subroutine Initialize_vortexgreen_2dflow
+  end subroutine initialise_vortexgreen_2dflow
 !==========================================================================================================
 !==========================================================================================================
   subroutine  Validate_TGV2D_error(fl, dm)
@@ -843,7 +844,7 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-!> \brief Initialize Vortex Green flow
+!> \brief initialise Vortex Green flow
 !>
 !> This subroutine is called locally once.
 !>
@@ -855,7 +856,7 @@ contains
 !> \param[in]     d             domain
 !> \param[out]    f             flow
 !_______________________________________________________________________________
-  subroutine  Initialize_vortexgreen_3dflow(dm, fl)
+  subroutine  initialise_vortexgreen_3dflow(dm, fl)
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO, PI
     use udf_type_mod
     use math_mod
@@ -867,7 +868,7 @@ contains
     integer :: i, j, k, ii, jj, kk
     type(DECOMP_INFO) :: dtmp
 
-    if(nrank == 0) call Print_debug_mid_msg("Initializing Taylor Green Vortex flow field ...")
+    if(nrank == 0) call Print_debug_mid_msg("initialising Taylor Green Vortex flow field ...")
 !----------------------------------------------------------------------------------------------------------
 !   ux in x-pencil
 !---------------------------------------------------------------------------------------------------------- 
@@ -937,6 +938,6 @@ contains
     if(nrank == 0) call Print_debug_end_msg
     
     return
-  end subroutine Initialize_vortexgreen_3dflow
+  end subroutine initialise_vortexgreen_3dflow
 
 end module flow_thermo_initialiasation

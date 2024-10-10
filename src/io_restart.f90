@@ -1,5 +1,6 @@
 module io_restart_mod
   use print_msg_mod
+  use parameters_constant_mod
   implicit none 
 
   character(len=10), parameter :: io_name = "restart-io"
@@ -17,7 +18,7 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine read_instantanous_array(var, keyword, idom, iter, dtmp)
-    use precision_mod
+    use parameters_constant_mod
     use files_io_mod
     use io_tools_mod
     use decomp_2d_io
@@ -152,7 +153,7 @@ contains
     
 
     !call Get_volumetric_average_3d(.false., dm%ibcy_qx(:), dm%fbcy_qx(:, :, :), dm, dm%dpcc, fl%qx, ubulk, "ux")
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx, ubulk, "ux")
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx, ubulk, LF3D_VOL_AVE, "ux")
     if(nrank == 0) then
         Call Print_debug_mid_msg("  The restarted mass flux is:")
         write (*, wrtfmt1e) ' average[u(x,y,z)]_[x,y,z]: ', ubulk
@@ -216,6 +217,7 @@ contains
     use thermo_info_mod
     use eq_energy_mod
     use solver_tools_mod
+    use calculate_mflux_from_velo_domain
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
@@ -223,7 +225,7 @@ contains
     if (.not. dm%is_thermo) return
 
     call Update_thermal_properties(fl, tm, dm)
-    call Calculate_massflux_from_velocity (fl, dm)
+    call calculate_mflux_from_velo_domain_domain (fl, dm)
 
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)

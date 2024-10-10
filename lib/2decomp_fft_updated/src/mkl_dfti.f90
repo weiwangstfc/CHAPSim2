@@ -97,8 +97,8 @@ MODULE MKL_DFT_TYPE
   ! Distance between first output elements for multiple transforms [0]
   INTEGER, PARAMETER :: DFTI_OUTPUT_DISTANCE = 15
 
-  ! Effort spent in initialization [DFTI_MEDIUM]
-  ! INTEGER, PARAMETER :: DFTI_INITIALIZATION_EFFORT = 16 ! NOT IMPLEMENTED
+  ! Effort spent in initialisation [DFTI_MEDIUM]
+  ! INTEGER, PARAMETER :: DFTI_initialisATION_EFFORT = 16 ! NOT IMPLEMENTED
 
   ! Use of workspace during computation [DFTI_ALLOW]
   INTEGER, PARAMETER :: DFTI_WORKSPACE = 17
@@ -176,7 +176,7 @@ MODULE MKL_DFT_TYPE
   INTEGER, PARAMETER :: DFTI_INPLACE = 43 ! Result overwrites input
   INTEGER, PARAMETER :: DFTI_NOT_INPLACE  = 44 ! Have another place for result
 
-  ! DFTI_INITIALIZATION_EFFORT
+  ! DFTI_initialisATION_EFFORT
   ! INTEGER, PARAMETER :: DFTI_LOW = 45 ! NOT IMPLEMENTED
   ! INTEGER, PARAMETER :: DFTI_MEDIUM = 46 ! NOT IMPLEMENTED
   ! INTEGER, PARAMETER :: DFTI_HIGH = 47 ! NOT IMPLEMENTED

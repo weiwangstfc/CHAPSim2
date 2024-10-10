@@ -53,7 +53,7 @@ module thermo_info_mod
   public  :: ftp_refresh_thermal_properties_from_DH
 
   public  :: Buildup_thermo_mapping_relations
-  public  :: Initialize_thermal_properties
+  public  :: initialise_thermal_properties
   public  :: Convert_thermal_input_2undim
   
 contains
@@ -372,7 +372,7 @@ contains
     this%t  = w1 * ftplist(i1)%t  + w2 * ftplist(i2)%t
     this%b  = w1 * ftplist(i1)%b  + w2 * ftplist(i2)%b
     this%cp = w1 * ftplist(i1)%cp + w2 * ftplist(i2)%cp
-    this%rhoh = this%d * this%h
+    !this%rhoh = this%d * this%h
     return
   end subroutine ftp_refresh_thermal_properties_from_H
 !==========================================================================================================
@@ -433,6 +433,8 @@ contains
     
     if(fluidparam%ipropertyState == IPROPERTY_TABLE) then 
       this%h = w1 * ftplist(i1)%h + w2 * ftplist(i2)%h
+      call ftp_refresh_thermal_properties_from_H(this)
+      this%h = this%rhoh / this%d
       call ftp_refresh_thermal_properties_from_H(this)
     else if (fluidparam%ipropertyState == IPROPERTY_FUNCS) then 
       this%t = w1 * ftplist(i1)%t + w2 * ftplist(i2)%t
@@ -865,7 +867,7 @@ contains
   subroutine Buildup_fluidparam(tm)
     type(t_thermo), intent(in) :: tm
 
-    if(nrank == 0) call Print_debug_start_msg("Initializing thermal parameters ...")
+    if(nrank == 0) call Print_debug_start_msg("initialising thermal parameters ...")
 
     is_ftplist_dim = .true.
     fluidparam%ifluid    = tm%ifluid
@@ -1066,11 +1068,11 @@ contains
 !> \param[inout]  fl   flow type
 !> \param[inout]  tm   thermo type
 !==========================================================================================================
-  subroutine Initialize_thermal_properties (fl, tm)
+  subroutine initialise_thermal_properties (fl, tm)
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
     
-    if(nrank == 0) call Print_debug_mid_msg("Initialize thermal variables ...")
+    if(nrank == 0) call Print_debug_mid_msg("initialise thermal variables ...")
     !----------------------------------------------------------------------------------------------------------
     !   initialise thermal fields
     !----------------------------------------------------------------------------------------------------------
@@ -1099,7 +1101,7 @@ contains
 
     if(nrank == 0) call Print_debug_end_msg
     return
-  end subroutine Initialize_thermal_properties
+  end subroutine initialise_thermal_properties
 
 !==========================================================================================================
 !> \brief Initialise thermal variables if ithermo = 1.     

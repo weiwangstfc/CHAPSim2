@@ -1,3 +1,52 @@
+!##############################################################################
+module mpi_mod
+  !include "mpif.h"
+  use MPI
+  use decomp_2d
+  !use iso_fortran_env
+  implicit none
+  integer :: ierror
+  integer :: nxdomain
+  integer :: p_row ! y-dim
+  integer :: p_col ! z-dim
+
+  public :: initialise_mpi
+  public :: Finalise_mpi
+
+contains 
+!==========================================================================================================
+!> \brief mpi initialisation.   
+!>
+!> this initialisation is a simple one.
+!  only used before calling decomp_2d_init, 
+!  where there is a complicted one used for 2-d decompoistion.
+!  nrank = myid
+!  nproc = size of processor 
+!  both wil be replaced after calling decomp_2d_init
+!----------------------------------------------------------------------------------------------------------
+! Arguments
+!______________________________________________________________________________.
+!  mode           name          role                                           !
+!______________________________________________________________________________!
+!> \param[in]     d          domain type
+!==========================================================================================================
+  subroutine initialise_mpi()
+    implicit none
+    call MPI_INIT(IERROR)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, nrank, IERROR)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, IERROR)
+    return
+  end subroutine initialise_mpi
+!==========================================================================================================
+!==========================================================================================================
+  subroutine Finalise_mpi()  
+    implicit none
+    call MPI_FINALIZE(IERROR)
+    return
+  end subroutine Finalise_mpi
+
+end module mpi_mod
+
 !==========================================================================================================
 module precision_mod
   use mpi_mod
@@ -124,6 +173,9 @@ module parameters_constant_mod
                         ICASE_BURGERS = 6, &
                         ICASE_ALGTEST = 7
   integer, parameter :: NDIM = 3
+  integer, parameter :: X_PENCIL = 1, & ! x-pencil
+                        Y_PENCIL = 2, & ! y-pencil
+                        Z_PENCIL = 3    ! z-pencil
 !----------------------------------------------------------------------------------------------------------
 ! flow initilisation
 !----------------------------------------------------------------------------------------------------------     
@@ -164,7 +216,7 @@ module parameters_constant_mod
                         IBC_DIRICHLET   = 4, & ! basic and nominal, used in operations
                         IBC_NEUMANN     = 5, & ! basic and nominal, used in operations
                         IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
-                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_INTRPL
+                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_DIRICHLET
                         IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
                         IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
                         IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
@@ -175,6 +227,8 @@ module parameters_constant_mod
   integer, parameter :: JBC_SELF = 1, &
                         JBC_GRAD = 2, &
                         JBC_PROD = 3
+  integer, parameter :: LF3D_VOL_SUM = 0, &
+                        LF3D_VOL_AVE = 1
 !----------------------------------------------------------------------------------------------------------
 ! numerical accuracy
 !----------------------------------------------------------------------------------------------------------             
@@ -345,6 +399,7 @@ module udf_type_mod
     logical :: is_stretching(NDIM)      ! is this direction of stretching grids?
     logical :: is_compact_scheme     ! is compact scheme applied?
     logical :: is_thermo             ! is thermal field considered? 
+    logical :: is_conv_outlet
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type
@@ -520,6 +575,7 @@ module udf_type_mod
     real(WP), allocatable :: pcor_zpencil_ggg(:, :, :)
 
     real(WP), allocatable :: dDens(:, :, :)
+    real(WP), allocatable :: drhodt(:, :, :)
     real(WP), allocatable :: mVisc(:, :, :)
     real(WP), allocatable :: dDensm1(:, :, :)
     real(WP), allocatable :: dDensm2(:, :, :)
@@ -531,6 +587,13 @@ module udf_type_mod
     real(WP), allocatable :: mx_rhs0(:, :, :)! last step rhs in x
     real(WP), allocatable :: my_rhs0(:, :, :)! last step rhs in y
     real(WP), allocatable :: mz_rhs0(:, :, :)! last step rhs in z
+
+    real(WP), allocatable :: fbcx_qx_rhs0(:, :)  !
+    real(WP), allocatable :: fbcx_qy_rhs0(:, :)
+    real(WP), allocatable :: fbcx_qz_rhs0(:, :)
+    real(WP), allocatable :: fbcx_gx_rhs0(:, :)
+    real(WP), allocatable :: fbcx_gy_rhs0(:, :)
+    real(WP), allocatable :: fbcx_gz_rhs0(:, :)
 
     real(WP), allocatable :: u_vector_mean(:, :, :, :) ! u, v, w
     real(WP), allocatable :: pr_mean(:, :, :)
@@ -558,6 +621,7 @@ module udf_type_mod
     real(WP), allocatable :: tTemp(:, :, :)
     real(WP), allocatable :: ene_rhs(:, :, :)  ! current step rhs
     real(WP), allocatable :: ene_rhs0(:, :, :) ! last step rhs
+    real(WP), allocatable :: fbcx_rhoh_rhs0(:, :)  !
 
     real(WP), allocatable :: t_mean(:, :, :)
     real(WP), allocatable :: tt_mean(:, :, :)

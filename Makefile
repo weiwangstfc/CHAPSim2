@@ -46,7 +46,7 @@ else
   # For gcc-10 and higher (comment out for older versions)
   FOPTS += -fallow-argument-mismatch	
   FFLGS= -DDOUBLE_PREC
-  FDEBG= # -DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
+  FDEBG= #-DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
 
 # this is based on the latest 2decomp&fft lib by UoE&ICL, 2022

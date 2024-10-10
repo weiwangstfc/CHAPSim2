@@ -181,7 +181,7 @@ contains
 
     integer    :: i, k
     
-    if(nrank == 0) call Print_debug_start_msg("Initializing domain geometric ...")
+    if(nrank == 0) call Print_debug_start_msg("initialising domain geometric ...")
 
     !----------------------------------------------------------------------------------------------------------
     ! set up node number in geometry domain
@@ -274,7 +274,7 @@ contains
     ! print out data 
     !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
-      write (*, wrtfmt1i) 'For the domain-x  = ', dm%idom
+      write (*, wrtfmt1i) '------For the domain-x------ ', dm%idom
       write (*, *)        '  is periodic in x, y, z :', dm%is_periodic(1:NDIM)
       write (*, wrtfmt3i) '  geometry number of nodes     in x, y, z: :', dm%np_geo(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)

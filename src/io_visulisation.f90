@@ -1,6 +1,6 @@
 module io_visulisation_mod
   use io_tools_mod
-  use precision_mod
+  use parameters_constant_mod
   use print_msg_mod
   implicit none 
 
@@ -319,7 +319,7 @@ contains
     integer :: ioxdmf
     logical :: file_exists
 
-    if((.not. is_decomp_same(dtmp, dm%dccc))) then
+    if((.not. is_same_decomp(dtmp, dm%dccc))) then
       if(nrank == 0) call Print_error_msg("Data is not stored at cell centre. varname = " // trim(varname))
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -402,7 +402,7 @@ contains
 
     integer :: j
 
-    if((.not. is_decomp_same(dtmp, dm%dccc))) then
+    if((.not. is_same_decomp(dtmp, dm%dccc))) then
       if(nrank == 0) call Print_error_msg("Data is not stored at cell centre. varname = " // trim(varname))
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -419,7 +419,7 @@ contains
     return
   end subroutine 
 !==========================================================================================================
-  subroutine write_visu_flow(fl, dm)
+  subroutine write_visu_flow(fl, dm, str)
     use udf_type_mod
     use precision_mod
     use operations
@@ -427,6 +427,7 @@ contains
     implicit none 
     type(t_domain), intent(in) :: dm
     type(t_flow), intent(in) :: fl
+    character(4), intent(in), optional :: str
 
     integer :: iter 
     character(120) :: visuname
@@ -437,9 +438,9 @@ contains
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
 
-
     iter = fl%iteration
     visuname = 'flow'
+    if(present(str)) visuname = trim(visuname)//'_'//trim(str)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -497,12 +498,14 @@ contains
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
     call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+
+    call Print_debug_mid_msg("Write out visulisation for flow field.")
     
     return
   end subroutine
 
   !==========================================================================================================
-  subroutine write_visu_thermo(tm, fl, dm)
+  subroutine write_visu_thermo(tm, fl, dm, str)
     use udf_type_mod
     use precision_mod
     use operations
@@ -510,12 +513,14 @@ contains
     type(t_domain), intent(in) :: dm
     type(t_thermo), intent(in) :: tm
     type(t_flow),   intent(in) :: fl
+    character(4), intent(in), optional :: str
 
     integer :: iter 
     character(120) :: visuname
 
     iter = tm%iteration
     visuname = 'thermo'
+    if(present(str)) visuname = trim(visuname)//'_'//trim(str)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
@@ -532,6 +537,8 @@ contains
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
     call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
+
+    call Print_debug_mid_msg("Write out visulisation for thermal field.")
     
     return
   end subroutine
@@ -703,20 +710,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
-    if (is_decomp_same(dtmp, dm%dccc)) then
+    if (is_same_decomp(dtmp, dm%dccc)) then
       call write_visu_field(dm, var, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
-    else if (is_decomp_same(dtmp, dm%dpcc)) then
+    else if (is_same_decomp(dtmp, dm%dpcc)) then
       call Get_x_midp_P2C_3D(var, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
       call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
-    else if (is_decomp_same(dtmp, dm%dcpc)) then
+    else if (is_same_decomp(dtmp, dm%dcpc)) then
       call transpose_x_to_y(var, acpc_ypencil, dm%dcpc)
       call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
       call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
 
-    else if (is_decomp_same(dtmp, dm%dccp)) then
+    else if (is_same_decomp(dtmp, dm%dccp)) then
       call transpose_x_to_y(var, accp_ypencil, dm%dccp)
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
       call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_qz)
