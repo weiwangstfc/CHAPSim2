@@ -3,6 +3,7 @@ module eq_momentum_mod
   use precision_mod
   use decomp_2d
   use print_msg_mod
+  use wrt_debug_field_mod
   implicit none
 
   private :: Calculate_momentum_fractional_step
@@ -104,6 +105,9 @@ contains
     use solver_tools_mod
     use typeconvert_mod
     use boundary_conditions_mod
+    use wrt_debug_field_mod
+    use find_max_min_ave_mod
+    use cylindrical_rn_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -1480,7 +1484,7 @@ contains
 !==========================================================================================================
 ! B.C. correction for rhs
 !==========================================================================================================
-    call update_flow_from_bc(dm, fl%mx_rhs, fl%my_rhs, fl%mz_rhs, (/ZERO, ZERO, ZERO, ZERO, ZERO, ZERO/))
+    call update_flow_from_bc(dm, fl%mx_rhs, fl%my_rhs, fl%mz_rhs)
     
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'RHSX@total') ! debug_ww

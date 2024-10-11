@@ -68,20 +68,23 @@ DIR_SRC= ./src
 DIR_BIN= ./bin
 DIR_OBJ= ./obj
 
-OBJS1= mpi_mod.o\
-      modules.o\
+OBJS1= modules.o\
       tools_general.o\
       input_thermo.o\
-      boundary_conditions.o\
+      bc_dirichlet.o\
+      bc_convective_outlet.o\
+      bc_ndomain_interior.o\
+      bc_general.o\
       input_general.o\
-      algorithms.o\
-      operations2.o\
+      basics_algorithms.o\
+      basics_operations2.o\
       tools_solver.o\
+      para_conversion.o\
       geometry.o\
       io_tools.o\
       io_monitor.o\
       io_visulisation.o\
-      statistics.o\
+      post_statistics.o\
       domain_decomposition.o\
       poisson_interface.o\
       poisson_1stderivcomp.o\
@@ -89,7 +92,7 @@ OBJS1= mpi_mod.o\
       eq_energy.o\
       eq_momentum2.o\
       io_restart.o\
-      flow_initialization.o\
+      initialisation.o\
       test_algrithms.o\
       chapsim.o
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)

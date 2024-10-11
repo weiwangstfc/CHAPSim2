@@ -600,264 +600,277 @@ contains
 
     return
   end subroutine Generate_r_random
+  
 end module random_number_generation_mod
-
-
 !==========================================================================================================
-subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, loc)
-  use precision_mod
-  use udf_type_mod
-  use print_msg_mod
-  implicit none 
-  type(DECOMP_INFO), intent(in) :: dtmp
-  real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
-  character(*), intent(in) :: loc
-  
-  integer, intent(in) :: iter, irk
-
-  integer, parameter :: npt = 8
-  integer, parameter :: nfil = 20
-  integer  :: nid(8, 3), a(24)
-
-  character(1) :: pntim
-  character(128) :: flnm
-  logical :: file_exists
-  integer :: n, i, j, k, jj, kk
-
- ! based on x pencil
-
-  a = (/1, 1, 1, 1, 8, 8, 8, 8, &
-        1, 2, 3, 4, 1, 2, 3, 4, &
-        1, 1, 1, 1, 8, 8, 8, 8/)
-  nid = reshape(a, (/8, 3/))
-  do n = 1, npt
-      write(pntim,'(i1.1)') n
-      flnm = 'chapsim2_p'//pntim//'.dat'   
-      do k =1, dtmp%xsz(3)
-          kk = dtmp%xst(3) + k - 1
-          if(kk == nid(n, 3)) then
-              do j = 1, dtmp%xsz(2)
-                  jj = dtmp%xst(2) + j - 1
-                  if(jj == nid(n, 2)) then
-                    do i = 1, dtmp%xsz(1)
-                        if(i == nid(n, 1)) then
-                          inquire(file=trim(adjustl(flnm)), exist=file_exists) 
-                          if(file_exists) then
-                            open(nfil+n,file=trim(adjustl(flnm)), position='append')
-                            !write(nfil+n,*) '# iter = ', iter
-                          else
-                            open(nfil+n,file=trim(adjustl(flnm)) )
-                            !write(nfil+n,*) '# iter = ', iter
-                          end if
-                          write(nfil+n, '(A20, 2I2.1, 3I4.1, 1ES27.19)') &
-                          trim(loc), iter, irk, i, jj, kk, var(i, j, k)
-                          close(nfil+n)
-                        end if
-                      end do
-                  end if
-              end do
-          end if
-      end do
-    end do
-
-return
-
-end subroutine
-
-!==========================================================================================================
-subroutine wrt_3d_all_debug(var, dtmp, iter, str, loc)
-  use precision_mod
-  use udf_type_mod
-  use print_msg_mod
-  implicit none 
-  type(DECOMP_INFO), intent(in) :: dtmp
-  real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
-  character(*), intent(in) :: str
-  character(*), intent(in) :: loc
-  
-  integer, intent(in) :: iter
-  integer, parameter :: nfil = 20
-
-  character(128) :: flnm
-  logical :: file_exists
-  integer :: i, j, k, jj, kk
-  character(1) :: pntim
-
-  write(pntim,'(i1.1)') nrank
-  flnm = 'chapsim2_'//trim(str)//'_at_'//trim(loc)//'_myid'//pntim//'.dat'  
-  inquire(file=trim(adjustl(flnm)), exist=file_exists) 
-  if(file_exists) then
-    open(nfil,file=trim(adjustl(flnm)), position='append')
-    write(nfil,*) '# iter = ', iter
-  else
-    open(nfil,file=trim(adjustl(flnm)) )
-    write(nfil,*) '# iter = ', iter
-  end if
-
-  do j = 1, dtmp%xsz(2)
-    jj = dtmp%xst(2) + j - 1
-    do k =1, dtmp%xsz(3)
-      kk = dtmp%xst(3) + k - 1
-      do i = 1, dtmp%xsz(1)
-        write(nfil, '(3I4.1, 1ES27.19)') i, jj, kk, var(i, j, k)  
-      end do
-    end do
-  end do
-  close(nfil)
-
-  return
-end subroutine
-
-!==========================================================================================================
-subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
+module wrt_debug_field_mod
+  public :: wrt_3d_all_debug
+  public :: wrt_3d_pt_debug
+contains
+  subroutine wrt_3d_pt_debug(var, dtmp, iter, irk, loc)
+    use precision_mod
     use udf_type_mod
-    use parameters_constant_mod
     use print_msg_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
-    real(WP), intent(inout) :: var(:, :, :)
-    real(WP), intent(in) :: r(:)
-    integer, intent(in) :: n
-    integer, intent(in) :: pencil
+    real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
+    character(*), intent(in) :: loc
+    
+    integer, intent(in) :: iter, irk
 
-    integer :: i, j, k, jj, nx, ny, nz, nyst
- 
-    if(pencil == IPENCIL(1)) then
-        nx = dtmp%xsz(1)
-        ny = dtmp%xsz(2)
-        nz = dtmp%xsz(3)
-      nyst = dtmp%xst(2)
-    else if(pencil == IPENCIL(2)) then
-        nx = dtmp%ysz(1)
-        ny = dtmp%ysz(2)
-        nz = dtmp%ysz(3)
-      nyst = dtmp%yst(2)
-    else if(pencil == IPENCIL(3)) then
-        nx = dtmp%zsz(1)
-        ny = dtmp%zsz(2)
-        nz = dtmp%zsz(3)
-      nyst = dtmp%zst(2)
+    integer, parameter :: npt = 8
+    integer, parameter :: nfil = 20
+    integer  :: nid(8, 3), a(24)
+
+    character(1) :: pntim
+    character(128) :: flnm
+    logical :: file_exists
+    integer :: n, i, j, k, jj, kk
+
+  ! based on x pencil
+
+    a = (/1, 1, 1, 1, 8, 8, 8, 8, &
+          1, 2, 3, 4, 1, 2, 3, 4, &
+          1, 1, 1, 1, 8, 8, 8, 8/)
+    nid = reshape(a, (/8, 3/))
+    do n = 1, npt
+        write(pntim,'(i1.1)') n
+        flnm = 'chapsim2_p'//pntim//'.dat'   
+        do k =1, dtmp%xsz(3)
+            kk = dtmp%xst(3) + k - 1
+            if(kk == nid(n, 3)) then
+                do j = 1, dtmp%xsz(2)
+                    jj = dtmp%xst(2) + j - 1
+                    if(jj == nid(n, 2)) then
+                      do i = 1, dtmp%xsz(1)
+                          if(i == nid(n, 1)) then
+                            inquire(file=trim(adjustl(flnm)), exist=file_exists) 
+                            if(file_exists) then
+                              open(nfil+n,file=trim(adjustl(flnm)), position='append')
+                              !write(nfil+n,*) '# iter = ', iter
+                            else
+                              open(nfil+n,file=trim(adjustl(flnm)) )
+                              !write(nfil+n,*) '# iter = ', iter
+                            end if
+                            write(nfil+n, '(A20, 2I2.1, 3I4.1, 1ES27.19)') &
+                            trim(loc), iter, irk, i, jj, kk, var(i, j, k)
+                            close(nfil+n)
+                          end if
+                        end do
+                    end if
+                end do
+            end if
+        end do
+      end do
+
+  return
+
+  end subroutine
+
+  !==========================================================================================================
+  subroutine wrt_3d_all_debug(var, dtmp, iter, str, loc)
+    use precision_mod
+    use udf_type_mod
+    use print_msg_mod
+    implicit none 
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
+    character(*), intent(in) :: str
+    character(*), intent(in) :: loc
+    
+    integer, intent(in) :: iter
+    integer, parameter :: nfil = 20
+
+    character(128) :: flnm
+    logical :: file_exists
+    integer :: i, j, k, jj, kk
+    character(1) :: pntim
+
+    write(pntim,'(i1.1)') nrank
+    flnm = 'chapsim2_'//trim(str)//'_at_'//trim(loc)//'_myid'//pntim//'.dat'  
+    inquire(file=trim(adjustl(flnm)), exist=file_exists) 
+    if(file_exists) then
+      open(nfil,file=trim(adjustl(flnm)), position='append')
+      write(nfil,*) '# iter = ', iter
     else
-        nx = 0
-        ny = 0
-        nz = 0
-      nyst = 0
+      open(nfil,file=trim(adjustl(flnm)) )
+      write(nfil,*) '# iter = ', iter
     end if
 
-    do k = 1, nz
+    do j = 1, dtmp%xsz(2)
+      jj = dtmp%xst(2) + j - 1
+      do k =1, dtmp%xsz(3)
+        kk = dtmp%xst(3) + k - 1
+        do i = 1, dtmp%xsz(1)
+          write(nfil, '(3I4.1, 1ES27.19)') i, jj, kk, var(i, j, k)  
+        end do
+      end do
+    end do
+    close(nfil)
+
+    return
+  end subroutine
+
+end module 
+
+
+module cylindrical_rn_mod
+
+  public :: multiple_cylindrical_rn
+  public :: multiple_cylindrical_rn_xx4
+  public :: multiple_cylindrical_rn_x4x
+
+  contains
+!==========================================================================================================
+  subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
+      use udf_type_mod
+      use parameters_constant_mod
+      use print_msg_mod
+      implicit none 
+      type(DECOMP_INFO), intent(in) :: dtmp
+      real(WP), intent(inout) :: var(:, :, :)
+      real(WP), intent(in) :: r(:)
+      integer, intent(in) :: n
+      integer, intent(in) :: pencil
+
+      integer :: i, j, k, jj, nx, ny, nz, nyst
+  
+      if(pencil == IPENCIL(1)) then
+          nx = dtmp%xsz(1)
+          ny = dtmp%xsz(2)
+          nz = dtmp%xsz(3)
+        nyst = dtmp%xst(2)
+      else if(pencil == IPENCIL(2)) then
+          nx = dtmp%ysz(1)
+          ny = dtmp%ysz(2)
+          nz = dtmp%ysz(3)
+        nyst = dtmp%yst(2)
+      else if(pencil == IPENCIL(3)) then
+          nx = dtmp%zsz(1)
+          ny = dtmp%zsz(2)
+          nz = dtmp%zsz(3)
+        nyst = dtmp%zst(2)
+      else
+          nx = 0
+          ny = 0
+          nz = 0
+        nyst = 0
+      end if
+
+      do k = 1, nz
+        do j = 1, ny
+          jj = nyst + j - 1
+          do i = 1, nx
+            var(i, j, k) = var(i, j, k) * (r(jj)**n)
+          end do
+        end do
+      end do 
+    
+      return 
+    end subroutine
+    !==========================================================================================================
+    subroutine multiple_cylindrical_rn_xx4(var, dtmp, r, n, pencil)
+      use udf_type_mod
+      use parameters_constant_mod
+      use print_msg_mod
+      implicit none 
+      type(DECOMP_INFO), intent(in) :: dtmp
+      real(WP), intent(inout) :: var(:, :, :)
+      real(WP), intent(in) :: r(:)
+      integer, intent(in) :: n
+      integer, intent(in) :: pencil
+
+      integer :: i, j, jj, nx, ny, nz, nyst
+  
+      if(pencil == IPENCIL(1)) then
+        call Print_warning_msg("Warning: This is for z-pencil only.")
+          nx = dtmp%xsz(1)
+          ny = dtmp%xsz(2)
+          nz = dtmp%xsz(3)
+        nyst = dtmp%xst(2)
+      else if(pencil == IPENCIL(2)) then
+        call Print_warning_msg("Warning: This is for z-pencil only.")
+          nx = dtmp%ysz(1)
+          ny = dtmp%ysz(2)
+          nz = dtmp%ysz(3)
+        nyst = dtmp%yst(2)
+      else if(pencil == IPENCIL(3)) then
+          nx = dtmp%zsz(1)
+          ny = dtmp%zsz(2)
+          nz = dtmp%zsz(3)
+        nyst = dtmp%zst(2)
+      else
+          nx = 0
+          ny = 0
+          nz = 0
+        nyst = 0
+      end if
+
       do j = 1, ny
         jj = nyst + j - 1
         do i = 1, nx
-          var(i, j, k) = var(i, j, k) * (r(jj)**n)
+          var(i, j, 1) = var(i, j, 1) * (r(jj)**n)
+          var(i, j, 2) = var(i, j, 1) * (r(jj)**n)
+          var(i, j, 3) = var(i, j, 1)
+          var(i, j, 4) = var(i, j, 2)
         end do
       end do
-    end do 
-  
-    return 
-  end subroutine
+    
+      return 
+    end subroutine
   !==========================================================================================================
-  subroutine multiple_cylindrical_rn_xx4(var, dtmp, r, n, pencil)
-    use udf_type_mod
-    use parameters_constant_mod
-    use print_msg_mod
-    implicit none 
-    type(DECOMP_INFO), intent(in) :: dtmp
-    real(WP), intent(inout) :: var(:, :, :)
-    real(WP), intent(in) :: r(:)
-    integer, intent(in) :: n
-    integer, intent(in) :: pencil
+    subroutine multiple_cylindrical_rn_x4x(var, dtmp, r, n, pencil)
+      use udf_type_mod
+      use parameters_constant_mod
+      use print_msg_mod
+      implicit none 
+      type(DECOMP_INFO), intent(in) :: dtmp
+      real(WP), intent(inout) :: var(:, :, :)
+      real(WP), intent(in) :: r(:)
+      integer, intent(in) :: n
+      integer, intent(in) :: pencil
 
-    integer :: i, j, jj, nx, ny, nz, nyst
- 
-    if(pencil == IPENCIL(1)) then
-      call Print_warning_msg("Warning: This is for z-pencil only.")
-        nx = dtmp%xsz(1)
-        ny = dtmp%xsz(2)
-        nz = dtmp%xsz(3)
-      nyst = dtmp%xst(2)
-    else if(pencil == IPENCIL(2)) then
-      call Print_warning_msg("Warning: This is for z-pencil only.")
-        nx = dtmp%ysz(1)
-        ny = dtmp%ysz(2)
-        nz = dtmp%ysz(3)
-      nyst = dtmp%yst(2)
-    else if(pencil == IPENCIL(3)) then
-        nx = dtmp%zsz(1)
-        ny = dtmp%zsz(2)
-        nz = dtmp%zsz(3)
-      nyst = dtmp%zst(2)
-    else
-        nx = 0
-        ny = 0
-        nz = 0
-      nyst = 0
-    end if
-
-    do j = 1, ny
-      jj = nyst + j - 1
-      do i = 1, nx
-        var(i, j, 1) = var(i, j, 1) * (r(jj)**n)
-        var(i, j, 2) = var(i, j, 1) * (r(jj)**n)
-        var(i, j, 3) = var(i, j, 1)
-        var(i, j, 4) = var(i, j, 2)
-      end do
-    end do
+      integer :: i, k, jj, nx, ny, nz, nyst
   
-    return 
-  end subroutine
-!==========================================================================================================
-  subroutine multiple_cylindrical_rn_x4x(var, dtmp, r, n, pencil)
-    use udf_type_mod
-    use parameters_constant_mod
-    use print_msg_mod
-    implicit none 
-    type(DECOMP_INFO), intent(in) :: dtmp
-    real(WP), intent(inout) :: var(:, :, :)
-    real(WP), intent(in) :: r(:)
-    integer, intent(in) :: n
-    integer, intent(in) :: pencil
+      if(pencil == IPENCIL(1)) then
+        call Print_warning_msg("Warning: This is for y-pencil only.")
+          nx = dtmp%xsz(1)
+          ny = dtmp%xsz(2)
+          nz = dtmp%xsz(3)
+        nyst = dtmp%xst(2)
+      else if(pencil == IPENCIL(2)) then
+          nx = dtmp%ysz(1)
+          ny = dtmp%ysz(2)
+          nz = dtmp%ysz(3)
+        nyst = dtmp%yst(2)
+      else if(pencil == IPENCIL(3)) then
+        call Print_warning_msg("Warning: This is for y-pencil only.")
+          nx = dtmp%zsz(1)
+          ny = dtmp%zsz(2)
+          nz = dtmp%zsz(3)
+        nyst = dtmp%zst(2)
+      else
+        call Print_warning_msg("Warning: This is for y-pencil only.")
+          nx = 0
+          ny = 0
+          nz = 0
+        nyst = 0
+      end if
 
-    integer :: i, k, jj, nx, ny, nz, nyst
- 
-    if(pencil == IPENCIL(1)) then
-      call Print_warning_msg("Warning: This is for y-pencil only.")
-        nx = dtmp%xsz(1)
-        ny = dtmp%xsz(2)
-        nz = dtmp%xsz(3)
-      nyst = dtmp%xst(2)
-    else if(pencil == IPENCIL(2)) then
-        nx = dtmp%ysz(1)
-        ny = dtmp%ysz(2)
-        nz = dtmp%ysz(3)
-      nyst = dtmp%yst(2)
-    else if(pencil == IPENCIL(3)) then
-      call Print_warning_msg("Warning: This is for y-pencil only.")
-        nx = dtmp%zsz(1)
-        ny = dtmp%zsz(2)
-        nz = dtmp%zsz(3)
-      nyst = dtmp%zst(2)
-    else
-      call Print_warning_msg("Warning: This is for y-pencil only.")
-        nx = 0
-        ny = 0
-        nz = 0
-      nyst = 0
-    end if
+      do k = 1, nz
+        do i = 1, nx
+          jj = nyst + ny - 1
+          var(i, 1, k) = var(i, 1, k) * (r(1)**n)
+          var(i, 2, k) = var(i, 2, k) * (r(jj)**n)
+          var(i, 3, k) = var(i, 1, k)
+          var(i, 4, k) = var(i, 2, k)
+        end do
+      end do 
+    
+      return 
+    end subroutine
 
-    do k = 1, nz
-      do i = 1, nx
-        jj = nyst + ny - 1
-        var(i, 1, k) = var(i, 1, k) * (r(1)**n)
-        var(i, 2, k) = var(i, 2, k) * (r(jj)**n)
-        var(i, 3, k) = var(i, 1, k)
-        var(i, 4, k) = var(i, 2, k)
-      end do
-    end do 
-  
-    return 
-  end subroutine
-
-
+end module 
 !==========================================================================================================
 !==========================================================================================================
   subroutine profile_interpolation(nin, yin, uin, nout, ycase, ucase)
@@ -891,4 +904,283 @@ subroutine multiple_cylindrical_rn(var, dtmp, r, n, pencil)
 
     return
   end subroutine
+
+
+  !==========================================================================================================
+
+
+module find_max_min_ave_mod
+
+  private :: which_pencil
+  private :: local2global_3indices
+
+  public  :: Get_volumetric_average_3d_for_var_xcx
+  public  :: Find_maximum_absvar3d
+  public  :: Find_max_min_3d
+  public  :: Find_max_min_absvar3d
+
+contains 
+!==========================================================================================================
+  function which_pencil(dtmp) result(a)
+    use parameters_constant_mod
+    use decomp_2d
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer :: a
+
+    if(dtmp%xst(1) == 1) then
+      a = X_PENCIL
+    else if(dtmp%yst(1) == 1) then 
+      a = Y_PENCIL
+    else if(dtmp%zst(1) == 1) then 
+      a = Z_PENCIL
+    else
+      call Print_error_msg("Error in finding which pencil.")
+    end if
+
+  end function
+
+!==========================================================================================================
+  function local2global_3indices(a, dtmp) result(b)
+    use decomp_2d
+    use parameters_constant_mod
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer, intent(in)  :: a(3)
+    integer :: b(3)
+
+    if(which_pencil(dtmp) == X_PENCIL) then
+      b(1) = dtmp%xst(1) + a(1)
+      b(2) = dtmp%xst(2) + a(2)
+      b(3) = dtmp%xst(3) + a(3)
+    else if (which_pencil(dtmp) == Y_PENCIL) then
+      b(1) = dtmp%yst(1) + a(1)
+      b(2) = dtmp%yst(2) + a(2)
+      b(3) = dtmp%yst(3) + a(3)
+    else if (which_pencil(dtmp) == Z_PENCIL) then
+      b(1) = dtmp%zst(1) + a(1)
+      b(2) = dtmp%zst(2) + a(2)
+      b(3) = dtmp%zst(3) + a(3)
+    else 
+      call Print_error_msg("Error in local to global index conversion.")
+    end if
+
+  end function
+
+!==========================================================================================================
+  subroutine Find_maximum_absvar3d(var,  varmax_work, dtmp, str, fmt)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
+
+    real(WP), intent(in)  :: var(:, :, :)
+    type(DECOMP_INFO), intent(in) :: dtmp
+    character(len = *), intent(in) :: str
+    character(len = *), intent(in) :: fmt
+    real(WP), intent(out) :: varmax_work
+
+    real(WP)   :: varmax
+    integer :: idg(3), idl(3), idg_work(3)
+    integer :: i, j, k, nx, ny, nz
+
+    nx = size(var, 1)
+    ny = size(var, 2)
+    nz = size(var, 3)
+
+    varmax = ZERO
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if(abs_wp(var(i, j, k)) > varmax) then
+            varmax = abs_wp(var(i, j, k))
+            idl(1:3) = (/i, j, k/)
+            idg = local2global_3indices(idl, dtmp)
+          end if
+        end do
+      end do
+    end do
+
+    !varmax = MAXVAL( abs_wp( var ) ) 
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+
+    if(varmax_work == varmax) then
+      call mpi_send(idg, 3, MPI_INTEGER, 0, 0, MPI_COMM_WORLD, ierror)
+    end if
+
+    if(nrank == 0) then
+      call mpi_recv(idg_work, 3, MPI_INTEGER, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror)
+      write (*, *) 'maximum '//str, varmax_work, 'at global index', idg_work(1:3)
+    end if
+#ifdef DEBUG_FFT
+    if(varmax_work > MAXVELO) stop ! test
+#endif
+    return
+  end subroutine
+
+
+  !==========================================================================================================
+  subroutine Find_max_min_3d(var,  str, fmt)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
+
+    real(WP), intent(in)  :: var(:, :, :)
+    character(len = *), intent(in) :: str
+    character(len = *), intent(in) :: fmt
+    
+    real(WP):: varmax_work, varmin_work
+    real(WP)   :: varmax, varmin
+
+    integer :: i, j, k, nx, ny, nz
+    nx = size(var, 1)
+    ny = size(var, 2)
+    nz = size(var, 3)
+
+    varmax = MINN
+    varmin = MAXP
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if( var(i, j, k)  > varmax) varmax = var(i, j, k)
+          if( var(i, j, k)  < varmin) varmin = var(i, j, k)
+        end do
+      end do
+    end do
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, fmt) 'maximum '//str, varmax_work, ' minimum '//str, varmin_work
+    end if
+#ifdef DEBUG_FFT
+    if(varmax_work >   MAXVELO) stop
+    if(varmin_work < - MAXVELO) stop
+#endif
+
+    return
+  end subroutine
+
+!==========================================================================================================
+  subroutine Find_max_min_absvar3d(var,  str, fmt)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
+
+    real(WP), intent(in)  :: var(:, :, :)
+    character(len = *), intent(in) :: str
+    character(len = *), intent(in) :: fmt
+    
+    real(WP):: varmax_work, varmin_work
+    real(WP)   :: varmax, varmin
+
+    integer :: i, j, k, nx, ny, nz
+    nx = size(var, 1)
+    ny = size(var, 2)
+    nz = size(var, 3)
+
+    varmax = MINN
+    varmin = MAXP
+    do k = 1, nz
+      do j = 1, ny
+        do i = 1, nx
+          if( var(i, j, k)  > varmax) varmax = abs_wp( var(i, j, k) )
+          if( var(i, j, k)  < varmin) varmin = abs_wp( var(i, j, k) )
+        end do
+      end do
+    end do
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, fmt) 'maximum |'//str//'|', varmax_work, ' minimum |'//str//'|', varmin_work
+    end if
+#ifdef DEBUG_FFT
+    if(varmax_work >   MAXVELO) stop
+    if(varmin_work < - MAXVELO) stop
+#endif
+
+    return
+  end subroutine
+
+  subroutine Get_volumetric_average_3d_for_var_xcx(dm, dtmp, var, fo_work, itype, str)
+    use mpi_mod
+    use udf_type_mod
+    use parameters_constant_mod
+    use decomp_2d
+    use wtformat_mod
+    implicit none
+    type(t_domain),  intent(in) :: dm
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP),          intent(in) :: var(:, :, :)
+    real(WP),          intent(out):: fo_work
+    integer,           intent(in) :: itype
+    character(*), optional, intent(in) :: str
+ 
+    real(WP) :: vol, fo, vol_work!
+#ifdef DEBUG_STEPS 
+    real(WP) :: vol_real
+#endif
+    integer :: i, j, k, jj
+    real(WP) :: dx, dy, dz
+
+    !----------------------------------------------------------------------------------------------------------
+    ! default: x-pencil
+    !----------------------------------------------------------------------------------------------------------
+      
+      vol = ZERO
+      fo  = ZERO
+      do j = 1, dtmp%xsz(2)
+        jj = j + dtmp%xst(2) - 1
+        dy = dm%yp(jj+1) - dm%yp(jj)
+        do k = 1, dtmp%xsz(3)
+          dz = dm%h(3) / dm%rci(jj)
+          do i = 1, dtmp%xsz(1)
+            dx = dm%h(1)
+            fo = fo + var(i, j, k) * dx * dy * dz
+            vol = vol + dx * dy * dz
+          end do
+        end do
+      end do
+
+      call mpi_barrier(MPI_COMM_WORLD, ierror)
+      call mpi_allreduce( fo,  fo_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+      call mpi_allreduce(vol, vol_work, 1, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
+      if(itype == LF3D_VOL_AVE) then
+        fo_work = fo_work / vol_work
+      else if(itype == LF3D_VOL_SUM) then
+        ! do nothing
+      end if
+
+#ifdef DEBUG_STEPS  
+      if(nrank == 0) then
+        vol_real = ZERO
+        if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
+        if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
+        write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
+      end if
+      if(nrank == 0 .and. present(str)) then
+        if(itype == LF3D_VOL_AVE) then
+          write (*, wrtfmt1e) " volumetric average of "//trim(str)//" = ", fo_work
+        else 
+          write (*, wrtfmt1e) " volumetric integeral of "//trim(str)//" = ", fo_work
+        end if
+      end if
+#endif
+    return
+  end subroutine 
+
+end module
 

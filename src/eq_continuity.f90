@@ -93,6 +93,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use solver_tools_mod
+    use cylindrical_rn_mod
     implicit none
 
     type(t_domain), intent(in) :: dm
@@ -175,6 +176,7 @@ contains
   subroutine Get_divergence_vel(ux, uy, uz, div, dm)
     use parameters_constant_mod
     use udf_type_mod
+    use cylindrical_rn_mod
     implicit none
 
     type(t_domain), intent (in) :: dm
@@ -339,7 +341,7 @@ contains
     use solver_tools_mod
     use wtformat_mod
     use io_visulisation_mod
-
+    use find_max_min_ave_mod
     implicit none
 
     type(t_domain), intent( in    ) :: dm

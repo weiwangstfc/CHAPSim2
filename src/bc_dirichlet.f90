@@ -436,31 +436,29 @@ contains
     real(WP), dimension(4,              dm%dpcc%xsz(2), dm%dpcc%xsz(3)) :: fbcx
     real(WP), dimension(dm%dcpc%ysz(1), 4,              dm%dcpc%ysz(3)) :: fbcy
     real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) :: fbcz
-    real(WP) :: fbc(6), ff
+    real(WP) :: ff
 
     if(.not. present(fbcxin)) then
       ff = ZERO
-      fbc = ZERO
       fbcx = ZERO
       fbcy = ZERO
       fbcz = ZERO
     else 
       ff = ONE
-      fbc = ZERO
       fbcx = fbcxin
       fbcy = fbcyin
       fbcz = fbczin
     end if
 
     ! -mx_rhs-
-    if(dm%ibcx_qx(1) == IBC_DIRICHLET) ux(1,              :, :) = fbcx(1, :, :) * ff + fbc(1)
-    if(dm%ibcx_qx(2) == IBC_DIRICHLET) ux(dm%dpcc%xsz(1), :, :) = fbcx(2, :, :) * ff + fbc(2)
+    if(dm%ibcx_qx(1) == IBC_DIRICHLET) ux(1,              :, :) = fbcx(1, :, :) * ff
+    if(dm%ibcx_qx(2) == IBC_DIRICHLET) ux(dm%dpcc%xsz(1), :, :) = fbcx(2, :, :) * ff
     !-my_rhs-
     if(dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
        dm%ibcy_qy(2) == IBC_DIRICHLET) then
       call transpose_x_to_y(uy, acpc_ypencil, dm%dcpc)
-      if(dm%ibcy_qy(1) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = fbcy(:, 1, :) * ff + fbc(3)
-      if(dm%ibcy_qy(2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = fbcy(:, 2, :) * ff + fbc(4)
+      if(dm%ibcy_qy(1) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = fbcy(:, 1, :) * ff
+      if(dm%ibcy_qy(2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = fbcy(:, 2, :) * ff
       call transpose_y_to_x(acpc_ypencil, uy, dm%dcpc)
     end if
     !-mz_rhs-
@@ -468,8 +466,8 @@ contains
        dm%ibcz_qz(2) == IBC_DIRICHLET) then
       call transpose_x_to_y(uz, accp_ypencil, dm%dccp)
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      if(dm%ibcz_qz(1) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = fbcz(:, :, 1) * ff + fbc(5)
-      if(dm%ibcz_qz(2) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = fbcz(:, :, 2) * ff + fbc(6)
+      if(dm%ibcz_qz(1) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = fbcz(:, :, 1) * ff
+      if(dm%ibcz_qz(2) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = fbcz(:, :, 2) * ff
       call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
       call transpose_y_to_x(accp_ypencil, uz, dm%dccp)
     end if

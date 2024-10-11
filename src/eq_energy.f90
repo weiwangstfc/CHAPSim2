@@ -1,6 +1,7 @@
 module eq_energy_mod
   use operations
   use decomp_2d
+  use wrt_debug_field_mod
   implicit none
 
   private :: Compute_energy_rhs
@@ -180,6 +181,9 @@ contains
     use udf_type_mod
     use thermo_info_mod
     use boundary_conditions_mod
+    use wrt_debug_field_mod
+    use cylindrical_rn_mod
+    use wrt_debug_field_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl

@@ -167,6 +167,7 @@ contains
     use flatten_index_mod
     use io_visulisation_mod
     use wtformat_mod
+    use find_max_min_ave_mod
     implicit none
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(inout) :: fl
@@ -226,7 +227,7 @@ contains
     end do
 
     !     for dirichelt, the perturbation velocity should be zero.
-    call update_flow_from_bc(dm, fl%qx, fl%qy, fl%qz, (/ZERO, ZERO, ZERO, ZERO, ZERO, ZERO/))
+    call update_flow_from_bc(dm, fl%qx, fl%qy, fl%qz)
 
     if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated random velocities:")
     call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
@@ -324,6 +325,7 @@ contains
     use wtformat_mod
     use files_io_mod
     use convert_primary_conservative_mod
+    use find_max_min_ave_mod
     implicit none
     type(t_domain),intent(inout) :: dm
     type(t_flow), intent(inout) :: fl
@@ -360,7 +362,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
-      call calculate_mflux_from_velo_domain_domain (fl, dm)
+      call calculate_mflux_from_velo_domain (fl, dm)
       ux = fl%gx
       str = 'gx'
     else
@@ -519,7 +521,8 @@ contains
     use continuity_eq_mod
     use boundary_conditions_mod
     use statistics_mod
-    use calculate_mflux_from_velo_domain
+    use convert_primary_conservative_mod
+    use wrt_debug_field_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -577,7 +580,7 @@ contains
 ! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------
     fl%pcor(:, :, :) = ZERO    
-    call calculate_mflux_from_velo_domain_domain (fl, dm)
+    call calculate_mflux_from_velo_domain (fl, dm)
 #ifdef DEBUG_STEPS
     if(dm%is_thermo) then
       call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, 0, 'gx@bf solv') ! debug_ww

@@ -161,6 +161,7 @@ contains
     use io_tools_mod
     use solver_tools_mod
     use operations
+    use find_max_min_ave_mod
     implicit none 
 
     type(t_domain),  intent(in) :: dm
@@ -219,11 +220,11 @@ contains
 !   x-pencil, 1/2*(uu+vv+ww) - calculation
 !----------------------------------------------------------------------------------------------------------
     fenergy = HALF * (accc1 * accc1 + accc2 * accc2 + accc3 * accc3)
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, LF3D_VOL_AVE, bulk_MKE)
-    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx,   LF3D_VOL_AVE, bulk_qx)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fenergy, bulk_MKE, LF3D_VOL_AVE)
+    call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%qx,   bulk_qx,  LF3D_VOL_AVE)
     if(dm%is_thermo .and. present(tm)) then
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%gx,    LF3D_VOL_AVE, bulk_gx)
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, tm%tTemp, LF3D_VOL_AVE, bulk_T)
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, fl%gx,    bulk_gx, LF3D_VOL_AVE)
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, tm%tTemp, bulk_T,  LF3D_VOL_AVE)
     end if
 !----------------------------------------------------------------------------------------------------------
 !   write data out

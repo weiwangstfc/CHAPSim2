@@ -1,10 +1,14 @@
 
 module bc_convective_outlet_mod
-  
+  use parameters_constant_mod
+  use decomp_2d
+  use udf_type_mod
+  implicit none 
+
   private :: get_convective_outlet_ux
   private :: calculate_fbcx_convective_outlet
   private :: enforce_domain_mass_balance_dyn_fbc
-  private :: enforce_domain_energy_balance_dyn_fbc
+  !private :: enforce_domain_energy_balance_dyn_fbc
 
   public  :: update_dyn_fbc_from_flow
   public  :: update_fbcx_convective_outlet_flow
@@ -13,8 +17,6 @@ module bc_convective_outlet_mod
   contains
 !==========================================================================================================
   subroutine get_convective_outlet_ux(fl, dm, uxdx)
-    use parameters_constant_mod
-    use udf_type_mod
     use wtformat_mod
     implicit none
     type(t_domain), intent(in) :: dm
@@ -49,6 +51,7 @@ module bc_convective_outlet_mod
   end subroutine
 !==========================================================================================================
   subroutine calculate_fbcx_convective_outlet(fbcx_var, uxdx, fbc_rhs0, var, dtmp, dm, isub)
+
     type(DECOMP_INFO), intent(in) :: dtmp 
     type(t_domain), intent(in) :: dm
     real(WP), dimension(4,           dtmp%xsz(2), dtmp%xsz(3)), intent(inout) :: fbcx_var
@@ -115,8 +118,6 @@ module bc_convective_outlet_mod
 
 !==========================================================================================================
   subroutine update_dyn_fbc_from_flow(dm, ux, uy, uz, fbcx, fbcy, fbcz)
-    use udf_type_mod
-    use parameters_constant_mod
     use print_msg_mod
     implicit none 
     type(t_domain), intent(in) :: dm
@@ -155,43 +156,45 @@ module bc_convective_outlet_mod
 
   !==========================================================================================================
   subroutine enforce_domain_mass_balance_dyn_fbc(fl, dm)
-    use parameters_constant_mod
-    use udf_type_mod
+    use wtformat_mod
+    use bc_dirichlet_mod
+    use find_max_min_ave_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
-    type(t_domain), intent(in)    :: dm
-
+    type(t_domain), intent(inout) :: dm
+    type(DECOMP_INFO) :: dtmp
     real(WP), dimension(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) :: fbcx
     real(WP), dimension(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)) :: fbcy
     real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), 4) :: fbcz
-    real(WP) :: mass_flux_net
-    real(WP) :: mass_flux_scaling
-    real(WP) :: mass_flux_inn(3), mass_flux_inn_work(3)
-    real(WP) :: mass_flux_out(3), mass_flux_out_work(3)
-    real(WP) :: mass_flux_core, mass_flux_core_work
-    real(WP) :: mass_flux_iin_net, mass_flux_out_net
+    real(WP) :: mass_rate_net
+    real(WP) :: mass_rate_scaling
+    real(WP) :: mass_rate_iin(3), mass_rate_iin_work(3)
+    real(WP) :: mass_rate_out(3), mass_rate_out_work(3)
+    real(WP) :: mass_rate_core, mass_rate_core_work
+    real(WP) :: mass_rate_iin_net, mass_rate_out_net
     real(WP) :: dummy(7), dummy_work(7)
-    integer :: nn, i, j, k
+    real(WP) :: dx, dy, dz
+    integer :: nn, i, j, k, jj
     
-    mass_flux_iin = ZERO
-    mass_flux_out = ZERO
-    mass_flux_core= ZERO
+    mass_rate_iin = ZERO
+    mass_rate_out = ZERO
+    mass_rate_core= ZERO
 
-    mass_flux_net = ZERO
-    mass_flux_scaling = ONE
+    mass_rate_net = ZERO
+    mass_rate_scaling = ONE
 
     if (.not. dm%is_conv_outlet) return
 
 
     if(dm%is_thermo) then
-      fx = dm%fbcx_gx
-      fy = dm%fbcy_gy
-      fz = dm%fbcz_gz
-      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fl%drhodt, mass_flux_core, LF3D_VOL_SUM, "mass_flux_core")
+      fbcx = dm%fbcx_gx
+      fbcy = dm%fbcy_gy
+      fbcz = dm%fbcz_gz
+      call Get_volumetric_average_3d_for_var_xcx(dm, dm%dccc, fl%drhodt, mass_rate_core, LF3D_VOL_SUM, "mass_rate_core")
     else
-      fx = dm%fbcx_qx
-      fy = dm%fbcy_qy
-      fz = dm%fbcz_qz
+      fbcx = dm%fbcx_qx
+      fbcy = dm%fbcy_qy
+      fbcz = dm%fbcz_qz
       mass_rate_core = ZERO
     end if
 
@@ -206,8 +209,8 @@ module bc_convective_outlet_mod
         dy = dm%yp(jj+1) - dm%yp(jj)
         do k = 1, dtmp%xsz(3)
           dz = dm%h(3) / dm%rci(jj)
-          mass_flux_iin(nn) = mass_flux_iin(nn) + fbcx(1, j, k) * dy * dz
-          mass_flux_out(nn) = mass_flux_out(nn) + fbcx(2, j, k) * dy * dz
+          mass_rate_iin(nn) = mass_rate_iin(nn) + fbcx(1, j, k) * dy * dz
+          mass_rate_out(nn) = mass_rate_out(nn) + fbcx(2, j, k) * dy * dz
         end do
       end do 
     end if
@@ -221,8 +224,8 @@ module bc_convective_outlet_mod
         dx = dm%h(1)
         do k = 1, dtmp%xsz(3)
           dz = dm%h(3)
-          if(dtmp%xst(nn) ==         1) mass_flux_iin(nn) = mass_flux_iin(nn) + fbcy(i, 1, k) * dx * dz / dm%rci(1)
-          if(dtmp%xen(nn) == dm%np(nn)) mass_flux_out(nn) = mass_flux_out(nn) + fbcy(i, 2, k) * dx * dz / dm%rci(dm%np(2))
+          if(dtmp%xst(nn) ==         1) mass_rate_iin(nn) = mass_rate_iin(nn) + fbcy(i, 1, k) * dx * dz / dm%rci(1)
+          if(dtmp%xen(nn) == dm%np(nn)) mass_rate_out(nn) = mass_rate_out(nn) + fbcy(i, 2, k) * dx * dz / dm%rci(dm%np(2))
         end do
       end do 
     end if
@@ -237,48 +240,51 @@ module bc_convective_outlet_mod
         dy = dm%yp(jj+1) - dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           dx = dm%h(1)
-          if(dtmp%xst(nn) ==        1)  mass_flux_iin(nn) = mass_flux_iin(nn) + fbcz(i, j, 1) * dx * dy
-          if(dtmp%xen(nn) == dm%np(nn)) mass_flux_out(nn) = mass_flux_out(nn) + fbcz(i, j, 2) * dx * dy
+          if(dtmp%xst(nn) ==        1)  mass_rate_iin(nn) = mass_rate_iin(nn) + fbcz(i, j, 1) * dx * dy
+          if(dtmp%xen(nn) == dm%np(nn)) mass_rate_out(nn) = mass_rate_out(nn) + fbcz(i, j, 2) * dx * dy
         end do
       end do 
     end if
 !----------------------------------------------------------------------------------------------------------
 ! add from all ranks
 !----------------------------------------------------------------------------------------------------------
-    dummy(1:3) = mass_flux_iin(1:3)  ! unit: kg/s
-    dummy(4:6) = mass_flux_out(1:3)  ! unit: kg/s 
-    dummy(7)   = mass_flux_core ! unit: kg/s
+    dummy(1:3) = mass_rate_iin(1:3)  ! unit: kg/s
+    dummy(4:6) = mass_rate_out(1:3)  ! unit: kg/s 
+    dummy(7)   = mass_rate_core ! unit: kg/s
 
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     call mpi_allreduce( dummy,  dummy_work, 7, MPI_REAL_WP, MPI_SUM, MPI_COMM_WORLD, ierror)
 
-    mass_flux_iin_work(1:3)  = dummy(1:3)
-    mass_flux_out_work(1:3)  = dummy(4:6)
-    mass_flux_core_work = dummy(7) 
+    mass_rate_iin_work(1:3)  = dummy(1:3)
+    mass_rate_out_work(1:3)  = dummy(4:6)
+    mass_rate_core_work = dummy(7) 
 !----------------------------------------------------------------------------------------------------------
 ! scaling factor for a mass conservation
 !----------------------------------------------------------------------------------------------------------
-    mass_flux_iin_net = mass_flux_iin_work(1) + mass_flux_iin_work(2) + mass_flux_iin_work(3)
-    mass_flux_out_net = mass_flux_out_work(1) + mass_flux_out_work(2) + mass_flux_out_work(3)
+    mass_rate_iin_net = mass_rate_iin_work(1) + mass_rate_iin_work(2) + mass_rate_iin_work(3)
+    mass_rate_out_net = mass_rate_out_work(1) + mass_rate_out_work(2) + mass_rate_out_work(3)
     do nn = 1, 3
-      mass_flux_net = mass_flux_core_work + mass_flux_iin_net - mass_flux_out_net! check 1st term plus or minus?                
-      mass_flux_scaling = ONE - mass_flux_net / (mass_flux_iin_net - mass_flux_out_net)
+      mass_rate_net = mass_rate_core_work + mass_rate_iin_net - mass_rate_out_net! check 1st term plus or minus?                
+      mass_rate_scaling = (mass_rate_core_work + mass_rate_iin_net) / mass_rate_out_net
     end do
 
 !#ifdef DEBUG_STEPS 
-    if(nrank == 0) write (*, wrtfmt2e) "mass flux net change and scaling = ", mass_flux_net, mass_flux_scaling
+    if(nrank == 0) then 
+      write (*, *) "mass_rate_iin_net, out_net, core", mass_rate_iin_net, mass_rate_out_net, mass_rate_core_work
+      write (*, *) "mass rate net change and scaling = ", mass_rate_net, mass_rate_scaling
+    end if
 !#endif
 !----------------------------------------------------------------------------------------------------------
 ! scale the dynamic bc
 !----------------------------------------------------------------------------------------------------------
     if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) then
-      fbcx(2, :, :) = fbcx(2, :, :) * mass_flux_scaling
+      fbcx(2, :, :) = fbcx(2, :, :) * mass_rate_scaling
     end if
     if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) then
-      fbcy(:, 2, :) = fbcy(:, 2, :) * mass_flux_scaling
+      fbcy(:, 2, :) = fbcy(:, 2, :) * mass_rate_scaling
     end if
     if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) then
-      fbcz(:, :, 3) = fbcz(:, : 3) * mass_flux_scaling
+      fbcz(:, :, 3) = fbcz(:, :, 3) * mass_rate_scaling
     end if 
 !----------------------------------------------------------------------------------------------------------
 ! back to real fbc
@@ -303,14 +309,13 @@ module bc_convective_outlet_mod
 
 !==========================================================================================================
   subroutine update_fbcx_convective_outlet_flow(fl, dm, isub)
-    use parameters_constant_mod
-    use udf_type_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(inout) :: dm
     integer,        intent(in)    :: isub
     
     real(WP) :: uxdx
+    integer :: i
 
     if(.not. dm%is_conv_outlet) return
 
@@ -362,8 +367,7 @@ module bc_convective_outlet_mod
 
 !==========================================================================================================
   subroutine update_fbcx_convective_outlet_thermo(fl, tm, dm, isub)
-    use parameters_constant_mod
-    use udf_type_mod
+    use thermo_info_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
@@ -371,6 +375,7 @@ module bc_convective_outlet_mod
     integer,        intent(in)    :: isub
     
     real(WP) :: uxdx
+    integer :: j, k
 
     if ( .not. dm%is_thermo) return
     if ( .not. dm%is_conv_outlet) return

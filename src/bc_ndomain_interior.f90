@@ -1,4 +1,10 @@
-module bc_ndomain_interior
+module bc_ndomain_interior_mod
+  use parameters_constant_mod
+  use udf_type_mod
+  use decomp_2d
+  use print_msg_mod
+  private
+  integer, parameter :: IFBC(1:2) = (/1, 2/)
 
   private :: apply_fbcx_2dm_halo
   private :: apply_fbcy_2dm_halo
@@ -10,6 +16,7 @@ module bc_ndomain_interior
 contains
 !==========================================================================================================
   subroutine apply_fbcx_2dm_halo(fbcx, var, iside, dtmp)
+    use print_msg_mod
     type(DECOMP_INFO), intent(in) :: dtmp
     integer, intent(in)     :: iside
     real(WP), intent(in)    :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
@@ -76,6 +83,7 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine apply_fbc_2dm_flow_halo(dm, fl, iside, bc_type)
+    use cylindrical_rn_mod
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(in)    :: fl
     integer, intent(in)           :: iside

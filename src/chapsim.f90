@@ -186,6 +186,7 @@ subroutine Solve_eqs_iteration
   use statistics_mod
   use typeconvert_mod
   use boundary_conditions_mod
+  use find_max_min_ave_mod
   implicit none
 
   logical, allocatable :: is_flow  (:)

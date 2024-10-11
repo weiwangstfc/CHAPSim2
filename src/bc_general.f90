@@ -7,7 +7,6 @@ module boundary_conditions_mod
   use print_msg_mod
   implicit none
 
-  integer, parameter :: IFBC(1:2) = (/1, 2/)
   integer, save :: mbcx_cov1(2), &
                    mbcy_cov1(2), &
                    mbcz_cov1(2), &

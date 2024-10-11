@@ -146,6 +146,7 @@ contains
     use boundary_conditions_mod
     use solver_tools_mod
     use wtformat_mod
+    use find_max_min_ave_mod
     implicit none
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -217,7 +218,7 @@ contains
     use thermo_info_mod
     use eq_energy_mod
     use solver_tools_mod
-    use calculate_mflux_from_velo_domain
+    use convert_primary_conservative_mod
     type(t_domain), intent(inout) :: dm
     type(t_flow),   intent(inout) :: fl
     type(t_thermo), intent(inout) :: tm
@@ -225,7 +226,7 @@ contains
     if (.not. dm%is_thermo) return
 
     call Update_thermal_properties(fl, tm, dm)
-    call calculate_mflux_from_velo_domain_domain (fl, dm)
+    call calculate_mflux_from_velo_domain (fl, dm)
 
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
