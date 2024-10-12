@@ -1484,7 +1484,7 @@ contains
 !==========================================================================================================
 ! B.C. correction for rhs
 !==========================================================================================================
-    call update_flow_from_bc(dm, fl%mx_rhs, fl%my_rhs, fl%mz_rhs)
+    call enforce_var_from_const(dm, fl%mx_rhs, fl%my_rhs, fl%mz_rhs)
     
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%mx_rhs, dm%dpcc, fl%iteration, isub, 'RHSX@total') ! debug_ww
@@ -1794,14 +1794,16 @@ contains
       fl%qx = fl%qx + fl%mx_rhs
       fl%qy = fl%qy + fl%my_rhs
       fl%qz = fl%qz + fl%mz_rhs
+      !call update_flow_from_dyn_fbcx(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
     else if ( dm%is_thermo) then 
       fl%gx = fl%gx + fl%mx_rhs
       fl%gy = fl%gy + fl%my_rhs
       fl%gz = fl%gz + fl%mz_rhs
+      !call update_flow_from_dyn_fbcx(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
     else
       call Print_error_msg("Error in velocity updating")
     end if
-
+    
 #ifdef DEBUG_STEPS
     if ( .not. dm%is_thermo) then     
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx_bf divg') ! debug_ww
@@ -1861,11 +1863,10 @@ contains
 ! to update velocity from gx gy gz 
 !----------------------------------------------------------------------------------------------------------
   if(dm%is_thermo) then
-    call update_dyn_fbc_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcy_gy, dm%fbcz_gz)
+    call update_dyn_fbcx_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
     call calcuate_velo_from_mflux_domain(fl, dm)
   end if
-
-  call update_dyn_fbc_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
+  call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
 
 #ifdef DEBUG_STEPS
   call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx_updated') ! debug_ww

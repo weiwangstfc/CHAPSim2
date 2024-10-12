@@ -7,10 +7,12 @@ module bc_convective_outlet_mod
 
   private :: get_convective_outlet_ux
   private :: calculate_fbcx_convective_outlet
-  private :: enforce_domain_mass_balance_dyn_fbc
+  public  :: update_flow_from_dyn_fbcx
+
+  public  :: enforce_domain_mass_balance_dyn_fbc
   !private :: enforce_domain_energy_balance_dyn_fbc
 
-  public  :: update_dyn_fbc_from_flow
+  public  :: update_dyn_fbcx_from_flow
   public  :: update_fbcx_convective_outlet_flow
   public  :: update_fbcx_convective_outlet_thermo
 
@@ -43,8 +45,9 @@ module bc_convective_outlet_mod
     call MPI_ALLREDUCE(uxmax, uxmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     call MPI_ALLREDUCE(uxmin, uxmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
-    uxdx = HALF * (uxmax_work + uxmin_work) * dm%h1r(1)
-    if(nrank == 0 ) write(*, wrtfmt3r) 'convective outlet uxmax, min, ave = ', &
+    uxdx = HALF * (uxmax_work + uxmin_work)
+    uxdx = uxdx * dm%h1r(1)
+    if(nrank == 0 ) write(*, *) 'convective outlet uxmax, min, ave = ', &
       uxmax_work, uxmin_work, HALF * (uxmax_work + uxmin_work)
 
     return
@@ -117,38 +120,62 @@ module bc_convective_outlet_mod
   end subroutine 
 
 !==========================================================================================================
-  subroutine update_dyn_fbc_from_flow(dm, ux, uy, uz, fbcx, fbcy, fbcz)
+  subroutine update_dyn_fbcx_from_flow(dm, ux, uy, uz, fbcx1, fbcx2, fbcx3)
     use print_msg_mod
     implicit none 
     type(t_domain), intent(in) :: dm
     real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (in) :: ux
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (in) :: uy
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (in) :: uz
-    real(WP), dimension(4,              dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (inout) :: fbcx
-    real(WP), dimension(dm%dcpc%xsz(1), 4,              dm%dcpc%xsz(3)), intent (inout) :: fbcy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2),              4), intent (inout) :: fbcz
-
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
+    real(WP), dimension(4,              dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (inout) :: fbcx1
+    real(WP), dimension(4,              dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (inout) :: fbcx2
+    real(WP), dimension(4,              dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (inout) :: fbcx3
 
     if( .not. dm%is_conv_outlet) return
 
-    ! -mx_rhs-
-    if(dm%ibcx_qx(2) == IBC_DIRICHLET) fbcx(2, :, :) = ux(dm%dpcc%xsz(1), :, :)
-
-    !-my_rhs-
-    if(dm%ibcy_qy(2) == IBC_DIRICHLET) then
-      call transpose_x_to_y(uy, acpc_ypencil, dm%dcpc)
-      if(dm%ibcy_qy(2) == IBC_DIRICHLET) fbcy(:, 2, :) = acpc_ypencil(:, dm%dcpc%ysz(2), :)
+    ! x - pencil 
+    if(dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) then
+      fbcx1(2, :, :) = ux(dm%dpcc%xsz(1), :, :)
+      fbcx1(4, :, :) = fbcx1(2, :, :)
+    end if
+    if(dm%ibcx_nominal(2, 2) == IBC_CONVECTIVE) then
+      fbcx2(4, :, :) = TWO * fbcx2(2, :, :) - uy(dm%dcpc%xsz(1), :, :)
+    end if
+    if(dm%ibcx_nominal(2, 3) == IBC_CONVECTIVE) then
+      fbcx3(4, :, :) = TWO * fbcx3(2, :, :) - uz(dm%dccp%xsz(1), :, :)
     end if
 
-    !-mz_rhs-
-    if(dm%ibcz_qz(2) == IBC_DIRICHLET) then
-      call transpose_x_to_y(uz, accp_ypencil, dm%dccp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      if(dm%ibcz_qz(2) == IBC_DIRICHLET)  fbcz(:, :, 2) = accp_zpencil(:, :, dm%dccp%zsz(3))
+    return
+  end subroutine
+
+
+!==========================================================================================================
+  subroutine update_flow_from_dyn_fbcx(dm, ux, uy, uz, fbcx1, fbcx2, fbcx3)
+    use udf_type_mod
+    use parameters_constant_mod
+    use print_msg_mod
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (inout) :: ux
+    real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (inout) :: uy
+    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (inout) :: uz
+    real(WP), dimension(4,              dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (in)    :: fbcx1
+    real(WP), dimension(4,              dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (in)    :: fbcx2
+    real(WP), dimension(4,              dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (in)    :: fbcx3
+
+    if( .not. dm%is_conv_outlet) return
+
+    ! x - pencil 
+    if(dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) then
+      ux(dm%dpcc%xsz(1), :, :) = fbcx1(2, :, :)
     end if
+    if(dm%ibcx_nominal(2, 2) == IBC_CONVECTIVE) then
+      uy(dm%dcpc%xsz(1), :, :) = TWO * fbcx2(2, :, :) - fbcx2(4, :, :)
+    end if
+    if(dm%ibcx_nominal(2, 3) == IBC_CONVECTIVE) then
+      uz(dm%dccp%xsz(1), :, :) =  TWO * fbcx3(2, :, :) - fbcx3(4, :, :)
+    end if
+    
 
     return
   end subroutine
@@ -176,15 +203,14 @@ module bc_convective_outlet_mod
     real(WP) :: dx, dy, dz
     integer :: nn, i, j, k, jj
     
+    if (.not. dm%is_conv_outlet) return
+
     mass_rate_iin = ZERO
     mass_rate_out = ZERO
     mass_rate_core= ZERO
 
     mass_rate_net = ZERO
     mass_rate_scaling = ONE
-
-    if (.not. dm%is_conv_outlet) return
-
 
     if(dm%is_thermo) then
       fbcx = dm%fbcx_gx
@@ -270,7 +296,9 @@ module bc_convective_outlet_mod
 
 !#ifdef DEBUG_STEPS 
     if(nrank == 0) then 
-      write (*, *) "mass_rate_iin_net, out_net, core", mass_rate_iin_net, mass_rate_out_net, mass_rate_core_work
+      write (*, *) "mass_in(3) = ", mass_rate_iin_work(:)
+      write (*, *) "massout(3) = ", mass_rate_out_work(:)
+      write (*, *) "mass_rate_iin_net, out_net, core = ", mass_rate_iin_net, mass_rate_out_net, mass_rate_core_work
       write (*, *) "mass rate net change and scaling = ", mass_rate_net, mass_rate_scaling
     end if
 !#endif
@@ -279,30 +307,33 @@ module bc_convective_outlet_mod
 !----------------------------------------------------------------------------------------------------------
     if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) then
       fbcx(2, :, :) = fbcx(2, :, :) * mass_rate_scaling
+      fbcx(4, :, :) = fbcx(2, :, :)
     end if
     if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) then
       fbcy(:, 2, :) = fbcy(:, 2, :) * mass_rate_scaling
+      fbcy(:, 4, :) = fbcy(:, 2, :)
     end if
     if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) then
-      fbcz(:, :, 3) = fbcz(:, :, 3) * mass_rate_scaling
+      fbcz(:, :, 2) = fbcz(:, :, 2) * mass_rate_scaling
+      fbcz(:, :, 2) = fbcz(:, :, 4)
     end if 
 !----------------------------------------------------------------------------------------------------------
 ! back to real fbc
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
-      dm%fbcx_gx = fbcx 
-      dm%fbcy_gy = fbcy 
-      dm%fbcz_gz = fbcz 
-      dm%fbcx_qx(:, :, :) = dm%fbcx_gx(:, :, :) / dm%fbcx_ftp(:, :, :)%d
-      dm%fbcy_qy(:, :, :) = dm%fbcy_gy(:, :, :) / dm%fbcy_ftp(:, :, :)%d
-      dm%fbcz_qz(:, :, :) = dm%fbcz_gz(:, :, :) / dm%fbcz_ftp(:, :, :)%d
-      call update_flow_from_bc(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcy_gy, dm%fbcz_gz)
+      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_gx = fbcx 
+      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_gy = fbcy 
+      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_gz = fbcz 
+      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_qx(:, :, :) = dm%fbcx_gx(:, :, :) / dm%fbcx_ftp(:, :, :)%d
+      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_qy(:, :, :) = dm%fbcy_gy(:, :, :) / dm%fbcy_ftp(:, :, :)%d
+      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_qz(:, :, :) = dm%fbcz_gz(:, :, :) / dm%fbcz_ftp(:, :, :)%d
+      !call update_flow_from_dyn_fbcx(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
     else
-      dm%fbcx_qx = fbcx
-      dm%fbcy_qy = fbcy
-      dm%fbcz_qz = fbcz
+      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_qx = fbcx
+      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_qy = fbcy
+      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_qz = fbcz
     end if
-    call update_flow_from_bc(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
+    !call update_flow_from_dyn_fbcx(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
     
     return
   end subroutine enforce_domain_mass_balance_dyn_fbc
@@ -324,24 +355,24 @@ module bc_convective_outlet_mod
       
       if(dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) then
         call calculate_fbcx_convective_outlet(dm%fbcx_qx(:, :, :), uxdx, fl%fbcx_qx_rhs0(:, :), fl%qx, dm%dpcc, dm, isub)
-        write(*,*) 'pfi_ux'
-        print *, (dm%fbcx_qx(1, i, 4), i = 1, dm%dpcc%xsz(2))
-        write(*,*) 'cbc_ux'
-        print *, (dm%fbcx_qx(2, i, 4), i = 1, dm%dpcc%xsz(2))
+        ! write(*,*) 'pfi_ux'
+        ! print *, (dm%fbcx_qx(1, i, 4), i = 1, dm%dpcc%xsz(2))
+        ! write(*,*) 'cbc_ux'
+        ! print *, (dm%fbcx_qx(2, i, 4), i = 1, dm%dpcc%xsz(2))
       end if
       if(dm%ibcx_nominal(2, 2) == IBC_CONVECTIVE) then
         call calculate_fbcx_convective_outlet(dm%fbcx_qy(:, :, :), uxdx, fl%fbcx_qy_rhs0(:, :), fl%qy, dm%dcpc, dm, isub)
-        write(*,*) 'pfi_uy'
-        print *, (dm%fbcx_qy(1, i, 4), i = 1, dm%dcpc%xsz(2))
-        write(*,*) 'cbc_uy'
-        print *, (dm%fbcx_qy(2, i, 4), i = 1, dm%dcpc%xsz(2))
+        ! write(*,*) 'pfi_uy'
+        ! print *, (dm%fbcx_qy(1, i, 4), i = 1, dm%dcpc%xsz(2))
+        ! write(*,*) 'cbc_uy'
+        ! print *, (dm%fbcx_qy(2, i, 4), i = 1, dm%dcpc%xsz(2))
       end if 
       if(dm%ibcx_nominal(2, 3) == IBC_CONVECTIVE) then
         call calculate_fbcx_convective_outlet(dm%fbcx_qz(:, :, :), uxdx, fl%fbcx_qz_rhs0(:, :), fl%qz, dm%dccp, dm, isub)
-        write(*,*) 'pfi_uz'
-        print *, (dm%fbcx_qz(1, i, 4), i = 1, dm%dccp%xsz(3))
-        write(*,*) 'cbc_uz'
-        print *, (dm%fbcx_qz(2, i, 4), i = 1, dm%dccp%xsz(3))
+        ! write(*,*) 'pfi_uz'
+        ! print *, (dm%fbcx_qz(1, i, 4), i = 1, dm%dccp%xsz(2))
+        ! write(*,*) 'cbc_uz'
+        ! print *, (dm%fbcx_qz(2, i, 4), i = 1, dm%dccp%xsz(2))
       end if
     else
       ! check , whether it is better to use qx = gx / density ?
@@ -361,6 +392,12 @@ module bc_convective_outlet_mod
     end if
 
     call enforce_domain_mass_balance_dyn_fbc(fl, dm)
+
+    ! check below whther to update field as well?
+    if(dm%is_thermo) then
+      !/call update_flow_from_dyn_fbcx(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
+    end if
+    !call update_flow_from_dyn_fbcx(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
 
     return
   end subroutine

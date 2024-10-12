@@ -227,7 +227,7 @@ contains
     end do
 
     !     for dirichelt, the perturbation velocity should be zero.
-    call update_flow_from_bc(dm, fl%qx, fl%qy, fl%qz)
+    call enforce_var_from_const(dm, fl%qx, fl%qy, fl%qz)
 
     if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated random velocities:")
     call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
@@ -579,8 +579,20 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------
+    if(dm%is_thermo) then
+      call calculate_mflux_from_velo_domain (fl, dm)
+      call update_dyn_fbcx_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
+      call calcuate_velo_from_mflux_domain(fl, dm)
+    end if
+  
+    call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
+    call enforce_domain_mass_balance_dyn_fbc(fl, dm)
+!----------------------------------------------------------------------------------------------------------
+! to initialise pressure correction term
+!----------------------------------------------------------------------------------------------------------
+   
     fl%pcor(:, :, :) = ZERO    
-    call calculate_mflux_from_velo_domain (fl, dm)
+    
 #ifdef DEBUG_STEPS
     if(dm%is_thermo) then
       call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, 0, 'gx@bf solv') ! debug_ww

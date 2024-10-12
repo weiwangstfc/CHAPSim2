@@ -1,0 +1,18 @@
+FFT is generic
+FFTW_PATH is /home/weiwang/software/bin
+INC is 
+LIBFFT is 
+make[1]: Entering directory '/home/weiwang/work/11_CHAPSim/CHAPSim2'
+FFT is generic
+FFTW_PATH is /home/weiwang/software/bin
+INC is 
+LIBFFT is 
+make[1]: Leaving directory '/home/weiwang/work/11_CHAPSim/CHAPSim2'
+make CHAPSim -f Makefile
+make[1]: Entering directory '/home/weiwang/work/11_CHAPSim/CHAPSim2'
+FFT is generic
+FFTW_PATH is /home/weiwang/software/bin
+INC is 
+LIBFFT is 
+mpif90 -I./lib/2decomp_fft_updated/include -O -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized -Wno-unused -fallow-argument-mismatch -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8 -DDEBUG_STEPS  -O3 -fallow-argument-mismatch  -cpp    -c  -o obj/modules.o src/modules.f90
+mpif90 -I./lib/2decomp_fft_updated/include -O -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized -Wno-unused -fallow-argument-mismatch -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8 -DDEBUG_STEPS  -O3 -fallow-argument-mismatch  -cpp    -c  -o obj/tools_general.o src/tools_general.f90

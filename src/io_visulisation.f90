@@ -499,7 +499,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
 
-    call Print_debug_mid_msg("Write out visulisation for flow field.")
+    if(nrank == 0) call Print_debug_mid_msg("Write out visulisation for flow field.")
     
     return
   end subroutine
@@ -538,7 +538,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
 
-    call Print_debug_mid_msg("Write out visulisation for thermal field.")
+    if(nrank == 0) call Print_debug_mid_msg("Write out visulisation for thermal field.")
     
     return
   end subroutine

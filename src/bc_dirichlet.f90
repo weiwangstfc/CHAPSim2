@@ -14,8 +14,9 @@ module bc_dirichlet_mod
   private :: initialise_fbcz_given_const
   public  :: initialise_fbc_flow_given   ! applied once only, for bc of constant velocity
   public  :: initialise_fbc_thermo_given ! applied once only, for bc of constant temperature
+  public  :: enforce_var_from_const
   
-  public  :: update_flow_from_bc
+  
 
 contains
 
@@ -415,59 +416,46 @@ contains
     return
   end subroutine 
 
-
-!==========================================================================================================
-  subroutine update_flow_from_bc(dm, ux, uy, uz, fbcxin, fbcyin, fbczin)
+  subroutine enforce_var_from_const(dm, ux, uy, uz, fbc0)
     use udf_type_mod
     use parameters_constant_mod
     use print_msg_mod
     implicit none 
     type(t_domain), intent(in) :: dm
+    real(WP), intent(in), optional :: fbc0(6)
     real(WP), dimension(dm%dpcc%xsz(1), dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (inout) :: ux
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (inout) :: uy
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (inout) :: uz
-    real(WP), dimension(4,              dm%dpcc%xsz(2), dm%dpcc%xsz(3)), intent (in), optional :: fbcxin
-    real(WP), dimension(dm%dcpc%ysz(1), 4,              dm%dcpc%ysz(3)), intent (in), optional :: fbcyin
-    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2),              4), intent (in), optional :: fbczin
 
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
-    real(WP), dimension(4,              dm%dpcc%xsz(2), dm%dpcc%xsz(3)) :: fbcx
-    real(WP), dimension(dm%dcpc%ysz(1), 4,              dm%dcpc%ysz(3)) :: fbcy
-    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2),              4) :: fbcz
-    real(WP) :: ff
+    real(WP) :: fbc(6)
 
-    if(.not. present(fbcxin)) then
-      ff = ZERO
-      fbcx = ZERO
-      fbcy = ZERO
-      fbcz = ZERO
+    if(.not. present(fbc0)) then
+      fbc = ZERO
     else 
-      ff = ONE
-      fbcx = fbcxin
-      fbcy = fbcyin
-      fbcz = fbczin
+      fbc = fbc0
     end if
 
     ! -mx_rhs-
-    if(dm%ibcx_qx(1) == IBC_DIRICHLET) ux(1,              :, :) = fbcx(1, :, :) * ff
-    if(dm%ibcx_qx(2) == IBC_DIRICHLET) ux(dm%dpcc%xsz(1), :, :) = fbcx(2, :, :) * ff
+    if(dm%ibcx_nominal(1, 1) == IBC_DIRICHLET) ux(1,              :, :) = fbc(1)
+    if(dm%ibcx_nominal(2, 1) == IBC_DIRICHLET) ux(dm%dpcc%xsz(1), :, :) = fbc(2)
     !-my_rhs-
-    if(dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
-       dm%ibcy_qy(2) == IBC_DIRICHLET) then
+    if(dm%ibcy_nominal(1, 2) == IBC_DIRICHLET .or. &
+       dm%ibcy_nominal(2, 2) == IBC_DIRICHLET) then
       call transpose_x_to_y(uy, acpc_ypencil, dm%dcpc)
-      if(dm%ibcy_qy(1) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = fbcy(:, 1, :) * ff
-      if(dm%ibcy_qy(2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = fbcy(:, 2, :) * ff
+      if(dm%ibcy_nominal(1, 2) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = fbc(3)
+      if(dm%ibcy_nominal(2, 2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = fbc(4)
       call transpose_y_to_x(acpc_ypencil, uy, dm%dcpc)
     end if
     !-mz_rhs-
-    if(dm%ibcz_qz(1) == IBC_DIRICHLET .or. &
-       dm%ibcz_qz(2) == IBC_DIRICHLET) then
+    if(dm%ibcz_nominal(1, 3)  == IBC_DIRICHLET .or. &
+       dm%ibcz_nominal(2, 3)  == IBC_DIRICHLET) then
       call transpose_x_to_y(uz, accp_ypencil, dm%dccp)
       call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      if(dm%ibcz_qz(1) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = fbcz(:, :, 1) * ff
-      if(dm%ibcz_qz(2) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = fbcz(:, :, 2) * ff
+      if(dm%ibcz_nominal(1, 3) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = fbc(5)
+      if(dm%ibcz_nominal(2, 3) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = fbc(6)
       call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
       call transpose_y_to_x(accp_ypencil, uz, dm%dccp)
     end if
