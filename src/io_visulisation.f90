@@ -50,7 +50,7 @@ contains
     use udf_type_mod
     use parameters_constant_mod, only: MAXP
     use decomp_2d, only: xszV, yszV, zszV
-    use files_io_mod
+    use io_files_mod
     implicit none 
     type(t_domain), intent(in) :: dm
 
@@ -63,8 +63,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! allocate
 !----------------------------------------------------------------------------------------------------------
-    allocate (nnd_visu(3, nxdomain))
-    allocate (ncl_visu(3, nxdomain))
+    if(.not. allocated(nnd_visu)) allocate (nnd_visu(3, nxdomain))
+    if(.not. allocated(ncl_visu)) allocate (ncl_visu(3, nxdomain))
     nnd_visu = 0
     ncl_visu = 0
 !----------------------------------------------------------------------------------------------------------
@@ -155,9 +155,9 @@ contains
 !----------------------------------------------------------------------------------------------------------    
     if(nrank == 0) then
 
-      allocate ( xp(nnd_visu(1, dm%idom)) )
-      allocate ( yp(nnd_visu(2, dm%idom)) )
-      allocate ( zp(nnd_visu(3, dm%idom)) )
+      if(.not. allocated(xp)) allocate ( xp(nnd_visu(1, dm%idom)) )
+      if(.not. allocated(yp)) allocate ( yp(nnd_visu(2, dm%idom)) )
+      if(.not. allocated(zp)) allocate ( zp(nnd_visu(3, dm%idom)) )
 
       xp = MAXP
       yp = MAXP
@@ -209,7 +209,7 @@ contains
     use parameters_constant_mod, only: MAXP
     use udf_type_mod, only: t_domain
     use decomp_2d, only: nrank, mytype, xszV, yszV, zszV
-    use files_io_mod
+    use io_files_mod
     implicit none 
     integer, intent(in)        :: iheadfoot
     integer, intent(in)        :: iter
@@ -222,7 +222,6 @@ contains
     !character(1)  :: str(3)
 
     integer :: ioxdmf
-    !logical :: file_exists
     
     !integer :: i, j, k
     if(nrank /= 0) return
@@ -246,8 +245,7 @@ contains
       ! do i = 1, 3
       !   keyword = trim(svisudim)//"_grid_"//trim(str(i))
       !   call generate_file_name(grid_flname(i), dm%idom, keyword, 'dat')
-      !   INQUIRE(FILE = trim(trim(dir_visu)//"/"//trim(grid_flname(i))), exist = file_exists)
-      !   if(.not.file_exists) then
+      !   if(.not.file_exists(trim(trim(dir_visu)//"/"//trim(grid_flname(i))))) then
       !     call Print_error_msg("Mesh file for visu does not exist. Filename = "//trim(trim(dir_visu)//"/"//trim(grid_flname(i))))
       !   end if
       ! end do
@@ -299,7 +297,7 @@ contains
     use decomp_2d
     use decomp_2d_io
     use udf_type_mod, only: t_domain
-    use files_io_mod
+    use io_files_mod
     use decomp_operation_mod
     implicit none
     type(t_domain), intent(in) :: dm
@@ -317,7 +315,6 @@ contains
     character(120):: keyword
     integer :: nsz(3)
     integer :: ioxdmf
-    logical :: file_exists
 
     if((.not. is_same_decomp(dtmp, dm%dccc))) then
       if(nrank == 0) call Print_error_msg("Data is not stored at cell centre. varname = " // trim(varname))
@@ -333,8 +330,7 @@ contains
     if(dm%visu_idim == Ivisudim_3D) then
       keyword = trim(varname)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
-      INQUIRE(FILE = data_flname_path, exist = file_exists)
-      if(.not.file_exists) &
+      if(.not.file_exists(data_flname_path)) &
       call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
 
     else if(dm%visu_idim == Ivisudim_1D_XZa) then
@@ -379,7 +375,7 @@ contains
     use decomp_2d
     use decomp_2d_io
     use udf_type_mod, only: t_domain
-    use files_io_mod
+    use io_files_mod
     use decomp_operation_mod
     implicit none
     type(t_domain), intent(in) :: dm
@@ -398,7 +394,6 @@ contains
     character(120):: keyword
     integer :: nsz(3)
     integer :: ioxdmf, iofl
-    logical :: file_exists
 
     integer :: j
 
@@ -448,19 +443,19 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, pressure, to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call write_visu_field(dm, fl%pres, dm%dccc, "pr", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%pres, dm%dccc, "pr_visu", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
-    call write_visu_field(dm, accc, dm%dccc, "qx", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "qx_visu", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
     call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_visu_field(dm, accc, dm%dccc, "qy", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "qy_visu", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! qz, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
@@ -469,21 +464,21 @@ contains
     call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_visu_field(dm, accc, dm%dccc, "qz", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, accc, dm%dccc, "qz_visu", trim(visuname), SCALAR, CELL, iter)
 
     if(dm%is_thermo) then
 !----------------------------------------------------------------------------------------------------------
 ! gx, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
       call Get_x_midp_P2C_3D(fl%gx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_gx)
-      call write_visu_field(dm, accc, dm%dccc, "gx", trim(visuname), SCALAR, CELL, iter)
+      call write_visu_field(dm, accc, dm%dccc, "gx_visu", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! gy, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
       call transpose_x_to_y(fl%gy, acpc_ypencil, dm%dcpc)
       call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_gy)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_visu_field(dm, accc, dm%dccc, "gy", trim(visuname), SCALAR, CELL, iter)
+      call write_visu_field(dm, accc, dm%dccc, "gy_visu", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! gz, default x-pencil, staggered to cell centre
 !----------------------------------------------------------------------------------------------------------
@@ -492,7 +487,7 @@ contains
       call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_gz)
       call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
       call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_visu_field(dm, accc, dm%dccc, "gz", trim(visuname), SCALAR, CELL, iter)
+      call write_visu_field(dm, accc, dm%dccc, "gz_visu", trim(visuname), SCALAR, CELL, iter)
     end if
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
@@ -528,11 +523,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
-    call write_visu_field(dm, tm%tTemp, dm%dccc, "Temp", trim(visuname), SCALAR, CELL, iter)
-    call write_visu_field(dm, fl%dDens, dm%dccc, "Dens", trim(visuname), SCALAR, CELL, iter)
-    call write_visu_field(dm, fl%mVisc, dm%dccc, "Visc", trim(visuname), SCALAR, CELL, iter)
-    call write_visu_field(dm, tm%kCond, dm%dccc, "Cond", trim(visuname), SCALAR, CELL, iter)
-    call write_visu_field(dm, tm%hEnth, dm%dccc, "Enth", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%tTemp, dm%dccc, "Temp_visu", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%dDens, dm%dccc, "Dens_visu", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, fl%mVisc, dm%dccc, "Visc_visu", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%kCond, dm%dccc, "Cond_visu", trim(visuname), SCALAR, CELL, iter)
+    call write_visu_field(dm, tm%hEnth, dm%dccc, "Enth_visu", trim(visuname), SCALAR, CELL, iter)
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf footer
 !----------------------------------------------------------------------------------------------------------
@@ -682,7 +677,7 @@ contains
     use precision_mod
     use operations
     use decomp_operation_mod
-    use files_io_mod
+    use io_files_mod
     use parameters_constant_mod
     implicit none 
     type(t_domain), intent(in) :: dm
@@ -704,7 +699,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! write xdmf header
 !----------------------------------------------------------------------------------------------------------
-    keyword = trim(visuname)//"_"//trim(varname)
+    keyword = trim(visuname)//"_"//trim(varname)//'_visu'
     call write_visu_headerfooter(dm, trim(keyword), XDMF_HEADER, iter)
     !if(nrank==0) write(*,*) keyword, iter
 !----------------------------------------------------------------------------------------------------------

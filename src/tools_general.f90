@@ -611,6 +611,7 @@ contains
     use precision_mod
     use udf_type_mod
     use print_msg_mod
+    use io_files_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
@@ -624,7 +625,6 @@ contains
 
     character(1) :: pntim
     character(128) :: flnm
-    logical :: file_exists
     integer :: n, i, j, k, jj, kk
 
   ! based on x pencil
@@ -644,8 +644,7 @@ contains
                     if(jj == nid(n, 2)) then
                       do i = 1, dtmp%xsz(1)
                           if(i == nid(n, 1)) then
-                            inquire(file=trim(adjustl(flnm)), exist=file_exists) 
-                            if(file_exists) then
+                            if(file_exists(trim(adjustl(flnm)))) then
                               open(nfil+n,file=trim(adjustl(flnm)), position='append')
                               !write(nfil+n,*) '# iter = ', iter
                             else
@@ -672,6 +671,7 @@ contains
     use precision_mod
     use udf_type_mod
     use print_msg_mod
+    use io_files_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
@@ -682,14 +682,12 @@ contains
     integer, parameter :: nfil = 20
 
     character(128) :: flnm
-    logical :: file_exists
     integer :: i, j, k, jj, kk
     character(1) :: pntim
 
     write(pntim,'(i1.1)') nrank
     flnm = 'chapsim2_'//trim(str)//'_at_'//trim(loc)//'_myid'//pntim//'.dat'  
-    inquire(file=trim(adjustl(flnm)), exist=file_exists) 
-    if(file_exists) then
+    if(file_exists(trim(adjustl(flnm)))) then
       open(nfil,file=trim(adjustl(flnm)), position='append')
       write(nfil,*) '# iter = ', iter
     else
@@ -1146,11 +1144,11 @@ contains
         jj = j + dtmp%xst(2) - 1
         dy = dm%yp(jj+1) - dm%yp(jj)
         do k = 1, dtmp%xsz(3)
-          dz = dm%h(3) / dm%rci(jj)
+          !dz = dm%h(3) / dm%rci(jj)
           do i = 1, dtmp%xsz(1)
-            dx = dm%h(1)
-            fo = fo + var(i, j, k) * dx * dy * dz
-            vol = vol + dx * dy * dz
+            !dx = dm%h(1)
+            fo = fo + var(i, j, k) * dy !* dx * dz
+            vol = vol + dy !* dx * dz
           end do
         end do
       end do
@@ -1169,7 +1167,8 @@ contains
         vol_real = ZERO
         if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
         if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
-        write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
+        !write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
+        !write(*, *) ' Note: for non-periodic x or z,  real volume /= numerical volume'
       end if
       if(nrank == 0 .and. present(str)) then
         if(itype == LF3D_VOL_AVE) then

@@ -73,7 +73,7 @@ contains
           if(m == 5) then
             ibc(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, it is initilazed temperature
           else 
-            ibc(n, m) = IBC_INTERIOR  ! for u, v, w, p
+            ibc(n, m) = IBC_DIRICHLET  ! for u, v, w, p, check!!
           end if
         else if (bc_nominal(n, m) == IBC_CONVECTIVE)   then ! check for convetive outlet
           ibc(n, m) = IBC_DIRICHLET
@@ -209,6 +209,28 @@ contains
       allocate( dm%fbcz_qyr(dm%dcpc%zsz(1), dm%dcpc%zsz(2), 4             ) )
       allocate( dm%fbcy_qzr(dm%dccp%ysz(1), 4,              dm%dccp%ysz(3)) )
       allocate( dm%fbcz_qzr(dm%dccp%zsz(1), dm%dccp%zsz(2), 4             ) )
+    end if
+
+    if(dm%is_record_xoutlet) then
+      allocate (dm%fbcx_qx_outl1(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+      allocate (dm%fbcx_qx_outl2(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+      allocate (dm%fbcx_qy_outl1(dm%dxpc%xsz(1), dm%dxpc%xsz(2), dm%dxpc%xsz(3)) )
+      allocate (dm%fbcx_qy_outl2(dm%dxpc%xsz(1), dm%dxpc%xsz(2), dm%dxpc%xsz(3)) )
+      allocate (dm%fbcx_qz_outl1(dm%dxcp%xsz(1), dm%dxcp%xsz(2), dm%dxcp%xsz(3)) )
+      allocate (dm%fbcx_qz_outl2(dm%dxcp%xsz(1), dm%dxcp%xsz(2), dm%dxcp%xsz(3)) )
+      allocate (dm%fbcx_pr_outl1(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+      allocate (dm%fbcx_pr_outl2(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+    end if
+
+    if(dm%is_read_xinlet) then
+      allocate (dm%fbcx_qx_inl1(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+      allocate (dm%fbcx_qx_inl2(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+      allocate (dm%fbcx_qy_inl1(dm%dxpc%xsz(1), dm%dxpc%xsz(2), dm%dxpc%xsz(3)) )
+      allocate (dm%fbcx_qy_inl2(dm%dxpc%xsz(1), dm%dxpc%xsz(2), dm%dxpc%xsz(3)) )
+      allocate (dm%fbcx_qz_inl1(dm%dxcp%xsz(1), dm%dxcp%xsz(2), dm%dxcp%xsz(3)) )
+      allocate (dm%fbcx_qz_inl2(dm%dxcp%xsz(1), dm%dxcp%xsz(2), dm%dxcp%xsz(3)) )
+      allocate (dm%fbcx_pr_inl1(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
+      allocate (dm%fbcx_pr_inl2(dm%dxcc%xsz(1), dm%dxcc%xsz(2), dm%dxcc%xsz(3)) )
     end if
 
     return

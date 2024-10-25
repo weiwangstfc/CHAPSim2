@@ -42,13 +42,15 @@ module bc_convective_outlet_mod
       end do
     end do
 
+    write(*,*) 'outlet bc', fl%qx(nn, :, 2)
+
     call MPI_ALLREDUCE(uxmax, uxmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
     call MPI_ALLREDUCE(uxmin, uxmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
     uxdx = HALF * (uxmax_work + uxmin_work)
     uxdx = uxdx * dm%h1r(1)
-    if(nrank == 0 ) write(*, *) 'convective outlet uxmax, min, ave = ', &
-      uxmax_work, uxmin_work, HALF * (uxmax_work + uxmin_work)
+    if(nrank == 0) write(*, *) 'convective outlet uxmax, min, ave = ', &
+      uxmax_work, uxmin_work, HALF * (uxmax_work + uxmin_work), 'at iter =', fl%iteration
 
     return
   end subroutine
@@ -296,10 +298,12 @@ module bc_convective_outlet_mod
 
 !#ifdef DEBUG_STEPS 
     if(nrank == 0) then 
+      write (*, *) ">------convective outlet-------------->"
       write (*, *) "mass_in(3) = ", mass_rate_iin_work(:)
       write (*, *) "massout(3) = ", mass_rate_out_work(:)
       write (*, *) "mass_rate_iin_net, out_net, core = ", mass_rate_iin_net, mass_rate_out_net, mass_rate_core_work
       write (*, *) "mass rate net change and scaling = ", mass_rate_net, mass_rate_scaling
+      write (*, *) "<------convective outlet--------------<"
     end if
 !#endif
 !----------------------------------------------------------------------------------------------------------

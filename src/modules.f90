@@ -400,6 +400,8 @@ module udf_type_mod
     logical :: is_compact_scheme     ! is compact scheme applied?
     logical :: is_thermo             ! is thermal field considered? 
     logical :: is_conv_outlet
+    logical :: is_record_xoutlet
+    logical :: is_read_xinlet
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type
@@ -416,6 +418,8 @@ module udf_type_mod
     integer :: stat_nskip(NDIM)
     integer :: nsubitr
     integer :: istret
+    integer :: ndbfre
+    integer :: ndbend
     integer :: nc(NDIM) ! geometric cell number
     integer :: np_geo(NDIM) ! geometric points
     integer :: np(NDIM) ! calculated points
@@ -472,6 +476,10 @@ module udf_type_mod
     type(DECOMP_INFO) :: dcpp ! eg, <uy>^z, <uz>^y
     type(DECOMP_INFO) :: dppp
 
+    type(DECOMP_INFO) :: dxcc
+    type(DECOMP_INFO) :: dxpc
+    type(DECOMP_INFO) :: dxcp
+
     ! node location, mapping 
     real(wp), allocatable :: yMappingpt(:, :) ! j = 1, first coefficient in first deriviation. 1/h'
                                               ! j = 2, first coefficient in second deriviation 1/h'^2
@@ -527,6 +535,24 @@ module udf_type_mod
     real(wp), allocatable :: fbcx_qw(:, :, :) ! heat flux at wall x
     real(wp), allocatable :: fbcy_qw(:, :, :) ! heat flux at wall y
     real(wp), allocatable :: fbcz_qw(:, :, :) ! heat flux at wall z
+
+    real(wp), allocatable :: fbcx_qx_outl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qx_outl2(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qy_outl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qy_outl2(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qz_outl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qz_outl2(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_pr_outl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_pr_outl2(:, :, :) ! variable bc
+
+    real(wp), allocatable :: fbcx_qx_inl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qx_inl2(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qy_inl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qy_inl2(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qz_inl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_qz_inl2(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_pr_inl1(:, :, :) ! variable bc
+    real(wp), allocatable :: fbcx_pr_inl2(:, :, :) ! variable bc
 
     type(t_fluidThermoProperty), allocatable :: fbcx_ftp(:, :, :)  ! undim, xbc state
     type(t_fluidThermoProperty), allocatable :: fbcy_ftp(:, :, :)  ! undim, ybc state
@@ -642,7 +668,7 @@ module vars_df_mod
   type(t_thermo), allocatable, save :: thermo(:)
 end module
 !==========================================================================================================
-module files_io_mod
+module io_files_mod
   implicit none
   character(8) :: dir_code='0_src'
   character(9) :: dir_data='1_data'
@@ -650,7 +676,21 @@ module files_io_mod
   character(9) :: dir_moni='3_monitor'
   character(9) :: dir_chkp='4_check'
   public :: create_directory
+
+  interface operator( .f. )
+    module procedure file_exists
+  end interface
+
 contains
+  function file_exists(filename) result(res)
+    implicit none
+    character(len=*),intent(in) :: filename
+    logical                     :: res
+
+    ! Check if the file exists
+    inquire( file=trim(filename), exist=res )
+  end function
+
   subroutine create_directory
     implicit none
     call system('mkdir -p '//dir_code)

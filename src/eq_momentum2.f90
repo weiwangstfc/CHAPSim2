@@ -1762,6 +1762,7 @@ contains
     use mpi_mod
     use solver_tools_mod
     use convert_primary_conservative_mod
+    use io_restart_mod
 #ifdef DEBUG_STEPS
     use io_tools_mod
     use typeconvert_mod
@@ -1778,11 +1779,15 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to set up halo b.c. for cylindrical pipe
 !----------------------------------------------------------------------------------------------------------
-    call update_fbcy_cc_flow_halo(fl, dm)
+    if(dm%icoordinate == ICYLINDRICAL) call update_fbcy_cc_flow_halo(fl, dm)
+!----------------------------------------------------------------------------------------------------------
+! to read instantanous inlet from database
+!----------------------------------------------------------------------------------------------------------
+    if(dm%is_read_xinlet .and. isub == 1) call read_instantanous_xinlet(fl, dm)
 !----------------------------------------------------------------------------------------------------------
 ! to set up convective outlet b.c. assume x direction
 !----------------------------------------------------------------------------------------------------------
-    call update_fbcx_convective_outlet_flow(fl, dm, isub)
+    if(dm%is_conv_outlet) call update_fbcx_convective_outlet_flow(fl, dm, isub)
 !----------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !----------------------------------------------------------------------------------------------------------
@@ -1873,6 +1878,12 @@ contains
   call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy_updated') ! debug_ww
   call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz_updated') ! debug_ww
 #endif
+
+  if(nrank == 0) then
+    call Print_debug_mid_msg("Conservative parameters have been updated.")
+    write(*,*) 'updated qx', fl%qx(1:4, 1, 1)
+    write(*,*) 'updated qx', fl%qx(1, 1:4, 1)
+  end if
 
     return
   end subroutine Solve_momentum_eq

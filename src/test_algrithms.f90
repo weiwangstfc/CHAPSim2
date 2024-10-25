@@ -307,6 +307,7 @@ contains
     use math_mod
     use input_general_mod
     use mpi_mod
+    use io_files_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -318,7 +319,6 @@ contains
     integer :: nx, ny, nz
     integer :: wrt_unit
     character( len = 128) :: filename1
-    logical :: file_exists = .FALSE.
     integer :: nsz
 
     
@@ -384,9 +384,7 @@ contains
     if(nrank == 0 ) then
       filename1 = 'Validation_Burgers_error.dat'
 
-      INQUIRE(FILE = trim(filename1), exist = file_exists)
-
-      if(.not.file_exists) then
+      if(.not.file_exists(trim(filename1))) then
         open(newunit = wrt_unit, file = trim(filename1), action = "write", status = "new")
         write(wrt_unit, '(A)') 'Time, U(t), SD(uerr), Max(uerr)'
       else
@@ -408,6 +406,7 @@ contains
     use math_mod
     use typeconvert_mod
     use mpi_mod
+    use io_files_mod
     implicit none
 
     type(t_flow),   intent(inout) :: fl
@@ -422,16 +421,13 @@ contains
 
     integer :: wrt_unit
     character( len = 128) :: filename
-    logical :: file_exists = .FALSE.
     
 
     if(nrank == 0) then
 
     filename = 'Plot_Burgers_profile'//trim(int2str(iter))//'.dat'
 
-    INQUIRE(FILE = trim(filename), exist = file_exists)
-
-    if(.not.file_exists) then
+    if(.not.file_exists(trim(filename))) then
       open(newunit = wrt_unit, file = trim(filename), action = "write", status = "new")
       write(wrt_unit, '(A)') 'x qx'
     else

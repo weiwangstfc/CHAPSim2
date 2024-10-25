@@ -286,7 +286,7 @@ contains
 !==========================================================================================================
   subroutine write_statistics_array(var, keyword, idm, iter, dtmp)
     use udf_type_mod
-    use files_io_mod
+    use io_files_mod
     use io_tools_mod
     use decomp_2d_io
     implicit none 
@@ -297,11 +297,10 @@ contains
     integer, intent(in) :: iter
     
     character(120):: data_flname_path
-    logical :: file_exists
 
     call generate_pathfile_name(data_flname_path, idm, trim(keyword), dir_data, 'bin', iter)
-    !INQUIRE(FILE = data_flname_path, exist = file_exists)
-    !if(.not.file_exists) &
+
+    !if(.not.file_exists(data_flname_path)) &
     call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
 
 
@@ -311,7 +310,7 @@ contains
 !==========================================================================================================
   subroutine read_statistics_array(var, keyword, idom, iter, dtmp)
     use precision_mod
-    use files_io_mod
+    use io_files_mod
     use io_tools_mod
     use decomp_2d_io
     implicit none 

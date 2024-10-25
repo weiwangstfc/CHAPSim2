@@ -64,7 +64,11 @@ contains
 
     call decomp_info_init(dm%np(1), dm%np(2), dm%np(3), dm%dppp) ! this is only used in test.
 
-
+    if(dm%is_record_xoutlet .or. dm%is_read_xinlet) then
+      call decomp_info_init(dm%ndbfre, dm%nc(2), dm%nc(3), dm%dxcc) ! for ux, gx
+      call decomp_info_init(dm%ndbfre, dm%np(2), dm%nc(3), dm%dxpc) ! for uy, gy
+      call decomp_info_init(dm%ndbfre, dm%nc(2), dm%np(3), dm%dxcp) ! for uz, gz
+    end if
 
 #ifdef DEBUG_STEPS
     call mpi_barrier(MPI_COMM_WORLD, ierror)

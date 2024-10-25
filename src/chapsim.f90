@@ -42,7 +42,7 @@ subroutine initialise_chapsim
   use continuity_eq_mod
   use decomp_2d_poisson
   use domain_decomposition_mod
-  use files_io_mod
+  use io_files_mod
   use flow_thermo_initialiasation
   use geometry_mod
   use input_general_mod
@@ -301,6 +301,12 @@ subroutine Solve_eqs_iteration
         call Check_element_mass_conservation(flow(i), domain(i), iter) 
       end if
 
+      !----------------------------------------------------------------------------------------------------------
+      !  append and write out outlet data 
+      !----------------------------------------------------------------------------------------------------------
+      if(is_flow(i) .and. domain(i)%is_record_xoutlet) then
+        call write_instantanous_xoutlet(flow(i), domain(i))
+      end if
       !----------------------------------------------------------------------------------------------------------
       !  update statistics
       !----------------------------------------------------------------------------------------------------------

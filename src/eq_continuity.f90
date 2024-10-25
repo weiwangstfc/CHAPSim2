@@ -127,7 +127,7 @@ contains
 ! operation in x pencil, dqx/dx
 !----------------------------------------------------------------------------------------------------------
     div0 = ZERO
-    call Get_x_1der_P2C_3D(qx, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    call Get_x_1der_P2C_3D(qx, div0, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
 !----------------------------------------------------------------------------------------------------------
 ! operation in y pencil, dqy/dy * (1/r)
@@ -198,7 +198,7 @@ contains
 ! operation in x pencil, du/dx
 !----------------------------------------------------------------------------------------------------------
     div0 = ZERO
-    call Get_x_1der_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    call Get_x_1der_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
     !write(*,*) 'div, x', div0(1, 1, 1), div0(2, 2, 2), div0(8, 8, 8)!, div0(16, 8, 8), div0(32, 8, 8)
 !----------------------------------------------------------------------------------------------------------
@@ -287,7 +287,7 @@ contains
     div0 = ZERO
     div0_ypencil_ggl = ZERO
     div_ypencil_ggl = ZERO
-    call Get_x_1der_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:))
+    call Get_x_1der_P2C_3D(ux, div0, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
     call transpose_x_to_y(div0, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div0_ypencil_ggl
 !----------------------------------------------------------------------------------------------------------

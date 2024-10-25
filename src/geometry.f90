@@ -174,7 +174,7 @@ contains
     use typeconvert_mod
     use mpi_mod
     use wtformat_mod
-    use files_io_mod
+    use io_files_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
@@ -288,7 +288,7 @@ contains
 #ifdef DEBUG_STEPS
     if(nrank == 0) then
       open(221, file = trim(dir_chkp)//'/check_mesh_yp.dat')
-      write(22, *) 'index, yp, rp'
+      write(221, *) 'index, yp, rp'
       do i = 1, dm%np_geo(2)
         write (221, *) i, dm%yp(i), ONE / dm%rpi(i)
       end do

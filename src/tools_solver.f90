@@ -306,7 +306,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! X-pencil : u_ccc / dx * dt
 !----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx)
+    call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx, dm%fbcx_qx)
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Y-pencil : v_ccc / dy * dt

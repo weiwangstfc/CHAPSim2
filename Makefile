@@ -90,8 +90,8 @@ OBJS1= modules.o\
       poisson_1stderivcomp.o\
       eq_continuity.o\
       eq_energy.o\
-      eq_momentum2.o\
       io_restart.o\
+      eq_momentum2.o\
       initialisation.o\
       test_algrithms.o\
       chapsim.o

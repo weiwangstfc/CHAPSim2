@@ -4,6 +4,9 @@ module io_tools_mod
   !----------------------------------------------------------------------------------------------------------
   ! io parameters
   !----------------------------------------------------------------------------------------------------------
+  character(*), parameter :: io_restart = "restart-io"
+  character(*), parameter :: io_in2outlet = "outlet2inlet-io"
+
   integer, parameter :: Ivisudim_3D    = 0, &
                         Ivisudim_2D_Xa = 1, & ! x averaged, should not change this value. 
                         Ivisudim_2D_Ya = 2, & ! y averaged
@@ -13,8 +16,9 @@ module io_tools_mod
   public :: initialise_decomp_io
   public :: generate_file_name
   public :: generate_pathfile_name
-  
+
 contains
+  
 !==========================================================================================================
   subroutine initialise_decomp_io(dm)
     use udf_type_mod

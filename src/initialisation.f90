@@ -323,7 +323,8 @@ contains
     use boundary_conditions_mod
     use parameters_constant_mod
     use wtformat_mod
-    use files_io_mod
+    use io_files_mod
+    use io_restart_mod
     use convert_primary_conservative_mod
     use find_max_min_ave_mod
     implicit none
@@ -372,10 +373,11 @@ contains
 
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, LF3D_VOL_AVE, str)
     if(nrank == 0) then
-      write(*, wrtfmt1e) "The initial, original bulk "//str//" = ", ubulk
+      write(*, wrtfmt1e) "The initial, [original] bulk "//str//" = ", ubulk
     end if
 
     ux(:, :, :) = ux(:, :, :) / ubulk
+    ux_1c1 = ux_1c1 / ubulk
     if(dm%is_thermo) then
       fl%gx = ux
       call calcuate_velo_from_mflux_domain(fl, dm)
@@ -385,7 +387,7 @@ contains
 
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, LF3D_VOL_AVE, str)
     if(nrank == 0) then
-      write(*, wrtfmt1e) "The initial, unified bulk "//str//" = ", ubulk
+      write(*, wrtfmt1e) "The initial, [scaled] bulk "//str//" = ", ubulk
     end if
     if(nrank == 0) call Print_debug_mid_msg(" Maximum [velocity] for real initial flow field:")
     call Find_max_min_absvar3d(fl%qx, "qx", wrtfmt2e)
@@ -408,6 +410,9 @@ contains
     if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D) then
       call initialise_fbcx_given_profile(dm%fbcx_qx, ux_1c1, dm%dpcc%xst(2), 'qx')
     end if
+    if(dm%ibcx_nominal(1, 1) == IBC_DATABASE) then
+      call read_instantanous_xinlet(fl, dm)
+    end if
     !----------------------------------------------------------------------------------------------------------
     !   Y-pencil : write out velocity profile
     !----------------------------------------------------------------------------------------------------------
@@ -429,13 +434,13 @@ contains
   end subroutine  initialise_poiseuille_flow
   !==========================================================================================================
   !==========================================================================================================
-  subroutine initialise_flow_from_given_values(dm, fl)
+  subroutine initialise_flow_from_given_values(fl)
     use udf_type_mod, only: t_domain
     use precision_mod, only: WP
     use parameters_constant_mod, only: ZERO
     use boundary_conditions_mod
     implicit none
-    type(t_domain),  intent(in) :: dm
+    !type(t_domain),  intent(in) :: dm
     type(t_flow), intent(inout) :: fl
     
     if(nrank == 0) call Print_debug_mid_msg("initialising flow field with given values...")
@@ -559,7 +564,7 @@ contains
 
     else if (fl%inittype == INIT_GVCONST) then
       call Generate_random_field(dm, fl)
-      call initialise_flow_from_given_values(dm, fl)
+      call initialise_flow_from_given_values(fl)
 
     else if (fl%inittype == INIT_POISEUILLE) then
       call Generate_random_field(dm, fl)
@@ -741,6 +746,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
+    use io_files_mod
     !use iso_fortran_env
     implicit none
 
@@ -756,7 +762,6 @@ contains
 
     type(DECOMP_INFO) :: dtmp
     character( len = 128) :: filename
-    logical :: file_exists = .FALSE.
     integer :: outputunit
 
 !----------------------------------------------------------------------------------------------------------
@@ -841,8 +846,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
       filename = 'Validation_TGV2d.dat'
-      INQUIRE(FILE = trim(filename), exist = file_exists)
-      if(.not.file_exists) then
+      if(.not.file_exists(trim(filename))) then
         open(newunit = outputunit, file = trim(filename), action = "write", status = "new")
         write(outputunit, '(A)') 'Time, SD(u), SD(v), SD(p)'
       else

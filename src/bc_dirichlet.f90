@@ -23,7 +23,7 @@ contains
 !==========================================================================================================
 !==========================================================================================================
   subroutine  map_bc_1d_uprofile(filename, n, y, u)
-    use files_io_mod
+    use io_files_mod
     implicit none
     character(*), intent(in) :: filename
     integer,  intent(in)  :: n
@@ -104,7 +104,7 @@ contains
   !==========================================================================================================
   !==========================================================================================================
   subroutine initialise_fbcx_given_profile(fbcx, var1y, jst, str)
-    use files_io_mod
+    use io_files_mod
     implicit none
     real(WP), intent(inout) :: fbcx(:, :, :)
     real(WP), intent(in)    :: var1y(:)
