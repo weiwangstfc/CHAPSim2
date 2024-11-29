@@ -464,6 +464,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, C2C, IBC_INTERIOR, f unknowns only from rhs could be reconstructed from bc, thus explicit
 ! f' unknow is only first layer 
+! alpha * f'_{i-1} + f'_i + alpha * f'_{i+1} = a/(2h) * ( f_{i+1} - f_{i-1} ) + &
+!                                              b/(4h) * ( f_{i+2} - f_{i-2} )
 !----------------------------------------------------------------------------------------------------------
     d1fC2C(:, :, IBC_INTERIOR, :) = d1fC2C(:, :, IBC_PERIODIC, :)
     d1rC2C(:, :, IBC_INTERIOR, :) = d1rC2C(:, :, IBC_PERIODIC, :)
@@ -665,8 +667,17 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : IBC_INTERIOR, unknowns only from only rhs could be reconstructed from bc, thus explicit
 !----------------------------------------------------------------------------------------------------------
-    d1fP2P(:, :, IBC_INTERIOR,  :) = d1fC2C(:, :, IBC_INTERIOR,  :)
-    d1rP2P(:, :, IBC_INTERIOR,  :) = d1rC2C(:, :, IBC_INTERIOR,  :)
+    d1fP2P(:, :, IBC_INTERIOR, :) = d1fP2P(:, :, IBC_PERIODIC, :)
+    d1rP2P(:, :, IBC_INTERIOR, :) = d1rP2P(:, :, IBC_PERIODIC, :)
+    do n = 1, NACC
+      if(n == IACCU_CP4 .or. n == IACCU_CP6) then
+          d1fP2P(1, :, IBC_INTERIOR, n) = d1fP2P(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+          d1rP2P(1, :, IBC_INTERIOR, n) = d1rP2P(1, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+          d1fP2P(5, :, IBC_INTERIOR, n) = d1fP2P(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+          d1rP2P(5, :, IBC_INTERIOR, n) = d1rP2P(5, :, IBC_PERIODIC, IACCU_CD4) ! 5 cell stencil, 6th CP --> 4th CD
+      end if
+    end do
+
 !----------------------------------------------------------------------------------------------------------
 ! 1st-derivative, P2P : exterpolation
 ! alpha * f'_{i'-1} + f'_i' + alpha * f'_{i'+1} = a/(2h) * ( f_{i'+1} - f_{i'-1} ) + &
@@ -2762,6 +2773,14 @@ contains
             xtdma_lhs(ixsub)%dm2x_C2P(:, ibc(1), ibc(2), iacc), &
             nsz)
       end if
+
+#ifdef DEBUG_ALGO
+    do i = 1, NL
+      write(*,'(A, 3I3.1, 5F7.3)') 'm1fC2P, bc, acc, ln, lhs, rhs:', ibc(1), iacc, i, m1fC2P(i, 1:3, ibc(1), iacc), &
+                               m1rC2P(i, 1:2, ibc(1), iacc)
+    end do
+#endif
+
     return
   end subroutine Get_x_midp_C2P_1D
 !==========================================================================================================
@@ -2816,6 +2835,13 @@ contains
             xtdma_lhs(ixsub)%dm2x_P2C(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
+
+#ifdef DEBUG_ALGO
+    do i = 1, NL
+      write(*,'(A, 3I3.1, 5F7.3)') 'm1fP2C, bc, acc, ln, lhs, rhs:', ibc(1), iacc, i, m1fP2C(i, 1:3, ibc(1), iacc), &
+                               m1rP2C(i, 1:2, ibc(1), iacc)
+    end do
+#endif 
 
     return
   end subroutine Get_x_midp_P2C_1D
@@ -3114,6 +3140,13 @@ contains
             nsz)
     end if
 
+#ifdef DEBUG_ALGO
+    do i = 1, NL
+      write(*,'(A, 3I3.1, 5F7.3)') 'd1fC2C, bc, acc, ln, lhs, rhs:', ibc(1), iacc, i, d1fC2C(i, 1:3, ibc(1), iacc), &
+                               d1rC2C(i, 1:2, ibc(1), iacc)
+    end do
+#endif 
+
     return
   end subroutine Get_x_1der_C2C_1D
 !==========================================================================================================
@@ -3166,6 +3199,15 @@ contains
             xtdma_lhs(ixsub)%dd1x_P2P(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
+
+
+#ifdef DEBUG_ALGO
+    do i = 1, NL
+      write(*,'(A, 3I3.1, 5F7.3)') 'd1fP2P, bc, acc, ln, lhs, rhs:', ibc(1), iacc, i, d1fP2P(i, 1:3, ibc(1), iacc), &
+                               d1rP2P(i, 1:2, ibc(1), iacc)
+    end do
+#endif 
+
     return
   end subroutine Get_x_1der_P2P_1D
 !==========================================================================================================
@@ -3221,6 +3263,15 @@ contains
             xtdma_lhs(ixsub)%dd1x_C2P(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
+
+
+#ifdef DEBUG_ALGO
+    do i = 1, NL
+      write(*,'(A, 3I3.1, 5F7.3)') 'd1fC2P, bc, acc, ln, lhs, rhs:', ibc(1), iacc, i, d1fC2P(i, 1:3, ibc(1), iacc), &
+                               d1rC2P(i, 1:2, ibc(1), iacc)
+    end do
+#endif
+
     return
   end subroutine Get_x_1der_C2P_1D
 !==========================================================================================================
@@ -3274,6 +3325,13 @@ contains
           xtdma_lhs(ixsub)%dd1x_P2C(:, ibc(1), ibc(2), iacc), &
           nsz)
     end if
+
+#ifdef DEBUG_ALGO
+    do i = 1, NL
+      write(*,'(A, 3I3.1, 5F7.3)') 'd1fP2C, bc, acc, ln, lhs, rhs:', ibc(1), iacc, i, d1fP2C(i, 1:3, ibc(1), iacc), &
+                               d1rP2C(i, 1:2, ibc(1), iacc)
+    end do
+#endif 
 
     return
   end subroutine Get_x_1der_P2C_1D
@@ -3762,6 +3820,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_x_midp_C2P_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_x_midp_C2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_x_midp_C2P_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_x_midp_C2P_3D") 
+    end if
+    
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -3797,6 +3863,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_x_midp_P2C_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_x_midp_P2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_x_midp_P2C_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_x_midp_P2C_3D") 
+    end if
+    
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -3833,6 +3906,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_midp_C2P_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_y_midp_C2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_C2P_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_y_midp_C2P_3D") 
+    end if
+    
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -3868,6 +3949,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_midp_P2C_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_y_midp_P2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_P2C_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_y_midp_P2C_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -3904,6 +3992,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_midp_C2P_3D")
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_y_midp_C2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_C2P_3D") 
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_y_midp_C2P_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
@@ -3939,6 +4034,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_midp_P2C_3D")
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_y_midp_P2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_P2C_3D") 
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_y_midp_P2C_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
@@ -3992,6 +4094,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_x_1der_C2C_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_x_1der_C2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_C2C_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_C2C_3D") 
+    end if
+    
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -4029,6 +4138,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_x_1der_P2P_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_x_1der_P2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_P2P_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_P2P_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -4065,6 +4181,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_x_1der_C2P_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_x_1der_C2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_C2P_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_C2P_3D") 
+    end if
+    
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -4101,6 +4225,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_x_1der_P2C_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_x_1der_P2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_P2C_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_P2C_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -4135,6 +4266,13 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, i
 
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2C_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_y_1der_C2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2C_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_C2C_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4168,9 +4306,16 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, i
 
-!!----------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2P_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_y_1der_P2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2P_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_P2P_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4206,6 +4351,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2P_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_y_1der_C2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2P_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_C2P_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4243,6 +4395,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2C_3D")
+    if( size(fo3d,  3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input/output in Get_y_1der_P2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2C_3D") 
+      if( size(fbc2d, 3) /= size(size(fi3d, 3)) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_P2C_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4278,6 +4437,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2C_3D")
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_y_1der_C2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2C_3D") 
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_C2C_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
@@ -4315,6 +4481,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2P_3D")
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_y_1der_P2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2P_3D") 
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_P2P_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
@@ -4351,6 +4524,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2P_3D")
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_y_1der_C2P_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2P_3D") 
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_C2P_3D") 
+    end if
+
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
       do i = 1, size(fi3d, 1)
@@ -4386,6 +4566,13 @@ contains
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
+!----------------------------------------------------------------------------------------------------------
+    if( size(fo3d,  1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2C_3D")
+    if( size(fo3d,  2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input/output in Get_y_1der_P2C_3D") 
+    if(present(fbc2d))then
+      if( size(fbc2d, 1) /= size(size(fi3d, 1)) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2C_3D") 
+      if( size(fbc2d, 2) /= size(size(fi3d, 2)) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_P2C_3D") 
+    end if
 !----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)

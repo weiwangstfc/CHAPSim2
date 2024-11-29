@@ -350,6 +350,12 @@ contains
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : to add profile to ux (default: x streamwise)
     !----------------------------------------------------------------------------------------------------------
+    fl%qx = ZERO
+    fl%qy = ZERO
+    fl%qz = ZERO
+    fl%pres = ZERO
+    fl%pcor = ZERO
+
     dtmp = dm%dpcc
     do i = 1, dtmp%xsz(1)
       do j = 1, dtmp%xsz(2)
@@ -370,6 +376,11 @@ contains
       ux = fl%qx
       str = 'qx'
     end if
+
+    if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated initial velocities:")
+    call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qy, "uy", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qz, "uz", wrtfmt2e)
 
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, LF3D_VOL_AVE, str)
     if(nrank == 0) then
@@ -590,7 +601,14 @@ contains
       call calcuate_velo_from_mflux_domain(fl, dm)
     end if
   
-    call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@bf inoutlet') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@bf inoutlet') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@bf inoutlet') ! debug_ww
+    call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf inoutlet') ! debug_ww
+#endif 
+  
+    call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_4cc_qx, dm%fbcx_qy, dm%fbcx_qz)
     call enforce_domain_mass_balance_dyn_fbc(fl, dm)
 !----------------------------------------------------------------------------------------------------------
 ! to initialise pressure correction term
@@ -605,9 +623,9 @@ contains
       call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, 0, 'gz@bf solv') ! debug_ww
     end if
 
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'px@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'py@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'pz@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@bf solv') ! debug_ww
     call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf solv') ! debug_ww
 #endif  
 

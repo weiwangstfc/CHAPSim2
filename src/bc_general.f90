@@ -68,10 +68,19 @@ contains
       do m = 1, 5
         if (bc_nominal(n, m) == IBC_PROFILE1D)   then
           ibc(n, m) = IBC_DIRICHLET
-        else if (bc_nominal(n, m) == IBC_TURBGEN  .or. &
-                 bc_nominal(n, m) == IBC_DATABASE )   then
+        else if (bc_nominal(n, m) == IBC_TURBGEN )   then
           if(m == 5) then
             ibc(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, it is initilazed temperature
+          else if(m == 4) then
+            ibc(n, m) = IBC_NEUMANN    ! for p
+          else 
+            ibc(n, m) = IBC_DIRICHLET  ! for u, v, w
+          end if
+        else if (bc_nominal(n, m) == IBC_DATABASE )   then
+          if(m == 5) then
+            ibc(n, m) = IBC_DIRICHLET ! for temperature, default is no incoming thermal flow, it is initilazed temperature
+          else if(m == 4) then
+            ibc(n, m) = IBC_NEUMANN    ! for p
           else 
             ibc(n, m) = IBC_DIRICHLET  ! for u, v, w, p, check!!
           end if
@@ -724,6 +733,60 @@ contains
     end do 
     return
   end subroutine 
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine extract_dirichlet_fbcx(fbc, var, dtmp)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(out) :: fbc(4,           dtmp%xsz(2), dtmp%xsz(3))
+    real(WP), intent(in)  :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
+
+    if(dtmp%xsz(1) /= dtmp%xen(1)) call Print_error_msg("Error. This is not x-pencil.")
+    fbc(1,   :, :) = var(1,           :, :)
+    fbc(2,   :, :) = var(dtmp%xsz(1), :, :)
+    fbc(3:4, :, :) = fbc(1:2,         :, :)
+
+    return
+  end subroutine 
+!==========================================================================================================
+  subroutine extract_dirichlet_fbcy(fbc, var, dtmp)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(out) :: fbc(dtmp%ysz(1), 4,           dtmp%ysz(3))
+    real(WP), intent(in)  :: var(dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3))
+
+    if(dtmp%ysz(2) /= dtmp%yen(2)) call Print_error_msg("Error. This is not y-pencil.")
+    fbc(:, 1,   :) = var(:, 1,           :)
+    fbc(:, 2,   :) = var(:, dtmp%ysz(2), :)
+    fbc(:, 3:4, :) = fbc(:, 1:2,         :)
+
+    return
+  end subroutine 
+!==========================================================================================================
+  subroutine extract_dirichlet_fbcz(fbc, var, dtmp)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(in)  :: var(dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3))
+    real(WP), intent(out) :: fbc(dtmp%zsz(1), dtmp%zsz(2), 4          )
+    
+
+    if(dtmp%zsz(3) /= dtmp%zen(3)) call Print_error_msg("Error. This is not z-pencil.")
+    fbc(:, :, 1, ) = var(:, :, 1,         )
+    fbc(:, :, 2, ) = var(:, :, dtmp%zsz(3))
+    fbc(:, :, 3:4) = fbc(:, :, 1:2,       )
+
+    return
+  end subroutine 
+
+!==========================================================================================================
+
 
 !==========================================================================================================
 end module

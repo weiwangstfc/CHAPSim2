@@ -461,7 +461,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(fl%qz, accp_ypencil, dm%dccp)
     call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
+    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_qz)
     call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
     call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
     call write_visu_field(dm, accc, dm%dccc, "qz_visu", trim(visuname), SCALAR, CELL, iter)

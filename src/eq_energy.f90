@@ -233,6 +233,9 @@ contains
 !      --> h_ypencil --> h_cpc_ypencil
 !                    --> h_zpencil --> h_ccp_zpencil
 !----------------------------------------------------------------------------------------------------------
+    fbcx_4cc = MAXP
+    fbcy_c4c = MAXP
+    fbcz_cc4 = MAXP
     fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%h
     fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%h
     fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%h
@@ -246,6 +249,9 @@ contains
 !      --> k_ypencil --> k_cpc_ypencil
 !                    --> k_zpencil --> k_ccp_zpencil              
 !----------------------------------------------------------------------------------------------------------
+    fbcx_4cc = MAXP
+    fbcy_c4c = MAXP
+    fbcz_cc4 = MAXP
     fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%k
     fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%k
     fbcz_cc4(:, :, :) = dm%fbcz_ftp(:, :, :)%k
@@ -268,8 +274,14 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
+    if(is_fbcx_velo_required) then
+      fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%h
+      fbcx_4cc = - fbcx_4cc * dm%fbcx_gx
+    else
+      fbcx_4cc = MAXP
+    end if
     apcc_xpencil = - fl%gx * hEnth_pcc_xpencil
-    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv) 
+    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv, fbcx_4cc) 
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
 #ifdef DEBUG_STEPS
     write(*,*) 'conx-e', accc_xpencil(4, 1:4, 4)
@@ -301,10 +313,18 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! diffusion-x, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     call get_fbcx_iTh(dm%ibcx_Th, dm, fbcx_4cc)
     call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc )
     apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
-    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu)
+    !------B.C.------
+    if(is_fbcx_velo_required) then
+      call extract_dirichlet_fbcx(fbcx_4cc, apcc_xpencil, dm%dpcc)
+    else
+      fbcx_4cc = MAXP
+    end if  
+    !------PDE------
+    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_difu, fbcx_4cc)
     tm%ene_rhs = tm%ene_rhs + accc_xpencil * tm%rPrRen
 #ifdef DEBUG_STEPS
     write(*,*) 'difx-e', accc_xpencil(4, 1:4, 4)

@@ -216,10 +216,10 @@ module parameters_constant_mod
                         IBC_DIRICHLET   = 4, & ! basic and nominal, used in operations
                         IBC_NEUMANN     = 5, & ! basic and nominal, used in operations
                         IBC_INTRPL      = 6, & ! basic only, for all others, used in operations
-                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_DIRICHLET
-                        IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers
-                        IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET
-                        IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers 
+                        IBC_CONVECTIVE  = 7, & ! nominal only, = IBC_DIRICHLET, dynamic fbc
+                        IBC_TURBGEN     = 8, & ! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers, dynamic fbc
+                        IBC_PROFILE1D   = 9, & ! nominal only, = IBC_DIRICHLET, 
+                        IBC_DATABASE    = 10, &! nominal only, = IBC_PERIODIC, bulk, 2 ghost layers, dynamic fbc
                         IBC_OTHERS      = 11   ! exclusive
   integer, parameter :: NBC = 5! u, v, w, p, T
   integer, parameter :: IDIM(3) = (/1, 2, 3/)
@@ -346,8 +346,8 @@ module wtformat_mod
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I8.1, 1F13.4)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I8.1, 2F13.4)'
   character(len = 25) :: wrtfmt4i2r = '(2X, A24, 4I8.1, 2F13.4)'
-  character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L8)'
-  character(len = 14) :: wrtfmt1l   = '(2X, A48, 1L8)'
+  character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L4)'
+  character(len = 14) :: wrtfmt1l   = '(2X, A48, 1L4)'
   character(len = 3)  :: wrtfmt1s   = '(A)'
 
 end module wtformat_mod

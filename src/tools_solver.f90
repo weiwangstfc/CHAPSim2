@@ -321,7 +321,7 @@ contains
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz)
+    call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz, dm%fbcz_qz)
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
