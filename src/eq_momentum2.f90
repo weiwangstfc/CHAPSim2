@@ -174,7 +174,8 @@ contains
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: gyiy_ccc_ypencil  ! conv-y-m2, <=> qyiy_ccc_ypencil
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: gyiz_cpp_ypencil  ! conv-y-m3, <=> qyiz_cpp_ypencil
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: gyriz_cpp_ypencil ! conv-r-m3, <=> qyriz_cpp_ypencil
-
+    
+    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: qyr_ypencil
     real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: qyriy_ccc_zpencil ! diff-z-m3, cly
     real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: qyriy_ccc_ypencil ! conv-y-m2, cly
     real(WP), dimension( dm%dcpp%ysz(1), dm%dcpp%ysz(2), dm%dcpp%ysz(3) ) :: qyriz_cpp_ypencil ! conv-r-m3, no-thermal
@@ -284,7 +285,6 @@ contains
 ! bc variables
 !----------------------------------------------------------------------------------------------------------
     real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc 
-    real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc_qx_4cc  
     real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_div_4cc  ! common
     real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_mu_4cc   ! thermo
 
@@ -663,14 +663,14 @@ contains
       call transpose_x_to_y(mu_ccc_xpencil, mu_ccc_ypencil, dm%dccc)
       call transpose_y_to_z(mu_ccc_ypencil, mu_ccc_zpencil, dm%dccc)
 
-      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_4cc)
+      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c)
       call transpose_y_to_x(acpc_ypencil, acpc_xpencil, dm%dcpc) !acpc_xpencil = muiy_cpc_xpencil
       call Get_x_midp_C2P_3D(acpc_xpencil, muixy_ppc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp)!, fbcx_4pc)
       
       call Get_z_midp_C2P_3D(mu_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_pc4)
       call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
       call transpose_y_to_x(accp_ypencil, accp_xpencil, dm%dccp)
-      call Get_x_midp_C2P_3D(accp_xpencil, muixz_cpp_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp)!, fbcx_4pc)
+      call Get_x_midp_C2P_3D(accp_xpencil, muixz_pcp_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp)!, fbcx_4pc)
 
       call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc) !muiy_cpc_zpencil
@@ -803,11 +803,11 @@ contains
 !----------------------------------------------------------------------------------------------------------  
     if(is_fbcx_velo_required) then
       if ( .not. dm%is_thermo) then
-        fbcx_4cc = dm%fbcx_4cc_qx
+        fbcx_4cc = dm%fbcx_qx
       else
         fbcx_4cc = dm%fbcx_gx
       end if
-      fbcx_4cc = - fbcx_4cc * dm%fbcx_4cc_qx
+      fbcx_4cc = - fbcx_4cc * dm%fbcx_qx
     else
       fbcx_4cc = MAXP
     end if
@@ -1104,7 +1104,7 @@ contains
       if(dm%icoordinate == ICYLINDRICAL) then
         call Get_y_midp_P2C_3D(qyr_ypencil,  accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy, dm%fbcy_qyr)
         call Get_y_1der_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy, dm%fbcy_qyr) ! acpc_ypencil = d(qyr)/dy
-        call extract_dirichlet_fbcy(fbcy_c4c, acpc_ypencil, dm%dc4c) ! fbcy_c4c = fbcy_dqyrdy_c4c
+        call extract_dirichlet_fbcy(fbcy_c4c, acpc_ypencil, dm%dcpc) ! fbcy_c4c = fbcy_dqyrdy_c4c
       else if(dm%icoordinate == ICARTESIAN) then
         call extract_dirichlet_fbcy(fbcy_c4c, qydy_cpc_ypencil, dm%dcpc)
       else

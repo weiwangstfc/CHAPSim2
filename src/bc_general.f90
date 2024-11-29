@@ -778,9 +778,9 @@ contains
     
 
     if(dtmp%zsz(3) /= dtmp%zen(3)) call Print_error_msg("Error. This is not z-pencil.")
-    fbc(:, :, 1, ) = var(:, :, 1,         )
-    fbc(:, :, 2, ) = var(:, :, dtmp%zsz(3))
-    fbc(:, :, 3:4) = fbc(:, :, 1:2,       )
+    fbc(:, :, 1  ) = var(:, :, 1          )
+    fbc(:, :, 2  ) = var(:, :, dtmp%zsz(3))
+    fbc(:, :, 3:4) = fbc(:, :, 1:2        )
 
     return
   end subroutine 

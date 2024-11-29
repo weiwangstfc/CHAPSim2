@@ -608,7 +608,7 @@ contains
     call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf inoutlet') ! debug_ww
 #endif 
   
-    call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_4cc_qx, dm%fbcx_qy, dm%fbcx_qz)
+    call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
     call enforce_domain_mass_balance_dyn_fbc(fl, dm)
 !----------------------------------------------------------------------------------------------------------
 ! to initialise pressure correction term
