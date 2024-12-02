@@ -272,38 +272,48 @@ contains
     ene_rhs_ccc_ypencil = ZERO
     ene_rhs_ccc_zpencil = ZERO
 !----------------------------------------------------------------------------------------------------------
-! x-pencil : d (gx * h_pcc) / dx 
+! conv-x-e, x-pencil : d (gx * h_pcc) / dx 
 !----------------------------------------------------------------------------------------------------------
-    if(is_fbcx_velo_required) then
-      fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%h
-      fbcx_4cc = - fbcx_4cc * dm%fbcx_gx
-    else
-      fbcx_4cc = MAXP
-    end if
+    ! !------b.c.------
+    ! if(is_fbcx_velo_required) then
+    !   fbcx_4cc(:, :, :) = dm%fbcx_ftp(:, :, :)%h
+    !   fbcx_4cc = - fbcx_4cc * dm%fbcx_gx
+    ! else
+    !   fbcx_4cc = MAXP
+    ! end if
+    !------bulk------
     apcc_xpencil = - fl%gx * hEnth_pcc_xpencil
-    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv, fbcx_4cc) 
+    !------PDE------
+    call Get_x_1der_P2C_3D(apcc_xpencil, accc_xpencil, dm, dm%iAccuracy, ebcx_conv)!, fbcx_4cc) 
     tm%ene_rhs = tm%ene_rhs + accc_xpencil
+
 #ifdef DEBUG_STEPS
     write(*,*) 'conx-e', accc_xpencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
-! convection-y, y-pencil : d (gy * h_cpc) / dy  * (1/r)
+! conv-y-e, y-pencil : d (gy * h_cpc) / dy  * (1/r)
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     acpc_ypencil = - gy_cpc_ypencil * hEnth_cpc_ypencil
+    !------PDE------
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_conv)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil
+
 #ifdef DEBUG_STEPS
     write(*,*) 'cony-e', accc_ypencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
-! convection-z, z-pencil : d (gz/r * h_ccp) / dz   * (1/r)
+! conv-z-e, z-pencil : d (gz/r * h_ccp) / dz   * (1/r)
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     accp_zpencil = - gz_ccp_zpencil * hEnth_ccp_zpencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
+    !------PDE------
     call Get_z_1der_P2C_3D( accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_conv)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
     ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil
+
 #ifdef DEBUG_STEPS
     write(*,*) 'conz-e', accc_zpencil(4, 1:4, 4)
 #endif
@@ -311,7 +321,7 @@ contains
 ! the RHS of energy equation : diffusion terms
 !==========================================================================================================
 !----------------------------------------------------------------------------------------------------------
-! diffusion-x, d ( k_pcc * d (T) / dx ) dx
+! diff-x-e, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
     !------bulk------
     call get_fbcx_iTh(dm%ibcx_Th, dm, fbcx_4cc)
@@ -330,8 +340,9 @@ contains
     write(*,*) 'difx-e', accc_xpencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
-! diffusion-y, d ( r * k_cpc * d (T) / dy ) dy * 1/r
+! diff-y-e, d ( r * k_cpc * d (T) / dy ) dy * 1/r
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     call get_fbcy_iTh(dm%ibcy_Th, dm, fbcy_c4c)
     call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c)
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
@@ -340,21 +351,27 @@ contains
     write(*,*) 'dify-k', kCond_cpc_ypencil(4, 1:4, 4)
 #endif
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
+    !------PDE------
     call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil * tm%rPrRen
+    
 #ifdef DEBUG_STEPS
     write(*,*) 'dify-e', accc_ypencil(4, 1:4, 4)
 #endif
 !----------------------------------------------------------------------------------------------------------
-! diffusion-z, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
+! diff-z-e, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
+!----------------------------------------------------------------------------------------------------------
+    !------bulk------
     call get_fbcz_iTh(dm%ibcz_Th, dm, fbcz_cc4)
     call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, fbcz_cc4 )
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
+    !------PDE------
     call Get_z_1der_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, ebcz_difu)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 1, IPENCIL(3))
     ene_rhs_ccc_zpencil = ene_rhs_ccc_zpencil + accc_zpencil * tm%rPrRen
+    
 #ifdef DEBUG_STEPS
     write(*,*) 'difz-e', accc_zpencil(4, 1:4, 4)
 #endif

@@ -801,6 +801,7 @@ contains
 ! X-mom convection term 1/3 at (i', j, k): 
 ! conv-x-m1 = - d(gxix * qxix)/dx
 !----------------------------------------------------------------------------------------------------------  
+    !------b.c.------
     if(is_fbcx_velo_required) then
       if ( .not. dm%is_thermo) then
         fbcx_4cc = dm%fbcx_qx
@@ -811,15 +812,17 @@ contains
     else
       fbcx_4cc = MAXP
     end if
-!----------------------------------------------------------------------------------------------------------  
+    !------bulk------
     if ( .not. dm%is_thermo) then
       accc_xpencil = qxix_ccc_xpencil
     else
       accc_xpencil = gxix_ccc_xpencil
     end if
     accc_xpencil = - accc_xpencil * qxix_ccc_xpencil
+    !------PDE------
     call Get_x_1der_C2P_3D(accc_xpencil, apcc_xpencil, dm, dm%iAccuracy, mbcx_cov1, fbcx_4cc)
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil
+
 #ifdef DEBUG_STEPS
     write(*,*) 'conx-11', apcc_xpencil(1, 1:4, 1)
 #endif
@@ -827,15 +830,18 @@ contains
 ! X-mom convection term 2/3 at (i', j, k): 
 ! conv-y-m1 = - 1/r  * d(gyix * qxiy)/dy
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     if ( .not. dm%is_thermo) then
       appc_ypencil = qyix_ppc_ypencil
     else
       appc_ypencil = gyix_ppc_ypencil
     end if
-    appc_ypencil = -appc_ypencil * qxiy_ppc_ypencil
+    appc_ypencil = -appc_ypencil * qxiy_ppc_ypencil  
+    !------PDE------
     call Get_y_1der_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbcy_cov1)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
+    
 #ifdef DEBUG_STEPS
     write(*,*) 'conx-12', apcc_ypencil(1, 1:4, 1)
 #endif
@@ -843,15 +849,18 @@ contains
 ! X-mom convection term 3/3 at (i', j, k) : 
 ! conv-z-m1 = - 1/r2 * d(gzix * qxiz)/dz
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------    
     if ( .not. dm%is_thermo) then
       apcp_zpencil = qzix_pcp_zpencil
     else
       apcp_zpencil = gzix_pcp_zpencil
     end if
-    apcp_zpencil = -apcp_zpencil * qxiz_pcp_zpencil
+    apcp_zpencil = -apcp_zpencil * qxiz_pcp_zpencil   
+    !------PDE------
     call Get_z_1der_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbcz_cov1)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_zpencil, dm%dpcc, dm%rci, 2, IPENCIL(3))
     mx_rhs_zpencil = mx_rhs_zpencil + apcc_zpencil
+
 #ifdef DEBUG_STEPS
     write(*,*) 'conx-13', apcc_zpencil(1, 1:4, 1)
 #endif
@@ -882,17 +891,19 @@ contains
 ! X-mom diffusion term 1/3 at (i', j, k)
 ! diff-x-m1 = d[ 2 * mu * (qxdx - 1/3 * div)]/dx
 !----------------------------------------------------------------------------------------------------------
-    
+    !------b.c.------
     if(is_fbcx_velo_required) then
       call extract_dirichlet_fbcx(fbcx_4cc, qxdx_pcc_xpencil, dm%dpcc)
       fbcx_4cc = TWO * fbcx_mu_4cc * ( fbcx_4cc - ONE_THIRD * fbcx_div_4cc)
     else
       fbcx_4cc = MAXP
     end if
-
+    !------bulk------  
     accc_xpencil = TWO * mu_ccc_xpencil * ( qxdx_ccc_xpencil - ONE_THIRD * div_ccc_xpencil)
+    !------PDE------
     call Get_x_1der_C2P_3D(accc_xpencil,  apcc_xpencil, dm, dm%iAccuracy, mbcx_tau1, fbcx_4cc) 
     fl%mx_rhs = fl%mx_rhs + apcc_xpencil * fl%rre
+
 #ifdef DEBUG_STEPS
     write(*,*) 'visx-11', apcc_xpencil(1, 1:4, 1)
 #endif
@@ -900,12 +911,15 @@ contains
 ! X-mom diffusion term 2/3 at (i', j, k)
 ! diff-y-m1 = 1/r  * d[muixy * (qydx + r * qxdy)]/dy
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------      
     appc_ypencil = qxdy_ppc_ypencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_ypencil, dm%dppc, ONE/dm%rpi, 1, IPENCIL(2))
     appc_ypencil = ( appc_ypencil + qydx_ppc_ypencil) * muixy_ppc_ypencil
+    !------PDE------
     call Get_y_1der_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbcy_tau1)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_ypencil, dm%dpcc, dm%rci, 1, IPENCIL(2))
     mx_rhs_ypencil =  mx_rhs_ypencil + apcc_ypencil * fl%rre
+
 #ifdef DEBUG_STEPS
     write(*,*) 'visx-12', apcc_ypencil(1, 1:4, 1)
 #endif
@@ -913,7 +927,9 @@ contains
 ! X-mom diffusion term 3/3 at (i', j, k)
 ! diff-z-m1 = 1/r2 * d[muixz * (qzdx +     qxdz)]/dz
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     apcp_zpencil = ( qxdz_pcp_zpencil + qzdx_pcp_zpencil) * muixz_pcp_zpencil
+    !------PDE------
     call Get_z_1der_P2C_3D(apcp_zpencil, apcc_zpencil, dm, dm%iAccuracy, mbcz_tau1)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(apcc_zpencil, dm%dpcc, dm%rci, 2, IPENCIL(3))
     mx_rhs_zpencil =  mx_rhs_zpencil + apcc_zpencil * fl%rre
@@ -950,14 +966,17 @@ contains
 ! Y-mom convection term 1/4 at (i, j', k)
 ! conv-x-m2 = - d(gxiy * qyix)/dx
 !----------------------------------------------------------------------------------------------------------  
+    !------bulk------
     if ( .not. dm%is_thermo) then
       appc_xpencil = qxiy_ppc_xpencil
     else
       appc_xpencil = gxiy_ppc_xpencil
     end if
     appc_xpencil = - appc_xpencil * qyix_ppc_xpencil
+    !------PDE------
     call Get_x_1der_P2C_3D( appc_xpencil, acpc_xpencil, dm, dm%iAccuracy, mbcx_cov2)
     fl%my_rhs = fl%my_rhs + acpc_xpencil
+
 #ifdef DEBUG_STEPS
     write(*,*) 'cony-21', acpc_xpencil(1, 1:4, 1)
 #endif
@@ -965,7 +984,7 @@ contains
 ! Y-mom convection term 2/4 at (i, j', k)
 ! conv-y-m2 = - d(gyiy * qyriy)/dy
 !----------------------------------------------------------------------------------------------------------
-    ! ------b.c.------
+    !------b.c.------
     if(is_fbcy_velo_required) then  
       if(dm%icoordinate == ICYLINDRICAL) then
         fbcy_c4c1 = dm%fbcy_qyr
@@ -981,7 +1000,7 @@ contains
     else
       fbcy_c4c = MAXP
     end if
-    ! ------bulk-----
+    !------bulk-----
     if(dm%icoordinate == ICYLINDRICAL) then
       accc_ypencil1 = qyriy_ccc_ypencil
     else
@@ -993,7 +1012,7 @@ contains
       accc_ypencil = gyiy_ccc_ypencil
     end if
     accc_ypencil = - accc_ypencil1 * accc_ypencil
-    ! ------PDE----- calculation
+    !------PDE----- calculation
     call Get_y_1der_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, mbcy_cov2, fbcy_c4c)
     my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 #ifdef DEBUG_STEPS
@@ -1005,6 +1024,7 @@ contains
 ! Y-mom convection term 3/4 at (i, j', k)
 ! conv-z-m2 = - d(gzriy * qyriz)/dz
 !----------------------------------------------------------------------------------------------------------
+    !------bulk-----
     if(dm%icoordinate == ICYLINDRICAL) then
       acpp_zpencil1 = qyriz_cpp_zpencil
       if ( .not. dm%is_thermo) then
@@ -1021,6 +1041,7 @@ contains
       end if
     end if
     acpp_zpencil = - acpp_zpencil1 * acpp_zpencil
+    !------PDE-----
     call Get_z_1der_P2C_3D( acpp_zpencil, acpc_zpencil, dm, dm%iAccuracy, mbcz_cov2)
     my_rhs_zpencil = my_rhs_zpencil + acpc_zpencil
 #ifdef DEBUG_STEPS
@@ -1045,14 +1066,14 @@ contains
       else 
         fbcy_c4c = MAXP
       end if
-      ! ------bulk-----
+      !------bulk-----
       if ( .not. dm%is_thermo) then
         accc_ypencil = qzriz_ccc_ypencil
       else
         accc_ypencil = gzriz_ccc_ypencil
       end if
       accc_ypencil = accc_ypencil * qzriz_ccc_ypencil 
-      ! ------PDE-----
+      !------PDE-----
       call Get_y_midp_C2P_3D( accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, mbcr_cov2, fbcy_c4c)
       my_rhs_ypencil = my_rhs_ypencil + acpc_ypencil
 #ifdef DEBUG_STEPS
@@ -1087,9 +1108,11 @@ contains
 ! Y-mom diffusion term 1/4 at (i, j', k)
 ! diff-x-m2 = d[muixy * (qydx + r * qxdy)]/dx                        
 !----------------------------------------------------------------------------------------------------------
+    !------bulk-----
     appc_xpencil1 = qxdy_ppc_xpencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_xpencil1, dm%dppc, ONE/dm%rpi, 1, IPENCIL(1))
     appc_xpencil = ( appc_xpencil1 + qydx_ppc_xpencil) * muixy_ppc_xpencil
+    !------PDE-----
     call Get_x_1der_P2C_3D(appc_xpencil, acpc_xpencil, dm, dm%iAccuracy, mbcx_tau2)
     fl%my_rhs = fl%my_rhs + acpc_xpencil * fl%rre
 #ifdef DEBUG_STEPS
@@ -1138,6 +1161,7 @@ contains
 ! Y-mom diffusion term 3/4 at (i, j', k)
 ! diff-z-m2 = d[muiyz * (qzrdy + 1/r * qyrdz - 1/r * qzriy]/dz       
 !----------------------------------------------------------------------------------------------------------
+    !------bulk-----
     if(dm%icoordinate == ICYLINDRICAL) then
       acpp_zpencil  = qzrdy_cpp_zpencil ! acpp_zpencil  = d(qz/r)/dy
       acpp_zpencil1 = qyrdz_cpp_zpencil ! acpp_zpencil1 = d(qr/r)/dz
@@ -1149,8 +1173,8 @@ contains
     else
       acpp_zpencil  = qzdy_cpp_zpencil + qydz_cpp_zpencil - ZERO
     end if
-    
     acpp_zpencil = acpp_zpencil * muiyz_cpp_zpencil
+    !------PDE-----
     call Get_z_1der_P2C_3D(acpp_zpencil, acpc_zpencil, dm, dm%iAccuracy, mbcz_tau2)
     my_rhs_zpencil =  my_rhs_zpencil + acpc_zpencil * fl%rre
 #ifdef DEBUG_STEPS
@@ -1219,12 +1243,14 @@ contains
 ! Z-mom convection term 1/4 at (i, j, k')
 ! conv-x-m3 = - d(gxiz * qzix)/dx                               
 !----------------------------------------------------------------------------------------------------------  
+    !------bulk------
     if ( .not. dm%is_thermo) then
       apcp_xpencil = qxiz_pcp_xpencil
     else
       apcp_xpencil = gxiz_pcp_xpencil
     end if
     apcp_xpencil = - apcp_xpencil * qzix_pcp_xpencil
+    !------PDE------
     call Get_x_1der_P2C_3D(apcp_xpencil, accp_xpencil, dm, dm%iAccuracy, mbcx_cov3)
     fl%mz_rhs = fl%mz_rhs + accp_xpencil
 #ifdef DEBUG_STEPS
@@ -1234,6 +1260,7 @@ contains
 ! Z-mom convection term 2/4 at (i, j, k')
 ! conv-y-m3 = - d(gyiz * qzriy)/dy                              
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     if(dm%icoordinate == ICYLINDRICAL) then
       acpp_ypencil1 = qzriy_cpp_ypencil
     else
@@ -1245,6 +1272,7 @@ contains
       acpp_ypencil = gyiz_cpp_ypencil
     end if
     acpp_ypencil = - acpp_ypencil * acpp_ypencil1
+    !------PDE------
     call Get_y_1der_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcy_cov3)
     mz_rhs_ypencil = mz_rhs_ypencil + accp_ypencil
 #ifdef DEBUG_STEPS
@@ -1284,19 +1312,19 @@ contains
 ! conv-r-m3 = - (gyriz * qzriy)^y                                      
 !----------------------------------------------------------------------------------------------------------
     if(dm%icoordinate == ICYLINDRICAL) then
-      !------b.c.------
-      if(is_fbcy_velo_required) then
-        if(is_fbcz_velo_required) call Print_error_msg("Error! fbc not support in calculating conv-r-m3.")
-        ! assume fbcy_c4c = fbcy_c4p
-        if ( .not. dm%is_thermo) then
-          fbcy_c4c = dm%fbcy_qyr
-        else
-          fbcy_c4c = dm%fbcy_gyr
-        end if
-        fbcy_c4c = - fbcy_c4c * dm%fbcy_qzr
-      else
-        fbcy_c4c = MAXP
-      end if
+      ! !------b.c.------
+      ! if(is_fbcy_velo_required) then
+      !   if(is_fbcz_velo_required) call Print_error_msg("Error! fbc not support in calculating conv-r-m3.")
+      !   ! assume fbcy_c4c = fbcy_c4p
+      !   if ( .not. dm%is_thermo) then
+      !     fbcy_c4c = dm%fbcy_qyr
+      !   else
+      !     fbcy_c4c = dm%fbcy_gyr
+      !   end if
+      !   fbcy_c4c = - fbcy_c4c * dm%fbcy_qzr
+      ! else
+      !   fbcy_c4c = MAXP
+      ! end if
       !------bulk------
       if ( .not. dm%is_thermo) then
         acpp_ypencil = qyriz_cpp_ypencil
@@ -1305,7 +1333,7 @@ contains
       end if
       acpp_ypencil = - acpp_ypencil * qzriy_cpp_ypencil
       !------PDE------
-      call Get_y_midp_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcr_cov3, fbcy_c4c)
+      call Get_y_midp_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcr_cov3)!, fbcy_c4c)
       mz_rhs_ypencil = mz_rhs_ypencil + accp_ypencil
 
 #ifdef DEBUG_STEPS
@@ -1339,7 +1367,9 @@ contains
 ! Z-mom diffusion term 1/4  at (i, j, k')
 ! diff-x-m3 = d[muixz * (qzdx + qxdz)]/dx                            
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     apcp_xpencil = ( qxdz_pcp_xpencil + qzdx_pcp_xpencil) * muixz_pcp_xpencil
+    !------PDE------
     call Get_x_1der_P2C_3D(apcp_xpencil, accp_xpencil, dm, dm%iAccuracy, mbcx_tau3)
     fl%mz_rhs = fl%mz_rhs + accp_xpencil * fl%rre
 #ifdef DEBUG_STEPS
@@ -1349,6 +1379,7 @@ contains
 ! Z-mom diffusion term 2/4 at (i, j, k')
 ! diff-y-m3 = d[muiyz * (r * qzrdy + qyrdz - qzriy]/dy               
 !----------------------------------------------------------------------------------------------------------
+    !------bulk------
     if(dm%icoordinate == ICYLINDRICAL) then
       acpp_ypencil = qzrdy_cpp_ypencil
       call multiple_cylindrical_rn(acpp_ypencil, dm%dcpp, ONE/dm%rpi, 1, IPENCIL(2))
@@ -1360,6 +1391,7 @@ contains
       acpp_ypencil = acpp_ypencil + qydz_cpp_ypencil
     end if
     acpp_ypencil = acpp_ypencil * muiyz_cpp_ypencil
+    !------PDE------
     call Get_y_1der_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcy_tau3)
     mz_rhs_ypencil =  mz_rhs_ypencil + accp_ypencil * fl%rre
 #ifdef DEBUG_STEPS
@@ -1369,6 +1401,7 @@ contains
 ! Z-mom diffusion term 3/4 at (i, j, k')
 ! diff-z-m3 = d[2 * mu * (1/r2 * qzdz - 1/3 * div + 1/r * qyriy)]/dz 
 !----------------------------------------------------------------------------------------------------------
+    !------b.c.------
     if(is_fbcz_velo_required) then
       call extract_dirichlet_fbcz(fbcz_cc4, qzdz_ccp_zpencil, dm%dccp)
       if(dm%icoordinate == ICYLINDRICAL) then
@@ -1382,7 +1415,7 @@ contains
     else
       fbcz_cc4 = MAXP
     end if
-!----------------------------------------------------------------------------------------------------------
+    !------bulk------
     if(dm%icoordinate == ICYLINDRICAL) then
       accc_zpencil = qzdz_ccc_zpencil
       call multiple_cylindrical_rn(accc_zpencil, dm%dccc, dm%rci, 2, IPENCIL(3))
@@ -1393,6 +1426,7 @@ contains
       accc_zpencil1 = ZERO
     end if
     accc_zpencil = ( accc_zpencil - ONE_THIRD * div_ccc_zpencil + accc_zpencil1) * TWO * mu_ccc_zpencil
+    !------PDE------
     call Get_z_1der_C2P_3D(accc_zpencil, accp_zpencil, dm, dm%iAccuracy, mbcz_tau3, fbcz_cc4) 
     mz_rhs_zpencil = mz_rhs_zpencil + accp_zpencil * fl%rre
 #ifdef DEBUG_STEPS
@@ -1403,20 +1437,20 @@ contains
 ! diff-r-m3 = [muiyz * (qzrdy + 1/r2 * qydz - 1/r * qzriy)]^y        
 !---------------------------------------------------------------------------------------------------------
     if(dm%icoordinate == ICYLINDRICAL) then
-      !------b.c.------
-      if(is_fbcy_velo_required) then
-        if(is_fbcz_velo_required) call Print_error_msg("Error! fbc not support in calculating diff-r-m3.")
-        ! assume fbcy_c4c = fbcy_c4p
-        call extract_dirichlet_fbcy(fbcy_c4c, qzrdy_cpp_ypencil, dm%dcpp)
-        call extract_dirichlet_fbcy(fbcy_c4c1, qydz_cpp_ypencil, dm%dcpp)
-        call multiple_cylindrical_rn_x4x(fbcy_c4c1, dm%dcpc, dm%rpi, 2, IPENCIL(2))
-        fbcy_c4c = fbcy_c4c + fbcy_c4c1
-        fbcy_c4c1 = dm%fbcy_qzr
-        call multiple_cylindrical_rn_x4x(fbcy_c4c1, dm%dcpc, dm%rpi, 1, IPENCIL(2))
-        fbcy_c4c = (fbcy_c4c - fbcy_c4c1) * fbcy_mu_c4c
-      else
-        fbcy_c4c = MAXP
-      end if
+      ! !------b.c.------
+      ! if(is_fbcy_velo_required) then
+      !   if(is_fbcz_velo_required) call Print_error_msg("Error! fbc not support in calculating diff-r-m3.")
+      !   ! assume fbcy_c4c = fbcy_c4p
+      !   call extract_dirichlet_fbcy(fbcy_c4c, qzrdy_cpp_ypencil, dm%dcpp)
+      !   call extract_dirichlet_fbcy(fbcy_c4c1, qydz_cpp_ypencil, dm%dcpp)
+      !   call multiple_cylindrical_rn_x4x(fbcy_c4c1, dm%dcpc, dm%rpi, 2, IPENCIL(2))
+      !   fbcy_c4c = fbcy_c4c + fbcy_c4c1
+      !   fbcy_c4c1 = dm%fbcy_qzr
+      !   call multiple_cylindrical_rn_x4x(fbcy_c4c1, dm%dcpc, dm%rpi, 1, IPENCIL(2))
+      !   fbcy_c4c = (fbcy_c4c - fbcy_c4c1) * fbcy_mu_c4c
+      ! else
+      !   fbcy_c4c = MAXP
+      ! end if
       !------bulk------
       acpp_ypencil = qzrdy_cpp_ypencil
       acpp_ypencil1 = qydz_cpp_ypencil
@@ -1426,7 +1460,7 @@ contains
       call multiple_cylindrical_rn(acpp_ypencil1, dm%dcpp, dm%rpi, 1, IPENCIL(2))
       acpp_ypencil = (acpp_ypencil - acpp_ypencil1) * muiyz_cpp_ypencil
       !------PDE------
-      call Get_y_midp_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcr_tau3, fbcy_c4c)
+      call Get_y_midp_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcr_tau3)!, fbcy_c4c)
       mz_rhs_ypencil =  mz_rhs_ypencil + accp_ypencil * fl%rre
 #ifdef DEBUG_STEPS
       write(*,*) 'visz-34', accp_ypencil(1, 1:4, 1)
