@@ -1906,7 +1906,7 @@ contains
         fp(-1) = TWO * fi(1) - fi(3)
       end if
     else if (ibc(1) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P2P')
+      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P')
       fp( 0) = fi(2) - fbc(1) * TWO * d1(1)
       fp(-1) = fi(3) - fbc(1) * TWO * ( d1(1) + d1(3) ) 
     else
@@ -4437,11 +4437,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2C_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_y_1der_C2C_3D") 
+    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_z_1der_C2C_3D")
+    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_z_1der_C2C_3D") 
     if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2C_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_C2C_3D") 
+      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_z_1der_C2C_3D") 
+      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_z_1der_C2C_3D") 
     end if
 
     fo3d(:, :, :) = ZERO
@@ -4524,11 +4524,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2P_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_y_1der_C2P_3D") 
+    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_z_1der_C2P_3D")
+    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_z_1der_C2P_3D") 
     if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2P_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_C2P_3D") 
+      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_z_1der_C2P_3D") 
+      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_z_1der_C2P_3D") 
     end if
 
     fo3d(:, :, :) = ZERO

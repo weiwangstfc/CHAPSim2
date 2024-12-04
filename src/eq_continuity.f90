@@ -350,6 +350,7 @@ contains
     character(*), intent(in), optional :: str0                
 
     character(32) :: str
+    integer :: n
 
     real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: div
     !real(WP)   :: divmax 
@@ -372,13 +373,17 @@ contains
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !----------------------------------------------------------------------------------------------------------
     call Get_divergence(fl, div, dm)
+    div = div + fl%pcor
 
 #ifdef DEBUG_STEPS
     if(MOD(iter, dm%visu_nfre) == 0) &
-    call write_visu_any3darray(div+fl%pcor, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
+    call write_visu_any3darray(div, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif
-
-    call Find_maximum_absvar3d(div+fl%pcor, fl%mcon, dm%dccc, trim(str)//" Mass Conservation:", wrtfmt1e)
+    n = dm%dccc%xsz(1)
+    call Find_maximum_absvar3d(div(2:n-1,:, :), fl%mcon(1), dm%dccc, trim(str)//" Mass Consv. at bulk area:", wrtfmt1e)
+    call Find_maximum_absvar3d(div(1:1,  :, :), fl%mcon(2), dm%dccc, trim(str)//" Mass Consv. at inlet    :", wrtfmt1e)
+    call Find_maximum_absvar3d(div(n:n,  :, :), fl%mcon(3), dm%dccc, trim(str)//" Mass Consv. at outlet   :", wrtfmt1e)
+    
 
     ! if(nrank == 0) then
     !   write (*, wrtfmt1e) "  Check Mass Conservation:", divmax

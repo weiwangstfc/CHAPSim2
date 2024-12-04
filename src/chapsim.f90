@@ -129,10 +129,10 @@ subroutine initialise_chapsim
     end if
     call initialise_flow_fields(flow(i), domain(i))
     call Check_element_mass_conservation(flow(i), domain(i), 0, 'init') 
-    call Solve_momentum_eq(flow(i), domain(i), 0)
-    call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
-    call write_visu_flow(flow(i), domain(i))
-    if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
+    !call Solve_momentum_eq(flow(i), domain(i), 0)
+    !call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
+    !call write_visu_flow(flow(i), domain(i))
+    !if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain
@@ -255,6 +255,17 @@ subroutine Solve_eqs_iteration
         call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
         call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
+
+      !----------------------------------------------------------------------------------------------------------
+      !  append and write out outlet data every real-iteration (not RK sub)
+      !----------------------------------------------------------------------------------------------------------
+      if(is_flow(i) .and. domain(i)%is_record_xoutlet) then
+        call write_instantanous_xoutlet(flow(i), domain(i))
+      end if
+      !----------------------------------------------------------------------------------------------------------
+      ! to read instantanous inlet from database
+      !----------------------------------------------------------------------------------------------------------
+      if(domain(i)%is_read_xinlet) call read_instantanous_xinlet(flow(i), domain(i))     
     end do
     !==========================================================================================================
     !  main solver, domain coupling in each sub-iteration (check)
@@ -264,12 +275,12 @@ subroutine Solve_eqs_iteration
       ! update interface values for multiple domain
       !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_flow(i))   call update_fbc_2dm_flow_halo  (domain(i), flow(i),   domain(i+1), flow(i+1))
+        if(is_flow(i))    call update_fbc_2dm_flow_halo  (domain(i), flow(i),   domain(i+1), flow(i+1))
         if(is_thermo(i)) call update_fbc_2dm_thermo_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
       end do
       do i = 1, nxdomain
         if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
-        if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
+        if(is_flow(i))    call Solve_momentum_eq(flow(i), domain(i), isub)
       end do
 #ifdef DEBUG_STEPS
       !call Print_warning_msg(" === The solver will stop as per the user's request. === ")
@@ -299,13 +310,6 @@ subroutine Solve_eqs_iteration
         call Find_max_min_3d(flow(i)%qy, "qy: ", wrtfmt2e)
         call Find_max_min_3d(flow(i)%qz, "qz: ", wrtfmt2e)
         call Check_element_mass_conservation(flow(i), domain(i), iter) 
-      end if
-
-      !----------------------------------------------------------------------------------------------------------
-      !  append and write out outlet data 
-      !----------------------------------------------------------------------------------------------------------
-      if(is_flow(i) .and. domain(i)%is_record_xoutlet) then
-        call write_instantanous_xoutlet(flow(i), domain(i))
       end if
       !----------------------------------------------------------------------------------------------------------
       !  update statistics

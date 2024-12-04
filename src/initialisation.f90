@@ -416,8 +416,11 @@ contains
     if(dm%ibcx_nominal(1, 1) == IBC_PROFILE1D) then
       call initialise_fbcx_given_profile(dm%fbcx_qx, ux_1c1, dm%dpcc%xst(2), 'qx')
     end if
-    if(dm%ibcx_nominal(1, 1) == IBC_DATABASE) then
-      call read_instantanous_xinlet(fl, dm)
+    if(dm%ibcx_nominal(1, 1) == IBC_DATABASE .and. &
+       dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) then
+      call extract_dirichlet_fbcx(dm%fbcx_qx, fl%qx, dm%dpcc)
+      call extract_dirichlet_fbcx(dm%fbcx_qy, fl%qy, dm%dcpc)
+      call extract_dirichlet_fbcx(dm%fbcx_qz, fl%qz, dm%dccp)
     end if
     !----------------------------------------------------------------------------------------------------------
     !   Y-pencil : write out velocity profile
@@ -603,8 +606,8 @@ contains
     call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf inoutlet') ! debug_ww
 #endif 
   
-    call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
-    call enforce_domain_mass_balance_dyn_fbc(fl, dm)
+    !call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
+    !call enforce_domain_mass_balance_dyn_fbc(fl, dm)
 !----------------------------------------------------------------------------------------------------------
 ! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------

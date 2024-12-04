@@ -667,12 +667,12 @@ contains
       call transpose_y_to_x(acpc_ypencil, acpc_xpencil, dm%dcpc) !acpc_xpencil = muiy_cpc_xpencil
       call Get_x_midp_C2P_3D(acpc_xpencil, muixy_ppc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp)!, fbcx_4pc)
       
-      call Get_z_midp_C2P_3D(mu_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_pc4)
-      call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
-      call transpose_y_to_x(accp_ypencil, accp_xpencil, dm%dccp)
-      call Get_x_midp_C2P_3D(accp_xpencil, muixz_pcp_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp)!, fbcx_4pc)
+      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcz_ftp, fbcx_4cc)
+      call transpose_x_to_y(apcc_xpencil, apcc_ypencil, dm%dpcc)
+      call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc)
+      call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_pc4)
 
-      call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
+      !call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c) ! acpc_ypencil = muiy_cpc_ypencil
       call transpose_y_to_z(acpc_ypencil, acpc_zpencil, dm%dcpc) !muiy_cpc_zpencil
       call Get_z_midp_C2P_3D(acpc_zpencil, muiyz_cpp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_cp4)
       call transpose_z_to_y(muiyz_cpp_zpencil, muiyz_cpp_ypencil, dm%dcpp)
@@ -1333,7 +1333,7 @@ contains
       end if
       acpp_ypencil = - acpp_ypencil * qzriy_cpp_ypencil
       !------PDE------
-      call Get_y_midp_P2C_3D( acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcr_cov3)!, fbcy_c4c)
+      call Get_y_midp_P2C_3D(acpp_ypencil, accp_ypencil, dm, dm%iAccuracy, mbcr_cov3)!, fbcy_c4c)
       mz_rhs_ypencil = mz_rhs_ypencil + accp_ypencil
 
 #ifdef DEBUG_STEPS
@@ -1826,10 +1826,6 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if(dm%icoordinate == ICYLINDRICAL) call update_fbcy_cc_flow_halo(fl, dm)
 !----------------------------------------------------------------------------------------------------------
-! to read instantanous inlet from database
-!----------------------------------------------------------------------------------------------------------
-    if(dm%is_read_xinlet .and. isub == 1) call read_instantanous_xinlet(fl, dm)
-!----------------------------------------------------------------------------------------------------------
 ! to set up convective outlet b.c. assume x direction
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_conv_outlet) call update_fbcx_convective_outlet_flow(fl, dm, isub)
@@ -1924,11 +1920,11 @@ contains
   call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz_updated') ! debug_ww
 #endif
 
-  if(nrank == 0) then
-    call Print_debug_mid_msg("Conservative parameters have been updated.")
-    write(*,*) 'updated qx', fl%qx(1:4, 1, 1)
-    write(*,*) 'updated qx', fl%qx(1, 1:4, 1)
-  end if
+  ! if(nrank == 0) then
+  !   call Print_debug_mid_msg("Conservative parameters have been updated.")
+  !   write(*,*) 'updated qx', fl%qx(1:4, 1, 1)
+  !   write(*,*) 'updated qx', fl%qx(1, 1:4, 1)
+  ! end if
 
     return
   end subroutine Solve_momentum_eq

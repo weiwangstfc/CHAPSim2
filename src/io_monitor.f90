@@ -250,7 +250,7 @@ contains
         write (*, *) 'Message: ', trim (iotxt)
         stop
       end if 
-      write(myunit, *) fl%time, fl%mcon
+      write(myunit, *) fl%time, fl%mcon(1:3)
       close(myunit)
     end if     
 

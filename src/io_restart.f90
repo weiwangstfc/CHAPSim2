@@ -244,6 +244,11 @@ contains
       end do
     end do
 
+    write(*, *) 'j, fl%qx(1, j, 1), dm%fbcx_qx_outl1(niter, j, 1)'
+    do j = 1, dm%dpcc%xsz(2)
+      write(*, *) j, fl%qx(dtmp%xsz(1), j, 1), dm%fbcx_qx_outl1(niter, j, 1)
+    end do
+
     dtmp = dm%dcpc
     do j = 1, dtmp%xsz(2)
       do k = 1, dtmp%xsz(3)
@@ -352,17 +357,25 @@ contains
         do k = 1, dtmp%xsz(3)
           dm%fbcx_qx(1, j, k) = dm%fbcx_qx_inl1(iter, j, k)
           dm%fbcx_qx(3, j, k) = dm%fbcx_qx_inl2(iter, j, k)
+          ! check, below 
+          !fl%qx(1, j, k) = dm%fbcx_qx(1, j, k)
         end do
       end do
       !if(nrank == 0) write(*,*) 'fbcx_qx = ', iter, dm%fbcx_qx(1, :, :)
     end if
+
+        ! test
+    write(*,*) 'j, fl%qx(1, j, 1), dm%fbcx_qx(1, j, 1)'
+    do j = 1, dm%dpcc%xsz(2)
+      write(*,*) j, fl%qx(1, j, 1), dm%fbcx_qx(1, j, 1)
+    end do
 
     if(dm%ibcx_nominal(1, 2) == IBC_DATABASE) then
       dtmp = dm%dcpc
       do j = 1, dtmp%xsz(2)
         do k = 1, dtmp%xsz(3)
           dm%fbcx_qy(1, j, k) = dm%fbcx_qy_inl1(iter, j, k)
-          dm%fbcx_qy(1, j, k) = dm%fbcx_qy_inl2(iter, j, k)
+          dm%fbcx_qy(3, j, k) = dm%fbcx_qy_inl2(iter, j, k)
         end do
       end do
       !if(nrank == 0) write(*,*) 'fbcx_qy = ', iter, dm%fbcx_qy(1, :, :)
@@ -373,7 +386,7 @@ contains
       do j = 1, dtmp%xsz(2)
         do k = 1, dtmp%xsz(3)
           dm%fbcx_qz(1, j, k) = dm%fbcx_qz_inl1(iter, j, k)
-          dm%fbcx_qz(1, j, k) = dm%fbcx_qz_inl2(iter, j, k)
+          dm%fbcx_qz(3, j, k) = dm%fbcx_qz_inl2(iter, j, k)
         end do
       end do
       !if(nrank == 0) write(*,*) 'fbcx_qz = ', iter, dm%fbcx_qz(1, :, :)
@@ -383,8 +396,8 @@ contains
       dtmp = dm%dccc
       do j = 1, dtmp%xsz(2)
         do k = 1, dtmp%xsz(3)
-          dm%fbcx_pr(1, j, k) = dm%fbcx_pr_outl1(iter, j, k)
-          dm%fbcx_pr(1, j, k) = dm%fbcx_pr_outl2(iter, j, k)
+          dm%fbcx_pr(1, j, k) = dm%fbcx_pr_inl1(iter, j, k)
+          dm%fbcx_pr(3, j, k) = dm%fbcx_pr_inl2(iter, j, k)
         end do
       end do
       !if(nrank == 0) write(*,*) 'fbcx_pr = ', iter, dm%fbcx_pr(1, :, :)
