@@ -244,7 +244,7 @@ contains
       end do
     end do
 
-    write(*, *) 'j, fl%qx(1, j, 1), dm%fbcx_qx_outl1(niter, j, 1)'
+    !write(*, *) 'j, fl%qx(1, j, 1), dm%fbcx_qx_outl1(niter, j, 1)'
     do j = 1, dm%dpcc%xsz(2)
       write(*, *) j, fl%qx(dtmp%xsz(1), j, 1), dm%fbcx_qx_outl1(niter, j, 1)
     end do
@@ -365,10 +365,10 @@ contains
     end if
 
         ! test
-    write(*,*) 'j, fl%qx(1, j, 1), dm%fbcx_qx(1, j, 1)'
-    do j = 1, dm%dpcc%xsz(2)
-      write(*,*) j, fl%qx(1, j, 1), dm%fbcx_qx(1, j, 1)
-    end do
+    !write(*,*) 'j, fl%qx(1, j, 1), dm%fbcx_qx(1, j, 1)'
+    !do j = 1, dm%dpcc%xsz(2)
+      !write(*,*) j, fl%qx(1, j, 1), dm%fbcx_qx(1, j, 1)
+    !end do
 
     if(dm%ibcx_nominal(1, 2) == IBC_DATABASE) then
       dtmp = dm%dcpc

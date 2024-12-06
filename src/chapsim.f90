@@ -263,7 +263,7 @@ subroutine Solve_eqs_iteration
         call write_instantanous_xoutlet(flow(i), domain(i))
       end if
       !----------------------------------------------------------------------------------------------------------
-      ! to read instantanous inlet from database
+      ! to read instantanous inlet from database, real, not sub-RK
       !----------------------------------------------------------------------------------------------------------
       if(domain(i)%is_read_xinlet) call read_instantanous_xinlet(flow(i), domain(i))     
     end do

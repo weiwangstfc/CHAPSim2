@@ -228,7 +228,7 @@ contains
     end do
 
     !     for dirichelt, the perturbation velocity should be zero.
-    call enforce_var_from_const(dm, fl%qx, fl%qy, fl%qz)
+    call enforce_velo_from_fbc(dm, fl%qx, fl%qy, fl%qz)
 
     if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated random velocities:")
     call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
@@ -595,8 +595,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
       call calculate_mflux_from_velo_domain (fl, dm)
-      call update_dyn_fbcx_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
-      call calcuate_velo_from_mflux_domain(fl, dm)
+      !call update_dyn_fbcx_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
+      !call calcuate_velo_from_mflux_domain(fl, dm)
     end if
   
 #ifdef DEBUG_STEPS
