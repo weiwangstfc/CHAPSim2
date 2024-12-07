@@ -426,16 +426,16 @@ contains
     real(WP), dimension(dm%dcpc%xsz(1), dm%dcpc%xsz(2), dm%dcpc%xsz(3)), intent (inout) :: uy
     real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), dm%dccp%xsz(3)), intent (inout) :: uz
     real(WP), dimension(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)), optional, intent (in) :: fbcx0
-    real(WP), dimension(dm%dcpc%xsz(1), 4, dm%dcpc%xsz(3)), optional, intent (in) :: fbcy0
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), 4), optional, intent (in) :: fbcz0
+    real(WP), dimension(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)), optional, intent (in) :: fbcy0
+    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), 4), optional, intent (in) :: fbcz0
     
 
     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
     real(WP), dimension(4, dm%dpcc%xsz(2), dm%dpcc%xsz(3)) :: fbcx
-    real(WP), dimension(dm%dcpc%xsz(1), 4, dm%dcpc%xsz(3)) :: fbcy
-    real(WP), dimension(dm%dccp%xsz(1), dm%dccp%xsz(2), 4) :: fbcz
+    real(WP), dimension(dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3)) :: fbcy
+    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), 4) :: fbcz
 
     if(.not. present(fbcx0)) then
       fbcx = ZERO

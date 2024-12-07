@@ -380,9 +380,9 @@ contains
     call write_visu_any3darray(div, 'divU', 'debug'//trim(str), dm%dccc, dm, fl%iteration)
 #endif
     n = dm%dccc%xsz(1)
-    call Find_maximum_absvar3d(div(2:n-1,:, :), fl%mcon(1), dm%dccc, trim(str)//" Mass Consv. at bulk area:", wrtfmt1e)
-    call Find_maximum_absvar3d(div(1:1,  :, :), fl%mcon(2), dm%dccc, trim(str)//" Mass Consv. at inlet    :", wrtfmt1e)
-    call Find_maximum_absvar3d(div(n:n,  :, :), fl%mcon(3), dm%dccc, trim(str)//" Mass Consv. at outlet   :", wrtfmt1e)
+    call Find_maximum_absvar3d(div(1:4,   :, :), fl%mcon(1), dm%dccc, trim(str)//" Mass Consv. at inlet    :", wrtfmt1e)
+    call Find_maximum_absvar3d(div(5:n-4, :, :), fl%mcon(2), dm%dccc, trim(str)//" Mass Consv. at bulk area:", wrtfmt1e)
+    call Find_maximum_absvar3d(div(n-5:n, :, :), fl%mcon(3), dm%dccc, trim(str)//" Mass Consv. at outlet   :", wrtfmt1e)
     
 
     ! if(nrank == 0) then

@@ -12,60 +12,11 @@ module bc_convective_outlet_mod
   private  :: enforce_domain_mass_balance_dyn_fbc
   !private :: enforce_domain_energy_balance_dyn_fbc
 
-  !private  :: enforce_velo_from_fbc
-
   !public  :: update_dyn_fbcx_from_flow
   public  :: update_fbcx_convective_outlet_flow
   public  :: update_fbcx_convective_outlet_thermo
 
   contains
-! !==========================================================================================================
-!   subroutine enforce_velo_from_fbc(dm, u, fbc, str)
-!     use udf_type_mod
-!     use parameters_constant_mod
-!     use print_msg_mod
-!     implicit none 
-!     type(t_domain), intent(in) :: dm
-!     character(1), intent(in) :: str
-!     real(WP), dimension(:, :, :), intent (in)    :: fbc
-!     real(WP), dimension(:, :, :), intent (inout) :: u
-
-!     real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
-!     real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-!     real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
-
-!     if(str=='x') then
-!       ! -mx_rhs-
-!       if(dm%ibcx_qx(1) == IBC_DIRICHLET) u(1,              :, :) = fbc(1, :, :)
-!       if(dm%ibcx_qx(2) == IBC_DIRICHLET) u(dm%dpcc%xsz(1), :, :) = fbc(2, :, :)
-!     end if
-
-!     if(str=='y') then
-!       !-my_rhs-
-!       if(dm%ibcy_qy(1) == IBC_DIRICHLET .or. &
-!          dm%ibcy_qy(2) == IBC_DIRICHLET) then
-!         call transpose_x_to_y(u, acpc_ypencil, dm%dcpc)
-!         if(dm%ibcy_qy(1) == IBC_DIRICHLET) acpc_ypencil(:, 1,              :) = fbc(:, 1, :)
-!         if(dm%ibcy_qy(2) == IBC_DIRICHLET) acpc_ypencil(:, dm%dcpc%ysz(2), :) = fbc(:, 2, :)
-!         call transpose_y_to_x(acpc_ypencil, u, dm%dcpc)
-!       end if
-!     end if
-
-!     if(str=='z')then
-!       !-mz_rhs-
-!       if(dm%ibcz_qz(1)  == IBC_DIRICHLET .or. &
-!          dm%ibcz_qz(2)  == IBC_DIRICHLET) then
-!         call transpose_x_to_y(u, accp_ypencil, dm%dccp)
-!         call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-!         if(dm%ibcz_qz(1) == IBC_DIRICHLET) accp_zpencil(:, :, 1             ) = fbc(:, :, 1)
-!         if(dm%ibcz_qz(2) == IBC_DIRICHLET) accp_zpencil(:, :, dm%dccp%zsz(3)) = fbc(:, :, 2)
-!         call transpose_z_to_y(accp_zpencil, accp_ypencil, dm%dccp)
-!         call transpose_y_to_x(accp_ypencil, u, dm%dccp)
-!       end if
-!     end if
-
-!     return
-!   end subroutine
 
 !==========================================================================================================
   subroutine get_convective_outlet_ux(fl, dm, uxdx)
@@ -350,7 +301,7 @@ module bc_convective_outlet_mod
       !write (*, *) "mass_in(3) = ", mass_rate_iin_work(:)
       !write (*, *) "massout(3) = ", mass_rate_out_work(:)
       write (*, '(10X, A, 4ES13.5)') " mass_rate_iin_net, out_net, core = ", mass_rate_iin_net, mass_rate_out_net, mass_rate_core_work
-      write (*, '(10X, A, 2ES13.5)') " mass rate net change and scaling = ", mass_rate_net, mass_rate_scaling
+      write (*, '(10X, A, 1ES13.5, 1F16.13)') " mass rate net change and scaling = ", mass_rate_net, mass_rate_scaling
       !write (*, *) "<------convective outlet--------------<"
     end if
 !#endif

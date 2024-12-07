@@ -147,6 +147,19 @@ contains
       if(dm%ibcx_Th(n) == IBC_NEUMANN) dm%ibcx_ftp(n) = IBC_DIRICHLET
       if(dm%ibcy_Th(n) == IBC_NEUMANN) dm%ibcy_ftp(n) = IBC_DIRICHLET
       if(dm%ibcz_Th(n) == IBC_NEUMANN) dm%ibcz_ftp(n) = IBC_DIRICHLET
+
+      if(dm%ibcx_qx(n) == IBC_DIRICHLET) then
+        dm%ibcx_pr(n) = IBC_NEUMANN
+        dm%fbcx_const(n, 4) = ZERO
+      end if
+      if(dm%ibcy_qy(n) == IBC_DIRICHLET) then
+        dm%ibcy_pr(n) = IBC_NEUMANN
+        dm%fbcy_const(n, 4) = ZERO
+      end if
+      if(dm%ibcz_qz(n) == IBC_DIRICHLET) then
+        dm%ibcz_pr(n) = IBC_NEUMANN
+        dm%fbcz_const(n, 4) = ZERO
+      end if
     end do 
 
     if(nrank == 0) then
