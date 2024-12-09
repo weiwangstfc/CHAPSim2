@@ -3,7 +3,7 @@ module continuity_eq_mod
   use decomp_2d
 
   public :: Calculate_drhodt
-  public :: Get_divergence_vel
+  public :: Get_divergence_vector
   public :: Get_divergence
   public :: Get_divergence_vel_x2z
   public :: Check_domain_mass_conservation
@@ -67,8 +67,8 @@ contains
 !  method 2
     
 
-    !call Get_divergence_vel(fl%gx, fl%gy, fl%gz, div, dm)
-    !call Get_divergence_vel(fl%gx0, fl%gy0, fl%gz0, div0, dm)
+    !call Get_divergence_vector(fl%gx, fl%gy, fl%gz, div, dm)
+    !call Get_divergence_vector(fl%gx0, fl%gy0, fl%gz0, div0, dm)
 
     ! fl%pcor=  ( dm%tAlpha(isub) * div + dm%tZeta(isub) * div0 ) &
     !           / (dm%tGamma(isub) - TWO)
@@ -173,7 +173,7 @@ contains
 !> \param[out]    div          div(u) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Get_divergence_vel(ux, uy, uz, div, dm)
+  subroutine Get_divergence_vector(ux, uy, uz, div, dm)
     use parameters_constant_mod
     use udf_type_mod
     use cylindrical_rn_mod
