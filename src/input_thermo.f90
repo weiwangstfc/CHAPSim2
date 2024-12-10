@@ -90,9 +90,9 @@ contains
     end if
 
     if(fluidparam%ipropertyState == IPROPERTY_FUNCS) then
-      if ( ( this%t < ( fluidparam%tm1 / fluidparam%ftp0ref%t ) ) .OR. &
+      if ( ( this%t < ( fluidparam%TM0 / fluidparam%ftp0ref%t ) ) .OR. &
            ( this%t > ( fluidparam%TB0 / fluidparam%ftp0ref%t ) ) ) then 
-        write(*, wrtfmt3r) 'this T, low T, high T:', this%t, fluidparam%tm1 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
+        write(*, wrtfmt3r) 'this T, low T, high T:', this%t, fluidparam%TM0 / fluidparam%ftp0ref%t, fluidparam%TB0 / fluidparam%ftp0ref%t
         write(*, wrtfmt3r) 'this rhoh, low rhoh, high rhoh', this%rhoh, fluidparam%dhmin, fluidparam%dhmax
         stop 'temperature exceeds specified range.'
       end if
@@ -175,11 +175,11 @@ contains
   
       ! H = entropy = f(T)
       this%h = fluidparam%Hm0 + &
-               fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%tm1) + &
+               fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%TM0) + &
                fluidparam%CoH(0) + &
-               fluidparam%CoH(1) * (t1    - fluidparam%tm1) + &
-               fluidparam%CoH(2) * (t1**2 - fluidparam%tm1**2) + &
-               fluidparam%CoH(3) * (t1**3 - fluidparam%tm1**3)
+               fluidparam%CoH(1) * (t1    - fluidparam%TM0) + &
+               fluidparam%CoH(2) * (t1**2 - fluidparam%TM0**2) + &
+               fluidparam%CoH(3) * (t1**3 - fluidparam%TM0**3)
   
       ! B = f(T)
       this%b = ONE / (fluidparam%CoB - t1)
@@ -272,11 +272,11 @@ contains
   
       ! H = entropy = f(T)
       dummy = fluidparam%Hm0 + &
-              fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%tm1) + &
+              fluidparam%CoH(-1) * (ONE / t1 - ONE / fluidparam%TM0) + &
               fluidparam%CoH(0) + &
-              fluidparam%CoH(1) * (t1    - fluidparam%tm1) + &
-              fluidparam%CoH(2) * (t1**2 - fluidparam%tm1**2) + &
-              fluidparam%CoH(3) * (t1**3 - fluidparam%tm1**3)
+              fluidparam%CoH(1) * (t1    - fluidparam%TM0) + &
+              fluidparam%CoH(2) * (t1**2 - fluidparam%TM0**2) + &
+              fluidparam%CoH(3) * (t1**3 - fluidparam%TM0**3)
       this%h = (dummy - ftp0ref%h) / (ftp0ref%cp * ftp0ref%t)
   
       ! B = f(T)
@@ -729,7 +729,7 @@ contains
     fluidparam%nlist = N_FUNC2TABLE
     allocate ( ftplist (fluidparam%nlist) )
     do i = 1, fluidparam%nlist
-      ftplist(i)%t = ( fluidparam%tm1 + (fluidparam%Tb0 - fluidparam%tm1) * real(i, WP) / real(fluidparam%nlist, WP) ) &
+      ftplist(i)%t = ( fluidparam%TM0 + (fluidparam%Tb0 - fluidparam%TM0) * real(i, WP) / real(fluidparam%nlist, WP) ) &
                      / fluidparam%ftp0ref%t ! undimensional
       call ftp_refresh_thermal_properties_from_T_undim(ftplist(i))
     end do
@@ -782,7 +782,7 @@ contains
     !   call ftp_refresh_thermal_properties_from_T_undim(ftp)
     !   dhmin1 = ftp%rhoh
 
-    !   ftp%t  = fluidparam%tm1 / fluidparam%ftp0ref%t
+    !   ftp%t  = fluidparam%TM0 / fluidparam%ftp0ref%t
     !   call ftp_refresh_thermal_properties_from_T_undim(ftp)
     !   dhmax1 = ftp%rhoh
       
@@ -889,7 +889,7 @@ contains
     case (ILIQUID_SODIUM)
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%tm1 = tm1_Na
+      fluidparam%TM0 = TM0_Na
       fluidparam%TB0 = TB0_Na
       fluidparam%HM0 = HM0_Na
       fluidparam%CoD(0:1) = CoD_Na(0:1)
@@ -902,7 +902,7 @@ contains
     case (ILIQUID_LEAD)
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%tm1 = tm1_Pb
+      fluidparam%TM0 = TM0_Pb
       fluidparam%TB0 = TB0_Pb
       fluidparam%HM0 = HM0_Pb
       fluidparam%CoD(0:1) = CoD_Pb(0:1)
@@ -914,7 +914,7 @@ contains
 
     case (ILIQUID_BISMUTH)
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%tm1 = tm1_BI
+      fluidparam%TM0 = TM0_BI
       fluidparam%TB0 = TB0_BI
       fluidparam%HM0 = HM0_BI
       fluidparam%CoD(0:1) = CoD_BI(0:1)
@@ -927,7 +927,7 @@ contains
     case (ILIQUID_LBE)
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%tm1 = tm1_LBE
+      fluidparam%TM0 = TM0_LBE
       fluidparam%TB0 = TB0_LBE
       fluidparam%HM0 = HM0_LBE
       fluidparam%CoD(0:1) = CoD_LBE(0:1)
@@ -940,7 +940,7 @@ contains
     case default
       fluidparam%nlist = N_FUNC2TABLE
       fluidparam%ipropertyState = IPROPERTY_FUNCS
-      fluidparam%tm1 = tm1_Na
+      fluidparam%TM0 = TM0_Na
       fluidparam%TB0 = TB0_Na
       fluidparam%HM0 = HM0_Na
       fluidparam%CoD(0:1) = CoD_Na(0:1)
