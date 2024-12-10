@@ -275,11 +275,11 @@ module parameters_constant_mod
   character(len = 64), parameter :: INPUT_SCP_WATER = 'NIST_WATER_23.5MP.DAT'
   character(len = 64), parameter :: INPUT_SCP_CO2   = 'NIST_CO2_8MP.DAT'
 
-  real(WP), parameter :: tm1_Na  = 371.0_WP  ! unit: K, melting temperature at 1 atm for Na
-  real(WP), parameter :: tm1_Pb  = 600.6_WP  ! unit: K, melting temperature at 1 atm for Lead
-  real(WP), parameter :: tm1_BI  = 544.6_WP  ! unit: K, melting temperature at 1 atm for Bismuth
-  real(WP), parameter :: tm1_LBE = 398.0_WP  ! unit: K, melting temperature at 1 atm for LBE
-  real(WP), parameter :: tm1_H2O = 273.15_WP ! unit: K, melting temperature at 1 atm for water
+  real(WP), parameter :: TM0_Na  = 371.0_WP  ! unit: K, melting temperature at 1 atm for Na
+  real(WP), parameter :: TM0_Pb  = 600.6_WP  ! unit: K, melting temperature at 1 atm for Lead
+  real(WP), parameter :: TM0_BI  = 544.6_WP  ! unit: K, melting temperature at 1 atm for Bismuth
+  real(WP), parameter :: TM0_LBE = 398.0_WP  ! unit: K, melting temperature at 1 atm for LBE
+  real(WP), parameter :: TM0_H2O = 273.15_WP ! unit: K, melting temperature at 1 atm for water
 
   real(WP), parameter :: TB0_Na  = 1155.0_WP ! unit: K, boling temperature at 1 atm for Na
   real(WP), parameter :: TB0_Pb  = 2021.0_WP ! unit: K, boling temperature at 1 atm for Lead
@@ -317,7 +317,7 @@ module parameters_constant_mod
   real(WP), parameter :: CoCp_Bi(-2:2) = (/ 7.183e6_WP, 0.0_WP,  118.2_WP,  5.934E-3_WP,      0.0_WP/)
   real(WP), parameter :: CoCp_LBE(-2:2)= (/-4.56e5_WP, 0.0_WP,  164.8_WP, - 3.94E-2_WP,  1.25E-5_WP/)
 
-  ! H = HM0 + CoH(-1) * (1 / T - 1 / tm1) + CoH(0) + CoH(1) * (T - tm1) +  CoH(2) * (T^2 - tm1^2) +  CoH(3) * (T^3- tm1^3)
+  ! H = HM0 + CoH(-1) * (1 / T - 1 / TM0) + CoH(0) + CoH(1) * (T - TM0) +  CoH(2) * (T^2 - TM0^2) +  CoH(3) * (T^3- TM0^3)
   real(WP), parameter :: CoH_Na(-1:3)  = (/  4.56e5_WP, 0.0_WP, 164.8_WP,   -1.97E-2_WP, 4.167E-4_WP/)
   real(WP), parameter :: CoH_Pb(-1:3)  = (/ 1.524e6_WP, 0.0_WP, 176.2_WP, -2.4615E-2_WP, 5.147E-6_WP/)
   real(WP), parameter :: CoH_Bi(-1:3)  = (/-7.183e6_WP, 0.0_WP, 118.2_WP,   2.967E-3_WP,      0.0_WP/)
@@ -377,7 +377,7 @@ module udf_type_mod
     integer :: ifluid
     integer :: ipropertyState
     integer :: nlist
-    real(WP) :: tm1
+    real(WP) :: TM0
     real(WP) :: TB0
     real(WP) :: HM0
     real(WP) :: CoD(0:1)
