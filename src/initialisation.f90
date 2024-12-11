@@ -130,7 +130,7 @@ contains
     ! default : x pencil. 
     ! varaible index is LOCAL. means 1:xsize(1)
     !----------------------------------------------------------------------------------------------------------
-    call alloc_x(tm%rhoh,       dm%dccc) ; tm%rhoh    = ZERO
+    call alloc_x(tm%rhoh,     dm%dccc) ; tm%rhoh    = ZERO
     call alloc_x(tm%hEnth,    dm%dccc) ; tm%hEnth = ZERO
     call alloc_x(tm%kCond,    dm%dccc) ; tm%kCond = ONE
     call alloc_x(tm%tTemp,    dm%dccc) ; tm%tTemp = ONE
@@ -364,7 +364,7 @@ contains
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
-      call calculate_mflux_from_velo_domain (fl, dm)
+      call convert_primary_conservative (fl, dm, IQ2G)
       ux = fl%gx
       str = 'gx'
     else
@@ -386,7 +386,7 @@ contains
     ux_1c1 = ux_1c1 / ubulk
     if(dm%is_thermo) then
       fl%gx = ux
-      call calcuate_velo_from_mflux_domain(fl, dm)
+      call convert_primary_conservative(fl, dm, IG2Q)
     else
       fl%qx = ux
     end if
@@ -594,9 +594,9 @@ contains
 ! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
-      call calculate_mflux_from_velo_domain (fl, dm)
+      call convert_primary_conservative (fl, dm, IQ2G)
       !call update_dyn_fbcx_from_flow(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
-      !call calcuate_velo_from_mflux_domain(fl, dm)
+      !call convert_primary_conservative(fl, dm, IG2Q)
     end if
   
 #ifdef DEBUG_STEPS

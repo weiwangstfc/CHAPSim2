@@ -1089,7 +1089,7 @@ contains
 
     fl%dDens(:, :, :) = tm%ftp_ini%d
     fl%mVisc(:, :, :) = tm%ftp_ini%m
-    tm%rhoh   (:, :, :) = tm%ftp_ini%rhoh
+    tm%rhoh (:, :, :) = tm%ftp_ini%rhoh
     tm%hEnth(:, :, :) = tm%ftp_ini%h
     tm%kCond(:, :, :) = tm%ftp_ini%k
     tm%tTemp(:, :, :) = tm%ftp_ini%t
