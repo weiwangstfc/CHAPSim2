@@ -209,7 +209,7 @@ contains
     if (.not. dm%is_thermo) return
 
     call Update_thermal_properties(fl, tm, dm)
-    call calculate_mflux_from_velo_domain (fl, dm)
+    call convert_primary_conservative (fl, dm, IQ2G)
 
     fl%dDensm1(:, :, :) = fl%dDens(:, :, :)
     fl%dDensm2(:, :, :) = fl%dDens(:, :, :)
