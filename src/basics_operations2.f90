@@ -213,12 +213,12 @@ module operations
   real(WP), allocatable :: am1y_P2C(:, :, :, :)
   real(WP), allocatable :: bm1y_P2C(:, :, :, :)
   real(WP), allocatable :: cm1y_P2C(:, :, :, :)
-  real(WP), allocatable :: dm2y_P2C(:, :, :, :)
+  real(WP), allocatable :: dm1y_P2C(:, :, :, :)
 
   real(WP), allocatable :: am1y_C2P(:, :, :, :)
   real(WP), allocatable :: bm1y_C2P(:, :, :, :)
   real(WP), allocatable :: cm1y_C2P(:, :, :, :)
-  real(WP), allocatable :: dm2y_C2P(:, :, :, :)
+  real(WP), allocatable :: dm1y_C2P(:, :, :, :)
 !----------------------------------------------------------------------------------------------------------
 ! z : pre-processed TDMA LHS Matrix for 1st deriviative
 !----------------------------------------------------------------------------------------------------------
@@ -1623,9 +1623,9 @@ contains
     allocate (am1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); am1y_P2C = ZERO
     allocate (bm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bm1y_P2C = ZERO
     allocate (cm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cm1y_P2C = ZERO
-    allocate (dm2y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm2y_P2C = ZERO
+    allocate (dm1y_P2C ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm1y_P2C = ZERO
     call Buildup_TDMA_LHS_array(nsz, m1fP2C, &
-          am1y_P2C, bm1y_P2C, cm1y_P2C, dm2y_P2C)
+          am1y_P2C, bm1y_P2C, cm1y_P2C, dm1y_P2C)
 
 !----------------------------------------------------------------------------------------------------------
 ! y-direction, with np unknows
@@ -1649,9 +1649,9 @@ contains
     allocate (am1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); am1y_C2P = ZERO
     allocate (bm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); bm1y_C2P = ZERO
     allocate (cm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); cm1y_C2P = ZERO
-    allocate (dm2y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm2y_C2P = ZERO
+    allocate (dm1y_C2P ( nsz, NBCS:NBCE, NBCS:NBCE, NACC ) ); dm1y_C2P = ZERO
     call Buildup_TDMA_LHS_array(nsz, m1fC2P, &
-          am1y_C2P, bm1y_C2P, cm1y_C2P, dm2y_C2P)
+          am1y_C2P, bm1y_C2P, cm1y_C2P, dm1y_C2P)
 
 !----------------------------------------------------------------------------------------------------------
 ! z-direction, with nc unknows
@@ -2897,7 +2897,7 @@ contains
             am1y_C2P(:, ibc(1), ibc(2), iacc), &
             bm1y_C2P(:, ibc(1), ibc(2), iacc), &
             cm1y_C2P(:, ibc(1), ibc(2), iacc), &
-            dm2y_C2P(:, ibc(1), ibc(2), iacc), &
+            dm1y_C2P(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
 ! stretching? No stretching conversion
@@ -2953,7 +2953,7 @@ contains
             am1y_P2C(:, ibc(1), ibc(2), iacc), &
             bm1y_P2C(:, ibc(1), ibc(2), iacc), &
             cm1y_P2C(:, ibc(1), ibc(2), iacc), &
-            dm2y_P2C(:, ibc(1), ibc(2), iacc), &
+            dm1y_P2C(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
 
