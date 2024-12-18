@@ -252,7 +252,7 @@ subroutine Solve_eqs_iteration
         if (nrank == 0) write(*, wrtfmt1r) "flow field physical time (s) = ", flow(i)%time
         flow(i)%time = flow(i)%time + domain(i)%dt
         flow(i)%iteration = flow(i)%iteration + 1
-        call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+        call Check_cfl_diffusion (flow(i), domain(i))
         call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
       end if
 

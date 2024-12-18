@@ -105,6 +105,7 @@ contains
     use mpi_mod
     use udf_type_mod
     use parameters_constant_mod
+    use index_mod
     implicit none
     type(DECOMP_INFO), intent(in) :: dtmp
     real(WP), dimension(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3)), intent(in)  :: var ! x-pencil default
@@ -123,7 +124,7 @@ contains
     do j = 1, dtmp%xsz(2)
       nk = 0
       ni = 0
-      jj = j - 1 + dtmp%xst(2)
+      jj = local2global_yid(j, dtmp)
       do k = 1, dtmp%xsz(3)
         nk = nk + 1
         do i = 1, dtmp%xsz(1)
@@ -146,7 +147,7 @@ contains
     if (nrank == 0) then
       open(121, file = 'check_calculate_xz_mean_yprofile.dat', position="append")
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         write(121, *) jj, varxz_work(jj)
       end do
     end if
@@ -171,6 +172,7 @@ contains
   subroutine Adjust_to_xzmean_zero(var, dtmp, n, varxz)
     use mpi_mod
     use udf_type_mod
+    use index_mod
     implicit none
     type(DECOMP_INFO),  intent(in) :: dtmp
     integer,            intent(in) :: n
@@ -180,7 +182,7 @@ contains
     integer :: jj, i, j, k
 
     do j = 1, dtmp%xsz(2)
-      jj = j - 1 + dtmp%xst(2)
+      jj = local2global_yid(j, dtmp)
       do k = 1, dtmp%xsz(3)
         do i = 1, dtmp%xsz(1)
           var(:, j, :) = var(:, j, :) - varxz(jj)
@@ -215,23 +217,40 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !> \param[inout]         
 !==========================================================================================================
-  subroutine Check_cfl_diffusion(x2r, rre, dt)
+  subroutine Check_cfl_diffusion(fl, dm)
     use parameters_constant_mod
-    !use iso_fortran_env
+    use udf_type_mod
     use mpi_mod
     use wtformat_mod
     use print_msg_mod
+    use index_mod
     implicit none
-    real(WP), intent(in) :: x2r(3)
-    real(WP), intent(in) :: rre
-    real(WP), intent(in) :: dt
-    real(WP) :: cfl_diff
+    type(t_flow), intent(in) :: fl
+    type(t_domain), intent(in) :: dm
 
-    ! check, ours is two times of the one in xcompact3d.
-    cfl_diff = sum(x2r) * TWO * dt * rre
+    real(WP) :: cfl_diff, cfl_diff_work, rtmp, dyi
+    integer :: i, j, k, jj
+    
+    cfl_diff = ZERO
+    do j = 1, dm%dccc%xsz(2)
+      jj = local2global_yid(j, dm%dccc)
+      dyi = ONE/(dm%yp(jj+1) - dm%yp(jj))
+      do i = 1, dm%dccc%xsz(1)
+        do k = 1, dm%dccc%xsz(3)
+          rtmp = dm%h2r(1) + dm%h2r(3) * dm%rci(j) * dm%rci(j) + dyi * dyi
+          if(dm%is_thermo) rtmp = rtmp * fl%mVisc(i, j, k) / fl%dDens(i, j, k)
+          if(rtmp > cfl_diff) cfl_diff = rtmp
+        end do
+      end do
+    end do 
+    cfl_diff = cfl_diff * TWO * dm%dt *  fl%rre
+
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(cfl_diff, cfl_diff_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+
     if(nrank == 0) then
-      if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1. Numerical instability could occur. Pleaes reduce your mesh spacing.")
-      write (*, wrtfmt1e) "  Diffusion number :", cfl_diff
+      if(cfl_diff_work > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1. Numerical instability could occur. Pleaes reduce your mesh spacing.")
+      write (*, wrtfmt1e) "  Diffusion number :", cfl_diff_work
     end if
     
     return
@@ -293,7 +312,8 @@ contains
                              dm%dccp%zsz(2), &
                              dm%dccp%zsz(3))
     !real(WP)   :: cfl_convection, cfl_convection_work
-    real(wp) :: dummy
+    real(wp) :: dummy, dy
+    integer :: j
 !----------------------------------------------------------------------------------------------------------
 ! Initialisation
 !----------------------------------------------------------------------------------------------------------
@@ -309,17 +329,28 @@ contains
     call Get_x_midp_P2C_3D(u, accc_xpencil, dm, dm%iAccuracy, dm%ibcx_qx, dm%fbcx_qx)
     var_xpencil = accc_xpencil * dm%h1r(1) * dm%dt
 !----------------------------------------------------------------------------------------------------------
-! Y-pencil : v_ccc / dy * dt
+! Y-pencil : v_ccc / dy / r * dt
 !----------------------------------------------------------------------------------------------------------
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
     call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy, dm%fbcy_qy)
-    var_ypencil = var_ypencil +  accc_ypencil * dm%h1r(2) * dm%dt
+    if(dm%icoordinate == ICYLINDRICAL) then
+      do j = 1, dm%dccc%ysz(2)
+        dy = dm%np(j+1) - dm%np(j)
+        accc_ypencil = accc_ypencil / dy * dm%rci(j) 
+      end do 
+    end if
+    var_ypencil = var_ypencil +  accc_ypencil * dm%dt
 !----------------------------------------------------------------------------------------------------------
-! Z-pencil : \overline{w}^z/dz at cell centre
+! Z-pencil : w_ccc / dz /r2
 !----------------------------------------------------------------------------------------------------------
     call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
+    if(dm%icoordinate == ICYLINDRICAL) then
+      do j = 1, dm%dccp%ysz(2)
+        w_ypencil = w_ypencil * dm%rci(j) * dm%rci(j) 
+      end do 
+    end if
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
     call Get_z_midp_P2C_3D(w_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz, dm%fbcz_qz)
     var_zpencil = var_zpencil +  accc_zpencil * dm%h1r(3) * dm%dt

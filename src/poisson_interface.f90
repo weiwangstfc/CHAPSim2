@@ -730,6 +730,7 @@ module decomp_extended_mod
 !==========================================================================================================
   subroutine zpencil_index_llg2ggg(vin, vou, dtmp)
     use decomp_2d
+    use index_mod
     implicit none
 
     type(DECOMP_INFO), intent(in) :: dtmp
@@ -741,7 +742,7 @@ module decomp_extended_mod
     vou = ZERO
     do k = 1, dtmp%zsz(3)
       do j = 1, dtmp%zsz(2)
-        jj = dtmp%zst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         do i = 1, dtmp%zsz(1)
           ii = dtmp%zst(1) + i - 1
           vou(ii, jj, k) = vin(i, j, k)
@@ -753,6 +754,7 @@ module decomp_extended_mod
 !==========================================================================================================  
   subroutine zpencil_index_ggg2llg(vin, vou, dtmp)
     use decomp_2d
+    use index_mod
     implicit none
 
     type(DECOMP_INFO), intent(in) :: dtmp
@@ -767,7 +769,7 @@ module decomp_extended_mod
     vou = ZERO
     do k = 1, dtmp%zsz(3)
       do j = 1, dtmp%zsz(2)
-        jj = dtmp%zst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         do i = 1, dtmp%zsz(1)
           ii = dtmp%zst(1) + i - 1
           vou(i, j, k) = vin(ii, jj, k)

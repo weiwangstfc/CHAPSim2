@@ -175,11 +175,13 @@ contains
     use mpi_mod
     use wtformat_mod
     use io_files_mod
+    use find_max_min_ave_mod
     implicit none
 
     type(t_domain), intent(inout) :: dm
+    real(WP) :: dy(dm%nc(2))
 
-    integer    :: i, k
+    integer    :: i, j, k
     
     if(nrank == 0) call Print_debug_start_msg("initialising domain geometric ...")
 
@@ -241,11 +243,11 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! allocate  cylindrical radius
 !----------------------------------------------------------------------------------------------------------
+    allocate ( dm%rpi( dm%np_geo(2) ) )
+    allocate ( dm%rci( dm%nc    (2) ) )
+    dm%rpi(:) = ONE
+    dm%rci(:) = ONE
     if(dm%icoordinate == ICYLINDRICAL) then 
-      allocate ( dm%rpi( dm%np_geo(2) ) )
-      allocate ( dm%rci( dm%nc    (2) ) )
-      dm%rpi(:) = ONE
-      dm%rci(:) = ONE
       if(dabs( dm%yp(1) ) < MINP) then
         dm%rpi(1) = MAXP
       else 
@@ -272,6 +274,13 @@ contains
       write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of points in x, y, z: :', dm%np(1:NDIM)
       write (*, wrtfmt3r) '  grid spacing (uniform)       in x, y, z: :', dm%h(1:NDIM)
+      
+      if(dm%is_stretching(2)) then
+        do j = 1, dm%nc(2)
+          dy(j) = dm%yp(j+1) - dm%yp(j)
+        end do
+        call Find_max_min_1d(dy, 'dy')
+      end if
     end if
 
     !----------------------------------------------------------------------------------------------------------
