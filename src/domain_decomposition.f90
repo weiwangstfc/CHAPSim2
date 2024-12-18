@@ -70,6 +70,9 @@ contains
       call decomp_info_init(dm%ndbfre, dm%nc(2), dm%np(3), dm%dxcp) ! for uz, gz
     end if
 
+    call decomp_info_init(4, dm%nc(2), dm%nc(3), dm%d4cc) ! this is fbcx operation
+    call decomp_info_init(4, dm%np(2), dm%nc(3), dm%d4pc) ! this is fbcx operation
+
 #ifdef DEBUG_STEPS
     call mpi_barrier(MPI_COMM_WORLD, ierror)
     do i = 1, 7

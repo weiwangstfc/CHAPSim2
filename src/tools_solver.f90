@@ -12,7 +12,7 @@ module solver_tools_mod
   public  :: Calculate_xz_mean_yprofile
   public  :: Adjust_to_xzmean_zero
   public  :: Get_volumetric_average_3d
-
+  public  :: get_fbcx_ftp_4pc
   
 
 contains
@@ -230,7 +230,7 @@ contains
     ! check, ours is two times of the one in xcompact3d.
     cfl_diff = sum(x2r) * TWO * dt * rre
     if(nrank == 0) then
-      if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1.")
+      if(cfl_diff > ONE) call Print_warning_msg("Warning: Diffusion number is larger than 1. Numerical instability could occur. Pleaes reduce your mesh spacing.")
       write (*, wrtfmt1e) "  Diffusion number :", cfl_diff
     end if
     
@@ -509,5 +509,66 @@ contains
 
     return 
   end subroutine Get_volumetric_average_3d
+
+  !==========================================================================================================
+  !==========================================================================================================
+
+  subroutine get_fbcx_ftp_4pc(fbcx_ftp_4cc, fbcx_ftp_4pc, dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    use operations
+    use print_msg_mod
+    implicit none 
+    type(t_domain), intent(in) :: dm
+    real(WP), dimension(dm%d4cc%xsz(1), dm%d4cc%xsz(2), dm%d4cc%xsz(3)), intent(in)  :: fbcx_ftp_4cc
+    real(WP), dimension(dm%d4pc%xsz(1), dm%d4pc%xsz(2), dm%d4pc%xsz(3)), intent(out) :: fbcx_ftp_4pc
+    real(WP), dimension(dm%d4cc%xsz(1), dm%d4cc%xsz(2), dm%d4cc%xsz(3)) :: fbcx_4cc
+    real(WP), dimension(dm%d4cc%ysz(1), dm%d4cc%ysz(2), dm%d4cc%ysz(3)) :: a4cc_ypencil
+    real(WP), dimension(dm%d4pc%ysz(1), dm%d4pc%ysz(2), dm%d4pc%ysz(3)) :: a4pc_ypencil
+    real(WP), dimension(dm%d4pc%xsz(1), dm%d4pc%xsz(2), dm%d4pc%xsz(3)) :: a4pc_xpencil
+    integer :: ibcy(2), i, j, k
+    real(WP) :: fbc
+
+
+    if(dm%ibcx_nominal(2, 5) == IBC_CONVECTIVE) then
+      fbcx_4cc(:, :, :) = fbcx_ftp_4cc(:, :, :)
+      call transpose_x_to_y(fbcx_4cc, a4cc_ypencil, dm%d4cc)
+      do i = 1, dm%d4pc%ysz(1)
+        do k = 1, dm%d4pc%ysz(3)
+          do j = 1, dm%d4pc%ysz(2)
+            if (j==1) then
+              a4pc_ypencil(i, j, k) = (THREE * a4cc_ypencil(i, j, k) - a4cc_ypencil(i, j+1, k))/TWO
+            else if (j==dm%d4pc%ysz(2)) then
+              a4pc_ypencil(i, j, k) = (THREE * a4cc_ypencil(i, j-1, k) - a4cc_ypencil(i, j-2, k))/TWO
+            else
+              a4pc_ypencil(i, j, k) = (a4cc_ypencil(i, j-1, k) + a4cc_ypencil(i, j, k))/TWO
+            end if
+          end do
+        end do
+      end do 
+      ! ibcy = IBC_INTRPL
+      ! call Get_y_midp_C2P_3D(a4cc_ypencil, a4pc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_44c)
+       call transpose_y_to_x(a4pc_ypencil, a4pc_xpencil, dm%d4pc)
+       fbcx_ftp_4pc(:, :, :) = a4pc_xpencil(:, :, :)
+    !else
+      !fbcx_ftp_4pc(2, :, :) = MAXP 
+    end if
+
+    if(dm%ibcx_ftp(1) == IBC_DIRICHLET) then
+      fbc = fbcx_ftp_4cc(1, 1, 1)
+      fbcx_ftp_4pc(1, :, :) = fbc ! check
+    else 
+      fbcx_ftp_4pc(1, :, :) = MAXP 
+      call Print_warning_msg("Warning: Wrong Setup in dm%ibcx_ftp(1)")
+    end if 
+
+    ! write(*,*) '1-', fbcx_ftp_4pc(1, :, :)
+    ! write(*,*) '2-', fbcx_ftp_4pc(2, :, :)
+    ! write(*,*) '3-', fbcx_ftp_4pc(3, :, :)
+    ! write(*,*) '4-', fbcx_ftp_4pc(4, :, :)
+
+    return
+  end subroutine
+
 
 end module

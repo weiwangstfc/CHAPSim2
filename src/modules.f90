@@ -343,14 +343,16 @@ module wtformat_mod
   character(len = 17) :: wrtfmt1r   = '(2X, A48, 1F13.4)'
   character(len = 17) :: wrtfmt2r   = '(2X, A48, 2F13.4)'
   character(len = 18) :: wrtfmt3r   = '(2X, A48, 3F13.4)'
-  character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES28.15)'
-  character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES28.15, A24, 1ES28.15)'
+  character(len = 19) :: wrtfmt1e   = '(2X, A48, 1ES23.15)'
+  character(len = 34) :: wrtfmt2e   = '(2X, A24, 1ES23.15, A24, 1ES23.15)'
   character(len = 25) :: wrtfmt1i1r = '(2X, A48, 1I8.1, 1F13.4)'
   character(len = 25) :: wrtfmt2i2r = '(2X, A48, 2I8.1, 2F13.4)'
   character(len = 25) :: wrtfmt4i2r = '(2X, A24, 4I8.1, 2F13.4)'
   character(len = 14) :: wrtfmt3l   = '(2X, A48, 3L4)'
   character(len = 14) :: wrtfmt1l   = '(2X, A48, 1L4)'
-  character(len = 3)  :: wrtfmt1s   = '(A)'
+  character(len = 9 ) :: wrtfmt1s   = '(2X, A48)'
+  character(len = 17) :: wrtfmt2s   = '(2X, A48, 1A48)'
+  character(len = 17) :: wrtfmt3s   = '(2X, A48, 2A24)'
 
 end module wtformat_mod
 !==========================================================================================================
@@ -477,6 +479,9 @@ module udf_type_mod
     type(DECOMP_INFO) :: dpcp ! eg, <ux>^z, <uz>^x
     type(DECOMP_INFO) :: dcpp ! eg, <uy>^z, <uz>^y
     type(DECOMP_INFO) :: dppp
+
+    type(DECOMP_INFO) :: d4cc
+    type(DECOMP_INFO) :: d4pc
 
     type(DECOMP_INFO) :: dxcc
     type(DECOMP_INFO) :: dxpc

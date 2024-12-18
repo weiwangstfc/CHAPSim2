@@ -950,17 +950,17 @@ contains
     integer :: b(3)
 
     if(which_pencil(dtmp) == X_PENCIL) then
-      b(1) = dtmp%xst(1) + a(1)
-      b(2) = dtmp%xst(2) + a(2)
-      b(3) = dtmp%xst(3) + a(3)
+      b(1) = dtmp%xst(1) + a(1) - 1
+      b(2) = dtmp%xst(2) + a(2) - 1
+      b(3) = dtmp%xst(3) + a(3) - 1
     else if (which_pencil(dtmp) == Y_PENCIL) then
-      b(1) = dtmp%yst(1) + a(1)
-      b(2) = dtmp%yst(2) + a(2)
-      b(3) = dtmp%yst(3) + a(3)
+      b(1) = dtmp%yst(1) + a(1) - 1
+      b(2) = dtmp%yst(2) + a(2) - 1
+      b(3) = dtmp%yst(3) + a(3) - 1
     else if (which_pencil(dtmp) == Z_PENCIL) then
-      b(1) = dtmp%zst(1) + a(1)
-      b(2) = dtmp%zst(2) + a(2)
-      b(3) = dtmp%zst(3) + a(3)
+      b(1) = dtmp%zst(1) + a(1) - 1
+      b(2) = dtmp%zst(2) + a(2) - 1
+      b(3) = dtmp%zst(3) + a(3) - 1
     else 
       call Print_error_msg("Error in local to global index conversion.")
     end if
@@ -973,6 +973,7 @@ contains
     use math_mod
     use mpi_mod
     use parameters_constant_mod
+    use typeconvert_mod
     implicit none
 
     real(WP), intent(in)  :: var(:, :, :)
@@ -984,12 +985,19 @@ contains
     real(WP)   :: varmax
     integer :: idg(3), idl(3), idg_work(3)
     integer :: i, j, k, nx, ny, nz
+    integer :: idgmax(3)
 
     nx = size(var, 1)
     ny = size(var, 2)
     nz = size(var, 3)
 
+    idgmax(1) = dtmp%xsz(1)
+    idgmax(2) = dtmp%ysz(2)
+    idgmax(3) = dtmp%zsz(3)
+
     varmax = ZERO
+    idl = 0
+    idg = 0 
     do k = 1, nz
       do j = 1, ny
         do i = 1, nx
@@ -1012,7 +1020,10 @@ contains
 
     if(nrank == 0) then
       call mpi_recv(idg_work, 3, MPI_INTEGER, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror)
-      write (*, *) 'maximum '//str, varmax_work, 'at global index', idg_work(1:3)
+      write (*, '(2X, A48, 1ES19.12, A, 3(1I6.1, A6))') 'maximum '//trim(str), varmax_work, ' at global index', &
+      idg_work(1), '/'//int2str(idgmax(1)), &
+      idg_work(2), '/'//int2str(idgmax(2)), &
+      idg_work(3), '/'//int2str(idgmax(3))
     end if
 #ifdef DEBUG_FFT
     if(varmax_work > MAXVELO) stop ! test

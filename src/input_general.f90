@@ -26,10 +26,154 @@
 !==========================================================================================================
 module input_general_mod
   use print_msg_mod
+  use parameters_constant_mod
   implicit none
   public  :: Read_input_parameters
-
+  private :: get_name_case
+  private :: get_name_cs
+  private :: get_name_mesh
+  private :: get_name_iacc
+  private :: get_name_initial
+  private :: get_name_fluid
 contains
+!==========================================================================================================
+  function get_name_case(icase) result(str)
+    integer, intent(in) :: icase
+    character(22) :: str
+
+    select case(icase)
+    case ( ICASE_OTHERS) 
+      str = 'ICASE_OTHERS'
+    case ( ICASE_CHANNEL )
+      str = 'Channel flow'
+    case ( ICASE_PIPE )
+      str = 'Pipe flow'
+    case ( ICASE_ANNUAL )
+      str = 'Annual flow'
+    case ( ICASE_TGV2D )
+      str = '2D Taylor Green Vortex'
+    case ( ICASE_TGV3D )
+      str = '3D Taylor Green Vortex'
+    case ( ICASE_BURGERS )
+      str = 'Burgers flow'
+    case ( ICASE_ALGTEST )
+      str = 'Analytical test'
+    case default
+      call Print_error_msg('The required case type is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_cs(ics) result(str)
+    integer, intent(in) :: ics
+    character(30) :: str
+
+    select case(ics)
+    case ( ICARTESIAN) 
+      str = 'Cartesian coordinate system'
+    case ( ICYLINDRICAL )
+      str = 'Cylindrical coordinate system'
+    case default
+      call Print_error_msg('The required coordinate system is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_mesh(ist) result(str)
+    integer, intent(in) :: ist
+    character(36) :: str
+
+    select case(ist)
+    case ( ISTRET_NO) 
+      str = 'Uniform mesh without stretching'
+    case ( ISTRET_CENTRE)
+      str = 'Mesh clusted towards centre of y-domain'
+    case ( ISTRET_2SIDES)
+      str = 'Mesh clusted twowards two sides of y-domain'
+    case ( ISTRET_BOTTOM)
+      str = 'Mesh clusted twowards the bottom of y-domain'
+    case ( ISTRET_TOP)
+      str = 'Mesh clusted twowards the top of y-domain'
+    case default
+      call Print_error_msg('The required mesh stretching is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_iacc(iacc) result(str)
+    integer, intent(in) :: iacc
+    character(14) :: str
+
+    select case(iacc)
+    case ( IACCU_CD2) 
+      str = '2nd order Centrail Difference'
+    case ( IACCU_CD4)
+      str = '4th order Central Difference'
+    case ( IACCU_CP4)
+      str = '4th order Compact Scheme'
+    case ( IACCU_CP6)
+      str = '6th order Compact Scheme'
+    case default
+      call Print_error_msg('The required numerical scheme is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_initial(irst) result(str)
+    integer, intent(in) :: irst
+    character(50) :: str
+
+    select case(irst)
+    case ( INIT_RESTART) 
+      str = 'Initialised from restart'
+    case ( INIT_INTERPL)
+      str = 'Initialised from interpolation of an existing field'
+    case ( INIT_RANDOM)
+      str = 'Initialised from random numbers'
+    case ( INIT_INLET)
+      str = 'Initialised from inlet'
+    case ( INIT_GVCONST)
+      str = 'Initialised from given values'
+    case ( INIT_POISEUILLE)
+      str = 'Initialised from a poiseuille flow'
+    case ( INIT_FUNCTION)
+      str = 'Initialised from a given function'
+    case default
+      call Print_error_msg('The required initialisation method is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_fluid(ifl) result(str)
+    integer, intent(in) :: ifl
+    character(50) :: str
+
+    select case(ifl)
+    case ( ISCP_WATER) 
+      str = 'Supercritical water'
+    case ( ISCP_CO2)
+      str = 'Supercritical CO2'
+    case ( ILIQUID_BISMUTH)
+      str = 'Liquid Bismuth'
+    case ( ILIQUID_LBE)
+      str = 'Liquid LBE'
+    case ( ILIQUID_LEAD)
+      str = 'Liquid Lead'
+    case ( ILIQUID_SODIUM)
+      str = 'Liquid Sodium'
+    case ( ILIQUID_WATER)
+      str = 'Liquid Water'
+    case default
+      call Print_error_msg('The required flow medium is not supported.')
+    end select
+
+    return
+  end function
 !==========================================================================================================
 !> \brief Reading the input parameters from the given file.     
 !! Scope:  mpi    called-freq    xdomain
@@ -68,7 +212,7 @@ contains
     
     if(nrank == 0) then
       call Print_debug_start_msg("CHAPSim2.0 Starts ...")
-      write (*, wrtfmt1i) '  The precision is   :', WP
+      write (*, wrtfmt1i) '  The precision is REAL*', WP
     end if
     is_any_energyeq = .false.
 
@@ -122,6 +266,7 @@ contains
         end do
 
         if(nrank == 0) then
+          write (*,'(2X, A)') '  if p_row = p_col = 0, the system will employ a default, automatic domain decomposition strategy.'
           write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
           write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
           write (*, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
@@ -191,23 +336,11 @@ contains
 
         
         if(nrank == 0) then
-          write (*, wrtfmt1s) '  icase options:'
-          write (*, wrtfmt1s) '          0 = OTHERS'
-          write (*, wrtfmt1s) '          1 = CHANNEL'
-          write (*, wrtfmt1s) '          2 = PIPE'
-          write (*, wrtfmt1s) '          3 = ANNUAL'
-          write (*, wrtfmt1s) '          4 = TGV3D'
-          write (*, wrtfmt1s) '          5 = TGV2D'
-          write (*, wrtfmt1s) '          6 = BURGERS'
-          write (*, wrtfmt1s) '          7 = ALGTEST'
-          write (*, wrtfmt1s) '  coordinates system option :'
-          write (*, wrtfmt1s) '          1 = Cartesian'
-          write (*, wrtfmt1s) '          2 = Cylindrical'
 
           do i = 1, nxdomain
             write (*, wrtfmt1i) '------For the domain-x------ ', i
-            write (*, wrtfmt1i) '  current icase id :', domain(i)%icase
-            write (*, wrtfmt1i) '  current coordinates system :', domain(i)%icoordinate
+            write (*, wrtfmt2s) '  current icase id :', get_name_case(domain(i)%icase)
+            write (*, wrtfmt2s) '  current coordinates system :', get_name_cs(domain(i)%icoordinate)
             write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
             write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
             if((domain(i)%lyt - domain(i)%lyb) < ZERO) call Print_error_msg("Y length is smaller than zero.")
@@ -339,19 +472,13 @@ contains
         end do
 
         if(nrank == 0) then
-          write (*, wrtfmt1s) '  mesh streching option '
-          write (*, wrtfmt1s) '          0 = ISTRET_NO'
-          write (*, wrtfmt1s) '          1 = ISTRET_CENTRE'
-          write (*, wrtfmt1s) '          2 = ISTRET_2SIDES'
-          write (*, wrtfmt1s) '          3 = ISTRET_BOTTOM'
-          write (*, wrtfmt1s) '          4 = ISTRET_TOP'
           do i = 1, nxdomain
             write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  mesh cell number - x :', domain(i)%nc(1)
             write (*, wrtfmt1i) '  mesh cell number - y :', domain(i)%nc(2)
             write (*, wrtfmt1i) '  mesh cell number - z :', domain(i)%nc(3)
             write (*, wrtfmt3l) '  is mesh stretching in x, y, z :', domain(i)%is_stretching(1:3)
-            write (*, wrtfmt1i) '  mesh y-stretching type   :', domain(i)%istret
+            write (*, wrtfmt2s) '  mesh y-stretching type   :', get_name_mesh(domain(i)%istret)
             write (*, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
           end do
         end if
@@ -396,14 +523,9 @@ contains
         
 
         if(nrank == 0) then
-          write (*, wrtfmt1s) '  spatial accuracy scheme options : '
-          write (*, wrtfmt1s) '    1 = IACCU_CD2'
-          write (*, wrtfmt1s) '    2 = IACCU_CD4'
-          write (*, wrtfmt1s) '    3 = IACCU_CP4'
-          write (*, wrtfmt1s) '    4 = IACCU_CP6'
           do i = 1, nxdomain
             write (*, wrtfmt1i) '  ------For the domain-x------ ', i
-            write (*, wrtfmt1i) '  current spatial accuracy scheme :', domain(i)%iAccuracy
+            write (*, wrtfmt2s) '  current spatial accuracy scheme :', get_name_iacc(domain(i)%iAccuracy)
             write (*, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do
         end if
@@ -442,17 +564,9 @@ contains
         end do
 
         if( nrank == 0) then
-          write (*, wrtfmt1s) '  Initialisation options:'
-          write (*, wrtfmt1s) '          INIT_RESTART    = 0'
-          write (*, wrtfmt1s) '          INIT_INTERPL    = 1'
-          write (*, wrtfmt1s) '          INIT_RANDOM     = 2'
-          write (*, wrtfmt1s) '          INIT_INLET      = 3'
-          write (*, wrtfmt1s) '          INIT_GVCONST    = 4'
-          write (*, wrtfmt1s) '          INIT_POISEUILLE = 5'
-          write (*, wrtfmt1s) '          INIT_FUNCTION   = 6'
           do i = 1, nxdomain
             write (*, wrtfmt1i) '------For the domain-x------ ', i
-            write (*, wrtfmt1i) '  flow initial type                  :', flow(i)%inittype
+            write (*, wrtfmt2s) '  flow initial type                  :', get_name_initial(flow(i)%inittype)
             write (*, wrtfmt1i) '  iteration starting from            :', flow(i)%iterfrom
             if(flow(i)%inittype == INIT_GVCONST) then
             write (*, wrtfmt3r) '  initial velocity u, v, w           :', flow(i)%init_velo3d(1:3)
@@ -499,7 +613,7 @@ contains
             write (*, wrtfmt1l) '  is thermal field solved   ?', domain(i)%is_thermo
             write (*, wrtfmt1l) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
-            write (*, wrtfmt1i) '  fluid medium              :', thermo(i)%ifluid
+            write (*, wrtfmt2s) '  fluid medium              :', get_name_fluid(thermo(i)%ifluid)
             write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%ref_l0
             write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%ref_T0
             write (*, wrtfmt1i) '  thermo field initial type :', thermo(i)%inittype

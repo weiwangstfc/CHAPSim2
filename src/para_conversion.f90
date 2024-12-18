@@ -1,6 +1,5 @@
 module convert_primary_conservative_mod
   public :: convert_primary_conservative
-
  contains 
 
   subroutine convert_primary_conservative(fl, dm, itag)
@@ -226,5 +225,4 @@ module convert_primary_conservative_mod
 
     return
   end subroutine
-  
 end module

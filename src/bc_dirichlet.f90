@@ -15,10 +15,62 @@ module bc_dirichlet_mod
   public  :: initialise_fbc_flow_given   ! applied once only, for bc of constant velocity
   public  :: initialise_fbc_thermo_given ! applied once only, for bc of constant temperature
   public  :: enforce_velo_from_fbc
-  
-  
 
+  public :: extract_dirichlet_fbcx
+  public :: extract_dirichlet_fbcy
+  public :: extract_dirichlet_fbcz
+  
 contains
+  !==========================================================================================================
+  !==========================================================================================================
+  subroutine extract_dirichlet_fbcx(fbc, var, dtmp)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(out) :: fbc(4,           dtmp%xsz(2), dtmp%xsz(3))
+    real(WP), intent(in)  :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
+
+    if(dtmp%xsz(1) /= dtmp%xen(1)) call Print_error_msg("Error. This is not x-pencil.")
+    fbc(1,   :, :) = var(1,           :, :)
+    fbc(2,   :, :) = var(dtmp%xsz(1), :, :)
+    fbc(3:4, :, :) = fbc(1:2,         :, :)
+
+    return
+  end subroutine 
+  !==========================================================================================================
+  subroutine extract_dirichlet_fbcy(fbc, var, dtmp)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(out) :: fbc(dtmp%ysz(1), 4,           dtmp%ysz(3))
+    real(WP), intent(in)  :: var(dtmp%ysz(1), dtmp%ysz(2), dtmp%ysz(3))
+
+    if(dtmp%ysz(2) /= dtmp%yen(2)) call Print_error_msg("Error. This is not y-pencil.")
+    fbc(:, 1,   :) = var(:, 1,           :)
+    fbc(:, 2,   :) = var(:, dtmp%ysz(2), :)
+    fbc(:, 3:4, :) = fbc(:, 1:2,         :)
+
+    return
+  end subroutine 
+  !==========================================================================================================
+  subroutine extract_dirichlet_fbcz(fbc, var, dtmp)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    real(WP), intent(in)  :: var(dtmp%zsz(1), dtmp%zsz(2), dtmp%zsz(3))
+    real(WP), intent(out) :: fbc(dtmp%zsz(1), dtmp%zsz(2), 4          )
+    
+
+    if(dtmp%zsz(3) /= dtmp%zen(3)) call Print_error_msg("Error. This is not z-pencil.")
+    fbc(:, :, 1  ) = var(:, :, 1          )
+    fbc(:, :, 2  ) = var(:, :, dtmp%zsz(3))
+    fbc(:, :, 3:4) = fbc(:, :, 1:2        )
+
+    return
+  end subroutine 
 
 !==========================================================================================================
 !==========================================================================================================
@@ -213,7 +265,7 @@ contains
 
     real(WP) :: var1y(1:dm%np(2))
     
-    integer :: ny
+    integer :: ny, n
 !==========================================================================================================
 ! to build up bc with constant values
 ! -3-1-||||-2-4
@@ -234,6 +286,13 @@ contains
     call initialise_fbcy_given_const(dm%fbcy_qy, dm%fbcy_const(:, 2))
     call initialise_fbcy_given_const(dm%fbcy_qz, dm%fbcy_const(:, 3)) ! geo_bc, rpi, not rci
     call initialise_fbcy_given_const(dm%fbcy_pr, dm%fbcy_const(:, 4))
+    if(dm%icoordinate == ICYLINDRICAL) then
+!----------------------------------------------------------------------------------------------------------
+! y-bc in y-pencil, qyr = qy/r = uy; qzr = qz/r = uz
+!----------------------------------------------------------------------------------------------------------
+      call initialise_fbcy_given_const(dm%fbcy_qyr, dm%fbcy_const(:, 2), dm%rpi)
+      call initialise_fbcy_given_const(dm%fbcy_qzr, dm%fbcy_const(:, 3), dm%rci)
+    end if
 !----------------------------------------------------------------------------------------------------------
 ! z-bc in z-pencil, qx, qy, qz, pr
 !----------------------------------------------------------------------------------------------------------
@@ -241,15 +300,7 @@ contains
     call initialise_fbcz_given_const(dm%fbcz_qy, dm%fbcz_const(:, 2))
     call initialise_fbcz_given_const(dm%fbcz_qz, dm%fbcz_const(:, 3))
     call initialise_fbcz_given_const(dm%fbcz_pr, dm%fbcz_const(:, 4))
-!==========================================================================================================
-! y bc for primary variables, uy, uz
-!==========================================================================================================
     if(dm%icoordinate == ICYLINDRICAL) then
-!----------------------------------------------------------------------------------------------------------
-! y-bc in y-pencil, qyr = qy/r = uy; qzr = qz/r = uz
-!----------------------------------------------------------------------------------------------------------
-      call initialise_fbcy_given_const(dm%fbcy_qyr, dm%fbcy_const(:, 2), dm%rpi)
-      call initialise_fbcy_given_const(dm%fbcy_qzr, dm%fbcy_const(:, 3), dm%rci)
 !----------------------------------------------------------------------------------------------------------
 ! z-bc in z-pencil, qyr = qy/r = uy; qzr = qz/r = uz
 !----------------------------------------------------------------------------------------------------------
@@ -303,6 +354,38 @@ contains
       call initialise_fbcx_given_profile(dm%fbcx_pr, var1y, dm%dccc%xst(2), 'pr')
     end if
 
+    if(dm%is_thermo) then
+      do n = 1, 2 
+!----------------------------------------------------------------------------------------------------------
+! x-bc in x-pencil, gx, gy, gz
+!----------------------------------------------------------------------------------------------------------
+        dm%fbcx_gx(n, :, :) = dm%fbcx_qx(n, :, :) * dm%fbcx_ftp(n, 1, 1)%d
+        dm%fbcx_gy(n, :, :) = dm%fbcx_qy(n, :, :) * dm%fbcx_ftp(n, 1, 1)%d
+        dm%fbcx_gz(n, :, :) = dm%fbcx_qz(n, :, :) * dm%fbcx_ftp(n, 1, 1)%d
+!----------------------------------------------------------------------------------------------------------
+! y-bc in y-pencil, gx, gy, gz, qyr = qy/r = uy; qzr = qz/r = uz
+!----------------------------------------------------------------------------------------------------------
+        dm%fbcy_gx(:, n, :) = dm%fbcy_qx(:, n, :) * dm%fbcy_ftp(1, n, 1)%d
+        dm%fbcy_gy(:, n, :) = dm%fbcy_qy(:, n, :) * dm%fbcy_ftp(1, n, 1)%d
+        dm%fbcy_gz(:, n, :) = dm%fbcy_qz(:, n, :) * dm%fbcy_ftp(1, n, 1)%d
+        if(dm%icoordinate == ICYLINDRICAL) then
+          dm%fbcy_gyr(:, n, :) = dm%fbcy_qyr(:, n, :) * dm%fbcy_ftp(1, n, 1)%d
+          dm%fbcy_gzr(:, n, :) = dm%fbcy_qzr(:, n, :) * dm%fbcy_ftp(1, n, 1)%d
+        end if
+!----------------------------------------------------------------------------------------------------------
+! z-bc in z-pencil, gx, gy, gz, gyr = gy/r ; gzr = gz/r
+!----------------------------------------------------------------------------------------------------------
+        dm%fbcz_gx(:, :, n) = dm%fbcz_qx(:, :, n) * dm%fbcz_ftp(1, 1, n)%d
+        dm%fbcz_gy(:, :, n) = dm%fbcz_qy(:, :, n) * dm%fbcz_ftp(1, 1, n)%d
+        dm%fbcz_gz(:, :, n) = dm%fbcz_qz(:, :, n) * dm%fbcz_ftp(1, 1, n)%d
+        if(dm%icoordinate == ICYLINDRICAL) then
+          dm%fbcz_gyr(:, :, n) = dm%fbcz_qyr(:, :, n) * dm%fbcz_ftp(1, 1, n)%d
+          dm%fbcz_gzr(:, :, n) = dm%fbcz_qzr(:, :, n) * dm%fbcz_ftp(1, 1, n)%d
+        end if
+
+      end do
+    end if
+
     return
   end subroutine 
 
@@ -316,17 +399,11 @@ contains
     real(WP) :: var1y(1:dm%np(2))
     
     integer :: ny, n, i, j, k
-    real(WP) :: density
-!==========================================================================================================
+!----------------------------------------------------------------------------------------------------------
 ! to build up bc with constant values
 ! -3-1-||||-2-4
 ! for constant bc, 3=1= geometric bc, side 1;
 !                  2=4= geometric bc, side 2 
-!==========================================================================================================
-!==========================================================================================================
-! to build up bc for var(x_const, y, z)
-!==========================================================================================================
-!----------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------
 ! x-bc1, pr(x_c, y, z)
 !----------------------------------------------------------------------------------------------------------
@@ -346,19 +423,12 @@ contains
       if(dm%ibcx_nominal(n, 5) == IBC_DIRICHLET) then
         dm%fbcx_ftp(n, :, :)%t   = dm%fbcx_const(n, 5)
         call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcx_ftp)
-        density = dm%fbcx_ftp(n, 1, 1)%d
       else if (dm%ibcx_nominal(n, 5) == IBC_NEUMANN) then
         dm%fbcx_qw(n, :, :) = dm%fbcx_const(n, 5) 
         dm%fbcx_ftp = tm%ftp_ini
-        density = tm%ftp_ini%d
       else
         dm%fbcx_ftp = tm%ftp_ini
-        density = tm%ftp_ini%d
       end if
-
-      dm%fbcx_gx(n, :, :) = dm%fbcx_qx(n, :, :) * density
-      dm%fbcx_gy(n, :, :) = dm%fbcx_qy(n, :, :) * density
-      dm%fbcx_gz(n, :, :) = dm%fbcx_qz(n, :, :) * density
 !----------------------------------------------------------------------------------------------------------
 ! y-bc in y-pencil, ftp, qx, qy, qz, pr
 !----------------------------------------------------------------------------------------------------------
@@ -366,25 +436,11 @@ contains
         dm%fbcy_ftp(:, n, :)%t   = dm%fbcy_const(n, 5)
         call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcy_ftp)
         !write(*,*) 'test, bc-T', dm%fbcy_const(n, 5), dm%fbcy_ftp(4, n, 4)%t
-        density = dm%fbcy_ftp(1, n, 1)%d
       else if (dm%ibcy_nominal(n, 5) == IBC_NEUMANN) then
         dm%fbcy_qw(:, n, :) = dm%fbcy_const(n, 5) 
         dm%fbcy_ftp = tm%ftp_ini
-        density = tm%ftp_ini%d
       else
         dm%fbcy_ftp = tm%ftp_ini
-        density = tm%ftp_ini%d
-      end if
-
-      dm%fbcy_gx(:, n, :) = dm%fbcy_qx(:, n, :) * density
-      dm%fbcy_gy(:, n, :) = dm%fbcy_qy(:, n, :) * density
-      dm%fbcy_gz(:, n, :) = dm%fbcy_qz(:, n, :) * density
-      !----------------------------------------------------------------------------------------------------------
-      ! y-bc in y-pencil, qyr = qy/r = uy; qzr = qz/r = uz
-      !----------------------------------------------------------------------------------------------------------
-      if(dm%icoordinate == ICYLINDRICAL) then
-        dm%fbcy_gyr(:, n, :) = dm%fbcy_qyr(:, n, :) * density
-        dm%fbcy_gzr(:, n, :) = dm%fbcy_qzr(:, n, :) * density
       end if
 !----------------------------------------------------------------------------------------------------------
 ! z-bc in z-pencil, qx, qy, qz, pr
@@ -392,30 +448,17 @@ contains
       if( dm%ibcz_nominal(n, 5) == IBC_DIRICHLET ) then
         dm%fbcz_ftp(:, :, n)%t   = dm%fbcz_const(n, 5)
         call ftp_refresh_thermal_properties_from_T_undim_3D(dm%fbcz_ftp)
-        density = dm%fbcz_ftp(1, 1, n)%d
       else if (dm%ibcz_nominal(n, 5) == IBC_NEUMANN) then
         dm%fbcz_qw(:, :, n) = dm%fbcz_const(n, 5) 
         dm%fbcz_ftp = tm%ftp_ini
-        density = tm%ftp_ini%d
       else 
         dm%fbcz_ftp = tm%ftp_ini
-        density = tm%ftp_ini%d
-      end if
-      dm%fbcz_gx(:, :, n) = dm%fbcz_qx(:, :, n) * density
-      dm%fbcz_gy(:, :, n) = dm%fbcz_qy(:, :, n) * density
-      dm%fbcz_gz(:, :, n) = dm%fbcz_qz(:, :, n) * density
-!----------------------------------------------------------------------------------------------------------
-! z-bc in z-pencil, qyr = qy/r = uy; qzr = qz/r = uz
-!----------------------------------------------------------------------------------------------------------
-      if(dm%icoordinate == ICYLINDRICAL) then
-        dm%fbcz_gyr(:, :, n) = dm%fbcz_qyr(:, :, n) * density
-        dm%fbcz_gzr(:, :, n) = dm%fbcz_qzr(:, :, n) * density
       end if
     end do
 
     return
   end subroutine 
-
+!==========================================================================================================
   subroutine enforce_velo_from_fbc(dm, ux, uy, uz, fbcx0, fbcy0, fbcz0)
     use udf_type_mod
     use parameters_constant_mod
