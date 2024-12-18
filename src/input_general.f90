@@ -300,8 +300,10 @@ contains
           else if (domain(i)%icase == ICASE_PIPE) then
             domain(i)%lyb = ZERO
             domain(i)%lyt = ONE
+            domain(i)%lzz = TWOPI
           else if (domain(i)%icase == ICASE_ANNUAL) then
             domain(i)%lyt = ONE
+            domain(i)%lzz = TWOPI
           else if (domain(i)%icase == ICASE_TGV2D .or. domain(i)%icase == ICASE_TGV3D) then
             domain(i)%lxx = TWOPI
             domain(i)%lzz = TWOPI
