@@ -590,7 +590,6 @@ contains
       fbcx_ftp_4pc(1, :, :) = fbc ! check
     else 
       fbcx_ftp_4pc(1, :, :) = MAXP 
-      call Print_warning_msg("Warning: Wrong Setup in dm%ibcx_ftp(1)")
     end if 
 
     ! write(*,*) '1-', fbcx_ftp_4pc(1, :, :)

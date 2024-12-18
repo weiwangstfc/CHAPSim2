@@ -1676,7 +1676,7 @@ contains
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !----------------------------------------------------------------------------------------------------------
     div  = ZERO
-    call Get_divergence(fl, div, dm)
+    call Get_divergence_flow(fl, div, dm)
     coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     fl%pcor = fl%pcor + div
     fl%pcor = fl%pcor * coeff
