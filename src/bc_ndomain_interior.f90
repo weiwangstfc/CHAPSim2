@@ -275,13 +275,13 @@ contains
 !   bc in x - direction
 !----------------------------------------------------------------------------------------------------------
     ! thermal field, dm1-dm2
-    if(dm2%ibcx_Th(1) == IBC_INTERIOR) then
+    if(dm2%ibcx_Tm(1) == IBC_INTERIOR) then
       dm2%fbcx_ftp(1, :, :)%t = tm1%tTemp(dm1%nc(1),     :, :)
       dm2%fbcx_ftp(3, :, :)%t = tm1%tTemp(dm1%nc(1) - 1, :, :)
       call ftp_refresh_thermal_properties_from_T_undim_3D(dm2%fbcx_ftp)
     end if
 
-    if(dm1%ibcx_Th(2) == IBC_INTERIOR) then
+    if(dm1%ibcx_Tm(2) == IBC_INTERIOR) then
       dm1%fbcx_ftp(2, :, :)%t = tm2%tTemp(1, :, :)
       dm1%fbcx_ftp(4, :, :)%t = tm2%tTemp(2, :, :)
       call ftp_refresh_thermal_properties_from_T_undim_3D(dm1%fbcx_ftp)
@@ -290,14 +290,14 @@ contains
 !   bc in y - direction
 !----------------------------------------------------------------------------------------------------------
     ! thermal field, dm1-dm2
-    if(dm2%ibcy_Th(1) == IBC_INTERIOR) then
+    if(dm2%ibcy_Tm(1) == IBC_INTERIOR) then
       call transpose_x_to_y(tm1%tTemp, accc0_ypencil, dm1%dccc)
       dm2%fbcy_ftp(:, 1, :)%t = accc0_ypencil(:, dm1%nc(1),     :)
       dm2%fbcy_ftp(:, 3, :)%t = accc0_ypencil(:, dm1%nc(1) - 1, :)
       call ftp_refresh_thermal_properties_from_T_undim_3D(dm2%fbcy_ftp)
     end if
 
-    if(dm1%ibcy_Th(2) == IBC_INTERIOR) then
+    if(dm1%ibcy_Tm(2) == IBC_INTERIOR) then
       call transpose_x_to_y(tm2%tTemp, accc1_ypencil, dm2%dccc)
       dm1%fbcy_ftp(:, 2, :)%t = accc1_ypencil(:, 1, :)
       dm1%fbcy_ftp(:, 4, :)%t = accc1_ypencil(:, 2, :)
@@ -307,7 +307,7 @@ contains
 !   bc in z - direction
 !----------------------------------------------------------------------------------------------------------
     ! thermal field, dm1-dm2
-    if(dm2%ibcz_Th(1) == IBC_INTERIOR) then
+    if(dm2%ibcz_Tm(1) == IBC_INTERIOR) then
       call transpose_x_to_y(tm1%tTemp,     accc0_ypencil, dm1%dccc)
       call transpose_y_to_z(accc0_ypencil, accc0_zpencil, dm1%dccc)
       dm2%fbcz_ftp(:, :, 1)%t = accc0_zpencil(:, :, dm1%nc(1)    )
@@ -315,7 +315,7 @@ contains
       call ftp_refresh_thermal_properties_from_T_undim_3D(dm2%fbcz_ftp)
     end if
 
-    if(dm1%ibcz_Th(2) == IBC_INTERIOR) then
+    if(dm1%ibcz_Tm(2) == IBC_INTERIOR) then
       call transpose_x_to_y(tm2%tTemp,     accc1_ypencil, dm2%dccc)
       call transpose_y_to_z(accc1_ypencil, accc1_zpencil, dm2%dccc)
       dm1%fbcz_ftp(:, :, 2)%t = accc1_zpencil(:, :, 1)

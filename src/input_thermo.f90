@@ -982,10 +982,10 @@ contains
     ! x-bc
     !----------------------------------------------------------------------------------------------------------
     do n = 1, 2
-      if( dm%ibcx_Th(n) == IBC_DIRICHLET ) then
+      if( dm%ibcx_Tm(n) == IBC_DIRICHLET ) then
         dm%fbcx_const(n, 5) = dm%fbcx_const(n, 5)/tm%ref_T0  ! undim
       end if
-      if (dm%ibcx_Th(n) == IBC_NEUMANN) then
+      if (dm%ibcx_Tm(n) == IBC_NEUMANN) then
         dm%fbcx_const(n, 5) = dm%fbcx_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
       end if
     end do 
@@ -994,10 +994,10 @@ contains
     ! y-bc
     !----------------------------------------------------------------------------------------------------------
     do n = 1, 2
-      if( dm%ibcy_Th(n) == IBC_DIRICHLET ) then
+      if( dm%ibcy_Tm(n) == IBC_DIRICHLET ) then
         dm%fbcy_const(n, 5) = dm%fbcy_const(n, 5)/tm%ref_T0  ! undim
       end if
-      if (dm%ibcy_Th(n) == IBC_NEUMANN) then
+      if (dm%ibcy_Tm(n) == IBC_NEUMANN) then
         dm%fbcy_const(n, 5) = dm%fbcy_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
       end if
     end do 
@@ -1005,16 +1005,16 @@ contains
     ! z-bc
     !----------------------------------------------------------------------------------------------------------
     do n = 1, 2
-      if( dm%ibcz_Th(n) == IBC_DIRICHLET ) then
+      if( dm%ibcz_Tm(n) == IBC_DIRICHLET ) then
         dm%fbcz_const(n, 5) = dm%fbcz_const(n, 5)/tm%ref_T0  ! undim
       end if
-      if (dm%ibcz_Th(n) == IBC_NEUMANN) then
+      if (dm%ibcz_Tm(n) == IBC_NEUMANN) then
         dm%fbcz_const(n, 5) = dm%fbcz_const(n, 5) * tm%ref_l0 / fluidparam%ftp0ref%k / fluidparam%ftp0ref%t 
       end if
     end do 
 
     !
-    if(dm%ibcx_Th(1) == IBC_PROFILE1D .and. nrank == 0) then
+    if(dm%ibcx_Tm(1) == IBC_PROFILE1D .and. nrank == 0) then
       open ( newunit = inputUnit,     &
            file    = trim(filename1), &
            status  = 'old',         &

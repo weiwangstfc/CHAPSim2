@@ -124,10 +124,10 @@
 ! ! x-pencil : k_pcc * d (T) / dx 
 ! !----------------------------------------------------------------------------------------------------------
 !     apcc = apcc * kCond_pcc
-!     if (dm%ibcx_Th(1) == IBC_NEUMANN) then
+!     if (dm%ibcx_Tm(1) == IBC_NEUMANN) then
 !       !apcc(1, :, :) = dm%fbcx_var(1, 5)
 !     end if
-!     if (dm%ibcx_Th(2) == IBC_NEUMANN) then
+!     if (dm%ibcx_Tm(2) == IBC_NEUMANN) then
 !       !apcc(dm%dpcc%xen(1), :, :) = dm%fbcx_var(2, 5)
 !     end if
 ! !----------------------------------------------------------------------------------------------------------
@@ -163,10 +163,10 @@
 ! ! y-pencil : k_cpc * d (T) / dy 
 ! !----------------------------------------------------------------------------------------------------------
 !     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
-!     if (dm%ibcy_Th(1) == IBC_NEUMANN) then
+!     if (dm%ibcy_Tm(1) == IBC_NEUMANN) then
 !       !acpc_ypencil(:, 1, :) = dm%fbcy_var(1, 5)
 !     end if
-!     if (dm%ibcy_Th(2) == IBC_NEUMANN) then
+!     if (dm%ibcy_Tm(2) == IBC_NEUMANN) then
 !       !acpc_ypencil(:, dm%dcpc%yen(2), :) = dm%fbcy_var(2, 5)
 !     end if
 ! !----------------------------------------------------------------------------------------------------------
@@ -204,10 +204,10 @@
 ! ! z-pencil : k_ccp * d (T) / dz 
 ! !----------------------------------------------------------------------------------------------------------
 !     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
-!     if (dm%ibcz_Th(1) == IBC_NEUMANN) then
+!     if (dm%ibcz_Tm(1) == IBC_NEUMANN) then
 !       !accp_zpencil(:, 1, :) = dm%fbcz_var(1, 5)
 !     end if
-!     if (dm%ibcz_Th(2) == IBC_NEUMANN) then
+!     if (dm%ibcz_Tm(2) == IBC_NEUMANN) then
 !       !accp_zpencil(:, :, dm%dccp%zen(3)) = dm%fbcz_var(2, 5)
 !     end if
 ! !----------------------------------------------------------------------------------------------------------

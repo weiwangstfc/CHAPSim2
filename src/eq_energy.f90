@@ -51,10 +51,10 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  BC - x
 !----------------------------------------------------------------------------------------------------------
-  if( dm%ibcx_Th(1) == IBC_NEUMANN .or. &
-      dm%ibcx_Th(2) == IBC_NEUMANN) then
+  if( dm%ibcx_Tm(1) == IBC_NEUMANN .or. &
+      dm%ibcx_Tm(2) == IBC_NEUMANN) then
     call Get_x_midp_C2P_3D(tm%rhoh, dh_pcc, dm, dm%iAccuracy, dm%ibcx_ftp) ! exterpolation, check
-    if(dm%ibcx_Th(1) == IBC_NEUMANN .and. &
+    if(dm%ibcx_Tm(1) == IBC_NEUMANN .and. &
        dm%dpcc%xst(1) == 1) then 
       do j = 1, size(dm%fbcx_ftp, 2)
         do k = 1, size(dm%fbcx_ftp, 3)
@@ -65,7 +65,7 @@ contains
         end do
       end do 
     end if
-    if(dm%ibcx_Th(2) == IBC_NEUMANN .and. &
+    if(dm%ibcx_Tm(2) == IBC_NEUMANN .and. &
        dm%dpcc%xen(1) == dm%np(1)) then 
       do j = 1, size(dm%fbcx_ftp, 2)
         do k = 1, size(dm%fbcx_ftp, 3)
@@ -81,12 +81,12 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  BC - y
 !----------------------------------------------------------------------------------------------------------
-  if( dm%ibcy_Th(1) == IBC_NEUMANN .or. &
-      dm%ibcy_Th(2) == IBC_NEUMANN) then
+  if( dm%ibcy_Tm(1) == IBC_NEUMANN .or. &
+      dm%ibcy_Tm(2) == IBC_NEUMANN) then
     call transpose_x_to_y(tm%rhoh, dh_ypencil, dm%dccc)
     call Get_y_midp_C2P_3D(dh_ypencil, dh_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp) ! exterpolation, check
     
-    if(dm%ibcy_Th(1) == IBC_NEUMANN .and. &
+    if(dm%ibcy_Tm(1) == IBC_NEUMANN .and. &
        dm%dcpc%yst(2) == 1) then 
       do i = 1, size(dm%fbcy_ftp, 1)
         do k = 1, size(dm%fbcy_ftp, 3)
@@ -97,7 +97,7 @@ contains
         end do
       end do
     end if
-    if(dm%ibcy_Th(2) == IBC_NEUMANN .and. &
+    if(dm%ibcy_Tm(2) == IBC_NEUMANN .and. &
        dm%dcpc%yen(2) == dm%np(2)) then 
       do i = 1, size(dm%fbcy_ftp, 1)
         do k = 1, size(dm%fbcy_ftp, 3)
@@ -112,13 +112,13 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  BC - z
 !----------------------------------------------------------------------------------------------------------
-  if( dm%ibcz_Th(1) == IBC_NEUMANN .or. &
-      dm%ibcz_Th(2) == IBC_NEUMANN) then
+  if( dm%ibcz_Tm(1) == IBC_NEUMANN .or. &
+      dm%ibcz_Tm(2) == IBC_NEUMANN) then
     call transpose_x_to_y(tm%rhoh, dh_ypencil, dm%dccc)
     call transpose_y_to_z(dh_ypencil, dh_zpencil, dm%dccc)
     call Get_z_midp_C2P_3D(dh_zpencil, dh_ccp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp) ! exterpolation, check
     
-    if(dm%ibcz_Th(1) == IBC_NEUMANN .and. &
+    if(dm%ibcz_Tm(1) == IBC_NEUMANN .and. &
        dm%dccp%zst(1) == 1) then 
       do j = 1, size(dm%fbcz_ftp, 2)
         do i = 1, size(dm%fbcz_ftp, 1)
@@ -129,7 +129,7 @@ contains
         end do
       end do
     end if
-    if(dm%ibcz_Th(2) == IBC_NEUMANN .and. &
+    if(dm%ibcz_Tm(2) == IBC_NEUMANN .and. &
        dm%dccp%zen(1) == dm%np(3)) then 
       do j = 1, size(dm%fbcz_ftp, 2)
         do i = 1, size(dm%fbcz_ftp, 1)
@@ -324,8 +324,8 @@ contains
 ! diff-x-e, d ( k_pcc * d (T) / dx ) dx
 !----------------------------------------------------------------------------------------------------------
     !------bulk------
-    call get_fbcx_iTh(dm%ibcx_Th, dm, fbcx_4cc)
-    call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Th, fbcx_4cc )
+    call get_fbcx_iTh(dm%ibcx_Tm, dm, fbcx_4cc)
+    call Get_x_1der_C2P_3D(tm%tTemp, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_Tm, fbcx_4cc )
     apcc_xpencil = apcc_xpencil * kCond_pcc_xpencil
     !------B.C.------
     if(is_fbcx_velo_required) then
@@ -343,8 +343,8 @@ contains
 ! diff-y-e, d ( r * k_cpc * d (T) / dy ) dy * 1/r
 !----------------------------------------------------------------------------------------------------------
     !------bulk------
-    call get_fbcy_iTh(dm%ibcy_Th, dm, fbcy_c4c)
-    call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Th, fbcy_c4c)
+    call get_fbcy_iTh(dm%ibcy_Tm, dm, fbcy_c4c)
+    call Get_y_1der_C2P_3D(tTemp_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_Tm, fbcy_c4c)
     acpc_ypencil = acpc_ypencil * kCond_cpc_ypencil
 #ifdef DEBUG_STEPS
     write(*,*) 'diy-dT', acpc_ypencil(4, 1:4, 4)
@@ -369,8 +369,8 @@ contains
 ! diff-z-e, d (1/r* k_ccp * d (T) / dz ) / dz * 1/r
 !----------------------------------------------------------------------------------------------------------
     !------bulk------
-    call get_fbcz_iTh(dm%ibcz_Th, dm, fbcz_cc4)
-    call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Th, fbcz_cc4 )
+    call get_fbcz_iTh(dm%ibcz_Tm, dm, fbcz_cc4)
+    call Get_z_1der_C2P_3D(tTemp_ccc_zpencil, accp_zpencil, dm, dm%iAccuracy, dm%ibcz_Tm, fbcz_cc4 )
     accp_zpencil = accp_zpencil * kCond_ccp_zpencil
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accp_zpencil, dm%dccp, dm%rci, 1, IPENCIL(3))
     !------PDE------
