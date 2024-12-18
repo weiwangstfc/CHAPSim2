@@ -324,17 +324,17 @@ module bc_convective_outlet_mod
 ! back to real fbc
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_thermo) then
-      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_gx = fbcx 
-      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_gy = fbcy 
-      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_gz = fbcz 
-      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_qx(:, :, :) = dm%fbcx_gx(:, :, :) / dm%fbcx_ftp(:, :, :)%d
-      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_qy(:, :, :) = dm%fbcy_gy(:, :, :) / dm%fbcy_ftp(:, :, :)%d
-      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_qz(:, :, :) = dm%fbcz_gz(:, :, :) / dm%fbcz_ftp(:, :, :)%d
+      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_gx(2, :, :) = fbcx(2, :, :) 
+      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_gy(2, :, :) = fbcy(2, :, :) 
+      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_gz(2, :, :) = fbcz(2, :, :) 
+      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_qx(2, :, :) = dm%fbcx_gx(2, :, :) / dm%fbcx_ftp(2, :, :)%d
+      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_qy(2, :, :) = dm%fbcy_gy(2, :, :) / dm%fbcy_ftp(2, :, :)%d
+      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_qz(2, :, :) = dm%fbcz_gz(2, :, :) / dm%fbcz_ftp(2, :, :)%d
       !call update_flow_from_dyn_fbcx(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcx_gy, dm%fbcx_gz)
     else
-      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_qx = fbcx
-      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_qy = fbcy
-      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_qz = fbcz
+      if( dm%ibcx_nominal(2, 1) == IBC_CONVECTIVE) dm%fbcx_qx(2, :, :) = fbcx(2, :, :)
+      if( dm%ibcy_nominal(2, 2) == IBC_CONVECTIVE) dm%fbcy_qy(2, :, :) = fbcy(2, :, :)
+      if( dm%ibcz_nominal(2, 3) == IBC_CONVECTIVE) dm%fbcz_qz(2, :, :) = fbcz(2, :, :)
     end if
     !call update_flow_from_dyn_fbcx(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
     
@@ -343,6 +343,7 @@ module bc_convective_outlet_mod
 
 !==========================================================================================================
   subroutine update_fbcx_convective_outlet_flow(fl, dm, isub)
+    use bc_dirichlet_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(inout) :: dm
@@ -352,7 +353,8 @@ module bc_convective_outlet_mod
     integer :: i
 
     if(.not. dm%is_conv_outlet) return
-
+    if(nrank == 0) call Print_debug_mid_msg("Calculate convective outlet for flow ...")
+    ! work on fbcx, not fl directly
     call get_convective_outlet_ux(fl, dm, uxdx)
     if ( .not. dm%is_thermo) then
       
@@ -384,6 +386,14 @@ module bc_convective_outlet_mod
 
     call enforce_domain_mass_balance_dyn_fbc(fl, dm)
 
+    if ( .not. dm%is_thermo) then
+      call enforce_velo_from_fbc(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
+    else
+      ! check , whether it is better to use qx = gx / density ?
+      call enforce_velo_from_fbc(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
+      call enforce_velo_from_fbc(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcy_gy, dm%fbcz_gz)
+    end if
+
     return
   end subroutine
 
@@ -398,14 +408,18 @@ module bc_convective_outlet_mod
     
     real(WP) :: uxdx
     integer :: j, k
+    real(WP), dimension(4, dm%dccc%xsz(2), dm%dccc%xsz(3)) :: a4cc_xpencil
 
     if ( .not. dm%is_thermo) return
     if ( .not. dm%is_conv_outlet) return
 
+    if(nrank == 0) call Print_debug_mid_msg("Calculate convective outlet for thermo ...")
     call get_convective_outlet_ux(fl, dm, uxdx)
 
     if(dm%ibcx_nominal(2, 5) == IBC_CONVECTIVE) then
-      call calculate_fbcx_convective_outlet(dm%fbcx_ftp(:, :, :)%rhoh, uxdx, tm%fbcx_rhoh_rhs0(:, :), tm%rhoh, dm%dccc, dm, isub)
+      a4cc_xpencil = dm%fbcx_ftp(:, :, :)%rhoh
+      call calculate_fbcx_convective_outlet(a4cc_xpencil, uxdx, tm%fbcx_rhoh_rhs0(:, :), tm%rhoh, dm%dccc, dm, isub)
+      dm%fbcx_ftp(:, :, :)%rhoh = a4cc_xpencil
       do j = 1, size(dm%fbcx_ftp, 2)
         do k = 1, size(dm%fbcx_ftp, 3)
           call ftp_refresh_thermal_properties_from_DH(dm%fbcx_ftp(2, j, k))

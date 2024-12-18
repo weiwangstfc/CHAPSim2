@@ -110,13 +110,13 @@ subroutine initialise_chapsim
 ! build up bounary condition
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    if(domain(i)%is_thermo) call Convert_thermal_input_2undim(thermo(i), domain(i))
-    call allocate_fbc_flow(domain(i)) 
-    call initialise_fbc_flow_given(domain(i)) 
     if(domain(i)%is_thermo) then
+      call Convert_thermal_input_2undim(thermo(i), domain(i))
       call allocate_fbc_thermo(domain(i)) 
       call initialise_fbc_thermo_given(thermo(i), domain(i)) 
     end if
+    call allocate_fbc_flow(domain(i)) 
+    call initialise_fbc_flow_given(domain(i)) 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! initialise flow and thermo fields
@@ -275,12 +275,12 @@ subroutine Solve_eqs_iteration
       ! update interface values for multiple domain
       !----------------------------------------------------------------------------------------------------------
       do i = 1, nxdomain - 1
-        if(is_flow(i))    call update_fbc_2dm_flow_halo  (domain(i), flow(i),   domain(i+1), flow(i+1))
+        if(is_flow(i))   call update_fbc_2dm_flow_halo  (domain(i), flow(i),   domain(i+1), flow(i+1))
         if(is_thermo(i)) call update_fbc_2dm_thermo_halo(domain(i), thermo(i), domain(i+1), thermo(i+1))
       end do
       do i = 1, nxdomain
         if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
-        if(is_flow(i))    call Solve_momentum_eq(flow(i), domain(i), isub)
+        if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
       end do
 #ifdef DEBUG_STEPS
       !call Print_warning_msg(" === The solver will stop as per the user's request. === ")

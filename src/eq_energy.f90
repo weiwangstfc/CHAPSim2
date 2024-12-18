@@ -351,8 +351,14 @@ contains
     write(*,*) 'dify-k', kCond_cpc_ypencil(4, 1:4, 4)
 #endif
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
+    !------B.C.------
+    if(is_fbcx_velo_required) then
+      call extract_dirichlet_fbcy(fbcy_c4c, acpc_ypencil, dm%dcpc)
+    else
+      fbcy_c4c = MAXP
+    end if  
     !------PDE------
-    call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu) ! check, dirichlet, r treatment
+    call Get_y_1der_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, ebcy_difu, fbcy_c4c) ! check, dirichlet, r treatment
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     ene_rhs_ccc_ypencil = ene_rhs_ccc_ypencil + accc_ypencil * tm%rPrRen
     

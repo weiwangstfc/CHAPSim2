@@ -285,8 +285,10 @@ contains
 ! bc variables
 !----------------------------------------------------------------------------------------------------------
     real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_4cc 
+    real(WP), dimension( 4, dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: fbcx_4pc 
     real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_div_4cc  ! common
     real(WP), dimension( 4, dm%dpcc%xsz(2), dm%dpcc%xsz(3) ) :: fbcx_mu_4cc   ! thermo
+    real(WP), dimension( 4, dm%dppc%xsz(2), dm%dppc%xsz(3) ) :: fbcx_mu_4pc
 
     real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c
     real(WP), dimension( dm%dcpc%ysz(1), 4, dm%dcpc%ysz(3) ) :: fbcy_c4c1
@@ -665,9 +667,10 @@ contains
 
       call Get_y_midp_C2P_3D(mu_ccc_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c)
       call transpose_y_to_x(acpc_ypencil, acpc_xpencil, dm%dcpc) !acpc_xpencil = muiy_cpc_xpencil
-      call Get_x_midp_C2P_3D(acpc_xpencil, muixy_ppc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp)!, fbcx_4pc)
+      call get_fbcx_ftp_4pc(fbcx_4cc, fbcx_4pc, dm)
+      call Get_x_midp_C2P_3D(acpc_xpencil, muixy_ppc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp, fbcx_4pc)
       
-      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcz_ftp, fbcx_4cc)
+      call Get_x_midp_C2P_3D(mu_ccc_xpencil, apcc_xpencil, dm, dm%iAccuracy, dm%ibcx_ftp, fbcx_4cc)
       call transpose_x_to_y(apcc_xpencil, apcc_ypencil, dm%dpcc)
       call transpose_y_to_z(apcc_ypencil, apcc_zpencil, dm%dpcc)
       call Get_z_midp_C2P_3D(apcc_zpencil, muixz_pcp_zpencil, dm, dm%iAccuracy, dm%ibcz_ftp)!, fbcz_pc4)
@@ -1825,13 +1828,6 @@ contains
 ! to set up convective outlet b.c. assume x direction
 !----------------------------------------------------------------------------------------------------------
     if(dm%is_conv_outlet) call update_fbcx_convective_outlet_flow(fl, dm, isub)
-    if ( .not. dm%is_thermo) then
-      call enforce_velo_from_fbc(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
-    else
-      ! check , whether it is better to use qx = gx / density ?
-      call enforce_velo_from_fbc(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcy_qy, dm%fbcz_qz)
-      call enforce_velo_from_fbc(dm, fl%gx, fl%gy, fl%gz, dm%fbcx_gx, dm%fbcy_gy, dm%fbcz_gz)
-    end if
 !----------------------------------------------------------------------------------------------------------
 ! to calculate the rhs of the momenturn equation in stepping method
 !----------------------------------------------------------------------------------------------------------
@@ -1855,13 +1851,13 @@ contains
     
 #ifdef DEBUG_STEPS
     if ( .not. dm%is_thermo) then     
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx_bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy_bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc, fl%iteration, isub, 'qx_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc, fl%iteration, isub, 'qy_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp, fl%iteration, isub, 'qz_bf divg') ! debug_ww
     else
-    call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, isub, 'gx_bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, isub, 'gy_bf divg') ! debug_ww
-    call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, isub, 'gz_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gx, dm%dpcc, fl%iteration, isub, 'gx_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gy, dm%dcpc, fl%iteration, isub, 'gy_bf divg') ! debug_ww
+    call wrt_3d_pt_debug(fl%gz, dm%dccp, fl%iteration, isub, 'gz_bf divg') ! debug_ww
     end if
     !write(*,*) 'qx', fl%qx(:, 1, 1), fl%qx(:, 8, 8)
     !write(*,*) 'qy', fl%qy(:, 1, 1), fl%qy(:, 8, 8)
@@ -1917,7 +1913,7 @@ contains
 ! to update velocity from gx gy gz 
 !----------------------------------------------------------------------------------------------------------
   if(dm%is_thermo) then
-    call calcuate_velo_from_mflux_domain(fl, dm)
+    call convert_primary_conservative(fl, dm, IG2Q)
   end if
 
 #ifdef DEBUG_STEPS
