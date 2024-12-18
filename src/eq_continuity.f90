@@ -4,7 +4,7 @@ module continuity_eq_mod
 
   public :: Calculate_drhodt
   public :: Get_divergence_vector
-  public :: Get_divergence
+  public :: Get_divergence_flow
   public :: Get_divergence_vel_x2z
   public :: Check_domain_mass_conservation
   public :: Check_element_mass_conservation
@@ -89,7 +89,7 @@ contains
 !> \param[out]    div          div(q) or div(g)
 !> \param[in]     d            domain
 !_______________________________________________________________________________
-  subroutine Get_divergence(fl, div, dm)
+  subroutine Get_divergence_flow(fl, div, dm)
     use parameters_constant_mod
     use udf_type_mod
     use solver_tools_mod
@@ -155,6 +155,8 @@ contains
     call transpose_y_to_x(div0_ypencil, div0,         dm%dccc)
     if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0, dm%dccc, dm%rci, 2, IPENCIL(1))
     div(:, :, :) = div(:, :, :) + div0(:, :, :)
+
+    ! check: CHAPSim1 using the r^2 * continuity format. 
     
     return
   end subroutine
@@ -374,7 +376,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! $d(\rho u_i)) / dx_i $ at cell centre
 !----------------------------------------------------------------------------------------------------------
-    call Get_divergence(fl, div, dm)
+    call Get_divergence_flow(fl, div, dm)
     div = div + fl%pcor
 
 #ifdef DEBUG_STEPS
