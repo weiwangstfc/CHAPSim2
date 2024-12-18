@@ -29,20 +29,21 @@ $(info FFT is $(FFT))
 
 # Inlcude path if necessary (change to your actual paths)
 MKL_PATH=/opt/intel/mkl
-FFTW_PATH=/home/weiwang/software/bin
-$(info FFTW_PATH is $(FFTW_PATH))
+FFTW_PATH=   ##/home/weiwang/software/bin
 ifeq ($(FFT),mkl)
   INC=-I$(MKL_PATH)/include
   # Fortran compiler used to compile MKL mod files
   IFORT=gfortran
 else ifeq ($(FFT),fftw3)
   INC=-I$(FFTW_PATH)/include
+  $(info FFTW_PATH is $(FFTW_PATH))
 else ifeq ($(FFT),fftw3_f03)
   INC=-I$(FFTW_PATH)/include
+  $(info FFTW_PATH is $(FFTW_PATH))
 else
   INC=
 endif
-$(info INC is $(INC))
+# $(info INC is $(INC))
 
 ifneq (,$(findstring DGLOBAL_ARRAYS,$(OPTIONS)))
   GA_PATH=/opt/ga-5-0-2
@@ -112,4 +113,4 @@ else ifeq ($(FFT),mkl)
      LIBFFT=$(LIB_MKL)
 endif
 
-$(info LIBFFT is $(LIBFFT))
+# $(info LIBFFT is $(LIBFFT))

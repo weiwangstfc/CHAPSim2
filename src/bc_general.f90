@@ -197,7 +197,11 @@ end function
         dm%ibcz_pr(n) = IBC_NEUMANN
         dm%fbcz_const(n, 4) = ZERO
       end if
-    end do 
+    end do
+
+    if(dm%icase == ICASE_PIPE) then
+      ! already done in input_general.f90
+    end if
 
     if(nrank == 0) then
       write (*, *) 'is periodic in xyz? ', dm%is_periodic(1:3)
@@ -389,7 +393,7 @@ end function
 !   ! qz, gz bc in y - direction, interior
 !----------------------------------------------------------------------------------------------------------
     if(dm%ibcy_qz(1) /= IBC_INTERIOR) call Print_error_msg('Error in ibcy_qz for the centre of the pipe.') ! 
-    call get_fbcy_circle_centre(fl%qz, dm%fbcy_qz, dm%knc_sym, dm%dcpc)
+    call get_fbcy_circle_centre(fl%qz, dm%fbcy_qz, dm%knc_sym, dm%dccp)
     dm%fbcy_qzr(:, 1, :) = dm%fbcy_qz(:, 1, :) * dm%rci(1)
     dm%fbcy_qzr(:, 3, :) = dm%fbcy_qz(:, 3, :) * dm%rci(2)
 !----------------------------------------------------------------------------------------------------------
@@ -430,7 +434,7 @@ end function
 !   ! gz bc in y - direction, interior
 !----------------------------------------------------------------------------------------------------------
     if(dm%ibcy_qz(1) /= IBC_INTERIOR) call Print_error_msg('Error in ibcy_qz for the centre of the pipe.') ! 
-    call get_fbcy_circle_centre(fl%gz, dm%fbcy_gz, dm%knc_sym, dm%dcpc)
+    call get_fbcy_circle_centre(fl%gz, dm%fbcy_gz, dm%knc_sym, dm%dccp)
     dm%fbcy_gzr(:, 1, :) = dm%fbcy_gz(:, 1, :) * dm%rci(1)
     dm%fbcy_gzr(:, 3, :) = dm%fbcy_gz(:, 3, :) * dm%rci(2)
 !----------------------------------------------------------------------------------------------------------
@@ -678,7 +682,7 @@ end function
     if(nrank==0) write(*, wrtfmt3s) "The bc for energy z-diffusion  is ", get_name_bc(ebcz_difu(1)), get_name_bc(ebcz_difu(2))
     end if
 !----------------------------------------------------------------------------------------------------------
-! preparation for b.c.
+! preparation for b.c. - Dirichlet
 !----------------------------------------------------------------------------------------------------------
     is_fbcx_velo_required = .false.
     if(dm%ibcx_qx(1) == IBC_DIRICHLET .or. &
@@ -707,7 +711,37 @@ end function
        dm%ibcz_qy(2) == IBC_DIRICHLET .or. &
        dm%ibcz_qz(1) == IBC_DIRICHLET .or. &
        dm%ibcz_qz(2) == IBC_DIRICHLET ) then
+       is_fbcz_velo_required = .true.
+      ! to add neumann later, check
+    end if
+!----------------------------------------------------------------------------------------------------------
+! preparation for b.c. - INTERIOR
+!----------------------------------------------------------------------------------------------------------
+    if(dm%ibcx_qx(1) == IBC_INTERIOR .or. &
+       dm%ibcx_qx(2) == IBC_INTERIOR .or. &
+       dm%ibcx_qy(1) == IBC_INTERIOR .or. &
+       dm%ibcx_qy(2) == IBC_INTERIOR .or. &
+       dm%ibcx_qz(1) == IBC_INTERIOR .or. &
+       dm%ibcx_qz(2) == IBC_INTERIOR ) then
+       is_fbcx_velo_required = .true.
+      ! to add neumann later, check
+    end if
+    if(dm%ibcy_qx(1) == IBC_INTERIOR .or. &
+       dm%ibcy_qx(2) == IBC_INTERIOR .or. &
+       dm%ibcy_qy(1) == IBC_INTERIOR .or. &
+       dm%ibcy_qy(2) == IBC_INTERIOR .or. &
+       dm%ibcy_qz(1) == IBC_INTERIOR .or. &
+       dm%ibcy_qz(2) == IBC_INTERIOR ) then
        is_fbcy_velo_required = .true.
+      ! to add neumann later, check
+    end if
+    if(dm%ibcz_qx(1) == IBC_INTERIOR .or. &
+       dm%ibcz_qx(2) == IBC_INTERIOR .or. &
+       dm%ibcz_qy(1) == IBC_INTERIOR .or. &
+       dm%ibcz_qy(2) == IBC_INTERIOR .or. &
+       dm%ibcz_qz(1) == IBC_INTERIOR .or. &
+       dm%ibcz_qz(2) == IBC_INTERIOR ) then
+       is_fbcz_velo_required = .true.
       ! to add neumann later, check
     end if
 

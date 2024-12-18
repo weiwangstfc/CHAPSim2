@@ -207,7 +207,7 @@ contains
       do k = 1, dtmp%xsz(3)
         kk = dtmp%xst(3) + k - 1
         do j = 1, dtmp%xsz(2)
-          jj = dtmp%xst(2) + j - 1
+          jj = local2global_yid(j, dtmp)
           if( ( ONE - abs_wp(dm%yp(jj)) ) .LT. QUARTER) then
             lownoise = fl%noiselevel * fl%noiselevel
           else
@@ -354,7 +354,7 @@ contains
     dtmp = dm%dpcc
     do i = 1, dtmp%xsz(1)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         do k = 1, dtmp%xsz(3)
           fl%qx(i, j, k) =  fl%qx(i, j, k) + ux_1c1(jj)
         end do
@@ -474,6 +474,7 @@ contains
     use precision_mod, only: WP
     use parameters_constant_mod, only: ZERO
     use boundary_conditions_mod
+    use index_mod
     implicit none
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(inout) :: fl
@@ -487,7 +488,7 @@ contains
     do k = 1, dm%dpcc%xsz(3)
       kk = dm%dpcc%xst(3) + k - 1
       do j = 1, dm%dpcc%xsz(2)
-        jj = dm%dpcc%xst(2) + j - 1
+        jj = local2global_yid(j, dm%dpcc)
         do i = 1, dm%dpcc%xsz(1)
           ii = dm%dpcc%xst(1) + i - 1
           fl%qx(i, j, k) = fl%qx(i, j, k) + dm%fbcx_qx(1, j, k)
@@ -498,7 +499,7 @@ contains
     do k = 1, dm%dcpc%xsz(3)
       kk = dm%dcpc%xst(3) + k - 1
       do j = 1, dm%dcpc%xsz(2)
-        jj = dm%dcpc%xst(2) + j - 1
+        jj = local2global_yid(j, dm%dcpc)
         do i = 1, dm%dcpc%xsz(1)
           ii = dm%dcpc%xst(1) + i - 1
           fl%qy(i, j, k) = fl%qy(i, j, k) + dm%fbcx_qy(1, j, k)
@@ -509,7 +510,7 @@ contains
     do k = 1, dm%dccp%xsz(3)
       kk = dm%dccp%xst(3) + k - 1
       do j = 1, dm%dccp%xsz(2)
-        jj = dm%dccp%xst(2) + j - 1
+        jj = local2global_yid(j, dm%dccp)
         do i = 1, dm%dccp%xsz(1)
           ii = dm%dccp%xst(1) + i - 1
           fl%qz(i, j, k) = fl%qz(i, j, k) + dm%fbcx_qz(1, j, k)
@@ -699,6 +700,7 @@ contains
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO
     use udf_type_mod
     use math_mod
+    use index_mod
     implicit none
     type(t_domain), intent(in ) :: dm
     type(t_flow), intent(inout) :: fl
@@ -713,7 +715,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
     dtmp = dm%dpcc
     do j = 1, dtmp%xsz(2)
-      jj = dtmp%xst(2) + j - 1
+      jj = local2global_yid(j, dtmp)
       yc = dm%yc(jj)
       do i = 1, dtmp%xsz(1)
         ii = dtmp%xst(1) + i - 1
@@ -726,7 +728,7 @@ contains
 !---------------------------------------------------------------------------------------------------------- 
     dtmp = dm%dcpc
     do j = 1, dtmp%xsz(2)
-      jj = dtmp%xst(2) + j - 1
+      jj = local2global_yid(j, dtmp)
       yp = dm%yp(jj)
       do i = 1, dtmp%xsz(1)
         ii = dtmp%xst(1) + i - 1
@@ -744,7 +746,7 @@ contains
     fl%pres(:, :, :) =  ZERO
     ! dtmp = dm%dccc
     ! do j = 1, dtmp%xsz(2)
-    !   jj = dtmp%xst(2) + j - 1
+    !   jj = local2global_yid(j, dtmp)
     !   yc = dm%yc(jj)
     !   do i = 1, dtmp%xsz(1)
     !     ii = dtmp%xst(1) + i - 1
@@ -763,6 +765,7 @@ contains
     use udf_type_mod
     use math_mod
     use io_files_mod
+    use index_mod
     !use iso_fortran_env
     implicit none
 
@@ -790,7 +793,7 @@ contains
     uerrmax = ZERO
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
@@ -815,7 +818,7 @@ contains
     verrmax = ZERO
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         yp = dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
@@ -840,7 +843,7 @@ contains
     perrmax = ZERO
     do k = 1, dtmp%xsz(3)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
@@ -895,6 +898,7 @@ contains
     use parameters_constant_mod!, only : HALF, ZERO, SIXTEEN, TWO, PI
     use udf_type_mod
     use math_mod
+    use index_mod
     implicit none
     type(t_domain), intent(in ) :: dm
     type(t_flow), intent(inout) :: fl
@@ -912,7 +916,7 @@ contains
       kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
@@ -930,7 +934,7 @@ contains
       kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         yp = dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1
@@ -959,7 +963,7 @@ contains
       kk = dtmp%xst(3) + k - 1
       zc = dm%h(3) * (real(kk - 1, WP) + HALF)
       do j = 1, dtmp%xsz(2)
-        jj = dtmp%xst(2) + j - 1
+        jj = local2global_yid(j, dtmp)
         yc = dm%yc(jj)
         do i = 1, dtmp%xsz(1)
           ii = dtmp%xst(1) + i - 1

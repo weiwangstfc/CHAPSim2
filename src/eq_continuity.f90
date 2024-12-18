@@ -251,7 +251,7 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use decomp_extended_mod
-
+    use cylindrical_rn_mod
     implicit none
 
     type(t_domain), intent (in) :: dm
@@ -291,18 +291,19 @@ contains
     call transpose_x_to_y(div0, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div0_ypencil_ggl
 !----------------------------------------------------------------------------------------------------------
-! operation in y pencil, dv/dy
+! operation in y pencil, dv/dy * (1/r)
 !----------------------------------------------------------------------------------------------------------
     uy_ypencil = ZERO
     div0_ypencil = ZERO
     div0_ypencil_ggl = ZERO
     call transpose_x_to_y(uy, uy_ypencil, dm%dcpc)
     call Get_y_1der_P2C_3D(uy_ypencil, div0_ypencil, dm, dm%iAccuracy, dm%ibcy_qy)
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0_ypencil, dm%dccc, dm%rci, 1, IPENCIL(2))
     call ypencil_index_lgl2ggl(div0_ypencil, div0_ypencil_ggl, dm%dccc)
     div_ypencil_ggl = div_ypencil_ggl + div0_ypencil_ggl
     call transpose_y_to_z(div_ypencil_ggl, div_zpencil_ggg, dm%dccc)
 !----------------------------------------------------------------------------------------------------------
-! operation in z pencil, dw/dz
+! operation in z pencil, dw/dz * (1/r)^2
 !----------------------------------------------------------------------------------------------------------
     uz_ypencil = ZERO
     uz_zpencil = ZERO
@@ -311,6 +312,7 @@ contains
     call transpose_x_to_y(uz,         uz_ypencil, dm%dccp)
     call transpose_y_to_z(uz_ypencil, uz_zpencil, dm%dccp)
     call Get_z_1der_P2C_3D(uz_zpencil, div0_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(div0_zpencil, dm%dccc, dm%rci, 2, IPENCIL(3))
     call zpencil_index_llg2ggg(div0_zpencil, div0_zpencil_ggg, dm%dccc)
     div_zpencil_ggg = div_zpencil_ggg + div0_zpencil_ggg
 

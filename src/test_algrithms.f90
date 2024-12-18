@@ -504,7 +504,7 @@ contains
         if ( (iter >= flow(i)%nIterFlowStart) .and. (iter <=flow(i)%nIterFlowEnd)) then
           is_flow = .true.
           flow(i)%time = flow(i)%time + domain(i)%dt
-          !call Check_cfl_diffusion (domain(i)%h2r(:), flow(i)%rre, domain(i)%dt)
+          !call Check_cfl_diffusion ( flow(i), domain(i))
           !call Check_cfl_convection(flow(i)%qx, flow(i)%qy, flow(i)%qz, domain(i))
         end if
 !==========================================================================================================
@@ -608,6 +608,7 @@ subroutine test_poisson(dm)
   use math_mod
   use operations
   use boundary_conditions_mod
+  use index_mod
 ! based on TGV3D mesh
   type(t_domain), intent(inout) :: dm
 
@@ -629,7 +630,7 @@ subroutine test_poisson(dm)
     ii = dm%dccc%xst(1) + i - 1
     xc = dm%h(1) * (real(ii - 1, WP) + HALF)
     do j = 1, dm%dccc%xsz(2)
-      jj = dm%dccc%xst(2) + j - 1
+      jj = local2global_yid(j, dm%dccc)
       yc = dm%yc(jj)
       do k = 1, dm%dccc%xsz(3)
         kk = dm%dccc%xst(3) + k - 1

@@ -194,6 +194,7 @@ contains
     use thermo_info_mod
     use boundary_conditions_mod
     use code_performance_mod
+    use EvenOdd_mod
     implicit none
     character(len = 18) :: flinput = 'input_chapsim.ini'
     integer, parameter :: IOMSG_LEN = 200
@@ -405,6 +406,8 @@ contains
 
           if (domain(i)%icase == ICASE_PIPE) then
             domain(i)%ibcy_nominal(1, :) = IBC_INTERIOR
+            domain(i)%ibcy_nominal(1, 2) = IBC_DIRICHLET
+            domain(i)%fbcx_const(1, 2) = ZERO
             domain(i)%is_periodic(2) = .false.
           end if
           !----------------------------------------------------------------------------------------------------------
@@ -438,6 +441,9 @@ contains
         domain(:)%rstret = domain(1)%rstret
 
         do i = 1, nxdomain
+          if(domain(i)%icoordinate == ICYLINDRICAL) then
+            if (.not. is_even(domain(i)%nc(3))) domain(i)%nc(3) = domain(i)%nc(3) + 1
+          end if
           !----------------------------------------------------------------------------------------------------------
           !     stretching
           !----------------------------------------------------------------------------------------------------------

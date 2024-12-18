@@ -1,5 +1,6 @@
 #################################################################################################
 # Makefile for CHAPSim2, by Wei Wang, July 2021                                                 #
+# Updated: Dec 2024 - Incremental compilation enabled                                           #
 # Usage:                                                                                        #
 #       make all        to make all files with -O2                                              #
 #       make cfg=gnu    to debug for gfortran compiler                                          #
@@ -9,64 +10,49 @@
 # mpirun -np 4 valgrind --leak-check=full --track-origins=yes \                                 #
 #                       --log-file=valgrind_output.txt ./CHAPSIM*                               #
 #                          < solver_input > solver_output                                       #
-# add flags for debug:
-#    -DDEBUG_STEPS  : serial debug for each step                                                #
-#    -DDEBUG_FFT    : fft debug                                                                 #
 #################################################################################################
 .SUFFIXES:
-.PHONY: debug default clean
+.PHONY: debug default clean all
 
 PROGRAM= CHAPSim
 
 ifeq ($(cfg), gnu)
   FOPTS= -O -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
   -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized \
-   -Wno-unused
-   # For gcc-10 and higher (comment out for older versions)
+   -Wno-unused -cpp
   FOPTS += -fallow-argument-mismatch
   FFLGS= -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
   FDEBG= -DDEBUG_STEPS #-DDEBUG_STEPS #-DDEBUG_ALGO# -DDEBUG_FFT # -DDEBUG_TEST -DDEBUG_FFT
 else ifeq ($(cfg), intel)
   FOPTS= -g -assume ieee_fpe_flags -check all -check bounds -check uninit -debug all \
-	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused
+	-fp-stack-check fpe0 -fpe3 -fpe-all=3 -ftrapuv -ftz -warn all, nounused, -fpp
   FFLGS= -DDOUBLE_PREC -DDEBUG
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), cray)
-  FOPTS= # -m 3
+  FOPTS= -cpp # -m 3
   FFLGS= # -s default64
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else ifeq ($(cfg), pg)
   FOPTS= -O3 -pg -march=native  -Wall -fimplicit-none  -ffree-line-length-512  -fwhole-file  -std=gnu \
-	-ffpe-trap=invalid,zero,overflow -fall-intrinsics
+	-ffpe-trap=invalid,zero,overflow -fall-intrinsics, -cpp
   FFLGS= -DDOUBLE_PREC 
   FDEBG= -DDEBUG_STEPS -DDEBUG_FFT
 else
   FOPTS= -O3 -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
-   -finit-local-zero -ffree-line-length-512 -Wno-unused
+   -finit-local-zero -ffree-line-length-512 -Wno-unused, -cpp
   # For gcc-10 and higher (comment out for older versions)
   FOPTS += -fallow-argument-mismatch	
   FFLGS= -DDOUBLE_PREC
   FDEBG= #-DDEBUG_STEPS # -DDEBUG_FFT -DDEBUG_VISU
 endif
 
-# this is based on the latest 2decomp&fft lib by UoE&ICL, 2022
-#include ./lib/2decomp-fft-main/Makefile.settings
-#INCLUDE= -I./lib/2decomp-fft-main/mod
-#LIBS= -L./lib/2decomp-fft-main -ldecomp2d
+include ../lib/2decomp_fft_updated/src/Makefile.inc
+INCLUDE= -I../lib/2decomp_fft_updated/include
+LIBS= -L../lib/2decomp_fft_updated/lib -l2decomp_fft
 
-# this is based on the original 2decomp&fft lib by NAG&ICL, 2012
-#include ./lib/2decomp_fft/src/Makefile.inc
-#INCLUDE= -I./lib/2decomp_fft/include
-#LIBS= -L./lib/2decomp_fft/lib -l2decomp_fft
-
-# this is based on the updated 2decomp&fft lib by NAG&ICL, 2013
-include ./lib/2decomp_fft_updated/src/Makefile.inc
-INCLUDE= -I./lib/2decomp_fft_updated/include
-LIBS= -L./lib/2decomp_fft_updated/lib -l2decomp_fft
-
-DIR_SRC= ./src
-DIR_BIN= ./bin
-DIR_OBJ= ./obj
+DIR_SRC= ../src
+DIR_BIN= ../bin
+DIR_OBJ= ../obj
 
 OBJS1= modules.o\
       tools_general.o\
@@ -97,29 +83,19 @@ OBJS1= modules.o\
       chapsim.o
 OBJS = $(OBJS1:%=$(DIR_OBJ)/%)
 
-default :
-	@cd $(DIR_BIN)
-	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_OBJ)
-	@mv $(PROGRAM) $(DIR_BIN)
-	@mv *.o $(DIR_OBJ)
-	@echo "\n ======Successfully compiled====== \n"
+default: all
 
-$(PROGRAM): $(OBJS)
-	@echo -n "\n ======Linking  ...====== \n"
-	$(FC) $(FOPTS) $(FFLGS) $(FDEBG) -o $@ $(OBJS) $(LIBS)
+$(DIR_BIN)/$(PROGRAM): $(OBJS)
+	@echo "\n ====== Linking... ====== \n"
+	$(FC) $(FOPTS) $(FFLGS) $(FDEBG) -o $@ $^ $(LIBS)
 
 $(DIR_OBJ)/%.o : $(DIR_SRC)/%.f90
-	$(FC) $(INCLUDE) $(FOPTS) $(FFLGS) $(FDEBG) $(FCFLAGS)  $(FFLAGS) -c  -o $@ $<
+	@mkdir -p $(DIR_OBJ)
+	$(FC) $(INCLUDE) $(FOPTS) $(FFLGS) $(FDEBG) -c -o $@ $<
 
-all:
-	@make clean
-	@cd $(DIR_BIN)
-	make $(PROGRAM) -f Makefile
-	@mv *.mod $(DIR_OBJ)
-	@mv $(PROGRAM) $(DIR_BIN)
-	@echo "\n ======Successfully compiled====== \n"
+all: $(DIR_BIN)/$(PROGRAM)
+	@echo "\n ====== Successfully compiled ====== \n"
 
 clean:
+	@echo "\n ====== Cleaning build files... ====== \n"
 	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BIN)/$(PROGRAM)
-	@rm -f *.mod *.o $(DIR_SRC)/*.mod $(DIR_SRC)/*.o

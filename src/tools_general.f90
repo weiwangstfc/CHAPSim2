@@ -602,6 +602,87 @@ contains
   end subroutine Generate_r_random
   
 end module random_number_generation_mod
+
+module index_mod
+  public :: which_pencil
+  public :: local2global_3indices
+  public :: local2global_yid
+
+  contains 
+!==========================================================================================================
+  function which_pencil(dtmp) result(a)
+    use parameters_constant_mod
+    use decomp_2d
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer :: a
+
+    if(dtmp%xst(1) == 1 .and. dtmp%xsz(1) == dtmp%xen(1)) then
+      a = X_PENCIL
+    else if(dtmp%yst(1) == 1 .and. dtmp%ysz(2) == dtmp%yen(2)) then 
+      a = Y_PENCIL
+    else if(dtmp%zst(1) == 1 .and. dtmp%zsz(3) == dtmp%zen(3)) then 
+      a = Z_PENCIL
+    else
+      call Print_error_msg("Error in finding which pencil.")
+    end if
+
+  end function
+
+!==========================================================================================================
+  function local2global_3indices(a, dtmp) result(b)
+    use decomp_2d
+    use parameters_constant_mod
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer, intent(in)  :: a(3)
+    integer :: b(3)
+
+    if(which_pencil(dtmp) == X_PENCIL) then
+      b(1) = dtmp%xst(1) + a(1) - 1
+      b(2) = dtmp%xst(2) + a(2) - 1
+      b(3) = dtmp%xst(3) + a(3) - 1
+    else if (which_pencil(dtmp) == Y_PENCIL) then
+      b(1) = dtmp%yst(1) + a(1) - 1
+      b(2) = dtmp%yst(2) + a(2) - 1
+      b(3) = dtmp%yst(3) + a(3) - 1
+    else if (which_pencil(dtmp) == Z_PENCIL) then
+      b(1) = dtmp%zst(1) + a(1) - 1
+      b(2) = dtmp%zst(2) + a(2) - 1
+      b(3) = dtmp%zst(3) + a(3) - 1
+    else 
+      call Print_error_msg("Error in local to global index conversion.")
+    end if
+
+  end function
+
+  function local2global_yid(a, dtmp) result(b)
+    use decomp_2d
+    use parameters_constant_mod
+    use print_msg_mod
+    implicit none
+    type(DECOMP_INFO), intent(in) :: dtmp
+    integer, intent(in)  :: a
+    integer :: b
+
+    if(which_pencil(dtmp) == X_PENCIL) then
+      b = dtmp%xst(2) + a - 1
+    else if (which_pencil(dtmp) == Y_PENCIL) then
+      b = dtmp%yst(2) + a - 1
+    else if (which_pencil(dtmp) == Z_PENCIL) then
+      b = dtmp%zst(2) + a - 1
+    else 
+      call Print_error_msg("Error in local to global index conversion.")
+    end if
+
+  end function
+  
+
+end module 
+
+
 !==========================================================================================================
 module wrt_debug_field_mod
   public :: wrt_3d_all_debug
@@ -612,6 +693,7 @@ contains
     use udf_type_mod
     use print_msg_mod
     use io_files_mod
+    use index_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
@@ -640,7 +722,7 @@ contains
             kk = dtmp%xst(3) + k - 1
             if(kk == nid(n, 3)) then
                 do j = 1, dtmp%xsz(2)
-                    jj = dtmp%xst(2) + j - 1
+                    jj = local2global_yid(j, dtmp)
                     if(jj == nid(n, 2)) then
                       do i = 1, dtmp%xsz(1)
                           if(i == nid(n, 1)) then
@@ -672,6 +754,7 @@ contains
     use udf_type_mod
     use print_msg_mod
     use io_files_mod
+    use index_mod
     implicit none 
     type(DECOMP_INFO), intent(in) :: dtmp
     real(wp), intent(in)     :: var(dtmp%xsz(1), dtmp%xsz(2), dtmp%xsz(3))
@@ -696,7 +779,7 @@ contains
     end if
 
     do j = 1, dtmp%xsz(2)
-      jj = dtmp%xst(2) + j - 1
+      jj = local2global_yid(j, dtmp)
       do k =1, dtmp%xsz(3)
         kk = dtmp%xst(3) + k - 1
         do i = 1, dtmp%xsz(1)
@@ -724,6 +807,7 @@ module cylindrical_rn_mod
       use udf_type_mod
       use parameters_constant_mod
       use print_msg_mod
+      use index_mod
       implicit none 
       type(DECOMP_INFO), intent(in) :: dtmp
       real(WP), intent(inout) :: var(:, :, :)
@@ -771,6 +855,7 @@ module cylindrical_rn_mod
       use udf_type_mod
       use parameters_constant_mod
       use print_msg_mod
+      use index_mod
       implicit none 
       type(DECOMP_INFO), intent(in) :: dtmp
       real(WP), intent(inout) :: var(:, :, :)
@@ -821,6 +906,7 @@ module cylindrical_rn_mod
       use udf_type_mod
       use parameters_constant_mod
       use print_msg_mod
+      use index_mod
       implicit none 
       type(DECOMP_INFO), intent(in) :: dtmp
       real(WP), intent(inout) :: var(:, :, :)
@@ -908,65 +994,13 @@ end module
 
 
 module find_max_min_ave_mod
-
-  private :: which_pencil
-  private :: local2global_3indices
+  use index_mod
 
   public  :: Get_volumetric_average_3d_for_var_xcx
   public  :: Find_maximum_absvar3d
   public  :: Find_max_min_3d
   public  :: Find_max_min_absvar3d
-
-contains 
-!==========================================================================================================
-  function which_pencil(dtmp) result(a)
-    use parameters_constant_mod
-    use decomp_2d
-    use print_msg_mod
-    implicit none
-    type(DECOMP_INFO), intent(in) :: dtmp
-    integer :: a
-
-    if(dtmp%xst(1) == 1) then
-      a = X_PENCIL
-    else if(dtmp%yst(1) == 1) then 
-      a = Y_PENCIL
-    else if(dtmp%zst(1) == 1) then 
-      a = Z_PENCIL
-    else
-      call Print_error_msg("Error in finding which pencil.")
-    end if
-
-  end function
-
-!==========================================================================================================
-  function local2global_3indices(a, dtmp) result(b)
-    use decomp_2d
-    use parameters_constant_mod
-    use print_msg_mod
-    implicit none
-    type(DECOMP_INFO), intent(in) :: dtmp
-    integer, intent(in)  :: a(3)
-    integer :: b(3)
-
-    if(which_pencil(dtmp) == X_PENCIL) then
-      b(1) = dtmp%xst(1) + a(1) - 1
-      b(2) = dtmp%xst(2) + a(2) - 1
-      b(3) = dtmp%xst(3) + a(3) - 1
-    else if (which_pencil(dtmp) == Y_PENCIL) then
-      b(1) = dtmp%yst(1) + a(1) - 1
-      b(2) = dtmp%yst(2) + a(2) - 1
-      b(3) = dtmp%yst(3) + a(3) - 1
-    else if (which_pencil(dtmp) == Z_PENCIL) then
-      b(1) = dtmp%zst(1) + a(1) - 1
-      b(2) = dtmp%zst(2) + a(2) - 1
-      b(3) = dtmp%zst(3) + a(3) - 1
-    else 
-      call Print_error_msg("Error in local to global index conversion.")
-    end if
-
-  end function
-
+contains
 !==========================================================================================================
   subroutine Find_maximum_absvar3d(var,  varmax_work, dtmp, str, fmt)
     use precision_mod
@@ -1078,6 +1112,44 @@ contains
     return
   end subroutine
 
+  !==========================================================================================================
+  subroutine Find_max_min_1d(var,  str, fmt)
+    use precision_mod
+    use math_mod
+    use mpi_mod
+    use parameters_constant_mod
+    implicit none
+
+    real(WP), intent(in)  :: var(:)
+    character(len = *), intent(in) :: str
+    character(len = *), intent(in), optional :: fmt
+    
+    real(WP):: varmax_work, varmin_work
+    real(WP)   :: varmax, varmin
+
+    integer :: i, nx
+    nx = size(var, 1)
+    varmax = MINN
+    varmin = MAXP
+    do i = 1, nx
+      if( var(i)  > varmax) varmax = var(i)
+      if( var(i)  < varmin) varmin = var(i)
+    end do
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+    call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
+
+    if(nrank == 0) then
+      write (*, *) 'maximum '//str, varmax_work, ' minimum '//str, varmin_work
+    end if
+#ifdef DEBUG_FFT
+    if(varmax_work >   MAXVELO) stop
+    if(varmin_work < - MAXVELO) stop
+#endif
+
+    return
+  end subroutine
+
 !==========================================================================================================
   subroutine Find_max_min_absvar3d(var,  str, fmt)
     use precision_mod
@@ -1130,6 +1202,7 @@ contains
     use parameters_constant_mod
     use decomp_2d
     use wtformat_mod
+    use index_mod
     implicit none
     type(t_domain),  intent(in) :: dm
     type(DECOMP_INFO), intent(in) :: dtmp
@@ -1151,15 +1224,19 @@ contains
       
       vol = ZERO
       fo  = ZERO
+      dx = dm%h(1)
       do j = 1, dtmp%xsz(2)
-        jj = j + dtmp%xst(2) - 1
+        jj = local2global_yid(j, dtmp)
         dy = dm%yp(jj+1) - dm%yp(jj)
+        if(dm%icoordinate == ICYLINDRICAL) then
+          dz = dm%h(3) / dm%rci(jj)
+        else
+          dz = dm%h(3)
+        end if
         do k = 1, dtmp%xsz(3)
-          !dz = dm%h(3) / dm%rci(jj)
           do i = 1, dtmp%xsz(1)
-            !dx = dm%h(1)
-            fo = fo + var(i, j, k) * dy !* dx * dz
-            vol = vol + dy !* dx * dz
+            fo = fo + var(i, j, k) * dy * dx * dz
+            vol = vol + dy * dx * dz
           end do
         end do
       end do
@@ -1192,5 +1269,5 @@ contains
     return
   end subroutine 
 
-end module
+ end module
 
