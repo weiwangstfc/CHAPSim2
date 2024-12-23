@@ -1,4 +1,4 @@
-# this python code is created by W Wang (STFC) to plot data of RVACS benchmark
+# this python code is created by W Wang (STFC) to plot data of TGV benchmark
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ figsize = (9, 6)
 dpi = 500
 
 
-ref_path='/home/weiwang/work/11_CHAPSim/examples/TGV/reference/'
+ref_path='reference/'
 ref_file=ref_path + 'TGV_Re1600.dat'
 ref_data=np.genfromtxt(ref_file, delimiter=None, skip_header=43, skip_footer=0,
          names=['t', 'E_k', 'epsilon_t', 'epsilon', 'Dzeta',
