@@ -876,7 +876,7 @@ C     WSAVE   CONTAINS INITIALIZATION CALCULATIONS WHICH MUST NOT BE
 C             DESTROYED BETWEEN CALLS OF SUBROUTINE CFFTF OR CFFTB
 C **********************************************************************
       MODULE WPFISHPACK
-        INTEGER, PARAMETER :: WP = 8 !KIND(0.0D0) !WORKING PRECESION
+        INTEGER, PARAMETER :: WP = KIND(0.0D0) !WORKING PRECESION
       END MODULE WPFISHPACK
 C **********************************************************************
       SUBROUTINE EZFFTF (N,R,AZERO,A,B,WSAVE)

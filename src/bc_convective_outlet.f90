@@ -232,7 +232,7 @@ module bc_convective_outlet_mod
     if( dm%ibcx_nominal(2, nn) == IBC_CONVECTIVE) then
       dtmp = dm%dpcc
       do j = 1, dtmp%xsz(2)
-        jj = local2global_yid(j, dtmp)
+        jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
         dy = dm%yp(jj+1) - dm%yp(jj)
         do k = 1, dtmp%xsz(3)
           dz = dm%h(3) / dm%rci(jj)
@@ -263,7 +263,7 @@ module bc_convective_outlet_mod
     if( dm%ibcz_nominal(2, nn) == IBC_CONVECTIVE) then
       dtmp = dm%dccp
       do j = 1, dtmp%xsz(2)
-        jj = local2global_yid(j, dtmp)
+        jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
         dy = dm%yp(jj+1) - dm%yp(jj)
         do i = 1, dtmp%xsz(1)
           dx = dm%h(1)

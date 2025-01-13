@@ -604,80 +604,81 @@ contains
 end module random_number_generation_mod
 
 module index_mod
-  public :: which_pencil
+  !public :: which_pencil
   public :: local2global_3indices
-  public :: local2global_yid
+  !public :: local2global_yid
 
   contains 
 !==========================================================================================================
-  function which_pencil(dtmp) result(a)
-    use parameters_constant_mod
-    use decomp_2d
-    use print_msg_mod
-    implicit none
-    type(DECOMP_INFO), intent(in) :: dtmp
-    integer :: a
+!   function which_pencil(dtmp) result(a)
+!     use parameters_constant_mod
+!     use decomp_2d
+!     use print_msg_mod
+!     implicit none
+!     type(DECOMP_INFO), intent(in) :: dtmp
+!     integer :: a
 
-    if(dtmp%xst(1) == 1 .and. dtmp%xsz(1) == dtmp%xen(1)) then
-      a = X_PENCIL
-    else if(dtmp%yst(1) == 1 .and. dtmp%ysz(2) == dtmp%yen(2)) then 
-      a = Y_PENCIL
-    else if(dtmp%zst(1) == 1 .and. dtmp%zsz(3) == dtmp%zen(3)) then 
-      a = Z_PENCIL
-    else
-      call Print_error_msg("Error in finding which pencil.")
-    end if
+! ! this is wrong as it prefers the order of X, Y, Z
+!     if(dtmp%xst(1) == 1 .and. dtmp%xsz(1) == dtmp%xen(1)) then
+!       a = X_PENCIL
+!     else if(dtmp%yst(2) == 1 .and. dtmp%ysz(2) == dtmp%yen(2)) then 
+!       a = Y_PENCIL
+!     else if(dtmp%zst(3) == 1 .and. dtmp%zsz(3) == dtmp%zen(3)) then 
+!       a = Z_PENCIL
+!     else
+!       call Print_error_msg("Error in finding which pencil.")
+!     end if
 
-  end function
+!   end function
 
 !==========================================================================================================
-  function local2global_3indices(a, dtmp) result(b)
-    use decomp_2d
-    use parameters_constant_mod
-    use print_msg_mod
-    implicit none
-    type(DECOMP_INFO), intent(in) :: dtmp
-    integer, intent(in)  :: a(3)
-    integer :: b(3)
+  ! function local2global_3indices(a, dtmp) result(b)
+  !   use decomp_2d
+  !   use parameters_constant_mod
+  !   use print_msg_mod
+  !   implicit none
+  !   type(DECOMP_INFO), intent(in) :: dtmp
+  !   integer, intent(in)  :: a(3)
+  !   integer :: b(3)
 
-    if(which_pencil(dtmp) == X_PENCIL) then
-      b(1) = dtmp%xst(1) + a(1) - 1
-      b(2) = dtmp%xst(2) + a(2) - 1
-      b(3) = dtmp%xst(3) + a(3) - 1
-    else if (which_pencil(dtmp) == Y_PENCIL) then
-      b(1) = dtmp%yst(1) + a(1) - 1
-      b(2) = dtmp%yst(2) + a(2) - 1
-      b(3) = dtmp%yst(3) + a(3) - 1
-    else if (which_pencil(dtmp) == Z_PENCIL) then
-      b(1) = dtmp%zst(1) + a(1) - 1
-      b(2) = dtmp%zst(2) + a(2) - 1
-      b(3) = dtmp%zst(3) + a(3) - 1
-    else 
-      call Print_error_msg("Error in local to global index conversion.")
-    end if
+  !   if(which_pencil(dtmp) == X_PENCIL) then
+  !     b(1) = dtmp%xst(1) + a(1) - 1
+  !     b(2) = dtmp%xst(2) + a(2) - 1
+  !     b(3) = dtmp%xst(3) + a(3) - 1
+  !   else if (which_pencil(dtmp) == Y_PENCIL) then
+  !     b(1) = dtmp%yst(1) + a(1) - 1
+  !     b(2) = dtmp%yst(2) + a(2) - 1
+  !     b(3) = dtmp%yst(3) + a(3) - 1
+  !   else if (which_pencil(dtmp) == Z_PENCIL) then
+  !     b(1) = dtmp%zst(1) + a(1) - 1
+  !     b(2) = dtmp%zst(2) + a(2) - 1
+  !     b(3) = dtmp%zst(3) + a(3) - 1
+  !   else 
+  !     call Print_error_msg("Error in local to global index conversion.")
+  !   end if
 
-  end function
+  ! end function
 
-  function local2global_yid(a, dtmp) result(b)
-    use decomp_2d
-    use parameters_constant_mod
-    use print_msg_mod
-    implicit none
-    type(DECOMP_INFO), intent(in) :: dtmp
-    integer, intent(in)  :: a
-    integer :: b
+  ! function local2global_yid(a, dtmp) result(b)
+  !   use decomp_2d
+  !   use parameters_constant_mod
+  !   use print_msg_mod
+  !   implicit none
+  !   type(DECOMP_INFO), intent(in) :: dtmp
+  !   integer, intent(in)  :: a
+  !   integer :: b
 
-    if(which_pencil(dtmp) == X_PENCIL) then
-      b = dtmp%xst(2) + a - 1
-    else if (which_pencil(dtmp) == Y_PENCIL) then
-      b = dtmp%yst(2) + a - 1
-    else if (which_pencil(dtmp) == Z_PENCIL) then
-      b = dtmp%zst(2) + a - 1
-    else 
-      call Print_error_msg("Error in local to global index conversion.")
-    end if
+  !   if(which_pencil(dtmp) == X_PENCIL) then
+  !     b = dtmp%xst(2) + a - 1
+  !   else if (which_pencil(dtmp) == Y_PENCIL) then
+  !     b = dtmp%yst(2) + a - 1
+  !   else if (which_pencil(dtmp) == Z_PENCIL) then
+  !     b = dtmp%zst(2) + a - 1
+  !   else 
+  !     call Print_error_msg("Error in local to global index conversion.")
+  !   end if
 
-  end function
+  ! end function
   
 
 end module 
@@ -722,7 +723,7 @@ contains
             kk = dtmp%xst(3) + k - 1
             if(kk == nid(n, 3)) then
                 do j = 1, dtmp%xsz(2)
-                    jj = local2global_yid(j, dtmp)
+                    jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
                     if(jj == nid(n, 2)) then
                       do i = 1, dtmp%xsz(1)
                           if(i == nid(n, 1)) then
@@ -779,7 +780,7 @@ contains
     end if
 
     do j = 1, dtmp%xsz(2)
-      jj = local2global_yid(j, dtmp)
+      jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
       do k =1, dtmp%xsz(3)
         kk = dtmp%xst(3) + k - 1
         do i = 1, dtmp%xsz(1)
@@ -1038,7 +1039,8 @@ contains
           if(abs_wp(var(i, j, k)) > varmax) then
             varmax = abs_wp(var(i, j, k))
             idl(1:3) = (/i, j, k/)
-            idg = local2global_3indices(idl, dtmp)
+            !idg = local2global_3indices(idl, dtmp)
+            idg(1:3) = dtmp%xst(1:3) + idl(1:3) - 1
           end if
         end do
       end do
@@ -1226,7 +1228,7 @@ contains
       fo  = ZERO
       dx = dm%h(1)
       do j = 1, dtmp%xsz(2)
-        jj = local2global_yid(j, dtmp)
+        jj = dtmp%xst(2) + j - 1 !(j, dtmp)
         dy = dm%yp(jj+1) - dm%yp(jj)
         if(dm%icoordinate == ICYLINDRICAL) then
           dz = dm%h(3) / dm%rci(jj)
