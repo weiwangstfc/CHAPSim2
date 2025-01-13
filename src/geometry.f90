@@ -286,12 +286,16 @@ contains
     !----------------------------------------------------------------------------------------------------------
     ! print out data for debugging
     !----------------------------------------------------------------------------------------------------------
-#ifdef DEBUG_STEPS
     if(nrank == 0) then
       open(221, file = trim(dir_chkp)//'/check_mesh_yp.dat')
       write(221, *) 'index, yp, rp'
       do i = 1, dm%np_geo(2)
         write (221, *) i, dm%yp(i), ONE / dm%rpi(i)
+      end do
+      open(223, file = trim(dir_chkp)//'/check_mesh_yc.dat')
+      write(223, *) 'index, yc, rc'
+      do i = 1, dm%nc(2)
+        write (223, *) i, dm%yc(i), ONE / dm%rci(i)
       end do
     end if
     if(nrank == 0 .and. dm%icoordinate == ICYLINDRICAL) then
@@ -301,7 +305,6 @@ contains
         write (222, *) i, dm%knc_sym(i)
       end do
     end if
-#endif
 
     if(nrank == 0) call Print_debug_end_msg
     return

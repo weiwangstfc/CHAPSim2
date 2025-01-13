@@ -1636,8 +1636,7 @@ contains
   subroutine solve_poisson(fl, dm, isub)
     use udf_type_mod
     use parameters_constant_mod
-    use decomp_2d_poisson
-    use decomp_extended_mod
+    use poisson_interface_mod
     use continuity_eq_mod
 
     implicit none
@@ -1646,15 +1645,6 @@ contains
     integer,        intent( in    ) :: isub
 
     real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: div
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: rhs_ypencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: rhs_zpencil
-
-  
-
-    real(WP), dimension( dm%dccc%zst(1) : dm%dccc%zen(1), &
-                         dm%dccc%zst(2) : dm%dccc%zen(2), &
-                         dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
-    !integer :: i, j, k, jj, ii
     real(WP) :: coeff
 
 #ifdef DEBUG_STEPS  
@@ -1685,30 +1675,10 @@ contains
     call wrt_3d_pt_debug (fl%pcor, dm%dccc, fl%iteration, isub, 'PhiRHS@RHS phi') ! debug_ww
     !call wrt_3d_all_debug(fl%pcor, dm%dccc,   fl%iteration, 'PhiRHS@RHS phi') ! debug_ww
 #endif
-!==========================================================================================================
-!   convert RHS from xpencil gll to zpencil ggg
-!==========================================================================================================
-    call transpose_x_to_y (fl%pcor    , rhs_ypencil, dm%dccc)
-    call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
-    call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
-!==========================================================================================================
+!----------------------------------------------------------------------------------------------------------
 !   solve Poisson
-!==========================================================================================================
-#ifdef DEBUG_STEPS  
-    if(nrank == 0) &
-    call Print_debug_mid_msg("Solving the Poisson Equation ...")
-    !write(*, *) 'fft0', rhs_zpencil_ggg(:, 1, 1)
-#endif
-    call poisson(rhs_zpencil_ggg)
-! #ifdef DEBUG_STEPS
-!     write(*, *) 'fft1', rhs_zpencil_ggg(:, 1, 1)
-! #endif
-!==========================================================================================================
-!   convert back RHS from zpencil ggg to xpencil gll
-!==========================================================================================================
-    call zpencil_index_ggg2llg(rhs_zpencil_ggg, rhs_zpencil, dm%dccc)
-    call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
-    call transpose_y_to_x (rhs_ypencil, fl%pcor,     dm%dccc)
+!----------------------------------------------------------------------------------------------------------
+    call solve_fft_poisson(fl%pcor, dm)
 
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug (fl%pcor, dm%dccc,   fl%iteration, isub, 'phi@sol phi') ! debug_ww

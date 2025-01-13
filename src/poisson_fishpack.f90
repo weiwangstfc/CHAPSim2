@@ -1,467 +1,454 @@
-!**********************************************************************************************************************************
-!> @brief
-!>        to prepARe information required to USE FISHPACK library
-!> @details
-!> module: FISHPACK_POIS3D_INFO
-!>         variables for coefficients
-!> SUBROUTINE: FISHPACK_POIS3D_INIT (in MYID = all)
-!>             - CALLed by the main solver
-!> SUBROUTINE: FFTPACK_ROOT (in MYID = all)
-!>             - CALLed by FISHPACK_POIS3D_INIT
-!> SUBROUTINE: FISHPACK_POIS3D_SIMPLE (in MYID = all)
-!>             - CALLed by the main solver SOLVERRK3_MOM_io
-!> SUBROUTINE: FFTPACK_XZ (in MYID = all)
-!>             - CALLed by FISHPACK_POIS3D_SIMPLE
-!> SUBROUTINE: TRID0 (in MYID = all)
-!>             - CALLed by FISHPACK_POIS3D_SIMPLE
-!> @note
-!> @todo
-! REVISION HISTORY:
-! 04/2014- created, by Wei Wang (wei.wang@sheffield.ac.uk)
-! 05/2021 - updated by Wei Wang
-!**********************************************************************************************************************************
-MODULE FISHPACK_POIS3D
-    USE WPRECISION
+module fishpack_fft
+  use precision_mod
+  private 
+
+  integer, save :: LPx, LPy, LPz
+  real(WP), save :: SCALx, SCALz
+  real(WP), allocatable, save :: XRT(:), WX(:)
+  real(WP), allocatable, save :: ZRT(:), WZ(:)
+  real(WP), allocatable, save :: a(:), b(:), c(:), bb(:)
+
+  private :: TRID0
+  private :: fishpack_root_1D
+  private :: fishpack_fft_1D
+
+  public :: fishpack_fft_init
+  public :: fishpack_fft_simple
+contains
+!==========================================================================================================
+!==========================================================================================================
+  SUBROUTINE TRID0(NG, T) !A, BB, C, T)
+    IMPLICIT NONE
+
+    INTEGER, INTENT(IN) :: NG
+    !REAL(WP), DIMENSION(NG), INTENT(IN)    :: A
+    !REAL(WP), DIMENSION(NG), INTENT(IN)    :: BB
+    !REAL(WP), DIMENSION(NG), INTENT(IN)    :: C
+    REAL(WP), DIMENSION(NG), INTENT(INOUT) :: T
     
-    INTEGER(4), save :: LPEROD, MPEROD, NPEROD
-    INTEGER(4), save :: LP, MP, NP
-    INTEGER(4), save :: L, M, NG, NL, ML
-    INTEGER(4), save :: LDIMF, MDIMF
-    INTEGER(4), save :: WSZ
 
-    REAL(WP), save :: C1, C2
-    REAL(WP), save :: SCALX, SCALY
-    REAL(WP), ALLOCATABLE, save :: A(:), B(:), C(:), D(:), BB(:)
-    REAL(WP), ALLOCATABLE, save :: XRT(:), YRT(:), WX(:), WY(:)
-    REAL(WP), ALLOCATABLE, save :: FR(:, :, :), FK(:, :, :), T(:)
-    REAL(WP), ALLOCATABLE, save :: F_io   (:, :, :)
+    INTEGER :: NR, MM1, I, IP
+    REAL(WP) :: Z
+    REAL(WP), DIMENSION(NG) :: D
 
-    private
-    private :: FFTPACK_ROOT
-    private :: TRID0
-    private :: FFTPACK_XZ
-    public :: FISHPACK_POIS3D_INIT
-    public :: FISHPACK_POIS3D_SIMPLE
-
-  contains
-  !**********************************************************************************************************************************
-  SUBROUTINE FFTPACK_ROOT()
-  !       CALLED IN SLAVES AFTER FFT_INITIALIZATION
-        IMPLICIT NONE
-
-        REAL(WP) :: PI
-        !REAL(WP) :: DUM
-        REAL(WP) :: DY, DJ
-        !REAL(WP),external :: PIMACH
-        REAL(WP) :: DX, DI
-
-        INTEGER(4) :: I, J
-        INTEGER(4) :: LRDEL
-        INTEGER(4) :: MRDEL
-        INTEGER(4) :: LR, MR
-
-        PI = 2.0_WP*DASIN(1.0_WP) !PIMACH(DUM)
-        LR = L
-        MR = M
-!C
-!C     GENERATE TRANSFORM ROOTS FOR X direction
-!C
-        LRDEL = ((LP - 1) * (LP - 3) * (LP - 5)) / 3
-        SCALX = DBLE(LR + LRDEL)
-        DX = PI / (2.0_WP * SCALX)
-        GO TO (108, 103, 101, 102, 101), LP
-  101   DI = 0.50_WP
-        SCALX = 2.0_WP * SCALX
-        GO TO 104
-  102   DI = 1.00_WP
-        GO TO 104
-  103   DI = 0.00_WP
-  104   DO 105 I = 1, LR
-            XRT(I) = -4.0_WP * C1 * (DSIN((DBLE(I) - DI) * DX))**2
-  105   CONTINUE
-        SCALX = 2.0_WP * SCALX
-        GO TO (112, 106, 110, 107, 111), LP
-  106   CALL SINTI (LR, WX)
-        GO TO 112
-  107   CALL COSTI (LR, WX)
-        GO TO 112
-  108   XRT(1) = 0.0_WP
-        XRT(LR) = -4.0_WP * C1
-        DO 109 I = 3,LR, 2
-            XRT(I - 1) = -4.0_WP * C1 * (DSIN(DBLE((I - 1)) * DX))**2
-            XRT(I) = XRT(I - 1)
-  109   CONTINUE
-        CALL RFFTI (LR, WX)
-        GO TO 112
-  110   CALL SINQI (LR, WX)
-        GO TO 112
-  111   CALL COSQI (LR, WX)
-  112   CONTINUE
-!C
-!C     GENERATE TRANSFORM ROOTS FOR Y direction (Z IN REAL)
-!C
-      MRDEL = ((MP - 1) * (MP - 3) * (MP - 5)) / 3
-      SCALY = DBLE(MR + MRDEL)
-      DY = PI / (2.0_WP * SCALY)
-      GO TO (120, 115, 113, 114, 113), MP
-  113 DJ = 0.50_WP
-      SCALY = 2.0_WP * SCALY
-      GO TO 116
-  114 DJ = 1.00_WP
-      GO TO 116
-  115 DJ = 0.00_WP
-  116 DO 117 J = 1, MR
-          YRT(J) = -4.0_WP * C2 * (DSIN((DBLE(J) - DJ) * DY))**2
-  117 CONTINUE
-      SCALY = 2.0_WP * SCALY
-      GO TO (124, 118, 122, 119, 123), MP
-  118 CALL SINTI (MR, WY)
-      GO TO 124
-  119 CALL COSTI (MR, WY)
-      GO TO 124
-  120 YRT(1) = 0.0_WP
-      YRT(MR) = -4.0_WP * C2
-      DO 121 J = 3, MR, 2
-          YRT(J - 1) = -4.0_WP * C2 * (DSIN(DBLE((J - 1)) * DY))**2
-          YRT(J) = YRT(J - 1)
-  121 CONTINUE
-      CALL RFFTI (MR, WY)
-      GO TO 124
-  122 CALL SINQI (MR, WY)
-      GO TO 124
-  123 CALL COSQI (MR, WY)
-  124 CONTINUE
-
-      RETURN
-
-  END SUBROUTINE
-
-  SUBROUTINE FISHPACK_POIS3D_INIT
-    !    SHOULD BE CALLED IN SLAVES BEFORE FIRSTLY
-    USE mesh_info
-    USE flow_info
-    USE init_info
-    IMPLICIT NONE
-
-    INTEGER(4) :: K
-
-    IF(BCX_io(1) == 3 .AND. BCX_io(2) == 3 )  LPEROD = 0
-    IF(BCX_io(1) == 1 .AND. BCX_io(2) == 1 )  LPEROD = 1
-    IF(BCX_io(1) == 1 .AND. BCX_io(2) == 2 )  LPEROD = 2
-    IF(BCX_io(1) == 2 .AND. BCX_io(2) == 2 )  LPEROD = 3
-    IF(BCX_io(1) == 2 .AND. BCX_io(2) == 1 )  LPEROD = 4
-
-    IF(BCZ(1) == 3 .AND. BCZ(2) == 3 )  MPEROD = 0
-    IF(BCZ(1) == 1 .AND. BCZ(2) == 1 )  MPEROD = 1
-    IF(BCZ(1) == 1 .AND. BCZ(2) == 2 )  MPEROD = 2
-    IF(BCZ(1) == 2 .AND. BCZ(2) == 2 )  MPEROD = 3
-    IF(BCZ(1) == 2 .AND. BCZ(2) == 1 )  MPEROD = 4
-
-    NPEROD = 1
-
-    LP = LPEROD + 1
-    MP = MPEROD + 1
-    NP = NPEROD + 1
-
-    L  = NCL1_io
-    M  = NCL3
-    NG = NCL2
-    NL = N2DO(MYID)
-    ML = N3DO(MYID)
-
-    IF( (L <= 3) .OR. (M <= 3) .OR. (NG <= 3) ) &
-    CALL ERRHDL('Dimensions in poISson solver should be lARger than 3!', MYID)
-
-    C1 = DXQI
-    C2 = DZQI
-
-    WSZ = 30 + L + M + 2 * NG + MAX(L, M, NG) + &
-                7*(INT((L+1)/2) + INT((M+1)/2)) + 128
-
-    ALLOCATE (A (NG) ) ; A = 0.0_WP
-    ALLOCATE (B (NG) ) ; B = 0.0_WP
-    ALLOCATE (C (NG) ) ; C = 0.0_WP
-    ALLOCATE (D (NG) ) ; D = 0.0_WP
-    ALLOCATE (BB(NG) ) ; BB = 0.0_WP
-
-    MEMPC_Byte = MEMPC_Byte + NG*10 *8
-
-    ALLOCATE (XRT(L))  ; XRT = 0.0_WP
-    ALLOCATE (YRT(M))  ; YRT = 0.0_WP
-    ALLOCATE (WX(WSZ)) ; WX = 0.0_WP
-    ALLOCATE (WY(WSZ)) ; WY = 0.0_WP
-    ALLOCATE (FR(L, M, NL) ) ; FR = 0.0_WP
-    ALLOCATE (FK(L, ML, NG) ) ; FK = 0.0_WP
-    ALLOCATE (T(MAX0(L, M, NG)) ) ; T = 0.0_WP
-
-    ALLOCATE ( F_io   (NCL1_io, NCL2, N3DO(0) )     )       ;  F_io = 0.0_WP
-
-    MEMPC_Byte = MEMPC_Byte + (L+M + WSZ*2 +L * M * NL+L * ML * NG+MAX0(L, M, NG)) *8
-
-    DO K = 1, NG
-        A(K) = AMPH(K)
-        B(K) = ACPH(K)
-        C(K) = APPH(K)
+    NR = NG
+    MM1 = NR - 1
+    Z = 1.0_WP / BB(1)
+    D(1) = C(1) * Z
+    T(1) = T(1) * Z
+    DO I = 2, MM1
+        Z = 1.0_WP / (BB(I) - A(I) * D(I - 1))
+        D(I) = C(I) * Z
+        T(I) = (T(I) - A(I) * T(I - 1)) * Z
     END DO
-
-    CALL FFTPACK_ROOT
-
-    RETURN
-
-  END SUBROUTINE
-
-  !**********************************************************************************************************************************
-  SUBROUTINE FFTPACK_XZ(IFWRD)
-!     FOR FFT TRANSFORM FROM SPACE TO WAVENUMBER, IFWRD = 1, IS = 1
-!     FOR FFT TRANSFORM FROM WAVENUMBER TO SPACE, IFWRD = 2, IS = -1
-      IMPLICIT NONE
-      INTEGER(4) :: IFWRD
-      INTEGER(4) :: I, J, K
-      INTEGER(4) :: LR, MR, NR
-
-      LR = L
-      MR = M
-      NR = NL
-
-      GO TO(125, 142) IFWRD
-
-  125 CONTINUE
-!
-!     TRANSFORM X
-!
-      DO 141 J = 1, MR
-          DO 140 k = 1, NR
-            DO 126 I = 1, LR  
-                T(I) = FR(I, J, K)
-  126       CONTINUE
-            GO TO (127, 130, 131, 134, 135), LP
-  127       GO TO (128, 129), IFWRD
-  128       CALL RFFTF (LR, T, WX)
-            GO TO 138
-  129       CALL RFFTB (LR, T, WX)
-            GO TO 138
-  130       CALL SINT (LR, T, WX)
-            GO TO 138
-  131       GO TO (132, 133), IFWRD
-  132       CALL SINQF (LR, T, WX)
-            GO TO 138
-  133       CALL SINQB (LR, T, WX)
-            GO TO 138
-  134       CALL COST (LR, T, WX)
-            GO TO 138
-  135       GO TO (136, 137), IFWRD
-  136       CALL COSQF (LR, T, WX)
-            GO TO 138
-  137       CALL COSQB (LR, T, WX)
-  138       CONTINUE
-            DO 139 I = 1, LR
-                FR(I, J, K) = T(I)
-  139       CONTINUE
-  140    CONTINUE
-  141 CONTINUE
-      GO TO (142, 159), IFWRD
-
-
-!C
-!C     TRANSFORM Y
-!C
-  142 CONTINUE
-      DO 158 I = 1, LR
-          DO 157 k = 1, NR
-            DO 143 J = 1, MR
-                T(J) = FR(I, J, K)
-  143       CONTINUE
-            GO TO (144, 147, 148, 151, 152), MP
-  144       GO TO (145, 146), IFWRD
-  145       CALL RFFTF (MR, T, WY)
-            GO TO 155
-  146       CALL RFFTB (MR, T, WY)
-            GO TO 155
-  147       CALL SINT (MR, T, WY)
-            GO TO 155
-  148       GO TO (149, 150), IFWRD
-  149       CALL SINQF (MR, T, WY)
-            GO TO 155
-  150       CALL SINQB (MR, T, WY)
-            GO TO 155
-  151       CALL COST (MR, T, WY)
-            GO TO 155
-  152       GO TO (153, 154), IFWRD
-  153       CALL COSQF (MR, T, WY)
-            GO TO 155
-  154       CALL COSQB (MR, T, WY)
-  155       CONTINUE
-            DO 156 J = 1, MR
-                FR(I, J, K) = T(J)
-  156       CONTINUE
-  157    CONTINUE
-  158 CONTINUE
-      GO TO (159, 125), IFWRD
-
-  159 CONTINUE
-
-
-    RETURN
-
-  END SUBROUTINE
-
-
-!**********************************************************************************************************************************
-  SUBROUTINE TRID0
-      IMPLICIT NONE
-
-      INTEGER(4) :: NR, MM1
-      REAL(WP) :: Z
-      INTEGER(4) :: I, IP
-
-      NR = NG
-      MM1 = NR- 1
-      Z = 1.0_WP / BB(1)
-      D(1) = C(1) * Z
-      T(1) = T(1) * Z
-      DO 101 I = 2, MM1
-          Z = 1.0_WP / (BB(I) - A(I) * D(I - 1))
-          D(I) = C(I) * Z
-          T(I) = (T(I) - A(I) * T(I - 1)) * Z
-  101 CONTINUE
-      Z = BB(NR) - A(NR) * D(MM1)
-      !IF (Z /= 0.0_WP) GO TO 102
-      IF (DABS(Z) > 1.0E-14_WP) GO TO 102
+    Z = BB(NR) - A(NR) * D(MM1)
+    IF (DABS(Z) > 1.0E-10_WP) THEN
+      T(NR) = (T(NR) - A(NR) * T(MM1)) /Z
+    ELSE
       T(NR) = 0.0_WP
-      GO TO 103
-  102 T(NR) = (T(NR) - A(NR) * T(MM1)) /Z
-  103 CONTINUE
-      DO 104 IP = 1, MM1
-          I = NR-IP
-          T(I) = T(I) - D(I) * T(I + 1)
-  104 CONTINUE
-      RETURN
+    END IF
 
-  END SUBROUTINE
-
-  SUBROUTINE FISHPACK_POIS3D_SIMPLE(RHS, VAR)
-    !    CALLED IN SLAVES EVERY RK STAGE TO CALCULATE pressure CORRECTION TERMS.
-    USE mesh_info
-    USE init_info
-    IMPLICIT NONE
-    REAL(WP), INTENT(INOUT) :: RHS (NCL1_io, N2DO(0), NCL3 )
-    REAL(WP), INTENT(OUT) :: VAR (NCL1_io, N2DO(0), NCL3 )
-    INTEGER(4) :: IFWRD
-    INTEGER(4) :: I, J, K, JJ
-
-    !   ======== RECONSTRUCT RHS TO FIT POIS3D.========
-    DO I = 1, L
-        DO K = 1, M
-            DO J = 1, NL
-                FR(I, K, J) = RHS(I, J, K)
-            END DO
-        END DO
-    END DO
-
-    !   ========forward FFT IN X AND Z direction ========
-    IFWRD = 1
-    CALL FFTPACK_XZ(IFWRD)
-
-    !   ======== RESTORE RHSLLPHI ========
-    DO I = 1, L
-        DO K = 1, M
-            DO J = 1, NL
-              RHS(I, J, K) = FR(I, K, J)
-            END DO
-        END DO
-    END DO
-
-    !   ======== TRANSPORT Y- DECOMP TO K - DECOMP ========
-    !CALL TRASP_Y2Z_RHSLLPHI_io
-    CALL TRASP23_Y2Z(NCL1_io, 1, N2DO(0), RHS, F_io)
-
-    !   ========CONSTRUCT DATA FOR TDMA========
-    DO I = 1, L
-        DO K = 1, N3DO(MYID)
-            DO J = 1, NG
-                FK(I, K, J) = F_io(I, J, K)
-            END DO
-        END DO
-    END DO
-
-    !   ======== TDMA IN Y direction FOR PART OF FR(:,PART, :) ========
-    DO I = 1, L
-        DO J = 1, N3DO(MYID)
-            JJ = KCL2G(J)
-            DO K = 1, NG
-                BB(K) = B(K) + XRT(I) / RCCI2(K) + YRT(JJ)
-                T(K) = FK(I, J, K)
-            END DO
-
-            CALL TRID0
-
-            DO K = 1, NG
-                FK(I, J, K) = T(K)
-            END DO
-
-        END DO
-    END DO
-
-    !      ======== RE -CONSTRUCT DATA BACK ========
-    DO I = 1, L
-        DO K = 1, N3DO(MYID)
-            DO J = 1, NG
-                F_io(I, J, K) = FK(I, K, J)
-            END DO
-        END DO
-    END DO
-
-    !   ======== TRANSPORT Z - DECOMP TO Y- DECOMP ========
-    !CALL TRASP_Z2Y_RHSLLPHI_io
-    CALL TRASP23_Z2Y(NCL1_io, 1, N2DO(0), RHS, F_io)
-
-    !   ======== RESTORE RHSLLPHI ========
-    DO I = 1, L
-        DO K = 1, M
-            DO J = 1, NL
-                FR(I, K, J) = RHS(I, J, K)
-            END DO
-        END DO
-    END DO
-
-    !   ========backward FFT IN Z AND X directionS ========
-    IFWRD = 2
-    CALL FFTPACK_XZ(IFWRD)
-
-    !   ======== SCALE THE CALCULATED VALUE ========
-    DO I = 1, L
-        DO J = 1, M
-            DO K = 1, NL
-                FR(I, J, K) = FR(I, J, K) / (SCALX * SCALY)
-            END DO
-        END DO
-    END DO
-
-
-    !   ======== RE -STORE AND ASSIGN DATA TO DPH ========
-    VAR = 0.0_WP
-    DO I = 1, L
-        DO K = 1, M
-            DO J = 1, NL
-              VAR(I, J, K) = FR(I, K, J)
-            END DO
-        END DO
+    DO IP = 1, MM1
+      I = NR-IP
+      T(I) = T(I) - D(I) * T(I + 1)
     END DO
 
     RETURN
-
   END SUBROUTINE
+!==========================================================================================================
+!==========================================================================================================
+  SUBROUTINE fishpack_root_1D(L, LP, C1, SCALX, WX, XRT)
+  !----------------------------------------------------------------------------------------------------------
+  ! Generate FFT transform roots for 1-D direction
+  ! Arguments:
+  !   L   (INTEGER(4), IN): Grid dimensions in X direction, global
+  !   LP  (INTEGER(4), IN): Parameters determining transform type
+  !   C1   (REAL(WP), IN): Scaling factors for X transform
+  !   SCALX(REAL(WP), IN): scaling factor 
+  !   WX   (REAL(WP), DIMENSION(:), OUT): Work arrays for FFT
+  !   XRT  (REAL(WP), DIMENSION(:), OUT): Transform roots for X
+  !----------------------------------------------------------------------------------------------------------
+    IMPLICIT NONE
+
+    ! Arguments
+    INTEGER(4), INTENT(IN) :: L, LP
+    REAL(WP), INTENT(IN) :: C1
+    REAL(WP), INTENT(OUT) :: SCALX
+    REAL(WP), DIMENSION(:), INTENT(INOUT) :: WX
+    REAL(WP), DIMENSION(:), INTENT(INOUT) :: XRT
+    
+
+    ! Local variables
+    REAL(WP) :: PI, DX, DI
+    INTEGER(4) :: LR, LRDEL, I
+
+    ! Compute PI
+    PI = 2.0_WP * DASIN(1.0_WP)
+    WX = 0.0_WP
+    XRT = 0.0_WP
+    !-----------------------------------------------------------
+    ! X direction transform roots
+    !-----------------------------------------------------------
+    LR = L
+    LRDEL = ((LP - 1) * (LP - 3) * (LP - 5)) / 3
+    SCALX = DBLE(LR + LRDEL)
+    DX = PI / (2.0_WP * SCALX)
+
+    SELECT CASE (LP)
+    CASE (1)
+      ! RFFTI     INITIALIZE  RFFTF AND RFFTB
+      ! RFFTF     FORWARD TRANSFORM OF A REAL PERIODIC SEQUENCE
+      ! RFFTB     BACKWARD TRANSFORM OF A REAL COEFFICIENT ARRAY
+      XRT(1) = 0.0_WP
+      XRT(LR) = -4.0_WP * C1
+      DO I = 3, LR, 2
+        XRT(I - 1) = -4.0_WP * C1 * (DSIN(DBLE((I - 1)) * DX))**2  ! WW: This is for 2nd order central difference only
+        XRT(I) = XRT(I - 1)
+      END DO
+      CALL RFFTI(LR, WX)
+    CASE (2)
+      ! SINTI     INITIALIZE SINT
+      ! SINT      SINE TRANSFORM OF A REAL ODD SEQUENCE
+      DI = 0.00_WP
+      DO I = 1, LR
+        XRT(I) = -4.0_WP * C1 * (DSIN((DBLE(I) - DI) * DX))**2
+      END DO
+      SCALX = 2.0_WP * SCALX
+      CALL SINTI (LR, WX)
+
+    CASE (3)
+    ! SINQI     INITIALIZE SINQF AND SINQB
+    ! SINQF     FORWARD SINE TRANSFORM WITH ODD WAVE NUMBERS
+    ! SINQB     UNNORMALIZED INVERSE OF SINQF
+      DI = 0.50_WP
+      SCALX = 2.0_WP * SCALX
+      DO I = 1, LR
+        XRT(I) = -4.0_WP * C1 * (DSIN((DBLE(I) - DI) * DX))**2
+      ENDDO
+      SCALX = 2.0_WP * SCALX
+      CALL SINQI (LR, WX)
+
+    CASE (4)
+    ! COSTI     INITIALIZE COST
+    ! COST      COSINE TRANSFORM OF A REAL EVEN SEQUENCE
+      DI = 1.00_WP
+      DO I = 1, LR
+          XRT(I) = -4.0_WP * C1 * (DSIN((DBLE(I) - DI) * DX))**2
+      END DO
+      SCALX = 2.0_WP * SCALX
+      CALL COSTI (LR, WX)
+
+    CASE (5)
+    ! COSQI     INITIALIZE COSQF AND COSQB
+    ! COSQF     FORWARD COSINE TRANSFORM WITH ODD WAVE NUMBERS
+    ! COSQB     UNNORMALIZED INVERSE OF COSQF
+      DI = 0.50_WP
+      SCALX = 2.0_WP * SCALX
+      DO I = 1, LR
+        XRT(I) = -4.0_WP * C1 * (DSIN((DBLE(I) - DI) * DX))**2
+      END DO
+      SCALX = 2.0_WP * SCALX
+      CALL COSQI (LR, WX)
+
+    END SELECT
+
+    !if(myid==0) WRITE(*,*) 'WX :', myid, WX
+    !if(myid==0) WRITE(*,*) 'XRT:', myid, XRT
+
+    RETURN
+  END SUBROUTINE 
+
+!==========================================================================================================
+!==========================================================================================================
+  subroutine fishpack_fft_1D(ifwrd, lp, t, w)
+    implicit none
+    integer(4), intent(in)  :: ifwrd, lp
+    real(WP), intent(inout) :: t(:)
+    real(WP), intent(in)    :: w(:)
+
+    integer(4) :: nx
+
+    nx = size(t)
+    if(ifwrd == 1) then
+    !-----------------------------------------------------------  
+    ! forward 1-D FFT, physical space to wave number space
+    !-----------------------------------------------------------
+      select case (lp)
+      case (1)
+        call RFFTF(nx, t, w)
+      case (2)  
+        call SINT(nx, t, w) 
+      case (3)  
+        call SINQF(nx, t, w)
+      case (4)
+        call COST(nx, t, w)
+      case (5)
+        call COSQF(nx, t, w)
+      end select
+    
+    else if(ifwrd == 2) then
+    !-----------------------------------------------------------  
+    ! backward 1-D FFT, wave number space to physical space
+    !-----------------------------------------------------------
+      select case (lp)
+        case (1)
+          call RFFTB(nx, t, w)
+        case (2)  
+          call SINT(nx, t, w) 
+        case (3)  
+          call SINQB(nx, t, w)
+        case (4)
+          call COST(nx, t, w)
+        case (5)
+          call COSQB(nx, t, w)
+        end select
+        
+    else
+      write(*,*) 'Error: ifwrd is not 1 or 2'
+      stop
+    end if
 
 
+  return
+  end subroutine
+!==========================================================================================================
+!==========================================================================================================
+  subroutine fishpack_fft_init(dm)
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
 
-END MODULE
+    !integer :: wsz
+    integer :: ibcx(2), ibcz(2)
+    integer :: nx, ny, nz
+    integer :: j, i, k, ii, kk
+    real(WP) :: dyfi(dm%nc(2)), dyci(dm%np_geo(2)) 
+    !-----------------------------------------------------------
+    ! assign key info from domain
+    !-----------------------------------------------------------
+    nx = dm%nc(1)
+    ny = dm%nc(2)
+    nz = dm%nc(3)
+    ibcx(1:2) = dm%ibcx_qx(1:2)
+    ibcz(1:2) = dm%ibcz_qx(1:2)
+    !-----------------------------------------------------------
+    ! check input grid size
+    !-----------------------------------------------------------
+    if(nx <= 3 .or. ny <= 3 .or. nz <= 3) then
+      write(*,*) 'Error: Grid size is too small for Fishpack FFT'
+      stop
+    end if
+    !-----------------------------------------------------------
+    ! assign FFT transform type, LP->x, MP->z, NP->y
+    !-----------------------------------------------------------
+    if(ibcx(1) == IBC_PERIODIC  .and. ibcx(2) == IBC_PERIODIC ) LPx = 0
+    if(ibcx(1) == IBC_DIRICHLET .and. ibcx(2) == IBC_DIRICHLET) LPx = 1
+    if(ibcx(1) == IBC_DIRICHLET .and. ibcx(2) == IBC_NEUMANN  ) LPx = 2
+    if(ibcx(1) == IBC_NEUMANN   .and. ibcx(2) == IBC_NEUMANN  ) LPx = 3
+    if(ibcx(1) == IBC_NEUMANN   .and. ibcx(2) == IBC_DIRICHLET) LPx = 4
 
+    if(ibcz(1) == IBC_PERIODIC  .and. ibcz(2) == IBC_PERIODIC ) LPz = 0
+    if(ibcz(1) == IBC_DIRICHLET .and. ibcz(2) == IBC_DIRICHLET) LPz = 1
+    if(ibcz(1) == IBC_DIRICHLET .and. ibcz(2) == IBC_NEUMANN  ) LPz = 2
+    if(ibcz(1) == IBC_NEUMANN   .and. ibcz(2) == IBC_NEUMANN  ) LPz = 3
+    if(ibcz(1) == IBC_NEUMANN   .and. ibcz(2) == IBC_DIRICHLET) LPz = 4
 
+    LPy = 1
 
+    LPx = LPx + 1
+    LPy = LPy + 1
+    LPz = LPz + 1
 
+    !wsz = 30 + nx + ny * 2 + nz + MAX(nx, ny, nz) + 7 * (INT((nx+1)/2) + INT((nz+1)/2)) + 128
+    !-----------------------------------------------------------
+    ! Build up fft root for x
+    !-----------------------------------------------------------
+    allocate(XRT(nx), WX(2*nx + 15))
+    call fishpack_root_1D(nx, LPx, dm%h2r(1), SCALx, Wx, xRT)
+    !-----------------------------------------------------------
+    ! Build up fft root for z
+    !-----------------------------------------------------------
+    allocate(ZRT(nz), WZ(2*nz + 15))
+    call fishpack_root_1D(nz, LPz, dm%h2r(3), SCALz, Wz, zRT)
 
-!**********************************************************************************************************************************
+    !-----------------------------------------------------------
+    ! allocate work arrays for TMDA, and coefficients
+    ! note: this is for 2nd order central difference only
+    !-----------------------------------------------------------
+    allocate(a(ny), b(ny), c(ny), bb(ny))
 
+    do j = 1, dm%nc(2)
+      dyfi(j) = 1.0_WP / (dm%yp(j+1) - dm%yp(j)) ! node to node spacing
+    end do
+    do j = 2, dm%nc(2)
+      dyci(j) = 1.0_WP / ((dm%yp(j+1) - dm%yp(j-1)) * 0.5_WP) ! cell centre to centre spacing
+    end do
+    dyci(1           ) = 1.0_WP / (dm%yp(2) - dm%yp(1)) ! 
+    dyci(dm%np_geo(2)) = 1.0_WP / (dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1)) ! 
 
+    do j = 1, dm%nc(2)
+      a(j) = (dyci(j  )/dm%rpi(j  )) * (dyfi(j)/dm%rci(j))
+      c(j) = (dyci(j+1)/dm%rpi(j+1)) * (dyfi(j)/dm%rci(j))
+    end do
+    if(.not. dm%is_periodic(2)) then
+      a(1) = 0.0_WP
+      c(dm%nc(2)) = 0.0_WP
+    end if
+    b = -(a + c)
+    !write (*,*) 'dyfi', dyfi(:)
+    !write (*,*) 'dyci', dyci(:)
+    !write (*,*) 'a', a(:) ! same as chapsim1
+    !write (*,*) 'b', b(:) ! same as chapsim1
+    !write (*,*) 'c', c(:) ! same as chapsim1 
+    !write(*,*) 'initx0', nx, LPx, dm%h2r(1), nz, LPz, dm%h2r(3) ! same as chapsim1
+    !write(*,*) 'initx1', SCALX, SCALZ ! same as chapsim1
+    !write(*,*) 'initx2', XRT ! same as chapsim1
+    !write(*,*) 'initx3', zRT ! same as chapsim1
+    !write(*,*) 'initx4', WX  ! same as chapsim1
+    !write(*,*) 'initx5', WZ  ! same as chapsim1
+    
 
+  return
+  end subroutine
 
+!==========================================================================================================
+!==========================================================================================================
+  subroutine fishpack_fft_simple(rhs_xpencil, dm)
+    use udf_type_mod
+    implicit none
+    type(t_domain), intent(in) :: dm
+    real(WP), intent(inout) :: rhs_xpencil(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3))
+
+    integer :: ifwrd
+    integer :: i, j, k, ii, kk
+    real(WP) :: tx(dm%dccc%xsz(1)), ty(dm%dccc%ysz(2)), tz(dm%dccc%zsz(3))
+    real(WP) :: rhs_ypencil(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3))
+    real(WP) :: rhs_zpencil(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3))
+    !-----------------------------------------------------------
+    ! forward FFT in x direction
+    ! x - pencil
+    !-----------------------------------------------------------
+    ifwrd = 1
+    do j = 1, dm%dccc%xsz(2)
+      do k = 1, dm%dccc%xsz(3)
+
+        do i = 1, dm%dccc%xsz(1)
+          tx(i) = rhs_xpencil(i, j, k)
+        end do
+        call fishpack_fft_1D(ifwrd, LPx, tx, WX)
+        do i = 1, dm%dccc%xsz(1)
+          rhs_xpencil(i, j, k) = tx(i)
+          !if(dabs(tx(i)) > 1.E+8) write(*,*) 'test1', tx(i)
+        end do
+
+      end do 
+    end do
+
+   ! write(*,'(A, I3, 1ES13.5)') ('test1', i, rhs_xpencil(i,32,8), i=1, dm%dccc%xsz(1))
+    !-----------------------------------------------------------
+    ! transfer data to z-pencil for z-FFT
+    !-----------------------------------------------------------
+    call transpose_x_to_y(rhs_xpencil, rhs_ypencil, dm%dccc)
+    call transpose_y_to_z(rhs_ypencil, rhs_zpencil, dm%dccc)
+    !-----------------------------------------------------------
+    ! forward FFT in z direction
+    !-----------------------------------------------------------
+    ifwrd = 1
+    do i = 1, dm%dccc%zsz(1)
+      do j = 1, dm%dccc%zsz(2)
+
+        do k = 1, dm%dccc%zsz(3)
+          tz(k) = rhs_zpencil(i, j, k)
+        end do
+        call fishpack_fft_1D(ifwrd, LPz, tz, WZ)
+        do k = 1, dm%dccc%zsz(3)
+          rhs_zpencil(i, j, k) = tz(k)
+          !if(dabs(tz(k)) > 1.E+8) write(*,*) 'test2', tz(k)
+        end do
+
+      end do 
+    end do  
+    !write(*,'(A, I3, 1ES13.5)') ('test2', k, rhs_zpencil(16,32,k), k=1, dm%dccc%zsz(3))
+    !-----------------------------------------------------------
+    ! transfer data to Y-pencil for Y-TDMA
+    !-----------------------------------------------------------
+    call transpose_z_to_y(rhs_zpencil, rhs_ypencil, dm%dccc)
+    !-----------------------------------------------------------
+    ! TMDA in the Y direction (stretching grids direction)
+    !-----------------------------------------------------------
+    do i = 1, dm%dccc%ysz(1)
+       ii = dm%dccc%yst(1) + i - 1
+      do k = 1, dm%dccc%ysz(3)
+        kk = dm%dccc%yst(3) + k - 1
+
+        do j = 1, dm%dccc%ysz(2)
+          bb(j) = b(j) + xrt(ii) / (dm%rci(j) * dm%rci(j)) + zrt(kk)
+          ty(j) = rhs_ypencil(i, j, k)
+          !if(dabs(ty(j)) > 1.E+8) write(*,*) 'test31', ty(j), i, j, k
+        end do
+        call TRID0(dm%dccc%ysz(2), ty)!a, bb, c, ty)
+
+        do j = 1, dm%dccc%ysz(2)
+          rhs_ypencil(i, j, k) = ty(j)
+          !if(dabs(ty(j)) > 1.E+8) write(*,*) 'test32', ty(j), i, j, k
+        end do  
+      end do 
+    end do
+    !write(*,'(A, I3, 1ES13.5)') ('test3', j, rhs_ypencil(16,j,8), j=1, dm%dccc%ysz(2))
+    !-----------------------------------------------------------
+    ! transfer data to Z-pencil for backward z-FFT
+    !-----------------------------------------------------------
+    call transpose_y_to_z(rhs_ypencil, rhs_zpencil, dm%dccc)
+    !-----------------------------------------------------------
+    ! backward FFT in z direction
+    !-----------------------------------------------------------
+    ifwrd = 2
+    do i = 1, dm%dccc%zsz(1)
+      do j = 1, dm%dccc%zsz(2)
+
+        do k = 1, dm%dccc%zsz(3)
+          tz(k) = rhs_zpencil(i, j, k)
+        end do
+        call fishpack_fft_1D(ifwrd, LPz, tz, WZ)
+        do k = 1, dm%dccc%zsz(3)
+          rhs_zpencil(i, j, k) = tz(k)
+          !if(dabs(tz(k)) > 1.E+8) write(*,*) 'test4', tz(k)
+        end do
+
+      end do 
+    end do
+    !write(*,'(A, I3, 1ES13.5)') ('test4', k, rhs_zpencil(16,32,k), k=1, dm%dccc%zsz(3))
+    !-----------------------------------------------------------
+    ! transfer data to X-pencil for backward x-FFT
+    !-----------------------------------------------------------
+    call transpose_z_to_y(rhs_zpencil, rhs_ypencil, dm%dccc) 
+    call transpose_y_to_x(rhs_ypencil, rhs_xpencil, dm%dccc)
+    !-----------------------------------------------------------
+    ! backward FFT in x direction
+    ! x - pencil
+    !-----------------------------------------------------------
+    ifwrd = 2
+    do j = 1, dm%dccc%xsz(2)
+      do k = 1, dm%dccc%xsz(3)
+
+        do i = 1, dm%dccc%xsz(1)
+          tx(i) = rhs_xpencil(i, j, k)
+        end do
+        call fishpack_fft_1D(ifwrd, LPx, tx, WX)
+        do i = 1, dm%dccc%xsz(1)
+          rhs_xpencil(i, j, k) = tx(i)
+          !if(dabs(tx(i)) > 1.E+8) write(*,*) 'test5', tx(i)
+        end do
+      end do 
+    end do
+    !write(*,'(A, I3, 1ES13.5)') ('test5', i, rhs_xpencil(i,32,8), i=1, dm%dccc%xsz(1))
+    !-----------------------------------------------------------
+    ! scale the result
+    !-----------------------------------------------------------
+    rhs_xpencil = rhs_xpencil / SCALX / SCALZ
+
+  return
+  end subroutine
+
+end module

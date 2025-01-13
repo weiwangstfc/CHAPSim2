@@ -43,7 +43,12 @@ contains
       else
         open(newunit = myunit, file = trim(flname), status="new", action="write")
         write(myunit, *) "# domain-id : ", dm%idom, "pt-id : ", i
-        write(myunit, *) "# MKE, dissipation, qx_b, gx_b, T_b" ! to add more instantanous or statistics
+        if(dm%is_thermo) then
+          write(myunit, *) "# time, MKE, dMKE, qx_b, gx_b, T_b"
+        else
+          write(myunit, *) "# time, MKE, dMKE, qx_b"
+        end if
+
         close(myunit)
       end if
 

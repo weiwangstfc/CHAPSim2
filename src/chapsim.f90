@@ -40,7 +40,6 @@ subroutine initialise_chapsim
   use boundary_conditions_mod
   use code_performance_mod
   use continuity_eq_mod
-  use decomp_2d_poisson
   use domain_decomposition_mod
   use io_files_mod
   use flow_thermo_initialiasation
@@ -92,9 +91,8 @@ subroutine initialise_chapsim
 ! build up fft basic info
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
-    call build_up_poisson_interface(domain(i))
     if(nrank == 0 ) call Print_debug_start_msg("initialising Poisson solver ...")
-    call decomp_2d_poisson_init()
+    call initialise_fft(domain(i))
     if(nrank == 0 ) call Print_debug_end_msg
   end do
 !----------------------------------------------------------------------------------------------------------

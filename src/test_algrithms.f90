@@ -603,8 +603,7 @@ end subroutine
 
 subroutine test_poisson(dm)
   use udf_type_mod
-  use decomp_extended_mod
-  use decomp_2d_poisson
+  use poisson_interface_mod
   use math_mod
   use operations
   use boundary_conditions_mod
@@ -630,7 +629,7 @@ subroutine test_poisson(dm)
     ii = dm%dccc%xst(1) + i - 1
     xc = dm%h(1) * (real(ii - 1, WP) + HALF)
     do j = 1, dm%dccc%xsz(2)
-      jj = local2global_yid(j, dm%dccc)
+      jj = dm%dccc%xst(2) + j - 1 !local2global_yid(j, dm%dccc)
       yc = dm%yc(jj)
       do k = 1, dm%dccc%xsz(3)
         kk = dm%dccc%xst(3) + k - 1
@@ -649,26 +648,8 @@ subroutine test_poisson(dm)
     end do
   end do
 
-  ! if(nrank == 0) then
-  !   do i = 1, dm%dccc%xsz(1)
-  !     write(*, *) 'innput0', i, rhs(i, 8, 8)
-  !   end do
-  ! end if
-
-  call transpose_x_to_y (rhs        , rhs_ypencil, dm%dccc)
-  call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
-  call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
-!==========================================================================================================
-!   solve Poisson - fft method -to get phi
-!==========================================================================================================
-  call poisson(rhs_zpencil_ggg)
-
-!==========================================================================================================
-!   convert back RHS from zpencil ggg to xpencil gll
-!==========================================================================================================
-  call zpencil_index_ggg2llg(rhs_zpencil_ggg, rhs_zpencil, dm%dccc)
-  call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
-  call transpose_y_to_x (rhs_ypencil, phi,         dm%dccc)
+  call solve_fft_poisson(rhs, dm)
+  phi = rhs
 
 !==========================================================================================================
 !   compact scheme from phi to rhs

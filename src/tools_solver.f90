@@ -124,7 +124,7 @@ contains
     do j = 1, dtmp%xsz(2)
       nk = 0
       ni = 0
-      jj = local2global_yid(j, dtmp)
+      jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
       do k = 1, dtmp%xsz(3)
         nk = nk + 1
         do i = 1, dtmp%xsz(1)
@@ -147,7 +147,7 @@ contains
     if (nrank == 0) then
       open(121, file = 'check_calculate_xz_mean_yprofile.dat', position="append")
       do j = 1, dtmp%xsz(2)
-        jj = local2global_yid(j, dtmp)
+        jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
         write(121, *) jj, varxz_work(jj)
       end do
     end if
@@ -182,7 +182,7 @@ contains
     integer :: jj, i, j, k
 
     do j = 1, dtmp%xsz(2)
-      jj = local2global_yid(j, dtmp)
+      jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
       do k = 1, dtmp%xsz(3)
         do i = 1, dtmp%xsz(1)
           var(:, j, :) = var(:, j, :) - varxz(jj)
@@ -233,7 +233,7 @@ contains
     
     cfl_diff = ZERO
     do j = 1, dm%dccc%xsz(2)
-      jj = local2global_yid(j, dm%dccc)
+      jj = dm%dccc%xst(2) + j - 1 !local2global_yid(j, dm%dccc)
       dyi = ONE/(dm%yp(jj+1) - dm%yp(jj))
       do i = 1, dm%dccc%xsz(1)
         do k = 1, dm%dccc%xsz(3)
@@ -357,7 +357,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call Find_maximum_absvar3d(var_zpencil, dummy, dm%dccc, "CFL (convection) :", wrtfmt1e)
+    call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
+    call transpose_y_to_x(var_zpencil, var_xpencil, dm%dccc)
+    call Find_maximum_absvar3d(var_xpencil, dummy, dm%dccc, "CFL (convection) :", wrtfmt1e)
 
     ! if(nrank == 0) then
     !   if(cfl_convection_work > ONE) call Print_warning_msg("Warning: CFL is larger than 1.")
