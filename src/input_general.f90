@@ -35,6 +35,8 @@ module input_general_mod
   private :: get_name_iacc
   private :: get_name_initial
   private :: get_name_fluid
+  private :: get_name_fft
+  private :: get_name_mstret
 contains
 !==========================================================================================================
   function get_name_case(icase) result(str)
@@ -98,6 +100,38 @@ contains
       str = 'Mesh clusted twowards the top of y-domain'
     case default
       call Print_error_msg('The required mesh stretching is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_mstret(ist) result(str)
+    integer, intent(in) :: ist
+    character(36) :: str
+
+    select case(ist)
+    case ( MSTRET_3FMD) 
+      str = 'Stretched mesh has only 3 Fourier modes. Suitable for 3-D FFT.'
+    case ( MSTRET_TANH)
+      str = 'Stretched mesh follows tanh.'
+    case default
+      call Print_error_msg('The required mesh stretching method is not supported.')
+    end select
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_fft(ist) result(str)
+    integer, intent(in) :: ist
+    character(36) :: str
+
+    select case(ist)
+    case ( FFT_2DECOMP_3DFFT) 
+      str = '3-D FFT using 2DECOMP&FFT'
+    case ( FFT_FISHPACK_2DFFT)
+      str = '2-D FFT using Fishpack FFT'
+    case default
+      call Print_error_msg('The required FFT lib is not supported.')
     end select
 
     return
@@ -437,8 +471,11 @@ contains
         domain(:)%nc(3) = domain(1)%nc(3)
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%istret
         domain(:)%istret = domain(1)%istret
-        read(inputUnit, *, iostat = ioerr) varname, domain(1)%rstret
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%mstret, domain(1)%rstret
         domain(:)%rstret = domain(1)%rstret
+        domain(:)%mstret = domain(1)%mstret
+        read(inputUnit, *, iostat = ioerr) varname, domain(1)%ifft_lib
+        domain(:)%ifft_lib = domain(1)%ifft_lib
 
         do i = 1, nxdomain
           if(domain(i)%icoordinate == ICYLINDRICAL) then
@@ -477,6 +514,9 @@ contains
           else 
             ! do nothing...
           end if
+          !
+          if(domain(i)%mstret == MSTRET_TANH)         domain(i)%ifft_lib = FFT_FISHPACK_2DFFT
+          if(domain(i)%ifft_lib == FFT_2DECOMP_3DFFT) domain(i)%mstret   = MSTRET_3FMD
         end do
 
         if(nrank == 0) then
@@ -488,6 +528,10 @@ contains
             write (*, wrtfmt3l) '  is mesh stretching in x, y, z :', domain(i)%is_stretching(1:3)
             write (*, wrtfmt2s) '  mesh y-stretching type   :', get_name_mesh(domain(i)%istret)
             write (*, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
+            write (*, wrtfmt2s) '  mesh y-stretching method :', get_name_mstret(domain(i)%mstret)
+            write (*, wrtfmt2s) '  FFT lib  :', get_name_fft(domain(i)%ifft_lib)
+            write (*, wrtfmt1s) '  MSTRET_TANH, the recom. rstret = 3.5-4.0'
+            write (*, wrtfmt1s) '  MSTRET_3FMD, the recom. rstret = 0.2-0.3'
           end do
         end if
       !----------------------------------------------------------------------------------------------------------
@@ -514,9 +558,10 @@ contains
         domain(:)%iAccuracy = domain(1)%iAccuracy
         read(inputUnit, *, iostat = ioerr) varname, domain(1)%iviscous
         domain(:)%iviscous = domain(1)%iviscous
+        
 
         if(domain(1)%iAccuracy == IACCU_CD2 .or. &
-           domain(1)%iAccuracy ==IACCU_CD4) then
+           domain(1)%iAccuracy == IACCU_CD4) then
 
           domain(:)%is_compact_scheme = .false.
 

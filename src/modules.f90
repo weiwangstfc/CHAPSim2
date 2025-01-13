@@ -164,9 +164,10 @@ module parameters_constant_mod
 !----------------------------------------------------------------------------------------------------------
 ! fft lib
 !----------------------------------------------------------------------------------------------------------
-  integer, parameter :: FFT_2DECOMP = 1, &
-                        FFT_FISHPACK = 2
-  integer :: fft_lib = FFT_FISHPACK ! user's input
+  integer, parameter :: FFT_2DECOMP_3DFFT = 3, &
+                        FFT_FISHPACK_2DFFT = 2, &
+                        MSTRET_3FMD = 1, &
+                        MSTRET_TANH = 2
 !----------------------------------------------------------------------------------------------------------
 ! case id
 !----------------------------------------------------------------------------------------------------------
@@ -204,7 +205,8 @@ module parameters_constant_mod
                         ISTRET_CENTRE = 1, &
                         ISTRET_2SIDES = 2, &
                         ISTRET_BOTTOM = 3, &
-                        ISTRET_TOP    = 4               
+                        ISTRET_TOP    = 4, &
+                        ISTRET_INPUT  = 5               
 !----------------------------------------------------------------------------------------------------------
 ! time scheme
 !----------------------------------------------------------------------------------------------------------
@@ -415,7 +417,7 @@ module udf_type_mod
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type
-    
+    integer :: ifft_lib
     integer :: icht
     integer :: iTimeScheme
     integer :: iviscous
@@ -427,7 +429,7 @@ module udf_type_mod
     integer :: stat_istart
     integer :: stat_nskip(NDIM)
     integer :: nsubitr
-    integer :: istret
+    integer :: istret, mstret
     integer :: ndbfre
     integer :: ndbend
     integer :: nc(NDIM) ! geometric cell number
@@ -717,7 +719,7 @@ end module
 !==========================================================================================================
 module math_mod
   use precision_mod
-  use parameters_constant_mod, only : ONE, ZERO, MINP
+  use parameters_constant_mod
   implicit none
 
   interface sqrt_wp
@@ -882,7 +884,13 @@ contains
     real(kind = WP), intent(in) :: r
     real(kind = WP) :: d
     d = ZERO
-    if (r > MINP) d = ONE
+    if (r > MINP) then  ! MINP = 1.0e-20 
+      d = ONE
+    else if (r < MAXN) then ! MAXN = -1.0e-20
+      d = ZERO
+    else 
+      d = HALF
+    end if
   end function
 
 end module math_mod

@@ -104,10 +104,10 @@ contains
     implicit none 
     type(t_domain), intent(in) :: dm
 
-    if(fft_lib == FFT_2DECOMP ) then 
+    if(dm%ifft_lib == FFT_2DECOMP_3DFFT ) then 
       call build_up_fft2decomp_interface(dm)
       call decomp_2d_poisson_init()
-    else if(fft_lib == FFT_FISHPACK) then 
+    else if(dm%ifft_lib == FFT_FISHPACK_2DFFT) then 
       call fishpack_fft_init(dm)
     else 
       write(*, *) 'Error in selecting FFT libs'
@@ -129,7 +129,7 @@ contains
                          dm%dccc%zst(2) : dm%dccc%zen(2), &
                          dm%dccc%zst(3) : dm%dccc%zen(3) ) :: rhs_zpencil_ggg
 
-    if(fft_lib == FFT_2DECOMP ) then 
+    if(dm%ifft_lib == FFT_2DECOMP_3DFFT ) then 
       call transpose_x_to_y (rhs_xpencil, rhs_ypencil, dm%dccc)
       call transpose_y_to_z (rhs_ypencil, rhs_zpencil, dm%dccc)
       call zpencil_index_llg2ggg(rhs_zpencil, rhs_zpencil_ggg, dm%dccc)
@@ -139,14 +139,13 @@ contains
       call zpencil_index_ggg2llg(rhs_zpencil_ggg, rhs_zpencil, dm%dccc)
       call transpose_z_to_y (rhs_zpencil, rhs_ypencil, dm%dccc)
       call transpose_y_to_x (rhs_ypencil, rhs_xpencil, dm%dccc)
-    else if(fft_lib == FFT_FISHPACK) then 
+    else if(dm%ifft_lib == FFT_FISHPACK_2DFFT) then 
       call fishpack_fft_simple(rhs_xpencil, dm)
     else 
       write(*, *) 'Error in selecting FFT libs'
       STOP
     end if
 
-    write(*, '(3I3, E13.5)') (i, j, k, rhs_xpencil(i, j, k), i = 1, dm%dccc%xsz(1), j = 1, dm%dccc%xsz(2), k = 1, dm%dccc%xsz(3))
     
   return 
   end subroutine 
