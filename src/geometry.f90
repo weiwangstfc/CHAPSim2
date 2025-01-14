@@ -29,10 +29,7 @@ module geometry_mod
   use precision_mod
   use print_msg_mod
   implicit none
-
-  integer, save :: ndm = 0
   
-  real(WP) :: alpha, beta, gamma, delta
   !private
   private :: Buildup_grid_mapping_1D_3fmd
   private :: Buildup_grid_mapping_1D_tanh
@@ -52,6 +49,7 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
     integer :: j
     real(WP) :: eta_shift
     real(WP) :: eta_delta
+    real(WP) :: alpha, beta, gamma, delta
     
     real(WP) :: mm, ymin, ymax, ff
     real(WP), dimension(n) :: eta
@@ -175,6 +173,7 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
     
     real(WP) :: cc, dd, ee, st1, st2, mm
     real(WP), dimension(n) :: eta
+    real(WP) :: alpha, beta, gamma, delta
 
     if(dm%mstret /= MSTRET_3FMD) then
       call Print_error_msg('Grid stretching method is not MSTRET_3FMD.')   
@@ -249,9 +248,11 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
       ! y \in [0, 1]
       !----------------------------------------------------------------------------------------------------------
       y(j) = atan_wp ( dd * tan_wp( mm ) ) - &
-            atan_wp ( dd * tan_wp( PI * delta) ) + &
-            PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
+             atan_wp ( dd * tan_wp( PI * delta) ) + &
+             PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
       y(j) = ONE / (gamma * ee) * y(j)
+      if ( trim( str ) == 'nd' .and. j == 1) y(j) = ZERO
+      if ( trim( str ) == 'nd' .and. j == n) y(j) = ONE
       !----------------------------------------------------------------------------------------------------------
       ! y \in [lyb, lyt]
       !----------------------------------------------------------------------------------------------------------

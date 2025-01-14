@@ -6,8 +6,8 @@ module fft2decomp_interface_mod
   use mpi_mod
   use parameters_constant_mod, disabled => WP!, only: zero, half, one, onepfive, two, twopfive, &
                              !        three, pi, threepfive, four, twopi, cx_one_one
-  use math_mod, only: cos_prec, abs_prec, sin_prec
-  use geometry_mod, only: alpha, beta
+  use math_mod, only: cos_prec, abs_prec, sin_prec, sqrt_wp
+  !use geometry_mod, only: alpha, beta
   use print_msg_mod
   implicit none
 
@@ -51,6 +51,7 @@ module fft2decomp_interface_mod
   real(mytype), save :: dx
   real(mytype), save :: dy ! physical grid spacing
   real(mytype), save :: dz
+  real(mytype), save :: alpha, beta
 !---------------------------------------------------------------------------------------------------------- 
   !real(mytype) :: alpha
   !real(mytype) :: beta
@@ -107,6 +108,8 @@ contains
     if (nrank == 0) call Print_debug_start_msg("Building up the interface for the poisson solver ...")
 !----------------------------------------------------------------------------------------------------------
     istret = dm%istret
+    beta = dm%rstret
+    alpha =  ( -ONE + sqrt_wp( ONE + FOUR * PI * PI * beta * beta ) ) / beta * HALF
 !----------------------------------------------------------------------------------------------------------
     xlx = dm%lxx
     yly = dm%lyt - dm%lyb ! check computational or physical length?
