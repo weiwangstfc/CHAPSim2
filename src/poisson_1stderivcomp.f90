@@ -372,7 +372,7 @@ end module
 function rl(complexnumber)
 
   !use param
-  use decomp_2d, only: mytype
+  use decomp_2d_mpi, only: mytype
 
   implicit none
 
@@ -388,7 +388,7 @@ end function rl
 function iy(complexnumber)
 
   !use param
-  use decomp_2d, only: mytype
+  use decomp_2d_constants, only: mytype
 
   implicit none
 
@@ -404,7 +404,7 @@ end function iy
 function cx(realpart,imaginarypart)
 
   !use param
-  use decomp_2d, only: mytype
+  use decomp_2d_constants, only: mytype
 
   implicit none
 
@@ -751,7 +751,7 @@ module decomp_2d_poisson
 
   abstract interface
      subroutine poisson_xxx(rhs)
-       use decomp_2d, only : mytype
+       use decomp_2d_constants, only : mytype
        real(mytype), dimension(:,:,:), intent(inout) :: rhs
      end subroutine poisson_xxx
   end interface
@@ -3177,8 +3177,8 @@ contains
   end subroutine matrice_refinement
 !=====================================
 subroutine avg3d (var, avg)
-
-  use decomp_2d, only: real_type, xsize, xend
+  use decomp_2d_mpi
+  use decomp_2d, only: xsize, xend
   !use param
   !use dbg_schemes, only: sqrt_prec
   !use variables, only: nx,ny,nz,nxm,nym,nzm

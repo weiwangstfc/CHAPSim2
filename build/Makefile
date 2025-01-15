@@ -46,7 +46,7 @@ endif
 
 # FFT library and include paths
 INCLUDE = -I../lib/2decomp-fft/build/opt/include
-LIBS    = -L../lib/2decomp-fft/build/opt/lib
+LIBS    = -L../lib/2decomp-fft/build/opt/lib -ldecomp2d
 
 # Object file lists
 OBJS1 = $(addprefix $(DIR_OBJ)/, \

@@ -2,6 +2,8 @@
 bin/
 obj/
 mod/
+build/*.smod
+build/*.mod
 .input/
 .obsolete/
 .tmp/

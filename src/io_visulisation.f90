@@ -208,7 +208,9 @@ contains
     use precision_mod
     use parameters_constant_mod, only: MAXP
     use udf_type_mod, only: t_domain
-    use decomp_2d, only: nrank, mytype, xszV, yszV, zszV
+    use decomp_2d, only: xszV, yszV, zszV
+    use decomp_2d_constants, only: mytype
+    use decomp_2d_mpi
     use io_files_mod
     implicit none 
     integer, intent(in)        :: iheadfoot
@@ -301,7 +303,7 @@ contains
     use decomp_operation_mod
     implicit none
     type(t_domain), intent(in) :: dm
-    real(WP), intent(in) :: var(:, :, :)
+    real(WP), contiguous, intent(in) :: var(:, :, :)
     character(len=*), intent(in) :: varname
     character(len=*), intent(in) :: visuname
     character(*), intent(in) :: attributetype
@@ -331,7 +333,7 @@ contains
       keyword = trim(varname)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
       if(.not.file_exists(data_flname_path)) &
-      call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), dtmp)
+      call decomp_2d_write_one(X_PENCIL, var, trim(data_flname_path), opt_decomp=dtmp)
 
     else if(dm%visu_idim == Ivisudim_1D_XZa) then
       !to add 1D profile
@@ -339,7 +341,8 @@ contains
       keyword = trim(varname)
       call generate_file_name(data_flname, dm%idom, keyword, 'bin', iter)
       call generate_pathfile_name(data_flname_path, dm%idom, keyword, dir_data, 'bin', iter)
-      call decomp_2d_write_plane(X_PENCIL, var, dm%visu_idim, PLANE_AVERAGE, trim(dir_data), trim(data_flname), io_name, dtmp)
+      !call decomp_2d_write_plane(X_PENCIL, var, dm%visu_idim, PLANE_AVERAGE, trim(dir_data), &
+      !      trim(data_flname), io_name, opt_decomp=dtmp) ! to update, to check
     end if
 !----------------------------------------------------------------------------------------------------------
 ! dataitem for xdmf file
