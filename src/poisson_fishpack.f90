@@ -152,8 +152,6 @@ contains
 
     END SELECT
 
-    !if(myid==0) WRITE(*,*) 'WX :', myid, WX
-    !if(myid==0) WRITE(*,*) 'XRT:', myid, XRT
 
     RETURN
   END SUBROUTINE 
@@ -216,12 +214,13 @@ contains
   subroutine fishpack_fft_init(dm)
     use udf_type_mod
     use parameters_constant_mod
+    use io_files_mod
     implicit none
     type(t_domain), intent(in) :: dm
 
     !integer :: wsz
     integer :: ibcx(2), ibcz(2)
-    integer :: nx, ny, nz
+    integer :: nx, ny, nz, np
     integer :: j, i, k, ii, kk
     real(WP) :: dyfi(dm%nc(2)), dyci(dm%np_geo(2)) 
     !-----------------------------------------------------------
@@ -230,6 +229,7 @@ contains
     nx = dm%nc(1)
     ny = dm%nc(2)
     nz = dm%nc(3)
+    np = dm%np_geo(2)
     ibcx(1:2) = dm%ibcx_qx(1:2)
     ibcz(1:2) = dm%ibcz_qx(1:2)
     !-----------------------------------------------------------
@@ -272,6 +272,9 @@ contains
     allocate(ZRT(nz), WZ(2*nz + 15))
     call fishpack_root_1D(nz, LPz, dm%h2r(3), SCALz, Wz, zRT)
 
+if(nrank==0) WRITE(*,*)'fft-scl ', SCALX, SCALz
+if(nrank==0) WRITE(*,*)'fft-xrt  ', XRT
+if(nrank==0) WRITE(*,*)'fft-zrt  ', zRT
     !-----------------------------------------------------------
     ! allocate work arrays for TMDA, and coefficients
     ! note: this is for 2nd order central difference only
@@ -284,8 +287,8 @@ contains
     do j = 2, dm%nc(2)
       dyci(j) = 1.0_WP / ((dm%yp(j+1) - dm%yp(j-1)) * 0.5_WP) ! cell centre to centre spacing
     end do
-    dyci(1           ) = 1.0_WP / (dm%yp(2) - dm%yp(1)) ! 
-    dyci(dm%np_geo(2)) = 1.0_WP / (dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1)) ! 
+    dyci(1 ) = 1.0_WP / (( ((dm%yp(2)  + dm%yp(1)   ))/TWO - dm%yp(1) ) * TWO)! 
+    dyci(np) = 1.0_WP / ((-((dm%yp(np) + dm%yp(np-1)))/TWO + dm%yp(np)) * TWO)!
 
     do j = 1, dm%nc(2)
       a(j) = (dyci(j  )/dm%rpi(j  )) * (dyfi(j)/dm%rci(j))
@@ -296,17 +299,26 @@ contains
       c(dm%nc(2)) = 0.0_WP
     end if
     b = -(a + c)
-    !write (*,*) 'dyfi', dyfi(:)
-    !write (*,*) 'dyci', dyci(:)
-    !write (*,*) 'a', a(:) ! same as chapsim1
-    !write (*,*) 'b', b(:) ! same as chapsim1
-    !write (*,*) 'c', c(:) ! same as chapsim1 
-    !write(*,*) 'initx0', nx, LPx, dm%h2r(1), nz, LPz, dm%h2r(3) ! same as chapsim1
-    !write(*,*) 'initx1', SCALX, SCALZ ! same as chapsim1
-    !write(*,*) 'initx2', XRT ! same as chapsim1
-    !write(*,*) 'initx3', zRT ! same as chapsim1
-    !write(*,*) 'initx4', WX  ! same as chapsim1
-    !write(*,*) 'initx5', WZ  ! same as chapsim1
+    !-----------------------------------------------------------
+    ! data check
+    !-----------------------------------------------------------
+    if(nrank == 0) then
+      open(221, file = trim(dir_chkp)//'/check_mesh_dyfi.dat')
+      write(221, *) 'index, dyfi'
+      do j = 1, dm%nc(2)
+        write (221, *) j, dyfi(j)
+      end do
+      open(223, file = trim(dir_chkp)//'/check_mesh_dyci.dat')
+      write(223, *) 'index, dyci'
+      do j = 1, dm%np_geo(2)
+        write (223, *) j, dyci(j)
+      end do
+      open(224, file = trim(dir_chkp)//'/check_mesh_abc.dat')
+      write(224, *) 'index, a, b, c'
+      do j = 1, dm%nc(2)
+        write (224, *) j, a(j), b(j), c(j)
+      end do
+    end if
     
 
   return
@@ -325,6 +337,8 @@ contains
     real(WP) :: tx(dm%dccc%xsz(1)), ty(dm%dccc%ysz(2)), tz(dm%dccc%zsz(3))
     real(WP) :: rhs_ypencil(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3))
     real(WP) :: rhs_zpencil(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3))
+    
+write(*,*) 'fft-in ', rhs_xpencil
     !-----------------------------------------------------------
     ! forward FFT in x direction
     ! x - pencil
@@ -344,8 +358,6 @@ contains
 
       end do 
     end do
-
-   ! write(*,'(A, I3, 1ES13.5)') ('test1', i, rhs_xpencil(i,32,8), i=1, dm%dccc%xsz(1))
     !-----------------------------------------------------------
     ! transfer data to z-pencil for z-FFT
     !-----------------------------------------------------------
@@ -377,6 +389,7 @@ contains
     !-----------------------------------------------------------
     ! TMDA in the Y direction (stretching grids direction)
     !-----------------------------------------------------------
+ write(*,*) 'fft-xzfft ', rhs_ypencil  
     do i = 1, dm%dccc%ysz(1)
        ii = dm%dccc%yst(1) + i - 1
       do k = 1, dm%dccc%ysz(3)
@@ -395,6 +408,7 @@ contains
         end do  
       end do 
     end do
+write(*,*) 'fft-ytdma ', rhs_ypencil
     !write(*,'(A, I3, 1ES13.5)') ('test3', j, rhs_ypencil(16,j,8), j=1, dm%dccc%ysz(2))
     !-----------------------------------------------------------
     ! transfer data to Z-pencil for backward z-FFT
@@ -447,7 +461,7 @@ contains
     ! scale the result
     !-----------------------------------------------------------
     rhs_xpencil = rhs_xpencil / SCALX / SCALZ
-
+  WRITE(*,*)'fft-out',rhs_xpencil
   return
   end subroutine
 
