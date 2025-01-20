@@ -389,7 +389,7 @@ write(*,*) 'fft-in ', rhs_xpencil
     !-----------------------------------------------------------
     ! TMDA in the Y direction (stretching grids direction)
     !-----------------------------------------------------------
- write(*,*) 'fft-xzfft ', rhs_ypencil  
+write(*,*) 'fft-xzfft ', rhs_ypencil  
     do i = 1, dm%dccc%ysz(1)
        ii = dm%dccc%yst(1) + i - 1
       do k = 1, dm%dccc%ysz(3)
@@ -461,7 +461,7 @@ write(*,*) 'fft-ytdma ', rhs_ypencil
     ! scale the result
     !-----------------------------------------------------------
     rhs_xpencil = rhs_xpencil / SCALX / SCALZ
-  WRITE(*,*)'fft-out',rhs_xpencil
+WRITE(*,*)'fft-out',rhs_xpencil
   return
   end subroutine
 

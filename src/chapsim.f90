@@ -52,6 +52,7 @@ subroutine initialise_chapsim
   use thermo_info_mod
   use io_visulisation_mod
   use eq_momentum_mod
+  use wrt_debug_field_mod
   implicit none
   integer :: i
 
@@ -127,10 +128,23 @@ subroutine initialise_chapsim
     end if
     call initialise_flow_fields(flow(i), domain(i))
     call Check_element_mass_conservation(flow(i), domain(i), 0, 'init') 
-    !call Solve_momentum_eq(flow(i), domain(i), 0)
-    !call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
-    !call write_visu_flow(flow(i), domain(i))
-    !if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
+    call Solve_momentum_eq(flow(i), domain(i), 0)
+    call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
+    call write_visu_flow(flow(i), domain(i))
+    if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
+#ifdef DEBUG_STEPS
+    if(domain(i)%is_thermo) then
+      call wrt_3d_pt_debug(flow(i)%gx, domain(i)%dpcc, flow(i)%iteration, 0, 'gx@bf solv') ! debug_ww
+      call wrt_3d_pt_debug(flow(i)%gy, domain(i)%dcpc, flow(i)%iteration, 0, 'gy@bf solv') ! debug_ww
+      call wrt_3d_pt_debug(flow(i)%gz, domain(i)%dccp, flow(i)%iteration, 0, 'gz@bf solv') ! debug_ww
+    end if
+
+    call wrt_3d_pt_debug(flow(i)%qx,   domain(i)%dpcc, flow(i)%iteration, 0, 'qx@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(flow(i)%qy,   domain(i)%dcpc, flow(i)%iteration, 0, 'qy@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(flow(i)%qz,   domain(i)%dccp, flow(i)%iteration, 0, 'qz@bf solv') ! debug_ww
+    call wrt_3d_pt_debug(flow(i)%pres, domain(i)%dccc, flow(i)%iteration, 0, 'pr@bf solv') ! debug_ww
+    STOP 
+#endif 
   end do
 !----------------------------------------------------------------------------------------------------------
 ! update interface values for multiple domain
