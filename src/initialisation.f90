@@ -168,7 +168,7 @@ contains
     use io_visulisation_mod
     use wtformat_mod
     use find_max_min_ave_mod
-    implicit none
+    use wrt_debug_field_mod
     type(t_domain),  intent(in) :: dm
     type(t_flow), intent(inout) :: fl
     
@@ -236,12 +236,10 @@ contains
     call Find_max_min_absvar3d(fl%qz, "uz", wrtfmt2e)
 ! to validate the random number generated is MPI processor independent.
 #ifdef DEBUG_STEPS
-    ! write(*,*) 'random ux', ux(:, 8, 8)
-    ! write(*,*) 'random uy', uy(:, 8, 8)
-    ! write(*,*) 'random uz', uz(:, 8, 8)
-    call write_visu_any3darray(fl%qx, 'qx_random_init', 'debug', dm%dpcc, dm, 0)
-    call write_visu_any3darray(fl%qy, 'qy_random_init', 'debug', dm%dcpc, dm, 0)
-    call write_visu_any3darray(fl%qz, 'qz_random_init', 'debug', dm%dccp, dm, 0)
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@af radm') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@af radm') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@af radm') ! debug_ww
+    call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@af radm') ! debug_ww
 #endif
 
 
@@ -265,12 +263,14 @@ contains
     use parameters_constant_mod
     use udf_type_mod
     use math_mod
+    use io_files_mod
     implicit none
 
     type(t_domain), intent(in)  :: dm
     real(WP),       intent(out) :: ux_1c1(:)
     
-    real(WP)   :: a, b, c, yy, ymax, ymin
+    real(WP):: a, b, c, yy, ymax, ymin
+    integer :: pf_unit
     integer :: j
     
     if(nrank == 0) call Print_debug_mid_msg("Generate poiseuille flow profile ...")
@@ -302,6 +302,21 @@ contains
       ux_1c1(j) = ( ONE - ( (yy - b)**2 ) / a / a ) * c
     end do
 
+    !----------------------------------------------------------------------------------------------------------
+    !   Y-pencil : write out velocity profile
+    !----------------------------------------------------------------------------------------------------------
+    if(nrank == 0) then
+      open ( newunit = pf_unit,     &
+              file    = trim(dir_chkp)//'/check_poiseuille_ux_profile.dat', &
+              status  = 'replace',         &
+              action  = 'write')
+      write(pf_unit, '(A)') "#id,  yc, ux_laminar, ux_real"
+      do j = 1, dm%nc(2)
+        write(pf_unit, '(1I3.1, 2ES15.7)') j, dm%yc(j), ux_1c1(j)
+      end do
+      close(pf_unit)
+    end if
+
     return
   end subroutine Generate_poiseuille_flow_profile
 
@@ -328,6 +343,7 @@ contains
     use io_restart_mod
     use convert_primary_conservative_mod
     use find_max_min_ave_mod
+    use wrt_debug_field_mod
     implicit none
     type(t_domain),intent(inout) :: dm
     type(t_flow), intent(inout) :: fl
@@ -360,6 +376,12 @@ contains
         end do
       end do
     end do
+#ifdef DEBUG_STEPS
+    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@af init') ! debug_ww
+    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@af init') ! debug_ww
+    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@af init') ! debug_ww
+    call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@af init') ! debug_ww
+#endif 
     !----------------------------------------------------------------------------------------------------------
     !   x-pencil : Ensure the mass flow rate is 1.
     !----------------------------------------------------------------------------------------------------------
@@ -421,20 +443,6 @@ contains
       call extract_dirichlet_fbcx(dm%fbcx_qx, fl%qx, dm%dpcc)
       call extract_dirichlet_fbcx(dm%fbcx_qy, fl%qy, dm%dcpc)
       call extract_dirichlet_fbcx(dm%fbcx_qz, fl%qz, dm%dccp)
-    end if
-    !----------------------------------------------------------------------------------------------------------
-    !   Y-pencil : write out velocity profile
-    !----------------------------------------------------------------------------------------------------------
-    if(nrank == 0) then
-      open ( newunit = pf_unit,     &
-              file    = trim(dir_chkp)//'/check_poiseuille_ux_profile.dat', &
-              status  = 'replace',         &
-              action  = 'write')
-      write(pf_unit, '(A)') "#id,  yc, ux_laminar, ux_real"
-      do j = 1, dm%nc(2)
-        write(pf_unit, '(1I3.1, 5ES15.7)') j, dm%yc(j), ux_1c1(j), ux_ypencil(1, j, 1)
-      end do
-      close(pf_unit)
     end if
     
     if(nrank == 0) call Print_debug_end_msg
@@ -601,10 +609,10 @@ contains
     end if
   
 #ifdef DEBUG_STEPS
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@bf inoutlet') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@bf inoutlet') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@bf inoutlet') ! debug_ww
-    call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf inoutlet') ! debug_ww
+    !call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@bf inoutlet') ! debug_ww
+    !call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@bf inoutlet') ! debug_ww
+    !call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@bf inoutlet') ! debug_ww
+    !call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf inoutlet') ! debug_ww
 #endif 
   
     !call update_dyn_fbcx_from_flow(dm, fl%qx, fl%qy, fl%qz, dm%fbcx_qx, dm%fbcx_qy, dm%fbcx_qz)
@@ -613,20 +621,7 @@ contains
 ! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------
    
-    fl%pcor(:, :, :) = ZERO    
-    
-#ifdef DEBUG_STEPS
-    if(dm%is_thermo) then
-      call wrt_3d_pt_debug(fl%gx, dm%dpcc,   fl%iteration, 0, 'gx@bf solv') ! debug_ww
-      call wrt_3d_pt_debug(fl%gy, dm%dcpc,   fl%iteration, 0, 'gy@bf solv') ! debug_ww
-      call wrt_3d_pt_debug(fl%gz, dm%dccp,   fl%iteration, 0, 'gz@bf solv') ! debug_ww
-    end if
-
-    call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, 0, 'qy@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, 0, 'qz@bf solv') ! debug_ww
-    call wrt_3d_pt_debug(fl%pres, dm%dccc, fl%iteration, 0, 'pr@bf solv') ! debug_ww
-#endif  
+    fl%pcor(:, :, :) = ZERO 
 
     call write_visu_flow(fl, dm, 'init')
 
