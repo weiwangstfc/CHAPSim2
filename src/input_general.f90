@@ -85,7 +85,7 @@ contains
 !==========================================================================================================
   function get_name_mesh(ist) result(str)
     integer, intent(in) :: ist
-    character(36) :: str
+    character(72) :: str
 
     select case(ist)
     case ( ISTRET_NO) 
@@ -107,7 +107,7 @@ contains
 !==========================================================================================================
   function get_name_mstret(ist) result(str)
     integer, intent(in) :: ist
-    character(36) :: str
+    character(72) :: str
 
     select case(ist)
     case ( MSTRET_3FMD) 
@@ -139,7 +139,7 @@ contains
 !==========================================================================================================
   function get_name_iacc(iacc) result(str)
     integer, intent(in) :: iacc
-    character(14) :: str
+    character(32) :: str
 
     select case(iacc)
     case ( IACCU_CD2) 
@@ -159,7 +159,7 @@ contains
 !==========================================================================================================
   function get_name_initial(irst) result(str)
     integer, intent(in) :: irst
-    character(50) :: str
+    character(56) :: str
 
     select case(irst)
     case ( INIT_RESTART) 
@@ -263,7 +263,7 @@ contains
     if(ioerr /= 0) then
       ! write (*, *) 'Problem openning : ', flinput, ' for reading.'
       ! write (*, *) 'Message: ', trim (iotxt)
-      error stop 'Problem openning : ', flinput, ' for reading.'
+      error stop 'Error in opening the input file: input_chapsim.ini'
     end if
 
     if(nrank == 0) &
