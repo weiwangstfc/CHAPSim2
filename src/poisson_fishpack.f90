@@ -202,9 +202,8 @@ contains
         end select
         
     else
-      write(*,*) 'Error: ifwrd is not 1 or 2'
-      stop
-    end if
+      error stop 'Error: ifwrd is not 1 or 2'
+    end if 
 
 
   return
@@ -236,8 +235,7 @@ contains
     ! check input grid size
     !-----------------------------------------------------------
     if(nx <= 3 .or. ny <= 3 .or. nz <= 3) then
-      write(*,*) 'Error: Grid size is too small for Fishpack FFT'
-      stop
+      error stop  'Error: Grid size is too small for Fishpack FFT'
     end if
     !-----------------------------------------------------------
     ! assign FFT transform type, LP->x, MP->z, NP->y

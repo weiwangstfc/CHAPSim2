@@ -538,7 +538,7 @@ contains
   
     call call_cpu_time(CPU_TIME_CODE_END, iterfrom, niter)
     call Finalise_mpi()
-    stop
+    stop 'End of the program'
     return
   end subroutine Solve_burgers_eq_iteration
 

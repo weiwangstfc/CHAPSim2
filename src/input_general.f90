@@ -261,9 +261,9 @@ contains
            iostat  = ioerr, &
            iomsg   = iotxt )
     if(ioerr /= 0) then
-      write (*, *) 'Problem openning : ', flinput, ' for reading.'
-      write (*, *) 'Message: ', trim (iotxt)
-      stop 1
+      ! write (*, *) 'Problem openning : ', flinput, ' for reading.'
+      ! write (*, *) 'Message: ', trim (iotxt)
+      error stop 'Problem openning : ', flinput, ' for reading.'
     end if
 
     if(nrank == 0) &

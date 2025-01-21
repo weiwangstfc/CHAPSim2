@@ -36,14 +36,15 @@ module geometry_mod
   public  :: Buildup_geometry_mesh_info
   
 contains
-subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
+  subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp, opt_yp)
     use math_mod
     use udf_type_mod
     use parameters_constant_mod
     implicit none
-    character(len = *), intent(in)   :: str
-    integer,            intent(in)   :: n
-    type(t_domain),     intent(in)   :: dm
+    character(len = *), intent(in) :: str
+    integer,            intent(in) :: n
+    type(t_domain),     intent(in) :: dm
+    real(WP), optional, intent(in) :: opt_yp(:)
     real(WP), intent( out )        :: y(n)
     real(WP), intent( out )        :: mp(n, 3)
     integer :: j
@@ -54,12 +55,13 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
     real(WP) :: mm, ymin, ymax, ff
     real(WP), dimension(n) :: eta
 
-    if(dm%mstret /= MSTRET_TANH) then
-      call Print_error_msg('Grid stretching method is not MSTRET_TANH.')   
-      STOP 
+    if(dm%mstret /= MSTRET_TANH) then 
+      error stop 'Grid stretching method is not MSTRET_TANH.'
     end if
-
     !----------------------------------------------------------------------------------------------------------
+    ! note: (1)if both yc and yp are calculated using the stretching function,
+    !          yc_i /= (yp_i + yp_i+1)
+    !       (2)if yc_i /= (yp_i + yp_i+1), the mapping function for yc is unknown explicitly.
     !----------------------------------------------------------------------------------------------------------
     eta_shift = ZERO
     eta_delta = ONE
@@ -116,14 +118,18 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
       call Print_error_msg('Grid stretching flag is not valid.')
     end if
 
-    beta = dm%rstret
+    beta = dm%rstret * TWENTY
 
     do j = 1, n
       mm = tanh_wp(beta * gamma)
       !----------------------------------------------------------------------------------------------------------
       ! y \in [-1, 1] or [0, 1]
       !----------------------------------------------------------------------------------------------------------
-      y(j) = tanh_wp(beta * (eta(j) - delta)) / mm
+      if (present(opt_yp) .and. trim( str ) == 'cl') then
+        y(j) = ( opt_yp(j) + opt_yp(j + 1)) * HALF
+      else
+        y(j) = tanh_wp(beta * (eta(j) - delta)) / mm
+      end if
       mp(j, 1) = mm/beta/(ONE - y(j) * y(j) * mm * mm)
       !----------------------------------------------------------------------------------------------------------
       ! y \in [lyb, lyt]
@@ -157,14 +163,15 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
 !> \param[out]    y            the physical coordinate array
 !> \param[out]    mp           the mapping relations for 1st and 2nd deriviatives
 !_______________________________________________________________________________
-  subroutine Buildup_grid_mapping_1D_3fmd (str, n, dm, y, mp)
+  subroutine Buildup_grid_mapping_1D_3fmd (str, n, dm, y, mp, opt_yp)
     use math_mod
     use udf_type_mod
     use parameters_constant_mod
     implicit none
-    character(len = *), intent(in)   :: str
-    integer,            intent(in)   :: n
-    type(t_domain),     intent(in)   :: dm
+    character(len = *), intent(in) :: str
+    integer,            intent(in) :: n
+    type(t_domain),     intent(in) :: dm
+    real(WP), optional, intent(in) :: opt_yp(:)
     real(WP), intent( out )        :: y(n)
     real(WP), intent( out )        :: mp(n, 3)
     integer :: j
@@ -175,9 +182,8 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
     real(WP), dimension(n) :: eta
     real(WP) :: alpha, beta, gamma, delta
 
-    if(dm%mstret /= MSTRET_3FMD) then
-      call Print_error_msg('Grid stretching method is not MSTRET_3FMD.')   
-      STOP 
+    if(dm%mstret /= MSTRET_3FMD) then 
+      error stop 'Grid stretching method is not MSTRET_3FMD.'
     end if
     !----------------------------------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------------------------------
@@ -247,12 +253,16 @@ subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp)
       !----------------------------------------------------------------------------------------------------------
       ! y \in [0, 1]
       !----------------------------------------------------------------------------------------------------------
-      y(j) = atan_wp ( dd * tan_wp( mm ) ) - &
-             atan_wp ( dd * tan_wp( PI * delta) ) + &
-             PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
-      y(j) = ONE / (gamma * ee) * y(j)
-      if ( trim( str ) == 'nd' .and. j == 1) y(j) = ZERO
-      if ( trim( str ) == 'nd' .and. j == n) y(j) = ONE
+      if (present(opt_yp) .and. trim( str ) == 'cl') then
+        y(j) = ( opt_yp(j) + opt_yp(j + 1)) * HALF
+      else
+        y(j) = atan_wp ( dd * tan_wp( mm ) ) - &
+               atan_wp ( dd * tan_wp( PI * delta) ) + &
+               PI * ( heaviside_step( eta(j) - st1 ) + heaviside_step( eta(j) - st2 ) )
+        y(j) = ONE / (gamma * ee) * y(j)
+        if ( trim( str ) == 'nd' .and. j == 1) y(j) = ZERO
+        if ( trim( str ) == 'nd' .and. j == n) y(j) = ONE
+      end if
       !----------------------------------------------------------------------------------------------------------
       ! y \in [lyb, lyt]
       !----------------------------------------------------------------------------------------------------------
