@@ -14,8 +14,7 @@ contains
     
     write (*, *) 'ERROR: ' // msg
 
-    write (*, *) 'Code is terminated in progedit cessor = '
-    STOP
+    error stop  'Execution terminated unexpectedly due to an error.'
 
     return
   end subroutine Print_error_msg

@@ -631,9 +631,9 @@ contains
            iostat  = ioerr,         &
            iomsg   = iotxt)
     if(ioerr /= 0) then
-      write (*, *) 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
-      write (*, *) 'Message: ', trim (iotxt)
-      stop 4
+      !write (*, *) 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
+      !write (*, *) 'Message: ', trim (iotxt)
+      error stop 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
     end if
 
     fluidparam%nlist = 0
@@ -1028,9 +1028,9 @@ contains
            iostat  = ioerr,         &
            iomsg   = iotxt)
       if(ioerr /= 0) then
-        write (*, *) 'Problem openning : '//trim(filename1)
-        write (*, *) 'Message: ', trim (iotxt)
-        stop 4
+        !write (*, *) 'Problem openning : '//trim(filename1)
+        !write (*, *) 'Message: ', trim (iotxt)
+        error stop 'Problem openning : '//trim(filename1)
       end if
 
       n = 0

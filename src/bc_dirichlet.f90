@@ -103,9 +103,7 @@ contains
           iostat  = ioerr,         &
           iomsg   = iotxt)
     if(ioerr /= 0) then
-      write (*, *) 'Problem openning : '//trim(filename)
-      write (*, *) 'Message: ', trim (iotxt)
-      stop 4
+      error stop  'Problem openning : '//trim(filename)
     end if
 
     nn = 0

@@ -198,9 +198,9 @@ contains
       open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
           iostat = ioerr, iomsg = iotxt)
       if(ioerr /= 0) then
-        write (*, *) 'Problem openning probing file'
-        write (*, *) 'Message: ', trim (iotxt)
-        stop
+        !write (*, *) 'Problem openning probing file'
+        !write (*, *) 'Message: ', trim (iotxt)
+        error stop 'Problem openning probing file'
       end if 
     end if      
 !----------------------------------------------------------------------------------------------------------
@@ -251,9 +251,9 @@ contains
       open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
           iostat = ioerr, iomsg = iotxt)
       if(ioerr /= 0) then
-        write (*, *) 'Problem openning probing file'
-        write (*, *) 'Message: ', trim (iotxt)
-        stop
+        !write (*, *) 'Problem openning probing file'
+        !write (*, *) 'Message: ', trim (iotxt)
+        error stop 'Problem openning probing file'
       end if 
       write(myunit, *) fl%time, fl%mcon(1:3)
       close(myunit)
@@ -299,9 +299,9 @@ contains
         open(newunit = myunit, file = trim(flname), status = "old", action = "write", position = "append", &
             iostat = ioerr, iomsg = iotxt)
         if(ioerr /= 0) then
-          write (*, *) 'Problem openning probing file'
-          write (*, *) 'Message: ', trim (iotxt)
-          stop
+          !write (*, *) 'Problem openning probing file'
+          !write (*, *) 'Message: ', trim (iotxt)
+          error stop 'Problem openning probing file'
         end if
 !----------------------------------------------------------------------------------------------------------
 ! write out local data
