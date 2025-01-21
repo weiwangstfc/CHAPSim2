@@ -283,10 +283,10 @@ if(nrank==0) WRITE(*,*)'fft-zrt  ', zRT
       dyfi(j) = 1.0_WP / (dm%yp(j+1) - dm%yp(j)) ! node to node spacing
     end do
     do j = 2, dm%nc(2)
-      dyci(j) = 1.0_WP / ((dm%yp(j+1) - dm%yp(j-1)) * 0.5_WP) ! cell centre to centre spacing
+      dyci(j) = 1.0_WP / (dm%yc(j) - dm%yc(j-1)) ! cell centre to centre spacing
     end do
-    dyci(1 ) = 1.0_WP / (( ((dm%yp(2)  + dm%yp(1)   ))/TWO - dm%yp(1) ) * TWO)! 
-    dyci(np) = 1.0_WP / ((-((dm%yp(np) + dm%yp(np-1)))/TWO + dm%yp(np)) * TWO)!
+    dyci(1 ) = 1.0_WP / (( dm%yc(1) - dm%yp(1)  ) * TWO)! 
+    dyci(np) = 1.0_WP / (( dm%yp(np)- dm%yc(np-1) ) * TWO)!
 
     do j = 1, dm%nc(2)
       a(j) = (dyci(j  )/dm%rpi(j  )) * (dyfi(j)/dm%rci(j))

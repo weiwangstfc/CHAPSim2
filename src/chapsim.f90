@@ -143,7 +143,7 @@ subroutine initialise_chapsim
     call wrt_3d_pt_debug(flow(i)%qy,   domain(i)%dcpc, flow(i)%iteration, 0, 'qy@bf solv') ! debug_ww
     call wrt_3d_pt_debug(flow(i)%qz,   domain(i)%dccp, flow(i)%iteration, 0, 'qz@bf solv') ! debug_ww
     call wrt_3d_pt_debug(flow(i)%pres, domain(i)%dccc, flow(i)%iteration, 0, 'pr@bf solv') ! debug_ww
-    STOP  "STOP after initialisation"
+    !STOP  "STOP after initialisation"
 #endif 
   end do
 !----------------------------------------------------------------------------------------------------------

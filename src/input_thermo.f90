@@ -633,7 +633,7 @@ contains
     if(ioerr /= 0) then
       !write (*, *) 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
       !write (*, *) 'Message: ', trim (iotxt)
-      error stop 'Problem openning : ', fluidparam%inputProperty, ' for reading.'
+      error stop 'Problem openning fluidparam%inputProperty for reading.'
     end if
 
     fluidparam%nlist = 0

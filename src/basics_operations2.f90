@@ -1789,14 +1789,14 @@ contains
   end subroutine Prepare_LHS_coeffs_for_operations
 !==========================================================================================================
 !==========================================================================================================
-  subroutine buildup_ghost_cells_C(fi, d1, ibc, fc, fbc)
+  subroutine buildup_ghost_cells_C(fi, ibc, fc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: ibc(2)
-    real(WP), intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     real(WP), intent(inout ) :: fc(-1:2)
-    real(WP), optional, intent(in ) :: fbc(4)
+    real(WP), optional, intent(in ) :: opt_fbc(4)
 
     integer :: nc ! cell number
 
@@ -1807,9 +1807,9 @@ contains
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
     if ( ibc(1) == IBC_INTERIOR) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_C')
-      fc(0 ) = fbc(1)
-      fc(-1) = fbc(3)
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_C')
+      fc(0 ) = opt_fbc(1)
+      fc(-1) = opt_fbc(3)
     else if ( ibc(1) == IBC_PERIODIC) then
       fc(0 ) = fi(nc   )
       fc(-1) = fi(nc -1)
@@ -1820,13 +1820,13 @@ contains
       fc(0 ) = -fi(1)
       fc(-1) = -fi(2)
     else if (ibc(1) == IBC_DIRICHLET) then
-      !if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_C')
-      fc(0 ) = TWO * fbc(1) - fi(1)
-      fc(-1) = TWO * fbc(1) - fi(2)
+      !if(.not. present(opt_fbc)) call Print_warning_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_C')
+      fc(0 ) = TWO * opt_fbc(1) - fi(1)
+      fc(-1) = TWO * opt_fbc(1) - fi(2)
     else if (ibc(1) == IBC_NEUMANN) then
-      !if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C')
-      fc(0 ) = fi(1) - fbc(1) * d1(1)
-      fc(-1) = fi(2) - fbc(1) * ( TWO * d1(3) + d1(1) )
+      !if(.not. present(opt_fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C')
+      fc(0 ) = fi(1) - opt_fbc(1) * opt_dp(1)
+      fc(-1) = fi(2) - opt_fbc(1) * opt_dp(3)
     else
       fc(0 ) = MAXP
       fc(-1) = MAXP
@@ -1837,9 +1837,9 @@ contains
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
     if ( ibc(2) == IBC_INTERIOR) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_C2C')
-      fc(1) = fbc(2)
-      fc(2) = fbc(4)
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_C2C')
+      fc(1) = opt_fbc(2)
+      fc(2) = opt_fbc(4)
     else if ( ibc(2) == IBC_PERIODIC) then
       fc(1) = fi(1)
       fc(2) = fi(2)
@@ -1850,13 +1850,13 @@ contains
       fc(1) = -fi(nc   )
       fc(2) = -fi(nc -1)
     else if (ibc(2) == IBC_DIRICHLET) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_C2C')
-      fc(1) = TWO * fbc(2) - fi(nc)
-      fc(2) = TWO * fbc(2) - fi(nc-1)
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_DIRICHLET @ buildup_ghost_cells_C2C')
+      fc(1) = TWO * opt_fbc(2) - fi(nc)
+      fc(2) = TWO * opt_fbc(2) - fi(nc-1)
     else if (ibc(2) == IBC_NEUMANN) then
-      !if(.not. present(fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C2C')
-      fc(1) = fi(nc)     + fbc(2) * d1(2)
-      fc(2) = fi(nc - 1) + fbc(2) * ( TWO * d1(4) + d1(2) )
+      !if(.not. present(opt_fbc)) call Print_warning_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_C2C')
+      fc(1) = fi(nc)     + opt_fbc(2) * opt_dp(2)
+      fc(2) = fi(nc - 1) + opt_fbc(2) * opt_dp(4)
     else
       fc(1) = MAXP
       fc(2) = MAXP
@@ -1866,14 +1866,14 @@ contains
   end subroutine
 !==========================================================================================================
 !==========================================================================================================
-  subroutine buildup_ghost_cells_P(fi, d1, ibc, fp, fbc)
+  subroutine buildup_ghost_cells_P(fi, ibc, fp, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: ibc(2)
-    real(WP), intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     real(WP), intent(inout ) :: fp(-1:2)
-    real(WP), optional, intent(in ) :: fbc(4)
+    real(WP), optional, intent(in ) :: opt_fbc(4)
 
     integer :: np
 
@@ -1883,11 +1883,15 @@ contains
 !>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
 !>      -1     0      1     2     3      np-2   np-1  np    np+1  np+2 (non-periodic)
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
+!> dp(1) = ( yp(2) - yp(1) ) * 2
+!> dp(3) = ( yp(3) - yp(1) ) * 2
+!> dp(2) = ( yp(np) - yp(np-1) ) * 2
+!> dp(4) = ( yp(np) - yp(np-2) ) * 2
 !----------------------------------------------------------------------------------------------------------
     if ( ibc(1) == IBC_INTERIOR) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_P2P')
-      fp( 0) = fbc(1)
-      fp(-1) = fbc(3)
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_P')
+      fp( 0) = opt_fbc(1)
+      fp(-1) = opt_fbc(3)
     else if ( ibc(1) == IBC_PERIODIC) then
       fp( 0) = fi(np   )
       fp(-1) = fi(np -1)
@@ -1898,17 +1902,17 @@ contains
       fp( 0) = -fi(2)
       fp(-1) = -fi(3)
     else if (ibc(1) == IBC_DIRICHLET) then
-      if(present(fbc)) then
-        fp( 0) = TWO * fbc(1) - fi(2)
-        fp(-1) = TWO * fbc(1) - fi(3)
+      if(present(opt_fbc)) then
+        fp( 0) = TWO * opt_fbc(1) - fi(2)
+        fp(-1) = TWO * opt_fbc(1) - fi(3)
       else
         fp( 0) = TWO * fi(1) - fi(2)
         fp(-1) = TWO * fi(1) - fi(3)
       end if
     else if (ibc(1) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P')
-      fp( 0) = fi(2) - fbc(1) * TWO * d1(1)
-      fp(-1) = fi(3) - fbc(1) * TWO * ( d1(1) + d1(3) ) 
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P')
+      fp( 0) = fi(2) - opt_fbc(1) * opt_dp(1)
+      fp(-1) = fi(3) - opt_fbc(1) * opt_dp(3)
     else
       fp( 0) = MAXP
       fp(-1) = MAXP
@@ -1920,9 +1924,9 @@ contains
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
 !----------------------------------------------------------------------------------------------------------
     if ( ibc(2) == IBC_INTERIOR) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_P2P')
-      fp(1) = fbc(2)
-      fp(2) = fbc(4)
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_INTERIOR @ buildup_ghost_cells_P')
+      fp(1) = opt_fbc(2)
+      fp(2) = opt_fbc(4)
     else if ( ibc(2) == IBC_PERIODIC) then
       fp(1) = fi(1)
       fp(2) = fi(2)
@@ -1933,13 +1937,13 @@ contains
       fp(1) = - fi(np - 1)
       fp(2) = - fi(np - 2)
     else if (ibc(2) == IBC_NEUMANN) then
-      if(.not. present(fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P2P')
-      fp(1) = fi(np - 1) + fbc(2) * TWO * d1(2)
-      fp(2) = fi(np - 2) + fbc(2) * TWO * ( d1(2) + d1(4) ) 
+      if(.not. present(opt_fbc)) call Print_error_msg('Lack of fbc info for IBC_NEUMANN @ buildup_ghost_cells_P')
+      fp(1) = fi(np - 1) + opt_fbc(2) * opt_dp(2)
+      fp(2) = fi(np - 2) + opt_fbc(2) * opt_dp(4)
     else if (ibc(2) == IBC_DIRICHLET) then
-      if(present(fbc)) then
-        fp(1) = TWO * fbc(2) - fi(np - 1)
-        fp(2) = TWO * fbc(2) - fi(np - 2)
+      if(present(opt_fbc)) then
+        fp(1) = TWO * opt_fbc(2) - fi(np - 1)
+        fp(2) = TWO * opt_fbc(2) - fi(np - 2)
       else
         fp(1) = TWO * fi(np) - fi(np - 1)
         fp(2) = TWO * fi(np) - fi(np - 2)
@@ -1962,7 +1966,7 @@ contains
 !> \param[in]   fi      the input variable to build up the RHS array
 !> \param[out]  fo      the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, nc, coeff, d1, ibc, fbc)
+  subroutine Prepare_TDMA_interp_P2C_RHS_array(fi, fo, nc, coeff, ibc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
@@ -1970,8 +1974,8 @@ contains
     real(WP), intent(out) :: fo(nc)
     real(WP), intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     integer,  intent(in ) :: ibc(2)
-    real(WP), intent(in ) :: d1(4)
-    real(WP), optional, intent(in ) :: fbc(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
+    real(WP), optional, intent(in ) :: opt_fbc(4)
 
     integer :: i!, m, l
     real(WP) :: fp(-1:2)
@@ -1992,7 +1996,7 @@ contains
 !>      -1     0      1     2     3      np-2   np-1  np    np+1  np+2 (non-periodic)
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
 !----------------------------------------------------------------------------------------------------------
-    call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
+    call buildup_ghost_cells_P(fi(:), ibc(:), fp(-1:2), opt_fbc(:), opt_dp(:))
     is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
               ibc(1) == IBC_PERIODIC   .or. &
               ibc(1) == IBC_SYMMETRIC  .or. &
@@ -2066,7 +2070,7 @@ contains
 !> \param[in]   fi      the input variable to build up the RHS array
 !> \param[out]  fo      the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_interp_C2P_RHS_array(fi, fo, np, coeff, d1, ibc, fbc)
+  subroutine Prepare_TDMA_interp_C2P_RHS_array(fi, fo, np, coeff, ibc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
 
@@ -2074,9 +2078,9 @@ contains
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
     real(WP),           intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
-    real(WP),           intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in)  :: fbc(4) ! used for Dirichlet B.C. (1||2) & interior (3, 1,|| 2, 4)
+    real(WP), optional, intent(in)  :: opt_fbc(4) ! used for Dirichlet B.C. (1||2) & interior (3, 1,|| 2, 4)
 
     integer :: i
     real(WP) :: fc(-1:2)
@@ -2103,7 +2107,7 @@ contains
 !>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
-    call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
+    call buildup_ghost_cells_C(fi(:), ibc(:), fc(-1:2), opt_fbc(:), opt_dp(:))
     
     is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
               ibc(1) == IBC_PERIODIC   .or. &
@@ -2139,7 +2143,7 @@ contains
       fo(i) = coeff( 1, 1, ibc(1)) * ( fi(i    ) + fc( 0) )+ &
               coeff( 1, 2, ibc(1)) * ( fi(i + 1) + fc(-1) )
     else if (ibc(1) == IBC_DIRICHLET) then
-      fo(i) = fbc(1)
+      fo(i) = opt_fbc(1)
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -2170,7 +2174,7 @@ contains
       fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i) + fi(i - 1) ) + &
               coeff( 5, 2, IBC_PERIODIC ) * ( fc(1) + fi(i - 2) )
     else if (ibc(2) == IBC_DIRICHLET) then
-      fo(i) = fbc(2)
+      fo(i) = opt_fbc(2)
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i - 1) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 2) + &
@@ -2218,17 +2222,17 @@ contains
 !> \param[in]   fi      the input variable to build up the RHS array
 !> \param[out]  fo      the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_1deri_C2C_RHS_array(fi, fo, nc, coeff, d1, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_C2C_RHS_array(fi, fo, nc, coeff, dd, ibc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
     integer,  intent(in ) :: nc ! unknow numbers
     real(WP), intent(out) :: fo(nc)
     real(WP), intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
-    real(WP), intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     real(WP), intent(in ) :: dd
     integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in)  :: fbc(4) ! used for Dirichlet B.C. or interior
+    real(WP), optional, intent(in)  :: opt_fbc(4) ! used for Dirichlet B.C. or interior
 
     integer :: i, l
     real(WP) :: fc(-1:2)
@@ -2248,7 +2252,7 @@ contains
 !>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
-    call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
+    call buildup_ghost_cells_C(fi(:), ibc(:), fc(-1:2), opt_fbc(:), opt_dp(:))
     do i = 1, 2 
       is_bc(i) = (ibc(i) == IBC_INTERIOR   .or. &
                   ibc(i) == IBC_PERIODIC   .or. &
@@ -2339,17 +2343,17 @@ contains
 !> \param[in]   fi      the input variable to build up the RHS array
 !> \param[out]  fo      the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_1deri_P2P_RHS_array(fi, fo, np, coeff, d1, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_P2P_RHS_array(fi, fo, np, coeff, dd, ibc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers
     real(WP),           intent(out) :: fo(np)
     real(WP),           intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
-    real(WP),           intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(4) ! used for IBC_NEUMANN or interior
+    real(WP), optional, intent(in ) :: opt_fbc(4) ! used for IBC_NEUMANN or interior
 
     integer :: i
     real(WP) :: fp(-1:2)
@@ -2369,7 +2373,7 @@ contains
 !>      -1     0      1     2     3      np-2   np-1  np    np+1  np+2 (non-periodic)
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
 !----------------------------------------------------------------------------------------------------------
-    call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
+    call buildup_ghost_cells_P(fi(:), ibc(:), fp(-1:2), opt_fbc(:), opt_dp(:))
     do i = 1, 2
       is_bc1(i) = (ibc(i) == IBC_INTERIOR   .or. &
                    ibc(i) == IBC_PERIODIC   .or. &
@@ -2393,7 +2397,7 @@ contains
       fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i + 1) - fp( 0) ) + &
               coeff( 1, 2, ibc(1) ) * ( fi(i + 2) - fp(-1) )
     else if(ibc(1) == IBC_NEUMANN) then
-      fo(i) = fbc(1)/dd
+      fo(i) = opt_fbc(1)/dd
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -2422,7 +2426,7 @@ contains
       fo(i) = coeff( 5, 1, ibc(2) ) * ( fp(1) - fi(i - 1) ) + &
               coeff( 5, 2, ibc(2) ) * ( fp(2) - fi(i - 2) )
     else if(ibc(2) == IBC_NEUMANN) then
-      fo(i) = fbc(2)/dd
+      fo(i) = opt_fbc(2)/dd
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 1) + &
@@ -2470,17 +2474,17 @@ contains
 !> \param[in]   fi      the input variable to build up the RHS array
 !> \param[out]  fo      the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_1deri_C2P_RHS_array(fi, fo, np, coeff, d1, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_C2P_RHS_array(fi, fo, np, coeff, dd, ibc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP),           intent(in ) :: fi(:)
     integer,            intent(in ) :: np ! unknow numbers, np
     real(WP),           intent(out) :: fo(np)
     real(WP),           intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
-    real(WP),           intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     real(WP),           intent(in ) :: dd
     integer,            intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(4) ! used for IBC_NEUMANN, and interior
+    real(WP), optional, intent(in ) :: opt_fbc(4) ! used for IBC_NEUMANN, and interior
 
     integer :: i!, m, l
     real(WP) :: fc(-1:2)
@@ -2499,7 +2503,7 @@ contains
 !>      _|__.__|__.__||__.__|__.__|__...___|__.__|__.__||__.__|__.__|__.__
 !>         -1     0      1     2            nc-1   nc    nc+1   nc+2 
 !----------------------------------------------------------------------------------------------------------
-    call buildup_ghost_cells_C(fi(:), d1(:), ibc(:), fc(-1:2), fbc(:))
+    call buildup_ghost_cells_C(fi(:), ibc(:), fc(-1:2), opt_fbc(:), opt_dp(:))
     is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
               ibc(1) == IBC_PERIODIC   .or. &
               ibc(1) == IBC_SYMMETRIC  .or. &
@@ -2533,7 +2537,7 @@ contains
       fo(i) = coeff( 1, 1, ibc(1) ) * ( fi(i    ) - fc( 0) ) + &
               coeff( 1, 2, ibc(1) ) * ( fi(i + 1) - fc(-1) )
     else if(ibc(1) == IBC_NEUMANN) then
-      fo(i) = fbc(1)/dd
+      fo(i) = opt_fbc(1)/dd
     else
       fo(i) = coeff( 1, 1, IBC_INTRPL) * fi(i    ) + &
               coeff( 1, 2, IBC_INTRPL) * fi(i + 1) + &
@@ -2564,7 +2568,7 @@ contains
       fo(i) = coeff( 5, 1, IBC_PERIODIC ) * ( fi(i) - fi(i - 1) ) + &
               coeff( 5, 2, IBC_PERIODIC ) * ( fc(1) - fi(i - 2) )
     else if(ibc(2) == IBC_NEUMANN) then
-      fo(i) = fbc(2)/dd
+      fo(i) = opt_fbc(2)/dd
     else
       fo(i) = coeff( 5, 1, IBC_INTRPL) * fi(i - 1) + &
               coeff( 5, 2, IBC_INTRPL) * fi(i - 2) + &
@@ -2608,7 +2612,7 @@ contains
 !> \param[in]   fi      the input variable to build up the RHS array
 !> \param[out]  fo      the output RHS array
 !==========================================================================================================
-  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, d1, dd, ibc, fbc)
+  subroutine Prepare_TDMA_1deri_P2C_RHS_array(fi, fo, nc, coeff, dd, ibc, opt_fbc, opt_dp)
     use parameters_constant_mod
     implicit none
     real(WP), intent(in ) :: fi(:)
@@ -2616,9 +2620,9 @@ contains
     real(WP), intent(out) :: fo(nc)
     real(WP), intent(in ) :: coeff(1:NL, 1:2*NS, NBCS:NBCE)
     real(WP), intent(in ) :: dd
-    real(WP), intent(in ) :: d1(4)
+    real(WP), optional, intent(in ) :: opt_dp(4)
     integer,  intent(in ) :: ibc(2)
-    real(WP), optional, intent(in ) :: fbc(4)
+    real(WP), optional, intent(in ) :: opt_fbc(4)
 
     integer :: i!, l, m
     real(WP) :: fp(-1:2)
@@ -2638,7 +2642,7 @@ contains
 !>      -1     0      1     2     3      np-2   np-1  np    np+1  np+2 (non-periodic)
 !>      -1     0      1     2     3      np-1   np    np+1  np+2  np+3 (periodic)
 !----------------------------------------------------------------------------------------------------------
-    call buildup_ghost_cells_P(fi(:), d1(:), ibc(:), fp(-1:2), fbc(:))
+    call buildup_ghost_cells_P(fi(:), ibc(:), fp(-1:2), opt_fbc(:), opt_dp(:))
 
     is_bc1 = (ibc(1) == IBC_INTERIOR   .or. &
               ibc(1) == IBC_PERIODIC   .or. &
@@ -2737,7 +2741,7 @@ contains
     integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
 
     ibc = ibc0
@@ -2754,12 +2758,14 @@ contains
       end if
     end do
     
-
     ixsub = dm%idom
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(1)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(:, :, :, iacc), d1(:), ibc(:), fbc(:))
+    dp(1) = dm%h(1)
+    dp(3) = dm%h(1) * TWO
+    dp(2) = dm%h(1)
+    dp(4) = dm%h(1) * TWO
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2800,7 +2806,7 @@ contains
     integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -2819,9 +2825,11 @@ contains
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
-    d1(:) = dm%h(1)
-
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1, ibc(:), fbc)
+    dp(1) = dm%h(1) * TWO
+    dp(3) = dm%h(1) * FOUR
+    dp(2) = dm%h(1) * TWO
+    dp(4) = dm%h(1) * FOUR
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2862,7 +2870,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -2882,11 +2890,12 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(1) = dm%yp(2) - dm%yp(1)
-    d1(3) = dm%yp(3) - dm%yp(2)
-    d1(2) = dm%yp(dm%np(2)  ) - dm%yp(dm%np(2)-1)
-    d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
+    ! dp = physical spacings are used to build up ghost cells
+    dp(1) = (dm%yc(1) - dm%yp(1)) * TWO
+    dp(3) = (dm%yc(2) - dm%yp(1)) * TWO
+    dp(2) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)  )) * TWO
+    dp(4) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)-1)) * TWO
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2920,7 +2929,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -2938,11 +2947,12 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(1) = dm%yp(2) - dm%yp(1)
-    d1(3) = dm%yp(3) - dm%yp(2)
-    d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
-    d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:) )
+    ! dp = physical spacings are used to build up ghost grids
+    dp(1) = ( dm%yp(2) - dm%yp(1) ) * TWO
+    dp(3) = ( dm%yp(3) - dm%yp(1) ) * TWO
+    dp(2) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1) ) * TWO
+    dp(4) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-2) ) * TWO
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -2976,7 +2986,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -2996,8 +3006,11 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(:) =  dm%h(3)
-    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), ibc(:), fbc(:))
+    dp(1) = dm%h(3)
+    dp(3) = dm%h(3) * TWO
+    dp(2) = dm%h(3)
+    dp(4) = dm%h(3) * TWO
+    call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3031,7 +3044,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3048,8 +3061,11 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(3)
-    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1, ibc(:), fbc(:))
+    dp(1) = dm%h(3) * TWO
+    dp(3) = dm%h(3) * FOUR
+    dp(2) = dm%h(3) * TWO
+    dp(4) = dm%h(3) * FOUR
+    call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3101,7 +3117,7 @@ contains
     integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3121,9 +3137,11 @@ contains
     ixsub = dm%idom
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(1)
-
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    dp(1) = dm%h(1)
+    dp(3) = dm%h(1) * TWO
+    dp(2) = dm%h(1)
+    dp(4) = dm%h(1) * TWO
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(1), ibc(:), fbc(:), dp(:))
 
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
@@ -3166,7 +3184,7 @@ contains
     integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3184,8 +3202,11 @@ contains
     nsz = size(fo)
     fo = ZERO
     ixsub = dm%idom
-    d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    dp(1) = dm%h(1) * TWO
+    dp(3) = dm%h(1) * FOUR
+    dp(2) = dm%h(1) * TWO
+    dp(4) = dm%h(1) * FOUR
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(1), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3227,7 +3248,7 @@ contains
     integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3248,8 +3269,11 @@ contains
     fo = ZERO
 
     ixsub = dm%idom
-    d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:))
+    dp(1) = dm%h(1)
+    dp(3) = dm%h(1) * TWO
+    dp(2) = dm%h(1)
+    dp(4) = dm%h(1) * TWO
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(1), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3291,7 +3315,7 @@ contains
     integer :: ixsub, nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3310,8 +3334,11 @@ contains
     fo = ZERO
 
     ixsub = dm%idom
-    d1(:) = dm%h(1)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(1), ibc(:), fbc(:) )
+    dp(1) = dm%h(1) * TWO
+    dp(3) = dm%h(1) * FOUR
+    dp(2) = dm%h(1) * TWO
+    dp(4) = dm%h(1) * FOUR
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(1), ibc(:), fbc(:), dp(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3354,7 +3381,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3373,11 +3400,12 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(1) = dm%yp(2) - dm%yp(1)
-    d1(3) = dm%yp(3) - dm%yp(2)
-    d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
-    d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    ! dp = physical spacings are used to build up ghost cells
+    dp(1) = (dm%yc(1) - dm%yp(1)) * TWO
+    dp(3) = (dm%yc(2) - dm%yp(1)) * TWO
+    dp(2) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)  )) * TWO
+    dp(4) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)-1)) * TWO
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3413,7 +3441,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3430,11 +3458,12 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(1) = dm%yp(2) - dm%yp(1)
-    d1(3) = dm%yp(3) - dm%yp(2)
-    d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
-    d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    ! dp = physical spacings are used to build up ghost grids
+    dp(1) = ( dm%yp(2) - dm%yp(1) ) * TWO
+    dp(3) = ( dm%yp(3) - dm%yp(1) ) * TWO
+    dp(2) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1) ) * TWO
+    dp(4) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-2) ) * TWO
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3470,7 +3499,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3489,12 +3518,13 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(1) = dm%yp(2) - dm%yp(1)
-    d1(3) = dm%yp(3) - dm%yp(2)
-    d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
-    d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:) )
-    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
+    ! dp = physical spacings are used to build up ghost cells
+    dp(1) = (dm%yc(1) - dm%yp(1)) * TWO
+    dp(3) = (dm%yc(2) - dm%yp(1)) * TWO
+    dp(2) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)  )) * TWO
+    dp(4) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)-1)) * TWO
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
+    if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
       else
@@ -3529,7 +3559,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3546,11 +3576,12 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(1) = dm%yp(2) - dm%yp(1)
-    d1(3) = dm%yp(3) - dm%yp(2)
-    d1(2) = dm%yp(dm%np(2))   - dm%yp(dm%np(2)-1)
-    d1(4) = dm%yp(dm%np(2)-1) - dm%yp(dm%np(2)-2)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(2), ibc(:), fbc(:))
+    ! dp = physical spacings are used to build up ghost grids
+    dp(1) = ( dm%yp(2) - dm%yp(1) ) * TWO
+    dp(3) = ( dm%yp(3) - dm%yp(1) ) * TWO
+    dp(2) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1) ) * TWO
+    dp(4) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-2) ) * TWO
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3588,7 +3619,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3607,8 +3638,11 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    dp(1) = dm%h(3)
+    dp(3) = dm%h(3) * TWO
+    dp(2) = dm%h(3)
+    dp(4) = dm%h(3) * TWO
+    call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(3), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3642,7 +3676,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3659,8 +3693,11 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    dp(1) = dm%h(3) * TWO
+    dp(3) = dm%h(3) * FOUR
+    dp(2) = dm%h(3) * TWO
+    dp(4) = dm%h(3) * FOUR
+    call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(3), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3694,7 +3731,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3713,8 +3750,11 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:) )
+    dp(1) = dm%h(3)
+    dp(3) = dm%h(3) * TWO
+    dp(2) = dm%h(3)
+    dp(4) = dm%h(3) * TWO
+    call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(3), ibc(:), fbc(:), dp(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.
@@ -3748,7 +3788,7 @@ contains
     integer :: nsz
     integer :: i
     integer :: ibc(2)
-    real(WP) :: d1(4)
+    real(WP) :: dp(4)
     logical :: is_periodic
     
     ibc = ibc0
@@ -3765,8 +3805,11 @@ contains
 
     nsz = size(fo)
     fo = ZERO
-    d1(:) = dm%h(3)
-    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), d1(:), dm%h1r(3), ibc(:), fbc(:))
+    dp(1) = dm%h(3) * TWO
+    dp(3) = dm%h(3) * FOUR
+    dp(2) = dm%h(3) * TWO
+    dp(4) = dm%h(3) * FOUR
+    call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(3), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
         is_periodic = .true.

@@ -114,6 +114,7 @@ module parameters_constant_mod
   real(WP), parameter :: FIFTEEN     = 15.0_WP
   real(WP), parameter :: SIXTEEN     = 16.0_WP
   real(WP), parameter :: SEVENTEEN   = 17.0_WP
+  real(WP), parameter :: TWENTY      = 20.0_WP
 
   real(WP), parameter :: TWENTYTWO   = 22.0_WP
   real(WP), parameter :: TWENTYTHREE = 23.0_WP
