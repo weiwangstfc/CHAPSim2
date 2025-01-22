@@ -88,6 +88,8 @@ contains
     !----------------------------------------------------------------------------------------------------------
     gamma = ONE
     delta = ZERO
+    ymin = ZERO
+    ymax = ZERO
     if (dm%istret == ISTRET_NO) then
       do j = 1, n
         y(j) = eta(j)
@@ -119,9 +121,8 @@ contains
     end if
 
     beta = dm%rstret * TWENTY
-
+    mm = tanh_wp(beta * gamma)
     do j = 1, n
-      mm = tanh_wp(beta * gamma)
       !----------------------------------------------------------------------------------------------------------
       ! y \in [-1, 1] or [0, 1]
       !----------------------------------------------------------------------------------------------------------
@@ -268,7 +269,7 @@ contains
       !----------------------------------------------------------------------------------------------------------
       y(j) = y(j) * (dm%lyt - dm%lyb) + dm%lyb
       !----------------------------------------------------------------------------------------------------------
-      ! 1/h' = dy/d\eta
+      ! 1/h' = d\eta/dy
       !----------------------------------------------------------------------------------------------------------
       mp(j, 1) = (alpha / PI + sin_wp(mm) * sin_wp(mm) / PI / beta)  / (dm%lyt - dm%lyb)
       !----------------------------------------------------------------------------------------------------------
@@ -340,13 +341,12 @@ contains
       allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
       dm%yMappingpt(:, :) = ONE
       dm%yMappingcc(:, :) = ONE
+      dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain, check
       if(dm%mstret == MSTRET_3FMD) then
         ! stretching in only given function to provide a limited modes for a fast 3D FFT
-        dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain, check
         call Buildup_grid_mapping_1D_3fmd ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
         call Buildup_grid_mapping_1D_3fmd ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
       else if(dm%mstret == MSTRET_TANH) then
-        dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain, check
         call Buildup_grid_mapping_1D_tanh ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
         call Buildup_grid_mapping_1D_tanh ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
       else

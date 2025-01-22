@@ -2909,7 +2909,10 @@ contains
             dm1y_C2P(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
-! stretching? No stretching conversion
+!   math: from the chain rule and conservation of probability.
+!         if y=h(s) and g(s) is known, then g(y) = g(s) * 1/(ds/dy)
+    if(dm%is_stretching(2)) fo(:) = fo(:) * dabs(dm%yMappingpt(:, 1))
+
     return
   end subroutine Get_y_midp_C2P_1D
 !==========================================================================================================
@@ -2966,6 +2969,8 @@ contains
             dm1y_P2C(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
+
+    if(dm%is_stretching(2)) fo(:) = fo(:) * dabs(dm%yMappingcc(:, 1))
 
     return
   end subroutine Get_y_midp_P2C_1D
@@ -3479,6 +3484,8 @@ contains
     end if
     
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
+    if(ibc(1) == IBC_NEUMANN .and. present(fbc)) fo(1)   = fbc(1)
+    if(ibc(2) == IBC_NEUMANN .and. present(fbc)) fo(nsz) = fbc(2)   
 
     return
   end subroutine Get_y_1der_P2P_1D
@@ -3539,7 +3546,8 @@ contains
     end if
   
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
-
+    if(ibc(1) == IBC_NEUMANN .and. present(fbc)) fo(1)   = fbc(1)
+    if(ibc(2) == IBC_NEUMANN .and. present(fbc)) fo(nsz) = fbc(2)   
     return
   end subroutine Get_y_1der_C2P_1D
 !==========================================================================================================

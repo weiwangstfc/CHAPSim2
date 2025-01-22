@@ -846,6 +846,7 @@ contains
     mx_rhs_ypencil = mx_rhs_ypencil + apcc_ypencil
     
 #ifdef DEBUG_STEPS
+write(*,*)appc_ypencil(1, 1:2, 1)
     write(*,*) 'conx-12', apcc_ypencil(1, 1:4, 1)
 #endif
 !----------------------------------------------------------------------------------------------------------
