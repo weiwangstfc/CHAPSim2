@@ -114,8 +114,10 @@ contains
       str = 'Stretched mesh has only 3 Fourier modes. Suitable for 3-D FFT.'
     case ( MSTRET_TANH)
       str = 'Stretched mesh follows tanh.'
+    case ( MSTRET_POWL)
+      str = 'Stretched mesh follows powerlaw.'
     case default
-      call Print_error_msg('The required mesh stretching method is not supported.')
+      call Print_warning_msg('The required mesh stretching method is not supported.')
     end select
 
     return
@@ -530,8 +532,7 @@ contains
             write (*, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
             write (*, wrtfmt2s) '  mesh y-stretching method :', get_name_mstret(domain(i)%mstret)
             write (*, wrtfmt2s) '  FFT lib  :', get_name_fft(domain(i)%ifft_lib)
-            write (*, wrtfmt1s) '  MSTRET_TANH, the recom. rstret = 3.5-4.0'
-            write (*, wrtfmt1s) '  MSTRET_3FMD, the recom. rstret = 0.2-0.3'
+            write (*, wrtfmt1s) '  the recom. rstret = 0.2-0.3'
           end do
         end if
       !----------------------------------------------------------------------------------------------------------

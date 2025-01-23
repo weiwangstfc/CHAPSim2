@@ -2873,6 +2873,9 @@ contains
     real(WP) :: dp(4)
     logical :: is_periodic
     
+    !----------------------------------------------------------------------
+    ! check the boundary conditions
+    !----------------------------------------------------------------------
     ibc = ibc0
     do i = 1, 2
       if (.not. present(fbc)) then
@@ -2886,8 +2889,14 @@ contains
         end select
       end if
     end do
-    
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  f(y_i') = g(s_i') = interp of g(s_i) at s_i'
+    !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! prepare the physical spacing for neumann boundary conditions
+    !----------------------------------------------------------------------
     nsz = size(fo)
     fo = ZERO
     ! dp = physical spacings are used to build up ghost cells
@@ -2895,6 +2904,9 @@ contains
     dp(3) = (dm%yc(2) - dm%yp(1)) * TWO
     dp(2) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)  )) * TWO
     dp(4) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)-1)) * TWO
+    !----------------------------------------------------------------------
+    ! prepare the RHS array for the TDMA algorithm
+    !----------------------------------------------------------------------
     call Prepare_TDMA_interp_C2P_RHS_array(fi(:), fo(:), nsz, m1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
@@ -2909,9 +2921,6 @@ contains
             dm1y_C2P(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
-!   math: from the chain rule and conservation of probability.
-!         if y=h(s) and g(s) is known, then g(y) = g(s) * 1/(ds/dy)
-    if(dm%is_stretching(2)) fo(:) = fo(:) * dabs(dm%yMappingpt(:, 1))
 
     return
   end subroutine Get_y_midp_C2P_1D
@@ -2934,7 +2943,9 @@ contains
     integer :: ibc(2)
     real(WP) :: dp(4)
     logical :: is_periodic
-    
+    !----------------------------------------------------------------------
+    ! check the boundary conditions
+    !----------------------------------------------------------------------
     ibc = ibc0
     do i = 1, 2
       if (.not. present(fbc)) then
@@ -2946,8 +2957,14 @@ contains
         end select
       end if
     end do
-    
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  f(y_i') = g(s_i') = interp of g(s_i) at s_i'
+    !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! prepare the physical spacing for neumann boundary conditions
+    !----------------------------------------------------------------------
     nsz = size(fo)
     fo = ZERO
     ! dp = physical spacings are used to build up ghost grids
@@ -2955,6 +2972,9 @@ contains
     dp(3) = ( dm%yp(3) - dm%yp(1) ) * TWO
     dp(2) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1) ) * TWO
     dp(4) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-2) ) * TWO
+    !----------------------------------------------------------------------
+    ! prepare the RHS array for the TDMA algorithm
+    !----------------------------------------------------------------------
     call Prepare_TDMA_interp_P2C_RHS_array(fi(:), fo(:), nsz, m1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), ibc(:), fbc(:), dp(:) )
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
@@ -2969,8 +2989,6 @@ contains
             dm1y_P2C(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
-
-    if(dm%is_stretching(2)) fo(:) = fo(:) * dabs(dm%yMappingcc(:, 1))
 
     return
   end subroutine Get_y_midp_P2C_1D
@@ -3389,6 +3407,9 @@ contains
     real(WP) :: dp(4)
     logical :: is_periodic
     
+    !----------------------------------------------------------------------
+    ! check the boundary conditions
+    !----------------------------------------------------------------------
     ibc = ibc0
     do i = 1, 2
       if (.not. present(fbc)) then
@@ -3402,7 +3423,14 @@ contains
         end select
       end if
     end do
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! prepare the physical spacing for neumann boundary conditions
+    !----------------------------------------------------------------------
     nsz = size(fo)
     fo = ZERO
     ! dp = physical spacings are used to build up ghost cells
@@ -3410,6 +3438,9 @@ contains
     dp(3) = (dm%yc(2) - dm%yp(1)) * TWO
     dp(2) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)  )) * TWO
     dp(4) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)-1)) * TWO
+    !----------------------------------------------------------------------
+    ! prepare the RHS array for the TDMA algorithm
+    !----------------------------------------------------------------------
     call Prepare_TDMA_1deri_C2C_RHS_array(fi(:), fo(:), nsz, d1rC2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
@@ -3424,7 +3455,11 @@ contains
           dd1y_C2C(:, ibc(1), ibc(2), iacc), &
           nsz)
     end if
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
 
     return
@@ -3449,6 +3484,9 @@ contains
     real(WP) :: dp(4)
     logical :: is_periodic
     
+    !----------------------------------------------------------------------
+    ! check the boundary conditions
+    !----------------------------------------------------------------------
     ibc = ibc0
     do i = 1, 2
       if (.not. present(fbc)) then
@@ -3460,7 +3498,14 @@ contains
         end select
       end if
     end do
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! prepare the physical spacing for neumann boundary conditions
+    !----------------------------------------------------------------------
     nsz = size(fo)
     fo = ZERO
     ! dp = physical spacings are used to build up ghost grids
@@ -3468,6 +3513,9 @@ contains
     dp(3) = ( dm%yp(3) - dm%yp(1) ) * TWO
     dp(2) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1) ) * TWO
     dp(4) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-2) ) * TWO
+    !----------------------------------------------------------------------
+    ! prepare the RHS array for the TDMA algorithm
+    !----------------------------------------------------------------------
     call Prepare_TDMA_1deri_P2P_RHS_array(fi(:), fo(:), nsz, d1rP2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
@@ -3482,7 +3530,11 @@ contains
           dd1y_P2P(:, ibc(1), ibc(2), iacc), &
           nsz)
     end if
-    
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
     if(ibc(1) == IBC_NEUMANN .and. present(fbc)) fo(1)   = fbc(1)
     if(ibc(2) == IBC_NEUMANN .and. present(fbc)) fo(nsz) = fbc(2)   
@@ -3509,6 +3561,9 @@ contains
     real(WP) :: dp(4)
     logical :: is_periodic
     
+    !----------------------------------------------------------------------
+    ! check the boundary conditions
+    !----------------------------------------------------------------------
     ibc = ibc0
     do i = 1, 2
       if (.not. present(fbc)) then
@@ -3522,7 +3577,14 @@ contains
         end select
       end if
     end do
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! prepare the physical spacing for neumann boundary conditions
+    !----------------------------------------------------------------------
     nsz = size(fo)
     fo = ZERO
     ! dp = physical spacings are used to build up ghost cells
@@ -3530,6 +3592,9 @@ contains
     dp(3) = (dm%yc(2) - dm%yp(1)) * TWO
     dp(2) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)  )) * TWO
     dp(4) = (dm%yp(dm%np(2)) - dm%yc(dm%nc(2)-1)) * TWO
+    !----------------------------------------------------------------------
+    ! prepare the RHS array for the TDMA algorithm
+    !----------------------------------------------------------------------
     call Prepare_TDMA_1deri_C2P_RHS_array(fi(:), fo(:), nsz, d1rC2P(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then
       if(ibc(1) == IBC_PERIODIC) then
@@ -3544,7 +3609,11 @@ contains
             dd1y_C2P(:, ibc(1), ibc(2), iacc), &
             nsz)
     end if
-  
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingpt(:, 1)
     if(ibc(1) == IBC_NEUMANN .and. present(fbc)) fo(1)   = fbc(1)
     if(ibc(2) == IBC_NEUMANN .and. present(fbc)) fo(nsz) = fbc(2)   
@@ -3570,6 +3639,9 @@ contains
     real(WP) :: dp(4)
     logical :: is_periodic
     
+    !----------------------------------------------------------------------
+    ! check the boundary conditions
+    !----------------------------------------------------------------------
     ibc = ibc0
     do i = 1, 2
       if (.not. present(fbc)) then
@@ -3581,7 +3653,14 @@ contains
         end select
       end if
     end do
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! prepare the physical spacing for neumann boundary conditions
+    !----------------------------------------------------------------------
     nsz = size(fo)
     fo = ZERO
     ! dp = physical spacings are used to build up ghost grids
@@ -3589,6 +3668,9 @@ contains
     dp(3) = ( dm%yp(3) - dm%yp(1) ) * TWO
     dp(2) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-1) ) * TWO
     dp(4) = ( dm%yp(dm%np(2)) - dm%yp(dm%np(2)-2) ) * TWO
+    !----------------------------------------------------------------------
+    ! prepare the RHS array for the TDMA algorithm
+    !----------------------------------------------------------------------
     call Prepare_TDMA_1deri_P2C_RHS_array(fi(:), fo(:), nsz, d1rP2C(1:NL, 1:2*NS, NBCS:NBCE, iacc), dm%h1r(2), ibc(:), fbc(:), dp(:))
     if (iacc == IACCU_CP4 .or. iacc == IACCU_CP6) then 
       if(ibc(1) == IBC_PERIODIC) then
@@ -3603,7 +3685,11 @@ contains
           dd1y_P2C(:, ibc(1), ibc(2), iacc), &
           nsz)
     end if
-
+    !----------------------------------------------------------------------
+    ! mapping function: y_i = h(s_i)
+    ! known: f(y_i) = f(h(s_i)) = g(s_i)
+    ! then:  d(f(y_i))/dy = d(f(h(s_i)))/ds * ds/dy = d(g(s_i))/ds * (ds/dy)
+    !----------------------------------------------------------------------
     if(dm%is_stretching(2)) fo(:) = fo(:) * dm%yMappingcc(:, 1)
 
     return
