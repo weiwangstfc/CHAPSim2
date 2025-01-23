@@ -14,7 +14,7 @@ contains
     
     write (*, *) 'ERROR: ' // msg
 
-    error stop  'Execution terminated unexpectedly due to an error.'
+    stop  'Execution terminated unexpectedly due to an error.'
 
     return
   end subroutine Print_error_msg

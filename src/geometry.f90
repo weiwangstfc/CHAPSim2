@@ -33,9 +33,112 @@ module geometry_mod
   !private
   private :: Buildup_grid_mapping_1D_3fmd
   private :: Buildup_grid_mapping_1D_tanh
+  private :: Buildup_grid_mapping_1D_powerlaw
   public  :: Buildup_geometry_mesh_info
   
 contains
+
+  subroutine Buildup_grid_mapping_1D_powerlaw (str, n, dm, y, mp, opt_yp)
+  ! Powerlaw is not a suitable mesh stretching method, but it's easily degraded to uniform
+  ! this is only for debug of stretching grids. 
+    use math_mod
+    use udf_type_mod
+    use parameters_constant_mod
+    implicit none
+    character(len = *), intent(in) :: str
+    integer,            intent(in) :: n
+    type(t_domain),     intent(in) :: dm
+    real(WP), optional, intent(in) :: opt_yp(:)
+    real(WP), intent( out )        :: y(n)
+    real(WP), intent( out )        :: mp(n, 3)
+    integer :: j
+    real(WP) :: eta_shift
+    real(WP) :: eta_delta
+    real(WP) :: alpha, beta, gamma, delta 
+    
+    real(WP) :: mm, ymin, ymax, ff
+    real(WP), dimension(n) :: eta
+
+    if(dm%mstret /= MSTRET_POWL) then 
+      error stop 'Grid stretching method is not MSTRET_POWL.'
+    end if
+    !----------------------------------------------------------------------------------------------------------
+    ! note: (1)if both yc and yp are calculated using the stretching function,
+    !          yc_i /= (yp_i + yp_i+1)
+    !       (2)if yc_i /= (yp_i + yp_i+1), the mapping function for yc is unknown explicitly.
+    !----------------------------------------------------------------------------------------------------------
+    eta_shift = ZERO
+    eta_delta = ONE
+    if ( trim( str ) == 'nd' ) then
+      eta_shift = ZERO
+      eta_delta = ONE / real( n - 1, WP )
+    else if ( trim( str ) == 'cl' ) then
+      eta_shift = ONE / ( real(n, WP) ) * HALF
+      eta_delta = ONE / real( n, WP )
+    else 
+      call Print_error_msg('Grid stretching location not defined.')
+    end if
+    !----------------------------------------------------------------------------------------------------------
+    ! to build up the computational domain \eta \in [0, 1] uniform mesh
+    !----------------------------------------------------------------------------------------------------------
+    eta(1) = ZERO + eta_shift
+
+    do j = 2, n
+      eta(j) = eta(1) + real(j - 1, WP) * eta_delta
+    end do
+    !----------------------------------------------------------------------------------------------------------
+    ! to build up the physical domain y stretching grids based on Eq(53) of Leizet2009JCP
+    ! and to build up the derivates based on Eq(53) and (47) in Leizet2009JCP
+    !----------------------------------------------------------------------------------------------------------
+    ymin = ZERO
+    ymax = ZERO
+    if (dm%istret == ISTRET_NO) then
+      do j = 1, n
+        y(j) = eta(j)
+        y(j) = y(j) * (dm%lyt - dm%lyb) + dm%lyb
+        mp(j, 1) = ONE
+        mp(j, 2) = ONE
+        mp(j, 3) = ONE
+      end do
+      return
+    else if (dm%istret == ISTRET_CENTRE) then
+       call Print_error_msg('Grid stretching flag is not valid.')
+    else if (dm%istret == ISTRET_2SIDES) then
+      ymin = ZERO
+      ymax = ONE
+    else if (dm%istret == ISTRET_BOTTOM) then
+      ymin = ZERO
+      ymax = ONE
+    else if (dm%istret == ISTRET_TOP) then
+      ymin = ZERO
+      ymax = ONE
+    else
+      call Print_error_msg('Grid stretching flag is not valid.')
+    end if
+
+    beta = dm%rstret
+    do j = 1, n
+      !----------------------------------------------------------------------------------------------------------
+      ! y \in [-1, 1] or [0, 1]
+      !----------------------------------------------------------------------------------------------------------
+      y(j) = eta(j)**int(beta)
+      mp(j, 1) = ONE/(beta * eta(j)**(int(beta)-1))
+      !----------------------------------------------------------------------------------------------------------
+      ! y \in [lyb, lyt]
+      !----------------------------------------------------------------------------------------------------------
+      ff = (dm%lyt - dm%lyb) / (ymax - ymin)
+      y(j) = (y(j) - ymin) * ff + dm%lyb
+      mp(j, 1) = mp(j, 1) / ff
+      !----------------------------------------------------------------------------------------------------------
+      ! (1/h')^2
+      !----------------------------------------------------------------------------------------------------------
+      mp(j, 2) = mp(j, 1) * mp(j, 1)
+      !mp(j, 3) is not used. 
+    end do
+
+    return
+  end subroutine
+
   subroutine Buildup_grid_mapping_1D_tanh (str, n, dm, y, mp, opt_yp)
     use math_mod
     use udf_type_mod
@@ -349,6 +452,9 @@ contains
       else if(dm%mstret == MSTRET_TANH) then
         call Buildup_grid_mapping_1D_tanh ('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
         call Buildup_grid_mapping_1D_tanh ('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
+      else if(dm%mstret == MSTRET_POWL) then
+        call Buildup_grid_mapping_1D_powerlaw('nd', dm%np_geo(2), dm, dm%yp(:), dm%yMappingpt(:, :))
+        call Buildup_grid_mapping_1D_powerlaw('cl', dm%nc(2),     dm, dm%yc(:), dm%yMappingcc(:, :))
       else
         call Print_error_msg('Stretching grid is not supported for 2DECOMP_3DFFT')
       end if
@@ -403,7 +509,9 @@ contains
       write (*, wrtfmt3i) '  geometry number of nodes     in x, y, z: :', dm%np_geo(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of points in x, y, z: :', dm%np(1:NDIM)
-      write (*, wrtfmt3r) '  grid spacing (uniform)       in x, y, z: :', dm%h(1:NDIM)
+      write (*, wrtfmt3r) '  grid spacing in x, z: :', dm%h(1), dm%h(3)
+      write (*, wrtfmt3r) '  grid spacing in y(geometric     uniform)', (dm%lyt - dm%lyb) / real(dm%nc(2), WP)
+      write (*, wrtfmt3r) '  grid spacing in y(computational uniform)', dm%h(2)
       
       if(dm%is_stretching(2)) then
         do j = 1, dm%nc(2)
