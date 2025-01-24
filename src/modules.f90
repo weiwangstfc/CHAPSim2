@@ -905,14 +905,14 @@ contains
     implicit none
     integer, intent(in) :: k
     write (int2str, *) k
-    int2str = adjustl(int2str)
+    int2str = trim(adjustl(int2str))
   end function int2str
   character(len=20) function real2str(r)
     use precision_mod
     implicit none
     real(wp), intent(in) :: r
     write (real2str, '(F10.4)') r
-    real2str = adjustl(real2str)
+    real2str = trim(adjustl(real2str))
   end function real2str
 end module typeconvert_mod
 

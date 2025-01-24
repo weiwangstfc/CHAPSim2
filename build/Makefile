@@ -19,7 +19,7 @@ DIR_LIB = ../lib/fishpack4.1
 # Compiler and flags based on configuration
 ifeq ($(cfg), gnu)
   FC     = mpif90
-  FOPTS  = -g -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
+  FOPTS  = -g -O0 -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
            -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized -Wno-unused -cpp \
 					 -pedantic -finit-real=nan -fstack-protector
   FOPTS += -fallow-argument-mismatch
