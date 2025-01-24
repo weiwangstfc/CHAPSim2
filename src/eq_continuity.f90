@@ -346,6 +346,7 @@ contains
     use wtformat_mod
     use io_visulisation_mod
     use find_max_min_ave_mod
+    use typeconvert_mod
     implicit none
 
     type(t_domain), intent( in    ) :: dm
@@ -360,9 +361,9 @@ contains
     !real(WP)   :: divmax 
 
     if(present(str0)) then
-      str = trim(str0)
+      str = trim(str0)//' iter = '//int2str(iter)
     else
-      str = ''
+      str = ' iter = '//int2str(iter)
     end if
 
     fl%pcor = ZERO

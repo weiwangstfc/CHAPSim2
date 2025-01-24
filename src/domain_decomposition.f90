@@ -25,6 +25,7 @@ contains
     use udf_type_mod
     !use iso_fortran_env
     use wtformat_mod
+    use print_msg_mod
     implicit none
     type(t_domain), intent(inout)   :: dm
     
@@ -54,6 +55,7 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! initialise decomp 
 !----------------------------------------------------------------------------------------------------------
+    if(nrank==0) call Print_debug_start_msg('Initialising decomp_info_init for domain decomposition')
     call decomp_info_init(dm%np(1), dm%nc(2), dm%nc(3), dm%dpcc) ! for ux, gx
     call decomp_info_init(dm%nc(1), dm%np(2), dm%nc(3), dm%dcpc) ! for uy, gy
     call decomp_info_init(dm%nc(1), dm%nc(2), dm%np(3), dm%dccp) ! for uz, gz
@@ -75,6 +77,7 @@ contains
 
 #ifdef DEBUG_STEPS
     call mpi_barrier(MPI_COMM_WORLD, ierror)
+    if(nrank==0) call Print_debug_mid_msg(' domain decomposition info')
     do i = 1, 7
       select case(i)
       case(1)
@@ -116,6 +119,7 @@ contains
     end do
 #endif
 
+    if(nrank==0) call Print_debug_end_msg
     return
   end subroutine initialise_domain_decomposition
 !==========================================================================================================

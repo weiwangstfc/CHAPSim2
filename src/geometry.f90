@@ -62,6 +62,7 @@ contains
     if(dm%mstret /= MSTRET_POWL) then 
       error stop 'Grid stretching method is not MSTRET_POWL.'
     end if
+    if(nrank == 0) call Print_debug_mid_msg("Buildup_grid_mapping_1D_powerlaw for "//trim(str))
     !----------------------------------------------------------------------------------------------------------
     ! note: (1)if both yc and yp are calculated using the stretching function,
     !          yc_i /= (yp_i + yp_i+1)
@@ -122,7 +123,12 @@ contains
       ! y \in [-1, 1] or [0, 1]
       !----------------------------------------------------------------------------------------------------------
       y(j) = eta(j)**int(beta)
-      mp(j, 1) = ONE/(beta * eta(j)**(int(beta)-1))
+      mp(j, 1) = (beta * eta(j)**(int(beta)-1))
+      if(mp(j, 1) < MINP .and. mp(j, 1) > MAXN) then
+        mp(j, 1) = ONE
+      else
+        mp(j, 1) = ONE / mp(j, 1)
+      end if
       !----------------------------------------------------------------------------------------------------------
       ! y \in [lyb, lyt]
       !----------------------------------------------------------------------------------------------------------
@@ -161,6 +167,7 @@ contains
     if(dm%mstret /= MSTRET_TANH) then 
       error stop 'Grid stretching method is not MSTRET_TANH.'
     end if
+    if(nrank == 0) call Print_debug_mid_msg("Buildup_grid_mapping_1D_tanh for "//trim(str))
     !----------------------------------------------------------------------------------------------------------
     ! note: (1)if both yc and yp are calculated using the stretching function,
     !          yc_i /= (yp_i + yp_i+1)
@@ -289,6 +296,7 @@ contains
     if(dm%mstret /= MSTRET_3FMD) then 
       error stop 'Grid stretching method is not MSTRET_3FMD.'
     end if
+    if(nrank == 0) call Print_debug_mid_msg("Buildup_grid_mapping_1D_3fmd for "//trim(str))
     !----------------------------------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------------------------------
     eta_shift = ZERO
@@ -504,7 +512,7 @@ contains
 ! print out data 
 !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
-      write (*, wrtfmt1i) '------For the domain-x------ ', dm%idom
+      !write (*, wrtfmt1i) '------For the domain-x------ ', dm%idom
       write (*, *)        '  is periodic in x, y, z :', dm%is_periodic(1:NDIM)
       write (*, wrtfmt3i) '  geometry number of nodes     in x, y, z: :', dm%np_geo(1:NDIM)
       write (*, wrtfmt3i) '  calculation number of cells  in x, y, z: :', dm%nc(1:NDIM)
