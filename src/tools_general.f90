@@ -1141,7 +1141,8 @@ contains
     call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, *) 'maximum '//str, varmax_work, ' minimum '//str, varmin_work
+      write (*, *) '    maximum '//str, varmax_work
+      write (*, *) '    minimum '//str, varmin_work
     end if
 #ifdef DEBUG_FFT
     if(varmax_work >   MAXVELO) stop
@@ -1221,19 +1222,21 @@ contains
 
     !----------------------------------------------------------------------------------------------------------
     ! default: x-pencil
+    ! use the chain rule to get integral in the stretching function
+    ! integral(f(y), dy) = integral(f(y(s)), dy(s)) = integral(f(y(s)) * dy/ds, ds)
     !----------------------------------------------------------------------------------------------------------
-      
       vol = ZERO
       fo  = ZERO
       dx = dm%h(1)
+      dy = dm%h(2)
+      dz = dm%h(3)
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1 !(j, dtmp)
-        dy = dm%yp(jj+1) - dm%yp(jj)
-        if(dm%icoordinate == ICYLINDRICAL) then
-          dz = dm%h(3) / dm%rci(jj)
-        else
-          dz = dm%h(3)
-        end if
+        !dy = dm%yp(jj+1) - dm%yp(jj)
+        if(dm%is_stretching(2)) &
+        dy = dm%h(2) / dm%yMappingcc(jj, 1)
+        if(dm%icoordinate == ICYLINDRICAL) &
+        dz = dm%h(3) / dm%rci(jj)
         do k = 1, dtmp%xsz(3)
           do i = 1, dtmp%xsz(1)
             fo = fo + var(i, j, k) * dy * dx * dz
@@ -1252,19 +1255,19 @@ contains
       end if
 
 #ifdef DEBUG_STEPS  
-      if(nrank == 0) then
-        vol_real = ZERO
-        if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
-        if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
-        write(*, *) ' Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
-        write(*, *) ' Note: for non-periodic x or z,  real volume /= numerical volume'
-      end if
       if(nrank == 0 .and. present(str)) then
         if(itype == LF3D_VOL_AVE) then
           write (*, wrtfmt1e) " volumetric average of "//trim(str)//" = ", fo_work
         else 
           write (*, wrtfmt1e) " volumetric integeral of "//trim(str)//" = ", fo_work
         end if
+      end if
+      if(nrank == 0) then
+        vol_real = ZERO
+        if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
+        if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
+        write(*, *) ' *Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
+        !write(*, *) ' Note: for non-periodic x or z,  real volume /= numerical volume'
       end if
 #endif
     return

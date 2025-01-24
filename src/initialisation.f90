@@ -231,9 +231,9 @@ contains
     call enforce_velo_from_fbc(dm, fl%qx, fl%qy, fl%qz)
 
     if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated random velocities:")
-    call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
-    call Find_max_min_absvar3d(fl%qy, "uy", wrtfmt2e)
-    call Find_max_min_absvar3d(fl%qz, "uz", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qx, "qx", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qy, "qy", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qz, "qz", wrtfmt2e)
 ! to validate the random number generated is MPI processor independent.
 #ifdef DEBUG_STEPS
     call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, 0, 'qx@af radm') ! debug_ww
@@ -395,9 +395,9 @@ contains
     end if
 
     if(nrank == 0) Call Print_debug_mid_msg(" Max/min velocity for generated initial velocities:")
-    call Find_max_min_absvar3d(fl%qx, "ux", wrtfmt2e)
-    call Find_max_min_absvar3d(fl%qy, "uy", wrtfmt2e)
-    call Find_max_min_absvar3d(fl%qz, "uz", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qx, "qx", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qy, "qy", wrtfmt2e)
+    call Find_max_min_absvar3d(fl%qz, "qz", wrtfmt2e)
 
     call Get_volumetric_average_3d_for_var_xcx(dm, dm%dpcc, ux, ubulk, LF3D_VOL_AVE, str)
     if(nrank == 0) then
@@ -445,7 +445,7 @@ contains
       call extract_dirichlet_fbcx(dm%fbcx_qz, fl%qz, dm%dccp)
     end if
     
-    if(nrank == 0) call Print_debug_end_msg
+    !if(nrank == 0) call Print_debug_end_msg
 
     return
   end subroutine  initialise_poiseuille_flow
@@ -620,9 +620,9 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! to initialise pressure correction term
 !----------------------------------------------------------------------------------------------------------
-   
     fl%pcor(:, :, :) = ZERO 
 
+    call Check_element_mass_conservation(fl, dm, 0, 'initial') 
     call write_visu_flow(fl, dm, 'init')
 
     if(nrank == 0) call Print_debug_end_msg

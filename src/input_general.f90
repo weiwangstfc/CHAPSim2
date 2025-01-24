@@ -63,6 +63,7 @@ contains
     case default
       call Print_error_msg('The required case type is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -79,6 +80,7 @@ contains
     case default
       call Print_error_msg('The required coordinate system is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -101,6 +103,7 @@ contains
     case default
       call Print_error_msg('The required mesh stretching is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -119,6 +122,7 @@ contains
     case default
       call Print_warning_msg('The required mesh stretching method is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -135,6 +139,7 @@ contains
     case default
       call Print_error_msg('The required FFT lib is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -155,6 +160,7 @@ contains
     case default
       call Print_error_msg('The required numerical scheme is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -181,6 +187,7 @@ contains
     case default
       call Print_error_msg('The required initialisation method is not supported.')
     end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -207,6 +214,30 @@ contains
     case default
       call Print_error_msg('The required flow medium is not supported.')
     end select
+    str = trim(adjustl(str))
+
+    return
+  end function
+!==========================================================================================================
+  function get_name_drivenforce(ifl) result(str)
+    integer, intent(in) :: ifl
+    character(50) :: str
+
+    select case(ifl)
+    case ( IDRVF_NO) 
+      str = 'no external driven force'
+    case ( IDRVF_X_MASSFLUX)
+      str = 'constant mass flux driven in x-direction'
+    case ( IDRVF_X_Cf)
+      str = 'pressure gradient driven in x-direction'
+    case ( IDRVF_Z_MASSFLUX)
+      str = 'constant mass flux driven in z-direction'
+    case ( IDRVF_Z_Cf)
+      str = 'pressure gradient driven in x-direction'
+    case default
+      call Print_error_msg('The required flow-driven method is not supported.')
+    end select
+    str = trim(adjustl(str))
 
     return
   end function
@@ -303,7 +334,7 @@ contains
         end do
 
         if(nrank == 0) then
-          write (*,'(2X, A)') '  if p_row = p_col = 0, the system will employ a default, automatic domain decomposition strategy.'
+          write (*,'(2X, A)') '  msg: if p_row = p_col = 0, the system will employ a default, automatic domain decomposition strategy.'
           write (*, wrtfmt1i) '  x-dir domain number             :', nxdomain
           write (*, wrtfmt1i) '  y-dir domain number (mpi Row)   :', p_row
           write (*, wrtfmt1i) '  z-dir domain number (mpi Column):', p_col
@@ -377,9 +408,9 @@ contains
         if(nrank == 0) then
 
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
-            write (*, wrtfmt2s) '  current icase id :', get_name_case(domain(i)%icase)
-            write (*, wrtfmt2s) '  current coordinates system :', get_name_cs(domain(i)%icoordinate)
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
+            write (*, wrtfmt2s) '  current icase id  :', get_name_case(domain(i)%icase)
+            write (*, wrtfmt2s) '  current coordinates system  :', get_name_cs(domain(i)%icoordinate)
             write (*, wrtfmt1r) '  scaled length in x-direction :', domain(i)%lxx
             write (*, wrtfmt1r) '  scaled length in y-direction :', domain(i)%lyt - domain(i)%lyb
             if((domain(i)%lyt - domain(i)%lyb) < ZERO) call Print_error_msg("Y length is smaller than zero.")
@@ -523,16 +554,18 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  mesh cell number - x :', domain(i)%nc(1)
             write (*, wrtfmt1i) '  mesh cell number - y :', domain(i)%nc(2)
             write (*, wrtfmt1i) '  mesh cell number - z :', domain(i)%nc(3)
+            write (*, wrtfmt2s) '  FFT lib   :', get_name_fft(domain(i)%ifft_lib)
             write (*, wrtfmt3l) '  is mesh stretching in x, y, z :', domain(i)%is_stretching(1:3)
-            write (*, wrtfmt2s) '  mesh y-stretching type   :', get_name_mesh(domain(i)%istret)
-            write (*, wrtfmt1r) '  mesh y-stretching factor :', domain(i)%rstret
-            write (*, wrtfmt2s) '  mesh y-stretching method :', get_name_mstret(domain(i)%mstret)
-            write (*, wrtfmt2s) '  FFT lib  :', get_name_fft(domain(i)%ifft_lib)
-            write (*, wrtfmt1s) '  the recom. rstret = 0.2-0.3'
+            write (*, wrtfmt2s) '  mesh y-stretching type    :', get_name_mesh(domain(i)%istret)
+            if(domain(i)%istret /= ISTRET_NO) then
+              write (*, wrtfmt1r) '  mesh y-stretching factor : ', domain(i)%rstret
+              write (*, wrtfmt2s) '  mesh y-stretching method  :', get_name_mstret(domain(i)%mstret)
+              write (*, wrtfmt1s) '  msg: the recom. rstret range [0.2 - 0.3]'
+            end if
           end do
         end if
       !----------------------------------------------------------------------------------------------------------
@@ -546,7 +579,7 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1e) '  physical time step(dt, unit = second) :', domain(i)%dt
             write (*, wrtfmt1i) '  time marching scheme   :', domain(i)%iTimeScheme
           end do
@@ -619,7 +652,7 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt2s) '  flow initial type                  :', get_name_initial(flow(i)%inittype)
             write (*, wrtfmt1i) '  iteration starting from            :', flow(i)%iterfrom
             if(flow(i)%inittype == INIT_GVCONST) then
@@ -629,7 +662,8 @@ contains
             write (*, wrtfmt1r) '  Initial Reynolds No.               :', flow(i)%reninit
             write (*, wrtfmt1i) '  Iteration for initial Reynolds No. :', flow(i)%initReTo
             write (*, wrtfmt1r) '  flow Reynolds number               :', flow(i)%ren
-            write (*, wrtfmt1i) '  flow driven force type             :', flow(i)%idriven
+            write (*, wrtfmt2s) '  flow driven force type             :', get_name_drivenforce(flow(i)%idriven)
+            if(flow(i)%idriven == IDRVF_X_Cf .or. flow(i)%idriven == IDRVF_Z_Cf) &
             write (*, wrtfmt1r) '  flow driven force(cf)              :', flow(i)%drvfc        
           end do
         end if
@@ -663,11 +697,11 @@ contains
         
         if(is_any_energyeq .and. nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1l) '  is thermal field solved   ?', domain(i)%is_thermo
             write (*, wrtfmt1l) '  is CHT solved             ?', domain(i)%icht
             write (*, wrtfmt1i) '  gravity direction         :', flow(i)%igravity
-            write (*, wrtfmt2s) '  fluid medium              :', get_name_fluid(thermo(i)%ifluid)
+            write (*, wrtfmt2s) '  fluid medium              :' , get_name_fluid(thermo(i)%ifluid)
             write (*, wrtfmt1r) '  reference length (m)      :', thermo(i)%ref_l0
             write (*, wrtfmt1r) '  reference temperature (K) :', thermo(i)%ref_T0
             write (*, wrtfmt1i) '  thermo field initial type :', thermo(i)%inittype
@@ -690,7 +724,7 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  flow simulation starting from iteration    :', flow(i)%nIterFlowStart
             write (*, wrtfmt1i) '  flow simulation ending   at   iteration    :', flow(i)%nIterFlowEnd
             if(is_any_energyeq) then
@@ -722,7 +756,7 @@ contains
 
         if( nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
             write (*, wrtfmt1i) '  data check freqency  :', domain(i)%ckpt_nfre
             write (*, wrtfmt1i) '  visu data dimensions        :', domain(i)%visu_idim
             write (*, wrtfmt1i) '  visu data written freqency  :', domain(i)%visu_nfre
@@ -740,7 +774,7 @@ contains
           domain(i)%proben = itmp
           if(domain(i)%proben > 0) then
             allocate( domain(i)%probexyz(3, itmp))
-            if( nrank == 0) write (*, wrtfmt1i) '------For the domain-x------ ', i
+            if( nrank == 0) !write (*, wrtfmt1i) '------For the domain-x------ ', i
             do j = 1, domain(i)%proben
               read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
               

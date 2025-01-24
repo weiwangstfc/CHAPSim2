@@ -36,8 +36,8 @@ contains
 ! based on decomp_info of dppp (default one defined)
 !---------------------------------------------------------------------------------------------------------- 
     is_start1 = .true.
-    call init_coarser_mesh_statV(dm%visu_nskip(1), dm%visu_nskip(2), dm%visu_nskip(3), is_start1)
-    call init_coarser_mesh_statS(dm%stat_nskip(1), dm%stat_nskip(2), dm%stat_nskip(3), is_start1)
+    !call init_coarser_mesh_statV(dm%visu_nskip(1), dm%visu_nskip(2), dm%visu_nskip(3), is_start1)
+    !call init_coarser_mesh_statS(dm%stat_nskip(1), dm%stat_nskip(2), dm%stat_nskip(3), is_start1)
 
   end subroutine 
 !==========================================================================================================

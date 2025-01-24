@@ -204,8 +204,9 @@ end function
     end if
 
     if(nrank == 0) then
-      write (*, *) 'is periodic in xyz? ', dm%is_periodic(1:3)
-      write (*, wrtfmt1s) '      BC in the X direction: norminal BC Left, calc BC Left, norminal BC Right, calc BC Right'
+      call Print_debug_start_msg('Norminal and calculated boundary conditions')
+      write (*, *) '      is periodic in xyz? ', dm%is_periodic(1:3)
+      write (*, *) '      BC in the X direction: norminal BC Left, calc BC Left, norminal BC Right, calc BC Right'
       write (*, fmt) '  u-bc :', get_name_bc(dm%ibcx_nominal(1, 1)), '=> ', get_name_bc(dm%ibcx_qx(1)), &
                                  get_name_bc(dm%ibcx_nominal(2, 1)), '=> ', get_name_bc(dm%ibcx_qx(2)), dm%fbcx_const(1:2, 1)
       write (*, fmt) '  v-bc :', get_name_bc(dm%ibcx_nominal(1, 2)), '=> ', get_name_bc(dm%ibcx_qy(1)), &

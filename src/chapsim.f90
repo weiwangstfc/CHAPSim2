@@ -127,7 +127,7 @@ subroutine initialise_chapsim
       call initialise_thermo_fields(thermo(i), flow(i), domain(i))
     end if
     call initialise_flow_fields(flow(i), domain(i))
-    call Check_element_mass_conservation(flow(i), domain(i), 0, 'init') 
+    
     call Solve_momentum_eq(flow(i), domain(i), 0)
     call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
     call write_visu_flow(flow(i), domain(i))
