@@ -312,6 +312,7 @@ contains
     end do
     b = -(a + c)
     if(.not. dm%is_periodic(2)) then
+      ! here apply the second order ghost cell configuration
       b(1) = b(1) + a(1)
       a(1) = 0.0_WP
       b(dm%nc(2)) = b(dm%nc(2)) + c(dm%nc(2))
