@@ -208,11 +208,11 @@ contains
         kk = dtmp%xst(3) + k - 1
         do j = 1, dtmp%xsz(2)
           jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
-          if( ( ONE - abs_wp(dm%yp(jj)) ) .LT. QUARTER) then
-            lownoise = fl%noiselevel * fl%noiselevel
-          else
+          !if( ( ONE - abs_wp(dm%yp(jj)) ) .LT. QUARTER) then
+            !lownoise = fl%noiselevel * fl%noiselevel
+          !else
             lownoise = fl%noiselevel
-          end if
+          !end if
           do i = 1, dtmp%xsz(1)
             ii = i
             seed = flatten_index(ii, jj, kk, dtmp%xsz(1), dtmp%ysz(2)) + seed0 * n

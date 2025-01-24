@@ -1141,8 +1141,8 @@ contains
     call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, *) '    maximum '//str, varmax_work
-      write (*, *) '    minimum '//str, varmin_work
+      write (*, *) '        maximum '//str, varmax_work
+      write (*, *) '        minimum '//str, varmin_work
     end if
 #ifdef DEBUG_FFT
     if(varmax_work >   MAXVELO) stop
@@ -1188,7 +1188,7 @@ contains
     call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
     if(nrank == 0) then
-      write (*, fmt) 'maximum |'//str//'|', varmax_work, ' minimum |'//str//'|', varmin_work
+      write (*, fmt) 'max. |'//str//'|', varmax_work, ' min. |'//str//'|', varmin_work
     end if
 #ifdef DEBUG_FFT
     if(varmax_work >   MAXVELO) stop
@@ -1261,13 +1261,6 @@ contains
         else 
           write (*, wrtfmt1e) " volumetric integeral of "//trim(str)//" = ", fo_work
         end if
-      end if
-      if(nrank == 0) then
-        vol_real = ZERO
-        if(dm%icoordinate == ICARTESIAN)   vol_real = dm%lxx * (dm%lyt - dm%lyb) * dm%lzz
-        if(dm%icoordinate == ICYLINDRICAL) vol_real = PI * (dm%lyt**2 - dm%lyb**2) * dm%lxx
-        write(*, *) ' *Check real volume, numerical volume, diff = ', vol_real, vol_work, vol_real-vol_work
-        !write(*, *) ' Note: for non-periodic x or z,  real volume /= numerical volume'
       end if
 #endif
     return

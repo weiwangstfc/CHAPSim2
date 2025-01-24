@@ -43,6 +43,7 @@ contains
   ! this is only for debug of stretching grids. 
     use math_mod
     use udf_type_mod
+    use typeconvert_mod
     use parameters_constant_mod
     implicit none
     character(len = *), intent(in) :: str
@@ -87,6 +88,7 @@ contains
     do j = 2, n
       eta(j) = eta(1) + real(j - 1, WP) * eta_delta
     end do
+    !write(*,*) 'eta', eta
     !----------------------------------------------------------------------------------------------------------
     ! to build up the physical domain y stretching grids based on Eq(53) of Leizet2009JCP
     ! and to build up the derivates based on Eq(53) and (47) in Leizet2009JCP
@@ -123,9 +125,10 @@ contains
       ! y \in [-1, 1] or [0, 1]
       !----------------------------------------------------------------------------------------------------------
       y(j) = eta(j)**int(beta)
-      mp(j, 1) = (beta * eta(j)**(int(beta)-1))
+      mp(j, 1) = beta * eta(j)**(int(beta)-1)
       if(mp(j, 1) < MINP .and. mp(j, 1) > MAXN) then
         mp(j, 1) = ONE
+        if(nrank==0) call Print_warning_msg('Th mapping function for '//trim(str)//' at j = '//trim(int2str(j))//' is adjusted.')
       else
         mp(j, 1) = ONE / mp(j, 1)
       end if
@@ -149,6 +152,7 @@ contains
     use math_mod
     use udf_type_mod
     use parameters_constant_mod
+    use typeconvert_mod
     implicit none
     character(len = *), intent(in) :: str
     integer,            intent(in) :: n
@@ -241,7 +245,13 @@ contains
       else
         y(j) = tanh_wp(beta * (eta(j) - delta)) / mm
       end if
-      mp(j, 1) = mm/beta/(ONE - y(j) * y(j) * mm * mm)
+      mp(j, 1) = ONE - y(j) * y(j) * mm * mm
+      if(mp(j, 1) < MINP .and. mp(j, 1) > MAXN) then
+        mp(j, 1) = ONE
+        if(nrank==0) call Print_warning_msg('Th mapping function for '//trim(str)//' at j = '//trim(int2str(j))//' is adjusted.')
+      else
+        mp(j, 1) = mm/beta / mp(j, 1)
+      end if
       !----------------------------------------------------------------------------------------------------------
       ! y \in [lyb, lyt]
       !----------------------------------------------------------------------------------------------------------
@@ -410,27 +420,28 @@ contains
     implicit none
 
     type(t_domain), intent(inout) :: dm
-    real(WP) :: dy(dm%nc(2))
-
-    integer    :: i, j, k
-    real(WP)   :: x
     
+
+    integer  :: j
+    integer  :: wrt_unit
+    real(WP) :: dyp, dyn, ddy
+    real(WP) :: dy(dm%nc(2))
     if(nrank == 0) call Print_debug_start_msg("initialising domain geometric ...")
 
     !----------------------------------------------------------------------------------------------------------
     ! set up node number in geometry domain
     !----------------------------------------------------------------------------------------------------------
-    do i = 1, NDIM
-      dm%np_geo(i) = dm%nc(i) + 1 
+    do j = 1, NDIM
+      dm%np_geo(j) = dm%nc(j) + 1 
     end do
     !----------------------------------------------------------------------------------------------------------
     ! set up node number in computational domain
     !----------------------------------------------------------------------------------------------------------
-    do i = 1, NDIM
-      if ( dm%is_periodic(i) ) then
-        dm%np(i) = dm%nc(i)
+    do j = 1, NDIM
+      if ( dm%is_periodic(j) ) then
+        dm%np(j) = dm%nc(j)
       else 
-        dm%np(i) = dm%np_geo(i)
+        dm%np(j) = dm%np_geo(j)
       end if
     end do
     !----------------------------------------------------------------------------------------------------------
@@ -469,19 +480,19 @@ contains
       
     else
       dm%h(2) = (dm%lyt - dm%lyb) / real(dm%nc(2), WP)
-      do i = 1, dm%np_geo(2)
-        dm%yp(i) = real(i - 1, WP) * dm%h(2) + dm%lyb
+      do j = 1, dm%np_geo(2)
+        dm%yp(j) = real(j - 1, WP) * dm%h(2) + dm%lyb
       end do
-      do i = 1, dm%nc(2)
-        dm%yc(i) = real(i - 1, WP) * dm%h(2) + dm%h(2) * HALF + dm%lyb
+      do j = 1, dm%nc(2)
+        dm%yc(j) = real(j - 1, WP) * dm%h(2) + dm%h(2) * HALF + dm%lyb
       end do
     end if
 !----------------------------------------------------------------------------------------------------------
 ! set 1/dx, 1/(dx)^2
 !----------------------------------------------------------------------------------------------------------
-    do i = 1, NDIM
-      dm%h2r(i) = ONE / (dm%h(i) * dm%h(i))
-      dm%h1r(i) = ONE / dm%h(i)
+    do j = 1, NDIM
+      dm%h2r(j) = ONE / (dm%h(j) * dm%h(j))
+      dm%h1r(j) = ONE / dm%h(j)
     end do
 
 !----------------------------------------------------------------------------------------------------------
@@ -503,9 +514,9 @@ contains
 ! set up z-interior extention cells for pipe flow, zpencil only
 !----------------------------------------------------------------------------------------------------------
       allocate (dm%knc_sym(dm%nc(3)))
-      do k = 1, dm%nc(3)
-        dm%knc_sym(k) = k + dm%nc(3)/2
-        if(dm%knc_sym(k) > dm%nc(3)) dm%knc_sym(k) = dm%knc_sym(k) - dm%nc(3)
+      do j = 1, dm%nc(3)
+        dm%knc_sym(j) = j + dm%nc(3)/2
+        if(dm%knc_sym(j) > dm%nc(3)) dm%knc_sym(j) = dm%knc_sym(j) - dm%nc(3)
       end do
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -520,36 +531,53 @@ contains
       write (*, wrtfmt3r) '  grid spacing in x, z: :', dm%h(1), dm%h(3)
       write (*, wrtfmt3r) '  grid spacing in y(geometric     uniform)', (dm%lyt - dm%lyb) / real(dm%nc(2), WP)
       write (*, wrtfmt3r) '  grid spacing in y(computational uniform)', dm%h(2)
-      
-      if(dm%is_stretching(2)) then
-        do j = 1, dm%nc(2)
-          dy(j) = dm%yp(j+1) - dm%yp(j)
-        end do
-        call Find_max_min_1d(dy, 'dy')
-      end if
     end if
-
     !----------------------------------------------------------------------------------------------------------
     ! print out data for debugging
     !----------------------------------------------------------------------------------------------------------
     if(nrank == 0) then
-      open(221, file = trim(dir_chkp)//'/check_mesh_yp.dat')
-      write(221, *) 'index, yp, rp'
-      do i = 1, dm%np_geo(2)
-        write (221, *) i, dm%yp(i), ONE / dm%rpi(i)
+
+    !----------------------------------------------------------------------------------------------------------
+    ! validate the mesh mapping function using the chain rule: dy = d(h(s)) = h'(s) ds
+    !----------------------------------------------------------------------------------------------------------
+      open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_mapping.dat', action = "write", status = "replace")
+      write(wrt_unit, *) 'index, dyn, dyp, diff'
+      dyn = dm%h(2)
+      dy = ZERO
+      do j = 2, dm%nc(2)
+        if(dm%is_stretching(2)) &
+        dyn = dm%h(2) / dm%yMappingcc(j, 1)
+        dyp = dm%yp(j+1) - dm%yp(j)
+        dy(j) = dyp
+        ddy = dabs(dyn - dyp)
+        !write(wrt_unit, *) j, dyn, dyp, ddy
+        write(wrt_unit, *) j, dm%h(2) / dm%yMappingcc(j, 1), dm%yp(j+1) - dm%yp(j), dm%h(2) / dm%yMappingpt(j, 1), dm%yc(j) - dm%yc(j-1)
       end do
-      open(223, file = trim(dir_chkp)//'/check_mesh_yc.dat')
-      write(223, *) 'index, yc, rc'
-      do i = 1, dm%nc(2)
-        write (223, *) i, dm%yc(i), ONE / dm%rci(i)
+      close(wrt_unit)
+      call Find_max_min_1d(dy, 'dy')
+
+      open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_yp.dat', action = "write", status = "replace")
+      write(wrt_unit, *) 'index, yp, rp'
+      do j = 1, dm%np_geo(2)
+        write (wrt_unit, *) j, dm%yp(j), ONE / dm%rpi(j)
       end do
-    end if
-    if(nrank == 0 .and. dm%icoordinate == ICYLINDRICAL) then
-      open(222, file = trim(dir_chkp)//'/check_mesh_ksym.dat')
-      write(222, *) 'knc, knc_sym'
-      do i = 1, dm%nc(3)
-        write (222, *) i, dm%knc_sym(i)
+      close(wrt_unit)
+      
+      open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_yc.dat', action = "write", status = "replace")
+      write(wrt_unit, *) 'index, yc, rc'
+      do j = 1, dm%nc(2)
+        write (wrt_unit, *) j, dm%yc(j), ONE / dm%rci(j)
       end do
+      close(wrt_unit)
+
+      if(dm%icoordinate == ICYLINDRICAL) then
+        open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_ksym.dat', action = "write", status = "replace")
+        write(wrt_unit, *) 'knc, knc_sym'
+        do j = 1, dm%nc(3)
+          write (wrt_unit, *) j, dm%knc_sym(j)
+        end do
+        close(wrt_unit)
+      end if
     end if
 
     if(nrank == 0) call Print_debug_end_msg

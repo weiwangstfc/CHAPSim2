@@ -611,7 +611,7 @@ contains
 
         if(nrank == 0) then
           do i = 1, nxdomain
-            write (*, wrtfmt1i) '  ------For the domain-x------ ', i
+            !write (*, wrtfmt1i) '  ------For the domain-x------ ', i
             write (*, wrtfmt2s) '  current spatial accuracy scheme :', get_name_iacc(domain(i)%iAccuracy)
             write (*, wrtfmt1i) '  viscous term treatment  :', domain(i)%iviscous
           end do
@@ -774,7 +774,7 @@ contains
           domain(i)%proben = itmp
           if(domain(i)%proben > 0) then
             allocate( domain(i)%probexyz(3, itmp))
-            if( nrank == 0) !write (*, wrtfmt1i) '------For the domain-x------ ', i
+            !if( nrank == 0) !write (*, wrtfmt1i) '------For the domain-x------ ', i
             do j = 1, domain(i)%proben
               read(inputUnit, *, iostat = ioerr) domain(i)%probexyz(1:3, j) 
               
