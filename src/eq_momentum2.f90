@@ -917,7 +917,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
 !----------------------------------------------------------------------------------------------------------
     !------bulk------      
     appc_ypencil = qxdy_ppc_ypencil
-    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_ypencil, dm%dppc, ONE/dm%rpi, 1, IPENCIL(2))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_ypencil, dm%dppc, dm%rp, 1, IPENCIL(2))
     appc_ypencil = ( appc_ypencil + qydx_ppc_ypencil) * muixy_ppc_ypencil
     !------PDE------
     call Get_y_1der_P2C_3D(appc_ypencil, apcc_ypencil, dm, dm%iAccuracy, mbcy_tau1)
@@ -1095,10 +1095,10 @@ write(*,*)appc_ypencil(1, 1:2, 1)
 #endif
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom pressure gradient in y direction, Y-pencil, d(sigma_1 p)
-! p-m2 = - dpdy
+! p-m2 = - r * dpdy
 !----------------------------------------------------------------------------------------------------------
     call Get_y_1der_C2P_3D( -pres_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_pr, -dm%fbcy_pr)
-    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, dm%rp, 1, IPENCIL(2))
     my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil + acpc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom gravity in y direction, Y-pencil
@@ -1107,6 +1107,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
       fbcy_c4c(:, :, :) = dm%fbcy_ftp(:, :, :)%d
       call Get_y_midp_C2P_3D(dDens_ypencil, acpc_ypencil, dm, dm%iAccuracy, dm%ibcy_ftp, fbcy_c4c )
       my_rhs_pfc_ypencil =  my_rhs_pfc_ypencil + fl%fgravity(i) * acpc_ypencil
+      if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(my_rhs_pfc_ypencil, dm%dcpc, dm%rp, 1, IPENCIL(2))
     end if
 !----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term 1/4 at (i, j', k)
@@ -1114,7 +1115,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
 !----------------------------------------------------------------------------------------------------------
     !------bulk-----
     appc_xpencil1 = qxdy_ppc_xpencil
-    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_xpencil1, dm%dppc, ONE/dm%rpi, 1, IPENCIL(1))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(appc_xpencil1, dm%dppc, dm%rp, 1, IPENCIL(1))
     appc_xpencil = ( appc_xpencil1 + qydx_ppc_xpencil) * muixy_ppc_xpencil
     !------PDE-----
     call Get_x_1der_P2C_3D(appc_xpencil, acpc_xpencil, dm, dm%iAccuracy, mbcx_tau2)
@@ -1138,7 +1139,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
       end if
       fbcy_c4c = ( fbcy_c4c - ONE_THIRD * fbcy_div_c4c) * TWO * fbcy_mu_c4c
       if(dm%icoordinate == ICYLINDRICAL) then
-        call multiple_cylindrical_rn_x4x(fbcy_c4c, dm%dcpc, ONE/dm%rci, 1, IPENCIL(2))
+        call multiple_cylindrical_rn_x4x(fbcy_c4c, dm%dcpc, dm%rc, 1, IPENCIL(2))
       end if
     else
       fbcy_c4c = MAXP
@@ -1152,7 +1153,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     end if
     accc_ypencil = ( accc_ypencil1 - ONE_THIRD * div_ccc_ypencil) * TWO * mu_ccc_ypencil    
     if(dm%icoordinate == ICYLINDRICAL) then
-      call multiple_cylindrical_rn(accc_ypencil, dm%dccc, ONE/dm%rci, 1, IPENCIL(2))
+      call multiple_cylindrical_rn(accc_ypencil, dm%dccc, dm%rc, 1, IPENCIL(2))
     end if
     ! ------PDE-----
     call Get_y_1der_C2P_3D(accc_ypencil,  acpc_ypencil, dm, dm%iAccuracy, mbcy_tau2, fbcy_c4c) 
@@ -1386,7 +1387,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     !------bulk------
     if(dm%icoordinate == ICYLINDRICAL) then
       acpp_ypencil = qzrdy_cpp_ypencil
-      call multiple_cylindrical_rn(acpp_ypencil, dm%dcpp, ONE/dm%rpi, 1, IPENCIL(2))
+      call multiple_cylindrical_rn(acpp_ypencil, dm%dcpp, dm%rp, 1, IPENCIL(2))
 
       acpp_ypencil = acpp_ypencil + qyrdz_cpp_ypencil
       acpp_ypencil = acpp_ypencil - qzriy_cpp_ypencil
@@ -1556,6 +1557,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     use input_general_mod
     use operations
     use parameters_constant_mod
+    use cylindrical_rn_mod
     implicit none
     type(t_flow),   intent(inout) :: fl
     type(t_domain), intent(in) :: dm
@@ -1598,13 +1600,15 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     call Get_x_1der_C2P_3D(phi_ccc,  dphidx_pcc, dm, dm%iAccuracy, dm%ibcx_pr, dm%fbcx_pr )
     ux = ux - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidx_pcc
 !----------------------------------------------------------------------------------------------------------
-!   y-pencil, uy = uy - dt * alpha * d(phi_ccc)/dy
+!   y-pencil, uy = uy - dt * alpha * r * d(phi_ccc)/dy
 !----------------------------------------------------------------------------------------------------------
     phi_ccc_ypencil = ZERO
     dphidy_cpc_ypencil = ZERO
     dphidy_cpc = ZERO
     call transpose_x_to_y (phi_ccc, phi_ccc_ypencil, dm%dccc)
     call Get_y_1der_C2P_3D(phi_ccc_ypencil, dphidy_cpc_ypencil, dm, dm%iAccuracy, dm%ibcy_pr, dm%fbcy_pr)
+    if(dm%icoordinate == ICYLINDRICAL) &
+    call multiple_cylindrical_rn(dphidy_cpc_ypencil, dm%dcpc, dm%rp, 1, IPENCIL(2))
     call transpose_y_to_x (dphidy_cpc_ypencil, dphidy_cpc, dm%dcpc)
     uy = uy - dm%dt * dm%tAlpha(isub) * dm%sigma2p * dphidy_cpc
 !----------------------------------------------------------------------------------------------------------
@@ -1639,7 +1643,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     use parameters_constant_mod
     use poisson_interface_mod
     use continuity_eq_mod
-
+    use cylindrical_rn_mod
     implicit none
     type(t_domain), intent( in    ) :: dm
     type(t_flow),   intent( inout ) :: fl                  
@@ -1655,6 +1659,7 @@ write(*,*)appc_ypencil(1, 1:2, 1)
 
 !==========================================================================================================
 ! RHS of Poisson Eq.
+! RHS = r^2 * d(\rho)/dt + r^2 * du/dx + r * dv/dy + dw/dz
 !==========================================================================================================
     fl%pcor = ZERO
 !----------------------------------------------------------------------------------------------------------
@@ -1668,8 +1673,9 @@ write(*,*)appc_ypencil(1, 1:2, 1)
 !----------------------------------------------------------------------------------------------------------
     div  = ZERO
     call Get_divergence_flow(fl, div, dm)
-    coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     fl%pcor = fl%pcor + div
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(fl%pcor, dm%dccc, dm%rc, 2, IPENCIL(1))
+    coeff = ONE / (dm%tAlpha(isub) * dm%sigma2p * dm%dt)
     fl%pcor = fl%pcor * coeff
 
 #ifdef DEBUG_STEPS

@@ -233,9 +233,9 @@ module bc_convective_outlet_mod
       dtmp = dm%dpcc
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
-        dy = dm%yp(jj+1) - dm%yp(jj)
+        dy = dm%h(2)/dm%yMappingcc(jj, 1) !dm%yp(jj+1) - dm%yp(jj)
         do k = 1, dtmp%xsz(3)
-          dz = dm%h(3) / dm%rci(jj)
+          dz = dm%h(3) * dm%rc(jj)
           mass_rate_iin(nn) = mass_rate_iin(nn) + fbcx(1, j, k) * dy * dz
           mass_rate_out(nn) = mass_rate_out(nn) + fbcx(2, j, k) * dy * dz
         end do
@@ -251,8 +251,8 @@ module bc_convective_outlet_mod
         dx = dm%h(1)
         do k = 1, dtmp%xsz(3)
           dz = dm%h(3)
-          if(dtmp%xst(nn) ==         1) mass_rate_iin(nn) = mass_rate_iin(nn) + fbcy(i, 1, k) * dx * dz / dm%rci(1)
-          if(dtmp%xen(nn) == dm%np(nn)) mass_rate_out(nn) = mass_rate_out(nn) + fbcy(i, 2, k) * dx * dz / dm%rci(dm%np(2))
+          if(dtmp%xst(nn) ==         1) mass_rate_iin(nn) = mass_rate_iin(nn) + fbcy(i, 1, k) * dx * dz * dm%rc(1)
+          if(dtmp%xen(nn) == dm%np(nn)) mass_rate_out(nn) = mass_rate_out(nn) + fbcy(i, 2, k) * dx * dz * dm%rc(dm%np(2))
         end do
       end do 
     end if
@@ -264,7 +264,7 @@ module bc_convective_outlet_mod
       dtmp = dm%dccp
       do j = 1, dtmp%xsz(2)
         jj = dtmp%xst(2) + j - 1 !local2global_yid(j, dtmp)
-        dy = dm%yp(jj+1) - dm%yp(jj)
+        dy = dm%h(2)/dm%yMappingcc(jj, 1)
         do i = 1, dtmp%xsz(1)
           dx = dm%h(1)
           if(dtmp%xst(nn) ==        1)  mass_rate_iin(nn) = mass_rate_iin(nn) + fbcz(i, j, 1) * dx * dy
