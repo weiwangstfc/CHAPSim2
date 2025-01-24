@@ -274,9 +274,12 @@ contains
 ! if(nrank==0) WRITE(*,*)'fft-xrt  ', XRT
 ! if(nrank==0) WRITE(*,*)'fft-zrt  ', zRT
     !-----------------------------------------------------------
+    ! cylinderical poisson equation solved is:
+    ! r^2 * d^2f/dx^2 + r * d(r df/dr)/dr + d^2f/dz^2 = rhs * r^2
+    !-----------------------------------------------------------
     ! allocate work arrays for TMDA, and coefficients
     ! note: this is for 2nd order central difference only
-    ! d(df/dy)/dy at j = a j_{j-1} + b j_{j} + c j_{j+1}
+    ! r * d(r*df/dy)/dy at j = a j_{j-1} + b j_{j} + c j_{j+1} <=>
     ! +f_{j+1} / ( (y_{j+1} - y_j) * (y'_{j+1}-y'_{j}) ) ! c = 1 / ( (y_{j+1} - y_{j}) * (y'_{j+1}-y'_{j}) )
     ! +f_{j-1} / ( (y_j - y_{j-1}) * (y'_{j+1}-y'_{j}) ) ! a = 1 / ( (y_{j} - y_{j-1}) * (y'_{j+1}-y'_{j}) )
     ! -f_{j}   * (a+b)
@@ -307,8 +310,8 @@ contains
     ! write(*,*) 'c', c
 
     do j = 1, dm%nc(2)
-      a(j) = dm%h2r(2) * dm%yMappingcc(j, 1) * dm%yMappingpt(j  , 1) 
-      c(j) = dm%h2r(2) * dm%yMappingcc(j, 1) * dm%yMappingpt(j+1, 1) 
+      a(j) = dm%h2r(2) * dm%yMappingcc(j, 1) * dm%yMappingpt(j  , 1) * dm%rp(j  ) * dm%rc(j)
+      c(j) = dm%h2r(2) * dm%yMappingcc(j, 1) * dm%yMappingpt(j+1, 1) * dm%rp(j+1) * dm%rc(j)
     end do
     b = -(a + c)
     if(.not. dm%is_periodic(2)) then

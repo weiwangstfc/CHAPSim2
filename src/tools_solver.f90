@@ -334,13 +334,18 @@ contains
     call transpose_x_to_y(var_xpencil, var_ypencil, dm%dccc)
     call transpose_x_to_y(v,             v_ypencil, dm%dcpc)
     call Get_y_midp_P2C_3D(v_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy, dm%fbcy_qy)
-    if(dm%icoordinate == ICYLINDRICAL) then
+    accc_ypencil = accc_ypencil * dm%h1r(2) * dm%dt
+    if(dm%is_stretching(2)) then
       do j = 1, dm%dccc%ysz(2)
-        dy = dm%np(j+1) - dm%np(j)
-        accc_ypencil = accc_ypencil / dy * dm%rci(j) 
+        accc_ypencil(:, j, :) = accc_ypencil(:, j, :) * dm%yMappingcc(j, 1)
       end do 
     end if
-    var_ypencil = var_ypencil +  accc_ypencil * dm%dt
+    if(dm%icoordinate == ICYLINDRICAL) then
+      do j = 1, dm%dccc%ysz(2)
+        accc_ypencil(:, j, :) = accc_ypencil(:, j, :) * dm%rci(j) 
+      end do 
+    end if
+    var_ypencil = var_ypencil +  accc_ypencil
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : w_ccc / dz /r2
 !----------------------------------------------------------------------------------------------------------
@@ -348,7 +353,7 @@ contains
     call transpose_x_to_y(w,             w_ypencil, dm%dccp)
     if(dm%icoordinate == ICYLINDRICAL) then
       do j = 1, dm%dccp%ysz(2)
-        w_ypencil = w_ypencil * dm%rci(j) * dm%rci(j) 
+        w_ypencil(:, j, :) = w_ypencil(:, j, :) * dm%rci(j) * dm%rci(j) 
       end do 
     end if
     call transpose_y_to_z(w_ypencil,     w_zpencil, dm%dccp)
@@ -357,8 +362,8 @@ contains
 !----------------------------------------------------------------------------------------------------------
 ! Z-pencil : Find the maximum 
 !----------------------------------------------------------------------------------------------------------
-    call transpose_y_to_z(var_ypencil, var_zpencil, dm%dccc)
-    call transpose_y_to_x(var_zpencil, var_xpencil, dm%dccc)
+    call transpose_z_to_y(var_zpencil, var_ypencil, dm%dccc)
+    call transpose_y_to_x(var_ypencil, var_xpencil, dm%dccc)
     call Find_maximum_absvar3d(var_xpencil, dummy, dm%dccc, "CFL (convection) :", wrtfmt1e)
 
     ! if(nrank == 0) then

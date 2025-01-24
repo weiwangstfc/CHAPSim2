@@ -327,7 +327,7 @@ contains
       ny = dm%np(2)
       filename(2) = trim('PF1D_V1Y.DAT') !(undim)
       call map_bc_1d_uprofile( filename(2), ny, dm%yp, var1y(1:ny) )
-      if(dm%icoordinate == ICARTESIAN) var1y(1:ny) =  var1y(1:ny) / dm%rpi(1:ny)
+      if(dm%icoordinate == ICARTESIAN) var1y(1:ny) =  var1y(1:ny) * dm%rp(1:ny)
       call initialise_fbcx_given_profile(dm%fbcx_qy, var1y, dm%dcpc%xst(2), 'qy')
     end if
 !----------------------------------------------------------------------------------------------------------
@@ -338,7 +338,7 @@ contains
       ny = dm%nc(2)
       filename(3) = trim('PF1D_W1Y.DAT') !(undim)
       call map_bc_1d_uprofile( filename(3), ny, dm%yc, var1y(1:ny) )
-      if(dm%icoordinate == ICARTESIAN) var1y(1:ny) =  var1y(1:ny) / dm%rci(1:ny)
+      if(dm%icoordinate == ICARTESIAN) var1y(1:ny) =  var1y(1:ny) * dm%rc(1:ny)
       call initialise_fbcx_given_profile(dm%fbcx_qz, var1y, dm%dccp%xst(2), 'qz')
     end if
 !----------------------------------------------------------------------------------------------------------

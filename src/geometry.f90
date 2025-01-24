@@ -458,11 +458,11 @@ contains
     dm%yp(:) = ZERO
     dm%yc(:) = ZERO
 
+    allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) )
+    allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
+    dm%yMappingpt(:, :) = ONE
+    dm%yMappingcc(:, :) = ONE
     if(dm%is_stretching(2)) then
-      allocate ( dm%yMappingpt( dm%np_geo(2), 3 ) )
-      allocate ( dm%yMappingcc( dm%nc    (2), 3 ) )
-      dm%yMappingpt(:, :) = ONE
-      dm%yMappingcc(:, :) = ONE
       dm%h(2) = ONE / real(dm%nc(2), WP) ! updated for computational domain, check
       if(dm%mstret == MSTRET_3FMD) then
         ! stretching in only given function to provide a limited modes for a fast 3D FFT
@@ -500,9 +500,17 @@ contains
 !----------------------------------------------------------------------------------------------------------
     allocate ( dm%rpi( dm%np_geo(2) ) )
     allocate ( dm%rci( dm%nc    (2) ) )
-    dm%rpi(:) = ONE
-    dm%rci(:) = ONE
-    if(dm%icoordinate == ICYLINDRICAL) then 
+    allocate ( dm%rp ( dm%np_geo(2) ) )
+    allocate ( dm%rc ( dm%nc    (2) ) )
+    if(dm%icoordinate == ICARTESIAN) then
+      dm%rp(:) = ONE
+      dm%rc(:) = ONE
+      dm%rpi(:) = ONE
+      dm%rci(:) = ONE
+    else if(dm%icoordinate == ICYLINDRICAL) then 
+      dm%rp(1 : dm%np_geo(2)) = dm%yp(1 : dm%np_geo(2))
+      dm%rc(1 : dm%nc(2)) = dm%yc(1 : dm%nc(2))
+
       if(dabs( dm%yp(1) ) < MINP) then
         dm%rpi(1) = MAXP
       else 
@@ -557,16 +565,16 @@ contains
       call Find_max_min_1d(dy, 'dy')
 
       open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_yp.dat', action = "write", status = "replace")
-      write(wrt_unit, *) 'index, yp, rp'
+      write(wrt_unit, *) 'index, yp, rp, rpi'
       do j = 1, dm%np_geo(2)
-        write (wrt_unit, *) j, dm%yp(j), ONE / dm%rpi(j)
+        write (wrt_unit, *) j, dm%yp(j), dm%rp(j), dm%rpi(j)
       end do
       close(wrt_unit)
       
       open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_yc.dat', action = "write", status = "replace")
-      write(wrt_unit, *) 'index, yc, rc'
+      write(wrt_unit, *) 'index, yc, rc, rci'
       do j = 1, dm%nc(2)
-        write (wrt_unit, *) j, dm%yc(j), ONE / dm%rci(j)
+        write (wrt_unit, *) j, dm%yc(j), dm%rc(j), dm%rci(j)
       end do
       close(wrt_unit)
 

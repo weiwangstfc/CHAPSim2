@@ -350,7 +350,7 @@ contains
     write(*,*) 'diy-dT', acpc_ypencil(4, 1:4, 4)
     write(*,*) 'dify-k', kCond_cpc_ypencil(4, 1:4, 4)
 #endif
-    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, ONE/dm%rpi, 1, IPENCIL(2))
+    if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(acpc_ypencil, dm%dcpc, dm%rp, 1, IPENCIL(2))
     !------B.C.------
     if(is_fbcx_velo_required) then
       call extract_dirichlet_fbcy(fbcy_c4c, acpc_ypencil, dm%dcpc)

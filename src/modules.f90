@@ -508,6 +508,8 @@ module udf_type_mod
                                               ! second coefficient in second deriviation -h"/h'^3
     real(wp), allocatable :: yp(:)
     real(wp), allocatable :: yc(:)
+    real(wp), allocatable :: rc(:) ! =yc * is_cylindrical
+    real(wp), allocatable :: rp(:) ! =yp * is_cylindrical
     real(wp), allocatable :: rci(:) ! reciprocal of raidus based on cell centre
     real(wp), allocatable :: rpi(:) ! reciprocal of raidus based on node point
     integer, allocatable :: ijnp_sym(:)

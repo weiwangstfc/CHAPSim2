@@ -1236,7 +1236,7 @@ contains
         if(dm%is_stretching(2)) &
         dy = dm%h(2) / dm%yMappingcc(jj, 1)
         if(dm%icoordinate == ICYLINDRICAL) &
-        dz = dm%h(3) / dm%rci(jj)
+        dz = dm%h(3) * dm%rc(jj)
         do k = 1, dtmp%xsz(3)
           do i = 1, dtmp%xsz(1)
             fo = fo + var(i, j, k) * dy * dx * dz
