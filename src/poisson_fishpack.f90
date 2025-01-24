@@ -270,33 +270,56 @@ contains
     allocate(ZRT(nz), WZ(2*nz + 15))
     call fishpack_root_1D(nz, LPz, dm%h2r(3), SCALz, Wz, zRT)
 
-if(nrank==0) WRITE(*,*)'fft-scl ', SCALX, SCALz
-if(nrank==0) WRITE(*,*)'fft-xrt  ', XRT
-if(nrank==0) WRITE(*,*)'fft-zrt  ', zRT
+! if(nrank==0) WRITE(*,*)'fft-scl ', SCALX, SCALz
+! if(nrank==0) WRITE(*,*)'fft-xrt  ', XRT
+! if(nrank==0) WRITE(*,*)'fft-zrt  ', zRT
     !-----------------------------------------------------------
     ! allocate work arrays for TMDA, and coefficients
     ! note: this is for 2nd order central difference only
+    ! d(df/dy)/dy at j = a j_{j-1} + b j_{j} + c j_{j+1}
+    ! +f_{j+1} / ( (y_{j+1} - y_j) * (y'_{j+1}-y'_{j}) ) ! c = 1 / ( (y_{j+1} - y_{j}) * (y'_{j+1}-y'_{j}) )
+    ! +f_{j-1} / ( (y_j - y_{j-1}) * (y'_{j+1}-y'_{j}) ) ! a = 1 / ( (y_{j} - y_{j-1}) * (y'_{j+1}-y'_{j}) )
+    ! -f_{j}   * (a+b)
     !-----------------------------------------------------------
     allocate(a(ny), b(ny), c(ny), bb(ny))
 
-    do j = 1, dm%nc(2)
-      dyfi(j) = 1.0_WP / (dm%yp(j+1) - dm%yp(j)) ! node to node spacing
-    end do
-    do j = 2, dm%nc(2)
-      dyci(j) = 1.0_WP / (dm%yc(j) - dm%yc(j-1)) ! cell centre to centre spacing
-    end do
-    dyci(1 ) = 1.0_WP / (( dm%yc(1) - dm%yp(1)  ) * TWO)! 
-    dyci(np) = 1.0_WP / (( dm%yp(np)- dm%yc(np-1) ) * TWO)!
+    ! do j = 1, dm%nc(2)
+    !   dyfi(j) = 1.0_WP / (dm%yp(j+1) - dm%yp(j)) ! node to node spacing
+    ! end do
+    ! do j = 2, dm%nc(2)
+    !   dyci(j) = 1.0_WP / (dm%yc(j) - dm%yc(j-1)) ! cell centre to centre spacing
+    ! end do
+    ! dyci(1 ) = 1.0_WP / (( dm%yc(1) - dm%yp(1)  ) * TWO)! 
+    ! dyci(np) = 1.0_WP / (( dm%yp(np)- dm%yc(np-1) ) * TWO)!
+
+    ! do j = 1, dm%nc(2)
+    !   a(j) = (dyci(j  )/dm%rpi(j  )) * (dyfi(j)/dm%rci(j))
+    !   c(j) = (dyci(j+1)/dm%rpi(j+1)) * (dyfi(j)/dm%rci(j))
+    ! end do
+    ! if(.not. dm%is_periodic(2)) then
+    !   b(1) = b(1) + a(1)
+    !   a(1) = 0.0_WP
+    !   b(dm%nc(2)) = b(dm%nc(2)) + c(dm%nc(2))
+    !   c(dm%nc(2)) = 0.0_WP
+    ! end if
+    ! write(*,*) 'a', a
+    ! write(*,*) 'b', b
+    ! write(*,*) 'c', c
 
     do j = 1, dm%nc(2)
-      a(j) = (dyci(j  )/dm%rpi(j  )) * (dyfi(j)/dm%rci(j))
-      c(j) = (dyci(j+1)/dm%rpi(j+1)) * (dyfi(j)/dm%rci(j))
+      a(j) = dm%h2r(2) * dm%yMappingcc(j, 1) * dm%yMappingpt(j  , 1) 
+      c(j) = dm%h2r(2) * dm%yMappingcc(j, 1) * dm%yMappingpt(j+1, 1) 
     end do
+    b = -(a + c)
     if(.not. dm%is_periodic(2)) then
+      b(1) = b(1) + a(1)
       a(1) = 0.0_WP
+      b(dm%nc(2)) = b(dm%nc(2)) + c(dm%nc(2))
       c(dm%nc(2)) = 0.0_WP
     end if
-    b = -(a + c)
+    ! write(*,*) 'a', a
+    ! write(*,*) 'b', b
+    ! write(*,*) 'c', c
     !-----------------------------------------------------------
     ! data check
     !-----------------------------------------------------------
@@ -336,7 +359,7 @@ if(nrank==0) WRITE(*,*)'fft-zrt  ', zRT
     real(WP) :: rhs_ypencil(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3))
     real(WP) :: rhs_zpencil(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3))
     
-write(*,*) 'fft-in ', rhs_xpencil
+!write(*,*) 'fft-in ', rhs_xpencil
     !-----------------------------------------------------------
     ! forward FFT in x direction
     ! x - pencil
@@ -387,7 +410,7 @@ write(*,*) 'fft-in ', rhs_xpencil
     !-----------------------------------------------------------
     ! TMDA in the Y direction (stretching grids direction)
     !-----------------------------------------------------------
-write(*,*) 'fft-xzfft ', rhs_ypencil  
+!!write(*,*) 'fft-xzfft ', rhs_ypencil  
     do i = 1, dm%dccc%ysz(1)
        ii = dm%dccc%yst(1) + i - 1
       do k = 1, dm%dccc%ysz(3)
@@ -399,14 +422,13 @@ write(*,*) 'fft-xzfft ', rhs_ypencil
           !if(dabs(ty(j)) > 1.E+8) write(*,*) 'test31', ty(j), i, j, k
         end do
         call TRID0(dm%dccc%ysz(2), ty)!a, bb, c, ty)
-
         do j = 1, dm%dccc%ysz(2)
           rhs_ypencil(i, j, k) = ty(j)
           !if(dabs(ty(j)) > 1.E+8) write(*,*) 'test32', ty(j), i, j, k
         end do  
       end do 
     end do
-write(*,*) 'fft-ytdma ', rhs_ypencil
+!write(*,*) 'fft-ytdma ', rhs_ypencil
     !write(*,'(A, I3, 1ES13.5)') ('test3', j, rhs_ypencil(16,j,8), j=1, dm%dccc%ysz(2))
     !-----------------------------------------------------------
     ! transfer data to Z-pencil for backward z-FFT
@@ -459,7 +481,7 @@ write(*,*) 'fft-ytdma ', rhs_ypencil
     ! scale the result
     !-----------------------------------------------------------
     rhs_xpencil = rhs_xpencil / SCALX / SCALZ
-WRITE(*,*)'fft-out',rhs_xpencil
+!WRITE(*,*)'fft-out',rhs_xpencil
   return
   end subroutine
 

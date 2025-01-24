@@ -550,8 +550,8 @@ contains
         dyp = dm%yp(j+1) - dm%yp(j)
         dy(j) = dyp
         ddy = dabs(dyn - dyp)
-        !write(wrt_unit, *) j, dyn, dyp, ddy
-        write(wrt_unit, *) j, dm%h(2) / dm%yMappingcc(j, 1), dm%yp(j+1) - dm%yp(j), dm%h(2) / dm%yMappingpt(j, 1), dm%yc(j) - dm%yc(j-1)
+        write(wrt_unit, *) j, dyn, dyp, ddy
+        !write(wrt_unit, *) j, dm%h(2) / dm%yMappingcc(j, 1), dm%yp(j+1) - dm%yp(j), dm%h(2) / dm%yMappingpt(j, 1), dm%yc(j) - dm%yc(j-1)
       end do
       close(wrt_unit)
       call Find_max_min_1d(dy, 'dy')
