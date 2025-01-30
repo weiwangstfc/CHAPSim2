@@ -536,11 +536,12 @@ end function
     mbcx_tau1(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for x-mom x-diffusion  is ", get_name_bc(mbcx_tau1(1)), get_name_bc(mbcx_tau1(2))
 
-    call build_bc_symm_operation(dm%ibcy_qx, mbc)
+    call build_bc_symm_operation(dm%ibcy_qx, mbc) !du/dy_ppc
     bc(1:2) = mbc(1:2, JBC_GRAD)
-    call build_bc_symm_operation(dm%ibcy_ftp, mbc, bc)
-    call build_bc_symm_operation(dm%ibcy_ftp, mbc0, dm%ibcy_qy)
-    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau1 is wrong.")
+    call build_bc_symm_operation(dm%ibcy_ftp, mbc, bc) ! mu_ppc * du/dy_ppc
+    call build_bc_symm_operation(dm%ibcy_ftp, mbc0, dm%ibcy_qy) ! mu_ppc * dv/dx_ppc
+    if(dm%icase == ICASE_PIPE) mbc(1, JBC_PROD) = IBC_DIRICHLET
+    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCy in mbcy_tau1 is wrong.")
     mbcy_tau1(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for x-mom y-diffusion  is ", get_name_bc(mbcy_tau1(1)), get_name_bc(mbcy_tau1(2))
 
@@ -548,7 +549,7 @@ end function
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call build_bc_symm_operation(dm%ibcz_ftp, mbc, bc)
     call build_bc_symm_operation(dm%ibcz_ftp, mbc0, dm%ibcz_qz)
-    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau1 is wrong.")
+    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCz in mbcy_tau1 is wrong.")
     mbcz_tau1(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for x-mom z-diffusion  is ", get_name_bc(mbcz_tau1(1)), get_name_bc(mbcz_tau1(2))
 !----------------------------------------------------------------------------------------------------------
@@ -624,7 +625,7 @@ end function
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call build_bc_symm_operation(dm%ibcx_ftp, mbc, bc)
     call build_bc_symm_operation(dm%ibcx_ftp, mbc0, dm%ibcx_qx)
-    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcx_tau3 is wrong.")
+    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCx in mbcx_tau3 is wrong.")
     mbcx_tau3(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom x-diffusion  is ", get_name_bc(mbcx_tau3(1)), get_name_bc(mbcx_tau3(2))
 
@@ -632,19 +633,21 @@ end function
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call build_bc_symm_operation(dm%ibcy_ftp, mbc, bc)
     call build_bc_symm_operation(dm%ibcy_ftp, mbc0, dm%ibcy_qy)
-    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
+    
+    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCy in mbcy_tau3 is wrong.")
     mbcy_tau3(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom y-diffusion  is ", get_name_bc(mbcy_tau3(1)), get_name_bc(mbcy_tau3(2))
 
     call build_bc_symm_operation(dm%ibcz_qz, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call build_bc_symm_operation(dm%ibcz_ftp, mbc, bc)
+    if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCz in mbcy_tau3 is wrong.")
     mbcz_tau3 = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom z-diffusion  is ", get_name_bc(mbcz_tau3(1)), get_name_bc(mbcz_tau3(2))
 
     if(dm%icoordinate == ICYLINDRICAL) then
       call build_bc_symm_operation(dm%ibcy_ftp, mbc, dm%ibcy_qz)
-      if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BC in mbcy_tau3 is wrong.")
+      if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCr in mbcy_tau3 is wrong.")
       mbcr_tau3(1:2) = mbc(1:2, JBC_PROD)
       if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom r-diffusion  is ", get_name_bc(mbcr_tau3(1)), get_name_bc(mbcr_tau3(2))
     end if
