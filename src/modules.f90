@@ -417,6 +417,7 @@ module udf_type_mod
     logical :: is_conv_outlet
     logical :: is_record_xoutlet
     logical :: is_read_xinlet
+    logical :: is_mhd
     integer :: idom                  ! domain id
     integer :: icase                 ! case id
     integer :: icoordinate           ! coordinate type
@@ -641,13 +642,18 @@ module udf_type_mod
     real(WP), allocatable :: fbcx_gy_rhs0(:, :)
     real(WP), allocatable :: fbcx_gz_rhs0(:, :)
 
+    real(WP), allocatable :: lrfx(:, :, :) ! Lorentz force  !
+    real(WP), allocatable :: lrfy(:, :, :) ! Lorentz force
+    real(WP), allocatable :: lrfz(:, :, :) ! Lorentz force
+
     real(WP), allocatable :: u_vector_mean(:, :, :, :) ! u, v, w
     real(WP), allocatable :: pr_mean(:, :, :)
     real(WP), allocatable :: uu_tensor6_mean(:, :, :, :) ! uu, vv, ww, uv, uw, vw
 
   end type t_flow
-
-
+!----------------------------------------------------------------------------------------------------------
+!  thermo info
+!---------------------------------------------------------------------------------------------------------- 
   type t_thermo
     integer :: ifluid
     integer  :: inittype
@@ -674,6 +680,71 @@ module udf_type_mod
     type(t_fluidThermoProperty) :: ftp_ini ! undimensional
   end type t_thermo
   type(t_fluid_parameter) :: fluidparam ! dimensional
+!----------------------------------------------------------------------------------------------------------
+!  mhd info
+!---------------------------------------------------------------------------------------------------------- 
+  type t_mhd
+    logical :: is_NStuart
+    logical :: is_NHartmn
+    real(WP) :: NStuart
+    real(WP) :: NHartmn
+    real(WP) :: B_static(3) ! scaled B.
+    real(WP), allocatable :: ep(:, :, :) ! electric potential, scalar
+    real(WP), allocatable :: jx(:, :, :) ! current density in x
+    real(WP), allocatable :: jy(:, :, :) ! current density in y
+    real(WP), allocatable :: jz(:, :, :) ! current density in z
+    real(WP), allocatable :: bx(:, :, :) ! magnetic field in x
+    real(WP), allocatable :: by(:, :, :) ! current density in x
+    real(WP), allocatable :: bz(:, :, :) ! current density in x
+
+    integer  :: ibcx_ep(2)
+    integer  :: ibcy_ep(2)
+    integer  :: ibcz_ep(2)
+
+    integer  :: ibcx_jx(2)
+    integer  :: ibcy_jx(2)
+    integer  :: ibcz_jx(2)
+    integer  :: ibcx_jy(2)
+    integer  :: ibcy_jy(2)
+    integer  :: ibcz_jy(2)
+    integer  :: ibcx_jz(2)
+    integer  :: ibcy_jz(2)
+    integer  :: ibcz_jz(2)
+
+    integer  :: ibcx_bx(2)
+    integer  :: ibcy_bx(2)
+    integer  :: ibcz_bx(2)
+    integer  :: ibcx_by(2)
+    integer  :: ibcy_by(2)
+    integer  :: ibcz_by(2)
+    integer  :: ibcx_bz(2)
+    integer  :: ibcy_bz(2)
+    integer  :: ibcz_bz(2)
+
+    real(WP), allocatable :: fbcx_ep(:, :, :)
+    real(WP), allocatable :: fbcy_ep(:, :, :)
+    real(WP), allocatable :: fbcz_ep(:, :, :)
+
+    real(WP), allocatable :: fbcx_jx(:, :, :)
+    real(WP), allocatable :: fbcy_jx(:, :, :)
+    real(WP), allocatable :: fbcz_jx(:, :, :)
+    real(WP), allocatable :: fbcx_jy(:, :, :)
+    real(WP), allocatable :: fbcy_jy(:, :, :)
+    real(WP), allocatable :: fbcz_jy(:, :, :)
+    real(WP), allocatable :: fbcx_jz(:, :, :)
+    real(WP), allocatable :: fbcy_jz(:, :, :)
+    real(WP), allocatable :: fbcz_jz(:, :, :)
+
+    real(WP), allocatable :: fbcx_bx(:, :, :)
+    real(WP), allocatable :: fbcy_bx(:, :, :)
+    real(WP), allocatable :: fbcz_bx(:, :, :)
+    real(WP), allocatable :: fbcx_by(:, :, :)
+    real(WP), allocatable :: fbcy_by(:, :, :)
+    real(WP), allocatable :: fbcz_by(:, :, :)
+    real(WP), allocatable :: fbcx_bz(:, :, :)
+    real(WP), allocatable :: fbcy_bz(:, :, :)
+    real(WP), allocatable :: fbcz_bz(:, :, :)
+  end type
 
 
 end module
@@ -686,6 +757,7 @@ module vars_df_mod
   type(t_domain), allocatable, save :: domain(:)
   type(t_flow),   allocatable, save :: flow(:)
   type(t_thermo), allocatable, save :: thermo(:)
+  type(t_mhd),    allocatable, save :: mhd(:)
 end module
 !==========================================================================================================
 module io_files_mod

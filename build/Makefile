@@ -21,7 +21,7 @@ ifeq ($(cfg), gnu)
   FC     = mpif90
   FOPTS  = -g -O0 -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
            -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized -Wno-unused -cpp \
-					 -pedantic -finit-real=nan -fstack-protector
+          -pedantic -finit-real=nan -fstack-protector
   FOPTS += -fallow-argument-mismatch
   FFLGS  = -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
   FDEBG  = -DDEBUG_STEPS
@@ -74,6 +74,7 @@ OBJS1 = $(addprefix $(DIR_OBJ)/, \
       poisson_interface.o \
 			eq_continuity.o \
 			eq_energy.o \
+			eq_mhd.o \
 			io_restart.o \
       eq_momentum2.o \
 			initialisation.o \

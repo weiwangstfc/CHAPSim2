@@ -1113,44 +1113,45 @@ contains
     return
   end subroutine
 
-  !==========================================================================================================
-  subroutine Find_max_min_1d(var,  str, fmt)
-    use precision_mod
-    use math_mod
-    use mpi_mod
-    use parameters_constant_mod
-    implicit none
+!   !==========================================================================================================
+!   subroutine Find_max_min_1d(var,  str, fmt)
+!     use precision_mod
+!     use math_mod
+!     use mpi_mod
+!     use parameters_constant_mod
+!     implicit none
 
-    real(WP), intent(in)  :: var(:)
-    character(len = *), intent(in) :: str
-    character(len = *), intent(in), optional :: fmt
+!     real(WP), intent(in)  :: var(:)
+!     character(len = *), intent(in) :: str
+!     character(len = *), intent(in), optional :: fmt
     
-    real(WP):: varmax_work, varmin_work
-    real(WP)   :: varmax, varmin
+!     real(WP):: varmax_work, varmin_work
+!     real(WP)   :: varmax, varmin
 
-    integer :: i, nx
-    nx = size(var, 1)
-    varmax = MINN
-    varmin = MAXP
-    do i = 1, nx
-      if( var(i)  > varmax) varmax = var(i)
-      if( var(i)  < varmin) varmin = var(i)
-    end do
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
-    call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
+!     integer :: i, nx
+!     nx = size(var, 1)
+!     varmax = MINN
+!     varmin = MAXP
+!     do i = 1, nx
+!       if( var(i)  > varmax) varmax = var(i)
+!       if( var(i)  < varmin) varmin = var(i)
+!     end do
 
-    if(nrank == 0) then
-      write (*, *) '        maximum '//str, varmax_work
-      write (*, *) '        minimum '//str, varmin_work
-    end if
-#ifdef DEBUG_FFT
-    if(varmax_work >   MAXVELO) stop
-    if(varmin_work < - MAXVELO) stop
-#endif
+!     call mpi_barrier(MPI_COMM_WORLD, ierror)
+!     call mpi_allreduce(varmax, varmax_work, 1, MPI_REAL_WP, MPI_MAX, MPI_COMM_WORLD, ierror)
+!     call mpi_allreduce(varmin, varmin_work, 1, MPI_REAL_WP, MPI_MIN, MPI_COMM_WORLD, ierror)
 
-    return
-  end subroutine
+!     if(nrank == 0) then
+!       write (*, *) '        maximum '//str, varmax_work
+!       write (*, *) '        minimum '//str, varmin_work
+!     end if
+! #ifdef DEBUG_FFT
+!     if(varmax_work >   MAXVELO) stop
+!     if(varmin_work < - MAXVELO) stop
+! #endif
+
+!     return
+!   end subroutine
 
 !==========================================================================================================
   subroutine Find_max_min_absvar3d(var,  str, fmt)

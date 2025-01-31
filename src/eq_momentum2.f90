@@ -892,6 +892,12 @@ write(*,*)appc_ypencil(1, 1:2, 1)
       mx_rhs_pfc_xpencil =  mx_rhs_pfc_xpencil + fl%fgravity(i) * apcc_xpencil
     end if
 !----------------------------------------------------------------------------------------------------------
+! X-mom Lorentz Force in x direction, x-pencil
+!----------------------------------------------------------------------------------------------------------
+    if(dm%is_mhd) then
+      mx_rhs_pfc_xpencil = mx_rhs_pfc_xpencil + fl%lrfx
+    end if
+!----------------------------------------------------------------------------------------------------------
 ! X-mom diffusion term 1/3 at (i', j, k)
 ! diff-x-m1 = d[ 2 * mu * (qxdx - 1/3 * div)]/dx
 !----------------------------------------------------------------------------------------------------------
@@ -1110,6 +1116,12 @@ write(*,*)appc_ypencil(1, 1:2, 1)
       if(dm%icoordinate == ICYLINDRICAL) call multiple_cylindrical_rn(my_rhs_pfc_ypencil, dm%dcpc, dm%rp, 1, IPENCIL(2))
     end if
 !----------------------------------------------------------------------------------------------------------
+! Y-mom Lorentz Force in z direction, x-pencil
+!----------------------------------------------------------------------------------------------------------
+    if(dm%is_mhd) then
+      my_rhs_pfc_xpencil = my_rhs_pfc_xpencil + fl%lrfy
+    end if
+!----------------------------------------------------------------------------------------------------------
 ! Y-mom diffusion term 1/4 at (i, j', k)
 ! diff-x-m2 = d[muixy * (qydx + r * qxdy)]/dx                        
 !----------------------------------------------------------------------------------------------------------
@@ -1224,7 +1236,8 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     call transpose_y_to_x (acpc_ypencil, acpc_xpencil, dm%dcpc)
     fl%my_rhs =  fl%my_rhs + acpc_xpencil
 
-    call transpose_y_to_x (my_rhs_pfc_ypencil,  my_rhs_pfc_xpencil,  dm%dcpc)
+    call transpose_y_to_x (my_rhs_pfc_ypencil,  acpc_xpencil,  dm%dcpc)
+    my_rhs_pfc_xpencil = my_rhs_pfc_xpencil + acpc_xpencil
 !==========================================================================================================
 ! the RHS of z-momentum equation
 ! d(gz)/dt = -        d(gxiz * qzix)/dx                               ! conv-x-m3         
@@ -1369,6 +1382,12 @@ write(*,*)appc_ypencil(1, 1:2, 1)
       mz_rhs_pfc_zpencil =  mz_rhs_pfc_zpencil + fl%fgravity(i) * accp_zpencil
     end if
 !----------------------------------------------------------------------------------------------------------
+! Z-mom Lorentz Force in z direction, x-pencil
+!----------------------------------------------------------------------------------------------------------
+    if(dm%is_mhd) then
+      mz_rhs_pfc_xpencil = mz_rhs_pfc_xpencil + fl%lrfz
+    end if
+!----------------------------------------------------------------------------------------------------------
 ! Z-mom diffusion term 1/4  at (i, j, k')
 ! diff-x-m3 = d[muixz * (qzdx + qxdz)]/dx                            
 !----------------------------------------------------------------------------------------------------------
@@ -1482,7 +1501,8 @@ write(*,*)appc_ypencil(1, 1:2, 1)
     fl%mz_rhs =  fl%mz_rhs + accp_xpencil
 
     call transpose_z_to_y (mz_rhs_pfc_zpencil, accp_ypencil, dm%dccp)
-    call transpose_y_to_x (accp_ypencil, mz_rhs_pfc_xpencil, dm%dccp)
+    call transpose_y_to_x (accp_ypencil, accp_xpencil, dm%dccp)
+    mz_rhs_pfc_xpencil = mz_rhs_pfc_xpencil + accp_xpencil
 
 !==========================================================================================================
 ! x-pencil : to build up rhs in total, in all directions
