@@ -641,6 +641,7 @@ end function
     call build_bc_symm_operation(dm%ibcz_qz, mbc)
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call build_bc_symm_operation(dm%ibcz_ftp, mbc, bc)
+    call build_bc_symm_operation(dm%ibcz_ftp, mbc0, dm%ibcz_qz)
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCz in mbcy_tau3 is wrong.")
     mbcz_tau3 = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom z-diffusion  is ", get_name_bc(mbcz_tau3(1)), get_name_bc(mbcz_tau3(2))

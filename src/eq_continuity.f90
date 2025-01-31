@@ -9,7 +9,6 @@ module continuity_eq_mod
   public :: Check_domain_mass_conservation
   public :: Check_element_mass_conservation
 contains
-
 !==========================================================================================================
 !==========================================================================================================
 !> \brief To calculate d(\rho)/dt in the continuity eq.
