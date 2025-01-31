@@ -1028,9 +1028,8 @@ contains
            iostat  = ioerr,         &
            iomsg   = iotxt)
       if(ioerr /= 0) then
-        !write (*, *) 'Problem openning : '//trim(filename1)
-        !write (*, *) 'Message: ', trim (iotxt)
-        error stop 'Problem openning : '//trim(filename1)
+        write(*,*) 'Problem opening: ', trim(filename1)
+        error stop
       end if
 
       n = 0

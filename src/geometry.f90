@@ -562,7 +562,7 @@ contains
         !write(wrt_unit, *) j, dm%h(2) / dm%yMappingcc(j, 1), dm%yp(j+1) - dm%yp(j), dm%h(2) / dm%yMappingpt(j, 1), dm%yc(j) - dm%yc(j-1)
       end do
       close(wrt_unit)
-      call Find_max_min_1d(dy, 'dy')
+      !call Find_max_min_1d(dy, 'dy')
 
       open(newunit = wrt_unit, file = trim(dir_chkp)//'/check_mesh_yp.dat', action = "write", status = "replace")
       write(wrt_unit, *) 'index, yp, rp, rpi'

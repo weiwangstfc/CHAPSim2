@@ -315,8 +315,19 @@ module operations
   public  :: Test_1st_derivative
 
   private :: reduce_bc_to_interp
+  private :: check_size
 
 contains
+
+  subroutine check_size(var_name, dim, expected, actual, message)
+    integer, intent(in) :: dim, expected, actual
+    character(*), intent(in) :: var_name, message
+
+    if (expected /= actual) then
+      write(*, *) 'nrank, ', var_name, nrank, expected, actual
+      call Print_error_msg("Error: " // message)
+    end if
+  end subroutine check_size
 
   subroutine reduce_bc_to_interp(ibc, flg, strbc, strcode)
     use parameters_constant_mod
@@ -3957,14 +3968,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_x_midp_C2P_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_x_midp_C2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_x_midp_C2P_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_x_midp_C2P_3D") 
-    end if
-    
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_x_midp_C2P_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_x_midp_C2P_3D")
 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_x_midp_C2P_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_x_midp_C2P_3D")
+    end if
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -3997,15 +4010,6 @@ contains
     real(WP)   :: fo( size(fo3d, 1) )
     integer :: k, j
     real(WP)   :: fbc(4)
-!----------------------------------------------------------------------------------------------------------
-!  default : x-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_x_midp_P2C_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_x_midp_P2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_x_midp_P2C_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_x_midp_P2C_3D") 
-    end if
     
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
@@ -4043,14 +4047,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_midp_C2P_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_y_midp_C2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_C2P_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_y_midp_C2P_3D") 
-    end if
-    
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_y_midp_C2P_3D")
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_y_midp_C2P_3D")
 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_y_midp_C2P_3D")
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_y_midp_C2P_3D")
+    end if
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4084,14 +4090,18 @@ contains
     integer :: k, i
     real(WP) :: fbc(4)
 !----------------------------------------------------------------------------------------------------------
-!  y-pencil calculation
+!  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_midp_P2C_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_y_midp_P2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_P2C_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_y_midp_P2C_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_y_midp_P2C_3D")
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_y_midp_P2C_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_y_midp_C2P_3D")
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_y_midp_C2P_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
@@ -4129,12 +4139,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_midp_C2P_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_y_midp_C2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_C2P_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_y_midp_C2P_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_z_midp_C2P_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_z_midp_C2P_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_z_midp_C2P_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_z_midp_C2P_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
@@ -4171,12 +4185,16 @@ contains
 !----------------------------------------------------------------------------------------------------------
 !  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_midp_P2C_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_y_midp_P2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_midp_P2C_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_y_midp_P2C_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_z_midp_P2C_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_z_midp_P2C_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_z_midp_P2C_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_z_midp_P2C_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
@@ -4229,14 +4247,18 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, j
 !----------------------------------------------------------------------------------------------------------
-!  x-pencil calculation
+!  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_x_1der_C2C_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_x_1der_C2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_C2C_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_C2C_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_x_1der_C2C_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_x_1der_C2C_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_x_1der_C2C_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_x_1der_C2C_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
     
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
@@ -4273,14 +4295,18 @@ contains
     integer :: k, j
 
 !----------------------------------------------------------------------------------------------------------
-!  x-pencil calculation
+!  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_x_1der_P2P_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_x_1der_P2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_P2P_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_P2P_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_x_1der_P2P_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_x_1der_P2P_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_x_1der_P2P_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_x_1der_P2P_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
@@ -4314,18 +4340,19 @@ contains
     real(WP)   :: fo( size(fo3d, 1) )
     real(WP)   :: fbc(4)
     integer :: k, j
+!----------------------------------------------------------------------------------------------------------
+!  default : x-pencil calculation
+!----------------------------------------------------------------------------------------------------------
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_x_1der_C2P_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_x_1der_C2P_3D")
 
-!----------------------------------------------------------------------------------------------------------
-!  x-pencil calculation
-!----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_x_1der_C2P_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_x_1der_C2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_C2P_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_C2P_3D") 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_x_1der_C2P_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_x_1der_C2P_3D")
     end if
-    
-
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -4360,15 +4387,18 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, j
 !----------------------------------------------------------------------------------------------------------
-!  x-pencil calculation
+!  default : x-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_x_1der_P2C_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_x_1der_P2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_x_1der_P2C_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_x_1der_P2C_3D") 
-    end if
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_x_1der_P2C_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_x_1der_P2C_3D")
 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_x_1der_P2C_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_x_1der_P2C_3D")
+    end if
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do j = 1, size(fi3d, 2)
@@ -4403,13 +4433,19 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, i
 
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2C_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_y_1der_C2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2C_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_C2C_3D") 
-    end if
+!----------------------------------------------------------------------------------------------------------
+!  default : y-pencil calculation
+!----------------------------------------------------------------------------------------------------------
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_y_1der_C2C_3D")
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_y_1der_C2C_3D")
 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_y_1der_C2C_3D")
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_y_1der_C2C_3D")
+    end if
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4444,15 +4480,18 @@ contains
     integer :: k, i
 
 !----------------------------------------------------------------------------------------------------------
-!  y-pencil calculation
+!  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2P_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_y_1der_P2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2P_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_P2P_3D") 
-    end if
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_y_1der_P2P_3D")
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_y_1der_P2P_3D")
 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_y_1der_P2P_3D")
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_y_1der_P2P_3D")
+    end if
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4486,15 +4525,18 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, i
 !----------------------------------------------------------------------------------------------------------
-!  y-pencil calculation
+!  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_C2P_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_y_1der_C2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_C2P_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_C2P_3D") 
-    end if
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_y_1der_C2P_3D")
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_y_1der_C2P_3D")
 
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_y_1der_C2P_3D")
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_y_1der_C2P_3D")
+    end if
+!----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
       do i = 1, size(fi3d, 1)
@@ -4530,14 +4572,18 @@ contains
     real(WP)   :: fbc(4)
     integer :: k, i
 !----------------------------------------------------------------------------------------------------------
-!  y-pencil calculation
+!  default : y-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2C_3D")
-    if( size(fo3d,  3) /= size(fi3d, 3)) call Print_error_msg("Error: nz of input/output in Get_y_1der_P2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2C_3D") 
-      if( size(fbc2d, 3) /= size(fi3d, 3) ) call Print_error_msg("Error: nz of input fbc    in Get_y_1der_P2C_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_y_1der_P2C_3D")
+    call check_size("fo/fi", 3, size(fo3d,3), size(fi3d,3), "nz mismatch in Get_y_1der_P2C_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_y_1der_P2C_3D")
+      call check_size("fbc/fi", 3, size(fbc2d,3), size(fi3d,3), "nz mismatch in Get_y_1der_P2C_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do k = 1, size(fi3d, 3)
@@ -4572,14 +4618,18 @@ contains
     real(WP)   :: fbc(4)
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
-!  z-pencil calculation
+!  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_z_1der_C2C_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_z_1der_C2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_z_1der_C2C_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_z_1der_C2C_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_z_1der_C2C_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_z_1der_C2C_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_z_1der_C2C_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_z_1der_C2C_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
@@ -4616,14 +4666,18 @@ contains
     integer :: j, i
 
 !----------------------------------------------------------------------------------------------------------
-!  z-pencil calculation
+!  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2P_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_y_1der_P2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2P_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_P2P_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_z_1der_P2P_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_z_1der_P2P_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_z_1der_P2P_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_z_1der_P2P_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
@@ -4659,14 +4713,18 @@ contains
     integer :: j, i
 
 !----------------------------------------------------------------------------------------------------------
-!  z-pencil calculation
+!  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_z_1der_C2P_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_z_1der_C2P_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_z_1der_C2P_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_z_1der_C2P_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_z_1der_C2P_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_z_1der_C2P_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_z_1der_C2P_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_z_1der_C2P_3D")
     end if
+!----------------------------------------------------------------------------------------------------------
 
     fo3d(:, :, :) = ZERO
     do j = 1, size(fi3d, 2)
@@ -4702,13 +4760,16 @@ contains
     real(WP)   :: fbc(4)
     integer :: j, i
 !----------------------------------------------------------------------------------------------------------
-!  z-pencil calculation
+!  default : z-pencil calculation
 !----------------------------------------------------------------------------------------------------------
-    if( size(fo3d,  1) /= size(fi3d, 1)) call Print_error_msg("Error: nx of input/output in Get_y_1der_P2C_3D")
-    if( size(fo3d,  2) /= size(fi3d, 2)) call Print_error_msg("Error: ny of input/output in Get_y_1der_P2C_3D") 
-    if(present(fbc2d))then
-      if( size(fbc2d, 1) /= size(fi3d, 1) ) call Print_error_msg("Error: nx of input fbc    in Get_y_1der_P2C_3D") 
-      if( size(fbc2d, 2) /= size(fi3d, 2) ) call Print_error_msg("Error: ny of input fbc    in Get_y_1der_P2C_3D") 
+    ! Check sizes for fo3d and fi3d
+    call check_size("fo/fi", 1, size(fo3d,1), size(fi3d,1), "nx mismatch in Get_z_1der_P2C_3D")
+    call check_size("fo/fi", 2, size(fo3d,2), size(fi3d,2), "ny mismatch in Get_z_1der_P2C_3D")
+
+    ! Check sizes for fbc2d if present
+    if (present(fbc2d)) then
+      call check_size("fbc/fi", 1, size(fbc2d,1), size(fi3d,1), "nx mismatch in Get_z_1der_P2C_3D")
+      call check_size("fbc/fi", 2, size(fbc2d,2), size(fi3d,2), "ny mismatch in Get_z_1der_P2C_3D")
     end if
 !----------------------------------------------------------------------------------------------------------
     fo3d(:, :, :) = ZERO
