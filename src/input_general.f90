@@ -276,6 +276,7 @@ contains
     real(WP), allocatable :: rtmpx(:)
     integer, allocatable  :: itmpx(:)
     integer :: i, j, m, n
+    logical :: is_tmp
     logical :: is_any_energyeq
     
     if(nrank == 0) then
@@ -710,6 +711,37 @@ contains
           end do
         else if(nrank == 0) then
           write(*, *) ' Note: Thermal field is not considered. '
+        end if
+      !----------------------------------------------------------------------------------------------------------
+      ! [mhd] 
+      !----------------------------------------------------------------------------------------------------------
+      else if ( secname(1:slen) == '[mhd]' )  then 
+        read(inputUnit, *, iostat = ioerr) varname, domain(1:nxdomain)%is_mhd
+        if(domain(1)%is_mhd) then
+          allocate (mhd(nxdomain))
+          read(inputUnit, *, iostat = ioerr) varname, mhd(1)%is_NStuart, mhd(1)%NStuart
+          read(inputUnit, *, iostat = ioerr) varname, mhd(1)%is_NHartmn, mhd(1)%NHartmn
+          read(inputUnit, *, iostat = ioerr) varname, mhd(1)%B_static(1:3)
+          if( (     mhd(1)%is_NStuart  .and.       mhd(1)%is_NHartmn) .or. &
+            ( (.not.mhd(1)%is_NStuart) .and. (.not.mhd(1)%is_NHartmn)) ) &
+          call Print_error_msg('Please provide either Stuart Number or Hartmann Number')
+        else
+          read(inputUnit, *, iostat = ioerr) varname, is_tmp, rtmp
+          read(inputUnit, *, iostat = ioerr) varname, is_tmp, rtmp
+          read(inputUnit, *, iostat = ioerr) varname, rtmp, rtmp, rtmp
+        end if
+        if(domain(1)%is_mhd .and. nrank == 0) then
+          do i = 1, nxdomain
+            !write (*, wrtfmt1i) '------For the domain-x------ ', i
+            write (*, wrtfmt1l) '  is thermal field solved   ?', domain(i)%is_mhd
+            if(mhd(1)%is_NStuart) &
+            write (*, wrtfmt1r) '  given Stuart Number   :', mhd(1)%NStuart
+            if(mhd(1)%is_NHartmn) &
+            write (*, wrtfmt1r) '  given Hartmann Number :', mhd(1)%NHartmn
+            write (*, wrtfmt3r) ' Static Magnetic field  :', mhd(1)%B_static(1:3)
+          end do
+        else if(nrank == 0) then
+          write(*, *) ' Note: MHD is not considered. '
         end if
       !----------------------------------------------------------------------------------------------------------
       ! [simcontrol]

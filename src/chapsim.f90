@@ -53,6 +53,7 @@ subroutine initialise_chapsim
   use io_visulisation_mod
   use eq_momentum_mod
   use wrt_debug_field_mod
+  use mhd_mod
   implicit none
   integer :: i
 
@@ -106,7 +107,7 @@ subroutine initialise_chapsim
     end if
   end do
 !----------------------------------------------------------------------------------------------------------
-! build up bounary condition
+! build up boundary condition
 !----------------------------------------------------------------------------------------------------------
   do i = 1, nxdomain
     if(domain(i)%is_thermo) then
@@ -127,7 +128,10 @@ subroutine initialise_chapsim
       call initialise_thermo_fields(thermo(i), flow(i), domain(i))
     end if
     call initialise_flow_fields(flow(i), domain(i))
-    
+    if(domain(i)%is_mhd) then
+      call initialise_mhd(flow(i), mhd(i), domain(i))
+      call compute_Lorentz_force(flow(i), mhd(i), domain(i))
+    end if
     call Solve_momentum_eq(flow(i), domain(i), 0)
     call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
     call write_visu_flow(flow(i), domain(i))
@@ -199,6 +203,7 @@ subroutine Solve_eqs_iteration
   use typeconvert_mod
   use boundary_conditions_mod
   use find_max_min_ave_mod
+  use mhd_mod
   implicit none
 
   logical, allocatable :: is_flow  (:)
@@ -292,6 +297,7 @@ subroutine Solve_eqs_iteration
       end do
       do i = 1, nxdomain
         if(is_thermo(i)) call Solve_energy_eq  (flow(i), thermo(i), domain(i), isub)
+        if(domain(i)%is_mhd) call compute_Lorentz_force(flow(i), mhd(i), domain(i))
         if(is_flow(i))   call Solve_momentum_eq(flow(i), domain(i), isub)
       end do
 #ifdef DEBUG_STEPS
