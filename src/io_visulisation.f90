@@ -1,4 +1,4 @@
-module io_visulisation_mod
+module io_visualisation_mod
   use io_tools_mod
   use parameters_constant_mod
   use print_msg_mod
@@ -15,7 +15,10 @@ module io_visulisation_mod
   character(4), parameter :: CELL = "Cell", &
                              NODE = "Node"
   
-
+  integer, parameter :: N_DIRECTION = 0, &
+                        X_DIRECTION = 1, &
+                        Y_DIRECTION = 2, &
+                        Z_DIRECTION = 3
   integer, allocatable :: nnd_visu(:, :)
   integer, allocatable :: ncl_visu(:, :)
 
@@ -27,10 +30,12 @@ module io_visulisation_mod
   private :: write_visu_field
   private :: visu_average_periodic_data
   private :: write_visu_profile
+  private :: process_and_write_field
 
   public  :: write_visu_ini
   public  :: write_visu_flow
   public  :: write_visu_thermo
+  public  :: write_visu_mhd
   public  :: write_visu_any3darray
 
   public  :: write_visu_stats_flow
@@ -39,11 +44,69 @@ module io_visulisation_mod
   
   
 contains
+
+!========================================================================================================
+! Generic subroutine to process and write a field (velocity or thermal)
+!========================================================================================================
+  subroutine process_and_write_field(field, dm, field_name, filename, iteration, direction, opt_bc)
+    use udf_type_mod
+    use operations
+    implicit none
+    real(WP), contiguous, intent(in) :: field(:, :, :)
+    type(t_domain), intent(in) :: dm
+    character(*), intent(in) :: field_name, filename
+    integer, intent(in) :: iteration
+    integer, intent(in), optional :: opt_bc(:)
+    integer, intent(in) :: direction
+
+    ! Local variables
+    real(WP), dimension(dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3)) :: accc_xpencil
+    real(WP), dimension(dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3)) :: accc_ypencil
+    real(WP), dimension(dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3)) :: accc_zpencil
+    real(WP), dimension(dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3)) :: acpc_ypencil
+    real(WP), dimension(dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3)) :: accp_ypencil
+    real(WP), dimension(dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3)) :: accp_zpencil
+
+#ifdef DEBUG_STEPS
+    if(nrank == 0) &
+    call Print_debug_mid_msg("Writing field: " // trim(field_name) // " to file: " // trim(filename))
+#endif
+
+    select case (direction)
+      case (N_DIRECTION)
+        ! Process scalar field (e.g., pressure)
+        call write_visu_field(dm, field, dm%dccc, trim(field_name), trim(filename), SCALAR, CELL, iteration)
+      case (X_DIRECTION)
+        ! Process x-direction field (e.g., qx or gx)
+        call Get_x_midp_P2C_3D(field, accc_xpencil, dm, dm%iAccuracy, opt_bc)
+        call write_visu_field(dm, accc_xpencil, dm%dccc, trim(field_name), trim(filename), SCALAR, CELL, iteration)
+
+      case (Y_DIRECTION)
+        ! Process y-direction field (e.g., qy or gy)
+        call transpose_x_to_y(field, acpc_ypencil, dm%dcpc)
+        call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, opt_bc)
+        call transpose_y_to_x(accc_ypencil, accc_xpencil, dm%dccc)
+        call write_visu_field(dm, accc_xpencil, dm%dccc, trim(field_name), trim(filename), SCALAR, CELL, iteration)
+
+      case (Z_DIRECTION)
+        ! Process z-direction field (e.g., qz or gz)
+        call transpose_x_to_y(field, accp_ypencil, dm%dccp)
+        call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
+        call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, opt_bc)
+        call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
+        call transpose_y_to_x(accc_ypencil, accc_xpencil, dm%dccc)
+        call write_visu_field(dm, accc_xpencil, dm%dccc, trim(field_name), trim(filename), SCALAR, CELL, iteration)
+
+      case default
+        if (nrank == 0) call Print_debug_mid_msg("Error: Invalid direction in process_and_write_field.")
+    end select
+  end subroutine process_and_write_field
+
 !==========================================================================================================
 ! xszV means:
 ! x - xpencil, could also be y, z
 ! sz - size, could also be st, en
-! V - visulisation
+! V - visualisation
 ! xszV is the same as dppp%xsz/nskip, based on nodes, considering the skip nodes
 !==========================================================================================================
   subroutine write_visu_ini(dm)
@@ -59,7 +122,7 @@ contains
     character(120):: grid_flname
     character(120):: keyword
     integer :: iogrid
-
+! note:: skip_nodes is not considered here, the visualisation is based on the nodes.
 !----------------------------------------------------------------------------------------------------------
 ! allocate
 !----------------------------------------------------------------------------------------------------------
@@ -67,116 +130,117 @@ contains
     if(.not. allocated(ncl_visu)) allocate (ncl_visu(3, nxdomain))
     nnd_visu = 0
     ncl_visu = 0
-!----------------------------------------------------------------------------------------------------------
-! global size
-!----------------------------------------------------------------------------------------------------------
-    !svisudim = ''
-    !if(dm%visu_idim == Ivisudim_3D) then
-      !svisudim = "3d"
-      nnd_visu(1, dm%idom) = xszV(1)
-      nnd_visu(2, dm%idom) = yszV(2)
-      nnd_visu(3, dm%idom) = zszV(3)
-      do i = 1, 3
-        if(dm%is_periodic(i)) then 
-          ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-          nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-        else 
-          ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-        end if
-      end do
-    ! !else if(dm%visu_idim == Ivisudim_2D_Xa) then
-    !   svisudim = "2d_xa"
-    !   nnd_visu(1, dm%idom) = 1
-    !   nnd_visu(2, dm%idom) = yszV(2)
-    !   nnd_visu(3, dm%idom) = zszV(3)
-    !   do i = 1, 3
-    !     if(dm%is_periodic(i)) then 
-    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-    !     else 
-    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-    !     end if
-    !   end do
-    ! else if(dm%visu_idim == Ivisudim_2D_Ya) then
-    !   svisudim = "2d_ya"
-    !   nnd_visu(1, dm%idom) = xszV(1)
-    !   nnd_visu(2, dm%idom) = 1
-    !   nnd_visu(3, dm%idom) = zszV(3)
-    !   do i = 1, 3
-    !     if(dm%is_periodic(i)) then 
-    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-    !     else 
-    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-    !     end if
-    !   end do
-    ! else if(dm%visu_idim == Ivisudim_2D_Za) then
-    !   svisudim = "2d_za"
-    !   nnd_visu(1, dm%idom) = xszV(1)
-    !   nnd_visu(2, dm%idom) = yszV(2)
-    !   nnd_visu(3, dm%idom) = 1
-    !   do i = 1, 3
-    !     if(dm%is_periodic(i)) then 
-    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-    !     else 
-    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-    !     end if
-    !   end do
-    ! else if(dm%visu_idim == Ivisudim_1D_XZa) then
-    !   svisudim = "2d_xza"
-    !   nnd_visu(1, dm%idom) = 1
-    !   nnd_visu(2, dm%idom) = yszV(2)
-    !   nnd_visu(3, dm%idom) = 1
-    !   do i = 1, 3
-    !     if(dm%is_periodic(i)) then 
-    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-    !     else 
-    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-    !     end if
-    !   end do
-    ! else
-    !   svisudim = "3d"
-    !   nnd_visu(1, dm%idom) = xszV(1)
-    !   nnd_visu(2, dm%idom) = yszV(2)
-    !   nnd_visu(3, dm%idom) = zszV(3)
-    !   do i = 1, 3
-    !     if(dm%is_periodic(i)) then 
-    !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
-    !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
-    !     else 
-    !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
-    !     end if
-    !   end do
-    ! end if
+! !----------------------------------------------------------------------------------------------------------
+! ! global size
+! !----------------------------------------------------------------------------------------------------------
+!     !svisudim = ''
+!     !if(dm%visu_idim == Ivisudim_3D) then
+!       !svisudim = "3d"
+!       nnd_visu(1, dm%idom) = xszV(1)
+!       nnd_visu(2, dm%idom) = yszV(2)
+!       nnd_visu(3, dm%idom) = zszV(3)
+!       do i = 1, 3
+!         if(dm%is_periodic(i)) then 
+!           ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+!           nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+!         else 
+!           ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+!         end if
+!       end do
+!     ! !else if(dm%visu_idim == Ivisudim_2D_Xa) then
+!     !   svisudim = "2d_xa"
+!     !   nnd_visu(1, dm%idom) = 1
+!     !   nnd_visu(2, dm%idom) = yszV(2)
+!     !   nnd_visu(3, dm%idom) = zszV(3)
+!     !   do i = 1, 3
+!     !     if(dm%is_periodic(i)) then 
+!     !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+!     !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+!     !     else 
+!     !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+!     !     end if
+!     !   end do
+!     ! else if(dm%visu_idim == Ivisudim_2D_Ya) then
+!     !   svisudim = "2d_ya"
+!     !   nnd_visu(1, dm%idom) = xszV(1)
+!     !   nnd_visu(2, dm%idom) = 1
+!     !   nnd_visu(3, dm%idom) = zszV(3)
+!     !   do i = 1, 3
+!     !     if(dm%is_periodic(i)) then 
+!     !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+!     !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+!     !     else 
+!     !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+!     !     end if
+!     !   end do
+!     ! else if(dm%visu_idim == Ivisudim_2D_Za) then
+!     !   svisudim = "2d_za"
+!     !   nnd_visu(1, dm%idom) = xszV(1)
+!     !   nnd_visu(2, dm%idom) = yszV(2)
+!     !   nnd_visu(3, dm%idom) = 1
+!     !   do i = 1, 3
+!     !     if(dm%is_periodic(i)) then 
+!     !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+!     !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+!     !     else 
+!     !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+!     !     end if
+!     !   end do
+!     ! else if(dm%visu_idim == Ivisudim_1D_XZa) then
+!     !   svisudim = "2d_xza"
+!     !   nnd_visu(1, dm%idom) = 1
+!     !   nnd_visu(2, dm%idom) = yszV(2)
+!     !   nnd_visu(3, dm%idom) = 1
+!     !   do i = 1, 3
+!     !     if(dm%is_periodic(i)) then 
+!     !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+!     !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+!     !     else 
+!     !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+!     !     end if
+!     !   end do
+!     ! else
+!     !   svisudim = "3d"
+!     !   nnd_visu(1, dm%idom) = xszV(1)
+!     !   nnd_visu(2, dm%idom) = yszV(2)
+!     !   nnd_visu(3, dm%idom) = zszV(3)
+!     !   do i = 1, 3
+!     !     if(dm%is_periodic(i)) then 
+!     !       ncl_visu(i, dm%idom) = nnd_visu(i, dm%idom)
+!     !       nnd_visu(i, dm%idom) = nnd_visu(i, dm%idom) + 1
+!     !     else 
+!     !       ncl_visu(i, dm%idom) = MAX(nnd_visu(i, dm%idom) - 1, 1)
+!     !     end if
+!     !   end do
+!     ! end if
 !----------------------------------------------------------------------------------------------------------
 ! write grids
 !----------------------------------------------------------------------------------------------------------    
+    nnd_visu(1:3, dm%idom) = dm%np_geo(1:3)
+    ncl_visu(1:3, dm%idom) = dm%nc(1:3)
     if(nrank == 0) then
 
-      if(.not. allocated(xp)) allocate ( xp(nnd_visu(1, dm%idom)) )
-      if(.not. allocated(yp)) allocate ( yp(nnd_visu(2, dm%idom)) )
-      if(.not. allocated(zp)) allocate ( zp(nnd_visu(3, dm%idom)) )
+      if(.not. allocated(xp)) allocate ( xp(nnd_visu(1, dm%idom)))
+      if(.not. allocated(yp)) allocate ( yp(nnd_visu(2, dm%idom)))
+      if(.not. allocated(zp)) allocate ( zp(nnd_visu(3, dm%idom)))
 
       xp = MAXP
       yp = MAXP
       zp = MAXP
 
       do i = 1, nnd_visu(1, dm%idom)
-        xp(i) = real(i-1, WP) * dm%h(1) * dm%visu_nskip(1)
+        xp(i) = real(i-1, WP) * dm%h(1)
       enddo
       do j = 1, nnd_visu(2, dm%idom)
         if(dm%is_stretching(2)) then 
-        yp(j) = dm%yp(j)
+          yp(j) = dm%yp(j)
         else 
-          yp(j) = real(j-1, WP) * dm%h(2) * dm%visu_nskip(2)
+          yp(j) = real(j-1, WP) * dm%h(2)
         end if
       end do
       do k = 1, nnd_visu(3, dm%idom)
-        zp(k) = real(k-1, WP) * dm%h(3) * dm%visu_nskip(3)
+        zp(k) = real(k-1, WP) * dm%h(3)
       enddo
-
 
       keyword = "grid_x"
       call generate_pathfile_name(grid_flname, dm%idom, keyword, dir_visu, 'dat')
@@ -417,88 +481,60 @@ contains
     return
   end subroutine 
 !==========================================================================================================
-  subroutine write_visu_flow(fl, dm, str)
+! Subroutine to write flow visualization data
+!==========================================================================================================
+  subroutine write_visu_flow(fl, dm, suffix)
     use udf_type_mod
     use precision_mod
     use operations
     use parameters_constant_mod
-    implicit none 
+    implicit none
+
+    ! Input variables
     type(t_domain), intent(in) :: dm
     type(t_flow), intent(in) :: fl
-    character(4), intent(in), optional :: str
+    character(4), intent(in), optional :: suffix
 
-    integer :: iter 
-    character(120) :: visuname
-    real(WP), dimension( dm%dccc%xsz(1), dm%dccc%xsz(2), dm%dccc%xsz(3) ) :: accc
-    real(WP), dimension( dm%dccc%ysz(1), dm%dccc%ysz(2), dm%dccc%ysz(3) ) :: accc_ypencil
-    real(WP), dimension( dm%dccc%zsz(1), dm%dccc%zsz(2), dm%dccc%zsz(3) ) :: accc_zpencil
-    real(WP), dimension( dm%dcpc%ysz(1), dm%dcpc%ysz(2), dm%dcpc%ysz(3) ) :: acpc_ypencil
-    real(WP), dimension( dm%dccp%ysz(1), dm%dccp%ysz(2), dm%dccp%ysz(3) ) :: accp_ypencil
-    real(WP), dimension( dm%dccp%zsz(1), dm%dccp%zsz(2), dm%dccp%zsz(3) ) :: accp_zpencil
+    ! Local variables
+    integer :: iteration
+    character(120) :: visu_filename
 
-    iter = fl%iteration
-    visuname = 'flow'
-    if(present(str)) visuname = trim(visuname)//'_'//trim(str)
-!----------------------------------------------------------------------------------------------------------
-! write xdmf header
-!----------------------------------------------------------------------------------------------------------
-    call write_visu_headerfooter(dm, trim(visuname), XDMF_HEADER, iter)
-!----------------------------------------------------------------------------------------------------------
-! write data, pressure, to cell centre
-!----------------------------------------------------------------------------------------------------------
-    call write_visu_field(dm, fl%pres, dm%dccc, "pr_visu", trim(visuname), SCALAR, CELL, iter)
-!----------------------------------------------------------------------------------------------------------
-! qx, default x-pencil, staggered to cell centre
-!----------------------------------------------------------------------------------------------------------
-    call Get_x_midp_P2C_3D(fl%qx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
-    call write_visu_field(dm, accc, dm%dccc, "qx_visu", trim(visuname), SCALAR, CELL, iter)
-!----------------------------------------------------------------------------------------------------------
-! qy, default x-pencil, staggered to cell centre
-!----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y(fl%qy, acpc_ypencil, dm%dcpc)
-    call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
-    call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_visu_field(dm, accc, dm%dccc, "qy_visu", trim(visuname), SCALAR, CELL, iter)
-!----------------------------------------------------------------------------------------------------------
-! qz, default x-pencil, staggered to cell centre
-!----------------------------------------------------------------------------------------------------------
-    call transpose_x_to_y(fl%qz, accp_ypencil, dm%dccp)
-    call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-    call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_qz)
-    call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
-    call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-    call write_visu_field(dm, accc, dm%dccc, "qz_visu", trim(visuname), SCALAR, CELL, iter)
+    ! Initialize iteration and filename
+    iteration = fl%iteration
+    visu_filename = 'flow'
+    if (present(suffix)) visu_filename = trim(visu_filename) // '_' // trim(suffix)
 
-    if(dm%is_thermo) then
-!----------------------------------------------------------------------------------------------------------
-! gx, default x-pencil, staggered to cell centre
-!----------------------------------------------------------------------------------------------------------
-      call Get_x_midp_P2C_3D(fl%gx, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_gx)
-      call write_visu_field(dm, accc, dm%dccc, "gx_visu", trim(visuname), SCALAR, CELL, iter)
-!----------------------------------------------------------------------------------------------------------
-! gy, default x-pencil, staggered to cell centre
-!----------------------------------------------------------------------------------------------------------
-      call transpose_x_to_y(fl%gy, acpc_ypencil, dm%dcpc)
-      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_gy)
-      call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_visu_field(dm, accc, dm%dccc, "gy_visu", trim(visuname), SCALAR, CELL, iter)
-!----------------------------------------------------------------------------------------------------------
-! gz, default x-pencil, staggered to cell centre
-!----------------------------------------------------------------------------------------------------------
-      call transpose_x_to_y(fl%gz, accp_ypencil, dm%dccp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_gz)
-      call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
-      call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_visu_field(dm, accc, dm%dccc, "gz_visu", trim(visuname), SCALAR, CELL, iter)
+    ! Write XDMF header
+    call write_visu_headerfooter(dm, trim(visu_filename), XDMF_HEADER, iteration)
+
+    ! Write pressure field (cell-centered)
+    call process_and_write_field(fl%pres, dm, "pressure", trim(visu_filename), iteration, &
+                                N_DIRECTION)
+
+    ! Process and write velocity components (qx, qy, qz)
+    call process_and_write_field(fl%qx, dm, "qx_velocity", trim(visu_filename), iteration, &
+                                X_DIRECTION, opt_bc=dm%ibcx_qx)
+    call process_and_write_field(fl%qy, dm, "qy_velocity", trim(visu_filename), iteration, &
+                                Y_DIRECTION, opt_bc=dm%ibcy_qy)
+    call process_and_write_field(fl%qz, dm, "qz_velocity", trim(visu_filename), iteration, &
+                                Z_DIRECTION, opt_bc=dm%ibcz_qz)
+
+    ! Process and write thermal fields if enabled
+    if (dm%is_thermo) then
+      call process_and_write_field(fl%gx, dm, "gx_thermal", trim(visu_filename), iteration, &
+                                  X_DIRECTION, opt_bc=dm%ibcx_qx)
+      call process_and_write_field(fl%gy, dm, "gy_thermal", trim(visu_filename), iteration, &
+                                  Y_DIRECTION, opt_bc=dm%ibcy_qy)
+      call process_and_write_field(fl%gz, dm, "gz_thermal", trim(visu_filename), iteration, &
+                                  Z_DIRECTION, opt_bc=dm%ibcz_qz)
     end if
-!----------------------------------------------------------------------------------------------------------
-! write xdmf footer
-!----------------------------------------------------------------------------------------------------------
-    call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
 
-    if(nrank == 0) call Print_debug_mid_msg("Write out visulisation for flow field.")
-    
+    ! Write XDMF footer
+    call write_visu_headerfooter(dm, trim(visu_filename), XDMF_FOOTER, iteration)
+
+    ! Debug message
+    if (nrank == 0) call Print_debug_mid_msg("Flow field visualization data written successfully.")
+
     return
   end subroutine
 
@@ -536,8 +572,60 @@ contains
 !----------------------------------------------------------------------------------------------------------
     call write_visu_headerfooter(dm, trim(visuname), XDMF_FOOTER, iter)
 
-    if(nrank == 0) call Print_debug_mid_msg("Write out visulisation for thermal field.")
+    if(nrank == 0) call Print_debug_mid_msg("Write out visualisation for thermal field.")
     
+    return
+  end subroutine
+!==========================================================================================================
+  subroutine write_visu_mhd(mh, fl, dm, suffix)
+    use udf_type_mod
+    use precision_mod
+    use operations
+    use parameters_constant_mod
+    implicit none
+
+    ! Input variables
+    type(t_domain), intent(in) :: dm
+    type(t_flow), intent(in) :: fl
+    type(t_mhd), intent(in) :: mh
+    character(4), intent(in), optional :: suffix
+
+    ! Local variables
+    integer :: iteration
+    character(120) :: visu_filename
+
+    ! Initialize iteration and filename
+    iteration = fl%iteration
+    visu_filename = 'mhd'
+    if (present(suffix)) visu_filename = trim(visu_filename) // '_' // trim(suffix)
+
+    ! Write XDMF header
+    call write_visu_headerfooter(dm, trim(visu_filename), XDMF_HEADER, iteration)
+
+    ! Write electric potential field (cell-centered)
+    call process_and_write_field(mh%ep, dm, "potential", trim(visu_filename), iteration, &
+                                N_DIRECTION)
+
+    ! Process and write current density components (jx, jy, jz)
+    call process_and_write_field(mh%jx, dm, "jx_current", trim(visu_filename), iteration, &
+                                X_DIRECTION, opt_bc=mh%ibcx_jx)
+    call process_and_write_field(mh%jy, dm, "jy_current", trim(visu_filename), iteration, &
+                                Y_DIRECTION, opt_bc=mh%ibcy_jy)
+    call process_and_write_field(mh%jz, dm, "jz_current", trim(visu_filename), iteration, &
+                                Z_DIRECTION, opt_bc=mh%ibcz_jz)
+    ! Process and write Lorentz components
+    call process_and_write_field(fl%lrfx, dm, "fx_Lorentz", trim(visu_filename), iteration, &
+                                X_DIRECTION, opt_bc=dm%ibcx_qx)
+    call process_and_write_field(fl%lrfy, dm, "fy_Lorentz", trim(visu_filename), iteration, &
+                                Y_DIRECTION, opt_bc=dm%ibcy_qy)
+    call process_and_write_field(fl%lrfz, dm, "fz_Lorentz", trim(visu_filename), iteration, &
+                                Z_DIRECTION, opt_bc=dm%ibcz_qz)
+    ! Write XDMF footer
+    call write_visu_headerfooter(dm, trim(visu_filename), XDMF_FOOTER, iteration)
+
+    ! Debug message
+    if (nrank == 0) call Print_debug_mid_msg("MHD field visualization data written successfully.")
+
     return
   end subroutine
 
@@ -709,26 +797,13 @@ contains
 ! write data, temperature, to cell centre
 !----------------------------------------------------------------------------------------------------------
     if (is_same_decomp(dtmp, dm%dccc)) then
-      call write_visu_field(dm, var, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
-
+      call process_and_write_field(var, dm, trim(varname), trim(keyword), iter, N_DIRECTION)  
     else if (is_same_decomp(dtmp, dm%dpcc)) then
-      call Get_x_midp_P2C_3D(var, accc, dm, dm%iAccuracy, dm%ibcx_qx(:), dm%fbcx_qx)
-      call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
-
+      call process_and_write_field(var, dm, trim(varname), trim(keyword), iter, X_DIRECTION, opt_bc=dm%ibcx_qx)  
     else if (is_same_decomp(dtmp, dm%dcpc)) then
-      call transpose_x_to_y(var, acpc_ypencil, dm%dcpc)
-      call Get_y_midp_P2C_3D(acpc_ypencil, accc_ypencil, dm, dm%iAccuracy, dm%ibcy_qy(:), dm%fbcy_qy)
-      call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
-
+      call process_and_write_field(var, dm, trim(varname), trim(keyword), iter, Y_DIRECTION, opt_bc=dm%ibcy_qy)  
     else if (is_same_decomp(dtmp, dm%dccp)) then
-      call transpose_x_to_y(var, accp_ypencil, dm%dccp)
-      call transpose_y_to_z(accp_ypencil, accp_zpencil, dm%dccp)
-      call Get_z_midp_P2C_3D(accp_zpencil, accc_zpencil, dm, dm%iAccuracy, dm%ibcz_qz(:), dm%fbcz_qz)
-      call transpose_z_to_y(accc_zpencil, accc_ypencil, dm%dccc)
-      call transpose_y_to_x(accc_ypencil, accc, dm%dccc)
-      call write_visu_field(dm, accc, dm%dccc, trim(varname), trim(keyword), SCALAR, CELL, iter)
-
+      call process_and_write_field(var, dm, trim(varname), trim(keyword), iter, Z_DIRECTION, opt_bc=dm%ibcz_qz)  
     else
       call Print_error_msg ("Given decomp_into is not supported "//trim(varname))
     end if

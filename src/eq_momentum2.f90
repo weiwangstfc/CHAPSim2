@@ -1917,13 +1917,14 @@ write(*,*)appc_ypencil(1, 1:2, 1)
   call wrt_3d_pt_debug(fl%qx, dm%dpcc,   fl%iteration, isub, 'qx_updated') ! debug_ww
   call wrt_3d_pt_debug(fl%qy, dm%dcpc,   fl%iteration, isub, 'qy_updated') ! debug_ww
   call wrt_3d_pt_debug(fl%qz, dm%dccp,   fl%iteration, isub, 'qz_updated') ! debug_ww
-#endif
 
-  ! if(nrank == 0) then
-  !   call Print_debug_mid_msg("Conservative parameters have been updated.")
-  !   write(*,*) 'updated qx', fl%qx(1:4, 1, 1)
-  !   write(*,*) 'updated qx', fl%qx(1, 1:4, 1)
-  ! end if
+
+  if(nrank == 0) then
+    call Print_debug_mid_msg("Conservative parameters have been updated.")
+    ! write(*,*) 'updated qx', fl%qx(1:4, 1, 1)
+    ! write(*,*) 'updated qx', fl%qx(1, 1:4, 1)
+  end if
+#endif
 
     return
   end subroutine Solve_momentum_eq

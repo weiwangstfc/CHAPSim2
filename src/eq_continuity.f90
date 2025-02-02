@@ -343,7 +343,7 @@ contains
     use mpi_mod
     use solver_tools_mod
     use wtformat_mod
-    use io_visulisation_mod
+    use io_visualisation_mod
     use find_max_min_ave_mod
     use typeconvert_mod
     implicit none

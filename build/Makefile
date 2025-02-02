@@ -21,7 +21,7 @@ ifeq ($(cfg), gnu)
   FC     = mpif90
   FOPTS  = -g -O0 -Wall -fbacktrace -fbounds-check -fcheck=all -ffpe-trap=invalid,zero,overflow \
            -ffree-line-length-512 -Wuninitialized -Wmaybe-uninitialized -Wno-unused -cpp \
-          -pedantic -finit-real=nan -fstack-protector
+          -pedantic -finit-real=nan -fstack-protector -finit-real=snan
   FOPTS += -fallow-argument-mismatch
   FFLGS  = -DDOUBLE_PREC -fdefault-real-8 -fdefault-double-8
   FDEBG  = -DDEBUG_STEPS
