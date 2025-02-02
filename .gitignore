@@ -17,3 +17,4 @@ test_*/
 *.a
 .DS_Store
 *.code-workspace
+lib/.DS_Store
