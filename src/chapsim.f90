@@ -50,7 +50,7 @@ subroutine initialise_chapsim
   use poisson_interface_mod
   use solver_tools_mod
   use thermo_info_mod
-  use io_visulisation_mod
+  use io_visualisation_mod
   use eq_momentum_mod
   use wrt_debug_field_mod
   use mhd_mod
@@ -135,6 +135,7 @@ subroutine initialise_chapsim
     call Solve_momentum_eq(flow(i), domain(i), 0)
     call Check_element_mass_conservation(flow(i), domain(i), 0, 'init-div-free') 
     call write_visu_flow(flow(i), domain(i))
+    if(domain(i)%is_mhd) call write_visu_mhd(mhd(i), flow(i), domain(i))
     if(domain(i)%is_thermo)call write_visu_thermo(thermo(i), flow(i), domain(i))
 #ifdef DEBUG_STEPS
     if(domain(i)%is_thermo) then
@@ -147,7 +148,8 @@ subroutine initialise_chapsim
     call wrt_3d_pt_debug(flow(i)%qy,   domain(i)%dcpc, flow(i)%iteration, 0, 'qy@bf solv') ! debug_ww
     call wrt_3d_pt_debug(flow(i)%qz,   domain(i)%dccp, flow(i)%iteration, 0, 'qz@bf solv') ! debug_ww
     call wrt_3d_pt_debug(flow(i)%pres, domain(i)%dccc, flow(i)%iteration, 0, 'pr@bf solv') ! debug_ww
-    STOP  "STOP after initialisation"
+    !STOP  "STOP after initialisation"
+    flow(i)%nIterFlowEnd = 10
 #endif 
   end do
 !----------------------------------------------------------------------------------------------------------
@@ -195,7 +197,7 @@ subroutine Solve_eqs_iteration
   use input_general_mod
   use mpi_mod
   use wtformat_mod
-  use io_visulisation_mod
+  use io_visualisation_mod
   use io_monitor_mod
   use io_tools_mod
   use io_restart_mod
@@ -370,6 +372,7 @@ subroutine Solve_eqs_iteration
       !----------------------------------------------------------------------------------------------------------
       if(MOD(iter, domain(i)%visu_nfre) == 0) then
         if(is_flow(i)) call write_visu_flow(flow(i), domain(i))
+        if(domain(i)%is_mhd) call write_visu_mhd(mhd(i), flow(i), domain(i))
         if(domain(i)%is_thermo .and. is_thermo(i)) then
           call write_visu_thermo(thermo(i), flow(i), domain(i))
         end if

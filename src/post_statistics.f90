@@ -67,7 +67,7 @@ contains
   subroutine read_statistics_flow(fl, dm)
     use udf_type_mod
     use parameters_constant_mod
-    use io_visulisation_mod
+    use io_visualisation_mod
     implicit none 
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(inout) :: fl
@@ -224,7 +224,7 @@ contains
     type(t_domain), intent(in) :: dm
     type(t_flow),   intent(in) :: fl
 
-    ! here is not only a repeat of those in io_visulisation
+    ! here is not only a repeat of those in io_visualisation
     ! because they have different written freqence and to be used for restart as well.
     if(nrank == 0) call Print_debug_mid_msg("Writing flow statistics ...")
     call write_statistics_array(fl%pr_mean,                     'time_averaged_pr', dm%idom, fl%iteration, dm%dccc)
