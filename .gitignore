@@ -18,3 +18,4 @@ test_*/
 .DS_Store
 lib/.DS_Store
 *.code-workspace
+.vscode/

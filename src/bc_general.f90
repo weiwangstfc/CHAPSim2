@@ -633,7 +633,7 @@ end function
     bc(1:2) = mbc(1:2, JBC_GRAD)
     call build_bc_symm_operation(dm%ibcy_ftp, mbc, bc)
     call build_bc_symm_operation(dm%ibcy_ftp, mbc0, dm%ibcy_qy)
-    
+    !write(*,*) get_name_bc(mbc0(1, JBC_PROD)), get_name_bc(mbc(1, JBC_PROD))
     if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCy in mbcy_tau3 is wrong.")
     mbcy_tau3(1:2) = mbc(1:2, JBC_PROD)
     if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom y-diffusion  is ", get_name_bc(mbcy_tau3(1)), get_name_bc(mbcy_tau3(2))
