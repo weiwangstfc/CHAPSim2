@@ -1222,6 +1222,8 @@ write(*,*)appc_ypencil(1, 1:2, 1)
       !------PDE------
       call Get_y_midp_C2P_3D(accc_ypencil, acpc_ypencil, dm, dm%iAccuracy, mbcr_tau2, fbcy_c4c)
       my_rhs_ypencil =  my_rhs_ypencil - acpc_ypencil * fl%rre
+
+      if(dm%icase==ICASE_PIPE) my_rhs_ypencil(1, :, :) = ZERO
 #ifdef DEBUG_STEPS
       write(*,*) 'visy-24', acpc_ypencil(1, 1:4, 1)
 #endif
