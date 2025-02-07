@@ -2,7 +2,7 @@
 bin/
 obj/
 mod/
-build/\*.smod
+build/*.smod
 build/*.mod
 .input/
 .obsolete/
