@@ -647,6 +647,9 @@ end function
     if(nrank==0) write(*, wrtfmt3s) "The bc for z-mom z-diffusion  is ", get_name_bc(mbcz_tau3(1)), get_name_bc(mbcz_tau3(2))
 
     if(dm%icoordinate == ICYLINDRICAL) then
+      call build_bc_symm_operation(dm%ibcz_qy, mbc)
+      bc(1:2) = mbc(1:2, JBC_GRAD)
+      call build_bc_symm_operation(dm%ibcz_ftp, mbc, bc)
       call build_bc_symm_operation(dm%ibcy_ftp, mbc, dm%ibcy_qz)
       if(mbc0(1, JBC_PROD)/= mbc(1, JBC_PROD)) call Print_error_msg("BCr in mbcy_tau3 is wrong.")
       mbcr_tau3(1:2) = mbc(1:2, JBC_PROD)
