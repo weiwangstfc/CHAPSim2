@@ -16,5 +16,10 @@ test_*/
 *.mod
 *.a
 .DS_Store
-*.code-workspace
 lib/.DS_Store
+*.code-workspace
+<<<<<<< HEAD
+lib/.DS_Store
+=======
+.vscode/
+>>>>>>> feature
