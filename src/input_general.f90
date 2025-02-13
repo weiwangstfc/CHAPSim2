@@ -474,11 +474,7 @@ contains
 
           if (domain(i)%icase == ICASE_PIPE) then
             domain(i)%ibcy_nominal(1, :) = IBC_INTERIOR
-<<<<<<< HEAD
-            !domain(i)%ibcy_nominal(1, 2) = IBC_DIRICHLET
-=======
             domain(i)%ibcy_nominal(1, 2) = IBC_DIRICHLET
->>>>>>> feature
             domain(i)%fbcx_const(1, 2) = ZERO
             domain(i)%is_periodic(2) = .false.
           end if
