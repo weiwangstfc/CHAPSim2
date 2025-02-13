@@ -14,6 +14,7 @@ PROGRAM = CHAPSim
 DIR_SRC = ../src
 DIR_BIN = ../bin
 DIR_OBJ = ../obj
+DIR_BLD = ../build
 DIR_LIB = ../lib/fishpack4.1
 
 # Compiler and flags based on configuration
@@ -111,7 +112,7 @@ all: $(DIR_BIN)/$(PROGRAM)
 # Clean target
 clean:
 	@echo "\n ====== Cleaning build files... ====== \n"
-	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BIN)/$(PROGRAM)
+	@rm -f $(DIR_OBJ)/*.o $(DIR_OBJ)/*.mod $(DIR_BLD)/*.mod $(DIR_BLD)/*.smod $(DIR_BIN)/$(PROGRAM)
 
 # Phony targets
 .PHONY: all clean default

@@ -17,5 +17,6 @@ test_*/
 *.a
 .DS_Store
 lib/.DS_Store
+lib/2decomp-fft/build/CMakeCache.txt
 *.code-workspace
 .vscode/
